@@ -1073,8 +1073,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
+        ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        int found = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1114,28 +1114,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
-                        found++;
                         results.put(key, transformer.apply(value));
+                        keysAddedBuilder.add(key);
                     }
                 }
             }
         }
-        count.set(found);
+        Set<Cell> keysAddedToResults = keysAddedBuilder.build();
+        count.addAndGet(keysAddedToResults.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return rawResults;
+                return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
             validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-            return nextRawResults;
+            return getRemainingResults(nextRawResults, keysAddedToResults);
         } else {
             return ImmutableMap.of();
         }
+    }
+
+    private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
+        Map<Cell, Value> remainingResults = Maps.newHashMap(rawResults);
+        remainingResults.keySet().removeAll(keysAddedToResults);
+        return remainingResults;
     }
 
     /**
