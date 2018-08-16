@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - LockRefreshingLockService now batches calls to refresh locks in batches of 750K.
+           Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
+
     *    - |improved|
          - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
