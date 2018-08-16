@@ -17,4 +17,5 @@ dependencies {
 distribution {
   serviceName 'atlasdb-console'
   mainClass 'com.palantir.atlasdb.console.AtlasConsoleMain'
+  ignoredProductDependency('com.palantir.rescue', 'rescue')
 }

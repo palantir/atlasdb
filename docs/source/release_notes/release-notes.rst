@@ -50,9 +50,14 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Targeted Sweep is now enabled by default.
+           Products using atlasdb-cassandra library need to declare a dependency on Rescue 3 or ignore that dependency altogether.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3451>`__)
+
     *    - |improved|
          - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3447>`__)
 
     *    - |fixed|
          - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
