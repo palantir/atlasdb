@@ -18,4 +18,5 @@ dependencies {
 distribution {
   serviceName 'atlasdb-cli'
   mainClass 'com.palantir.atlasdb.cli.AtlasCli'
+  ignoredProductDependency('com.palantir.rescue', 'rescue')
 }

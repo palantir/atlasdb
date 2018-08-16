@@ -22,6 +22,7 @@ distribution {
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.TimelockBenchmarkClientLauncher'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms4096m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
 }
 
 configurations.all {

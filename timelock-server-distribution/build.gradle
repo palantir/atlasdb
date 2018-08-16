@@ -15,6 +15,7 @@ distribution {
     mainClass 'com.palantir.atlasdb.timelock.TimeLockServerLauncher'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms512m", "-Xmx512m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
 }
 
 task runTimeLock(type: JavaExec) {

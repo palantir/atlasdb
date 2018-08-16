@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - Targeted Sweep is now enabled by default.
+           Products using atlasdb-cassandra library need to declare a dependency on Rescue 3 or ignore that dependency altogether.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3451>`__)
+
     *    - |fixed|
          - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
