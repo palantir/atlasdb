@@ -50,9 +50,52 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
+
     *    - |improved|
          - AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/347>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3447>`__)
+
+    *    - |improved| |devbreak|
+         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
+           This may introduce a devbreak to users transitively relying on these old dependencies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
+
+    *    - |changed|
+         - ``CassandraRequestExceptionHandler`` is set to use ``Conservative`` exception handler by default. Main differences are:
+
+            - Conservative exception handler backs off for larger subset of exceptions
+            - Backoff period is exponentially increasing (but cannot go beyond ``MAX_BACKOFF``)
+            - Retries are executed on a different host rather than the same host for a larger subset of exceptions
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3444>`__)
+
+    *    - |improved| |logs|
+         - CassandraKVS's ``ExecutorService`` is now instrumented.
+           This ExecutorService is responsible for submitting queries to the underlying DB. It being throttled will increase the latency of queries and transactions.
+           The following metrics are available:
+
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.submitted``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.running``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.completed``
+              - ``com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService.executorService.duration``
+
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
+
+========
+v0.100.0
+========
+
+2 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Cassandra KVS now correctly accepts check-and-set operations if one is working with multiple columns in the relevant row.
@@ -74,18 +117,9 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3429>`__)
 
     *    - |improved|
-         - TimeLockAgent now exposes the number of active clients and the configured maximum
-           This makes it easier for a service to expose these via a health check
+         - TimeLockAgent now exposes the number of active clients and the configured maximum.
+           This makes it easier for a service to expose these via a health check.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3431>`__)
-
-    *    - |improved| |devbreak|
-         - The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
-           This may introduce a devreak to users transitively relying on these old dependencies.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3439>`__)
-
-    *    - |fixed|
-         - Fixed a bug that when filtering the row results for ``getRows`` in ``SnapshotTransaction`` could cause an exception due to duplicate keys in a map builder.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3445>`__)
 
 =======
 v0.99.0

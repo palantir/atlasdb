@@ -68,11 +68,15 @@ public abstract class SweepQueueTable {
                 .ifPresent(timestamp -> {
                     write(referencesToDedicatedCells, timestamp);
                     write(cellsToWrite, timestamp);
+                    updateWriteMetrics(partitionedWrites, timestamp);
                 });
 
+    }
+
+    private void updateWriteMetrics(Map<PartitionInfo, List<WriteInfo>> partitionedWrites, long timestamp) {
         maybeMetrics.ifPresent(metrics ->
                 partitionedWrites.forEach((info, writes) ->
-                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size())));
+                        metrics.updateEnqueuedWrites(ShardAndStrategy.fromInfo(info), writes.size(), timestamp)));
     }
 
     /**
