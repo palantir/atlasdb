@@ -57,9 +57,11 @@ jobs:
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - setup_remote_docker
-      - run: ./scripts/circle-ci/track-memory-usage.sh
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
-      - run: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
+      - run:
+          command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 600
       - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
