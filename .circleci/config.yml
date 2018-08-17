@@ -36,7 +36,7 @@ jobs:
       - run: scripts/circle-ci/pr-changelog-status-check.sh
 
   test:
-    parallelism: 7
+    parallelism: 8
     docker:
       - image: circleci/openjdk:8u171-jdk-node-browsers
     resource_class: xlarge
@@ -44,11 +44,12 @@ jobs:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       TERM: dumb
-      CIRCLE_TEST_REPORTS: ./tmp/test-reports
-      CIRCLE-ARTIFACTS: ./tmp/artifacts
+      CIRCLE_TEST_REPORTS: /tmp/test-reports
+      CIRCLE-ARTIFACTS: /tmp/artifacts
 
     steps:
       - checkout
+      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
       - restore_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
@@ -71,7 +72,7 @@ jobs:
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
       - run: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
       - store_test_results:
-          path: ./tmp/test-reports
+          path: /tmp/test-reports
       - run: mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash
@@ -80,7 +81,7 @@ jobs:
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
       - store_artifacts:
-          path: ./tmp/artifacts
+          path: /tmp/artifacts
 
     deployment:
       publish-docs:
