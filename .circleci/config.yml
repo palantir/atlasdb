@@ -46,6 +46,7 @@ jobs:
       TERM: dumb
 
     steps:
+      - checkout
       - restore_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
@@ -60,6 +61,7 @@ jobs:
       - run:
           command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
+      - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 600
