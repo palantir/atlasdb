@@ -65,6 +65,7 @@ jobs:
           command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
       - run: ./scripts/circle-ci/download-moreutils.sh
+      - run: sudo apt-get install python
       - run:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 600
