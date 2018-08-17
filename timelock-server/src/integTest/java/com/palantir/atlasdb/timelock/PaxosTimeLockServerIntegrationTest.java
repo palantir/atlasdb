@@ -326,11 +326,14 @@ public class PaxosTimeLockServerIntegrationTest {
         long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
 
-        long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
+        long firstServiceSecondTimestamp = timestampService1
+                .getFreshTimestamps(100)
+                .getUpperBound();
+
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
-        assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
-        assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
+        assertThat(firstServiceSecondTimestamp - firstServiceFirstTimestamp).isGreaterThanOrEqualTo(100L);
+        assertThat(secondServiceSecondTimestamp - secondServiceFirstTimestamp).isBetween(0L, 100L);
     }
 
     @Test
