@@ -7,7 +7,7 @@ jobs:
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       TERM: dumb
 
     steps:
@@ -42,10 +42,10 @@ jobs:
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       TERM: dumb
       CIRCLE_TEST_REPORTS: /tmp/test-reports
-      CIRCLE-ARTIFACTS: /tmp/artifacts
+      CIRCLE_ARTIFACTS: /tmp/artifacts
 
     steps:
       - checkout
