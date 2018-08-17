@@ -186,20 +186,45 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-101-0">
+<h2>v0.101.0<a class="headerlink" href="#v0-101-0" title="Permalink to this headline">¶</a></h2>
+<p>16 Aug 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Targeted Sweep is now enabled by default.
+Products using atlasdb-cassandra library need to declare a dependency on Rescue 3 or ignore that dependency altogether.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3451">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug that when filtering the row results for <code class="docutils literal notranslate"><span class="pre">getRows</span></code> in <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> could cause an exception due to duplicate keys in a map builder.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3445">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now correctly closes the targeted sweeper on shutdown, and logs less by default.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3447">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The atlasdb-commons package has had its dependency tree greatly pruned of unused cruft.
 This may introduce a devbreak to users transitively relying on these old dependencies.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3439">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td><p class="first"><code class="docutils literal notranslate"><span class="pre">CassandraRequestExceptionHandler</span></code> is set to use <code class="docutils literal notranslate"><span class="pre">Conservative</span></code> exception handler by default. Main differences are:</p>
 <blockquote>
 <div><ul class="simple">
@@ -211,7 +236,7 @@ This may introduce a devbreak to users transitively relying on these old depende
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3444">Pull Request</a>)</p>
 </td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-logs">LOGS</span></td>
 <td><p class="first">CassandraKVS’s <code class="docutils literal notranslate"><span class="pre">ExecutorService</span></code> is now instrumented.
 This ExecutorService is responsible for submitting queries to the underlying DB. It being throttled will increase the latency of queries and transactions.
 The following metrics are available:</p>
@@ -225,6 +250,12 @@ The following metrics are available:</p>
 </div></blockquote>
 <p class="last">(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3416">Pull Request</a>)</p>
 </td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> has a new builder option named <code class="docutils literal notranslate"><span class="pre">validateLocksOnReads()</span></code>; set to <code class="docutils literal notranslate"><span class="pre">true</span></code> by default. This option is passed to <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>’s constructor, to be used in initialization of <code class="docutils literal notranslate"><span class="pre">Transaction</span></code>.
+A transaction will validate pre-commit conditions and immutable ts lock after every read operation if underlying table is thoroughly swept (Default behavior). Setting <code class="docutils literal notranslate"><span class="pre">validateLocksOnReads</span></code> to <code class="docutils literal notranslate"><span class="pre">false</span></code> will stop transaction to do the mentioned validation on read operations; causing validations to take place only at commit time for the sake of reducing number of round-trips to improve overall transaction perf.
+This change will cause a devbreak if you are constructing a <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> outside of <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code>. This can be resolved by adding an additional boolean parameter to the constructor (<code class="docutils literal notranslate"><span class="pre">true</span></code> if you would like to keep previous behaviour)
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3414">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

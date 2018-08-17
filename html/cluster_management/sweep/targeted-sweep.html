@@ -217,7 +217,7 @@ In both cases, these configuration options are specified within a <code class="d
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enableSweepQueueWrites</span></code></td>
-<td>false</td>
+<td>true</td>
 <td>Whether information about writes should be persisted to the sweep queue. If set to false, the targeted sweep runtime configurations will be ignored.</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">conservativeThreads</span></code></td>
@@ -244,7 +244,7 @@ In both cases, these configuration options are specified within a <code class="d
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal notranslate"><span class="pre">enabled</span></code></td>
-<td>false</td>
+<td>true</td>
 <td>Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run.</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal notranslate"><span class="pre">shards</span></code></td>
@@ -253,16 +253,14 @@ In both cases, these configuration options are specified within a <code class="d
 </tr>
 </tbody>
 </table>
-<p>For example, to enable writes to the sweep queue and targeted sweep, with three conservative threads, one thorough
+<p>For example, to configure targeted sweep with three conservative threads, one thorough
 thread (which is the default) and 8 shards, one should add the following blocks to their configuration:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">atlasdb</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">targetedSweep</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">enableSweepQueueWrites</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
     <span class="l l-Scalar l-Scalar-Plain">conservativeThreads</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
 
 <span class="l l-Scalar l-Scalar-Plain">atlasdb-runtime</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">targetedSweep</span><span class="p p-Indicator">:</span>
-    <span class="l l-Scalar l-Scalar-Plain">enabled</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
     <span class="l l-Scalar l-Scalar-Plain">shards</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">8</span>
 </pre></div>
 </div>
