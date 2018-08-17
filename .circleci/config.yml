@@ -58,9 +58,9 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - setup_remote_docker
       - run: ./scripts/circle-ci/track-memory-usage.sh
-        - background: true
+          background: true
       - run: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh:
-        - no_output_timeout: 600
+          no_output_timeout: 600
       - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
       - run: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
@@ -93,7 +93,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-
       - test:
           requires: [build]
           filters:
