@@ -2,21 +2,19 @@ version: 2
 
 jobs:
   build:
-    machine:
-      java:
-        version:
-          openjdk8
-      environment:
-        _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
-        TERM: dumb
-      post: # install-docker.sh and starting Docker depend on environment variables to deduce whether they're running on external or internal CircleCI, which are not visible in 'pre'.
-        - ./scripts/circle-ci/install-docker.sh:
-            pwd: $CIRCLE_PROJECT_REPONAME
-        - sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
-        - sudo chmod +x /usr/local/bin/docker-compose
-        - docker info >/dev/null 2>&1 || sudo service docker start
+    docker:
+      - image: circleci/openjdk:8u171-jdk-node-browsers
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      TERM: dumb
 
     steps:
+      - setup_remote_docker
+      - run: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
+      - run: sudo chmod +x /usr/local/bin/docker-compose
+      - run: docker info >/dev/null 2>&1 || sudo service docker start
       - checkout
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
       - run:
@@ -75,3 +73,13 @@ jobs:
         owner: atlasdb # Use 'atlasdb' for publishing from internal circle and 'palantir' for publishing from external circle
         commands:
           - ./gradlew bintrayUpload -x check
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build:
+          filters:
+            # CircleCI2 will ignore tags without this. https://circleci.com/docs/2.0/workflows/#git-tag-job-execution
+            tags:
+              only: /.*/
