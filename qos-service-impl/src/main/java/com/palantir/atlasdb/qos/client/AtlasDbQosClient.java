@@ -20,9 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Ticker;
@@ -35,9 +32,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting.api.errors.QosException;
 
 public class AtlasDbQosClient implements QosClient {
-
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
-
     private final QosRateLimiters rateLimiters;
     private final QosMetrics metrics;
     private final Ticker ticker;

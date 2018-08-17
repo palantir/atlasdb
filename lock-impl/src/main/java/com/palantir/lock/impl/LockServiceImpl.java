@@ -508,7 +508,7 @@ public final class LockServiceImpl
 
         // Note: The construction of params is pushed into the branches, as it may be expensive.
         if (isSlowLogEnabled() && durationMillis >= slowLogTriggerMillis) {
-            SlowLockLogger.logger.warn(slowLockLogMessage,
+            SlowLockLogger.logger.info(slowLockLogMessage,
                     constructSlowLockLogParams(lockId, currentHolder, durationMillis));
         } else if (log.isDebugEnabled() && durationMillis > DEBUG_SLOW_LOG_TRIGGER_MILLIS) {
             log.debug(slowLockLogMessage, constructSlowLockLogParams(lockId, currentHolder, durationMillis));
@@ -987,7 +987,7 @@ public final class LockServiceImpl
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
-                    log.warn("Lock token {} was not properly refreshed and is now being reaped.",
+                    log.info("Lock token {} was not properly refreshed and is now being reaped.",
                             UnsafeArg.of("token", realToken));
                     unlockInternal(realToken, heldLocksMap);
                 }
