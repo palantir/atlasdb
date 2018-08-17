@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+========
+v0.101.0
+========
+
+16 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |changed|
          - Targeted Sweep is now enabled by default.
            Products using atlasdb-cassandra library need to declare a dependency on Rescue 3 or ignore that dependency altogether.
