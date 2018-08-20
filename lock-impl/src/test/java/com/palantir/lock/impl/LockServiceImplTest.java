@@ -21,9 +21,7 @@ import static org.junit.Assert.assertThat;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.debug;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockMode;
@@ -156,18 +155,7 @@ public final class LockServiceImplTest {
             tokens.add(lockServiceWithSlowLogDisabled.lock("test", request));
         }
 
-        Assertions.assertThat(approximateSizeInKB(tokens)).isLessThan(45);
-    }
-
-    private static int approximateSizeInKB(Set<LockRefreshToken> tokens) throws IOException {
-        ByteArrayOutputStream byteOutputStream = new ByteArrayOutputStream();
-
-        try(ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteOutputStream)) {
-            objectOutputStream.writeObject(tokens);
-            objectOutputStream.flush();
-        }
-
-        return byteOutputStream.toByteArray().length / 1024;
+        Assertions.assertThat(new ObjectMapper().writeValueAsString(tokens).length()).isLessThan(45_000);
     }
 
     private static void assertContainsMatchingLoggingEvent(List<LoggingEvent> actuals, LoggingEvent expected) {
