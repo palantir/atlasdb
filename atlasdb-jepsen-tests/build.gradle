@@ -15,7 +15,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
 
 task ensureDateUtilPresent(type: Exec) {
-    commandLine 'ensure-date-util-present.sh'
+    commandLine 'scripts/ensure-date-util-present.sh'
 }
 
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
