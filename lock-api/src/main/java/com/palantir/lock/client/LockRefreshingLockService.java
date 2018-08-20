@@ -130,7 +130,7 @@ public class LockRefreshingLockService extends SimplifyingLockService {
         }
         Set<LockRefreshToken> refreshedTokens = new HashSet<>();
         // We batch refreshes to avoid sending payload of excessive size
-        for (List<LockRefreshToken> tokenBatch: Iterables.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
+        for (List<LockRefreshToken> tokenBatch : Iterables.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
             refreshedTokens.addAll(delegate.refreshLockRefreshTokens(tokenBatch));
         }
         for (LockRefreshToken token : refreshCopy) {
