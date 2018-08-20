@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
+           Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
 ========
 v0.101.0
