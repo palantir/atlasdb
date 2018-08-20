@@ -34,8 +34,6 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -129,7 +127,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
-                                   CommitProfileProcessor commitProfileProcessor) {
+                                   CommitProfileProcessor commitProfileProcessor,
+                                   boolean validateLocksOnReads) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -151,7 +150,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               defaultGetRangesConcurrency,
               sweepQueue,
               deleteExecutor,
-              commitProfileProcessor);
+              commitProfileProcessor,
+              validateLocksOnReads);
     }
 
     @Override
@@ -711,7 +711,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
-                commitProfileProcessor) {
+                commitProfileProcessor,
+                validateLocksOnReads) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,
@@ -739,7 +740,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // If we do not get back all these results we may be in the deadlock case so we should just
                         // fail out early.  It may be the case that abort more transactions than needed to break the
                         // deadlock cycle, but this should be pretty rare.
-                        getTransactionConflictsMeter().mark();
+                        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
                         throw new TransactionSerializableConflictException("An uncommitted conflicting read was "
                                 + "written after our start timestamp for table " + tableRef + ".  "
                                 + "This case can cause deadlock and is very likely to be a read write conflict.");
@@ -759,14 +760,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void handleTransactionConflict(TableReference tableRef) {
-        getTransactionConflictsMeter().mark();
+        transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         throw TransactionSerializableConflictException.create(tableRef, getTimestamp(),
                 System.currentTimeMillis() - timeCreated);
-    }
-
-    private Meter getTransactionConflictsMeter() {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.getRegistry().meter(
-                MetricRegistry.name(SerializableTransaction.class, "SerializableTransactionConflict"));
     }
 }

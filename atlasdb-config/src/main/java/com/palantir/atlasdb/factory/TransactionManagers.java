@@ -43,6 +43,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -67,6 +68,7 @@ import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -176,6 +178,11 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean allowHiddenTableAccess() {
         return false;
+    }
+
+    @Value.Default
+    boolean validateLocksOnReads() {
+        return true;
     }
 
     abstract String userAgent();
@@ -370,15 +377,18 @@ public abstract class TransactionManagers {
                         config.keyValueService().concurrentGetRangesThreadPoolSize(),
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
-                        () -> runtimeConfigSupplier.get().getTimestampCacheSize(),
+                        new TimestampCache(metricsManager.getRegistry(),
+                                () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
-                        callbacks),
+                        callbacks,
+                        validateLocksOnReads()),
                 closeables);
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
         instrumentedTransactionManager.registerClosingCallback(qosClient::close);
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
@@ -634,7 +644,13 @@ public abstract class TransactionManagers {
                         time,
                         invalidator,
                         userAgent);
-        return withRefreshingLockService(lockAndTimestampServices);
+        TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timeLockClient)
+                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .close(timeLockClient::close)
+                .build();
     }
 
     @VisibleForTesting
@@ -653,7 +669,16 @@ public abstract class TransactionManagers {
         return withRequestBatchingTimestampService(
                 metricsManager,
                 () -> runtimeConfigSupplier.get().timestampClient(),
-                withRefreshingLockService(lockAndTimestampServices));
+                withRefreshingLockService(
+                        withBridgingTimelockService(lockAndTimestampServices)));
+    }
+
+    private static LockAndTimestampServices withBridgingTimelockService(
+            LockAndTimestampServices lockAndTimestampServices) {
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(ImmutableTimestampBridgingTimeLockService.create(lockAndTimestampServices.timelock()))
+                .build();
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -688,8 +713,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    @VisibleForTesting
-    static LockAndTimestampServices createRawInstrumentedServices(
+    private static LockAndTimestampServices createRawInstrumentedServices(
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,

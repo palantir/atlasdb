@@ -69,6 +69,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
@@ -81,19 +82,23 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS2 = 2 * LOW_TS;
     private static final long LOW_TS3 = 3 * LOW_TS;
 
-    private TargetedSweeper sweepQueue =
-            TargetedSweeper.createUninitializedForTest(metricsManager, () -> DEFAULT_SHARDS);
+    private TargetedSweeper sweepQueue;
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
     private TargetedSweepFollower mockFollower;
+    private TimelockService timelockService;
     private PuncherStore puncherStore;
+    private boolean enabled = true;
 
     @Before
     public void setup() {
         super.setup();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, () -> enabled, () -> DEFAULT_SHARDS);
         mockFollower = mock(TargetedSweepFollower.class);
-        sweepQueue.initialize(timestampsSupplier, mock(TimelockService.class), spiedKvs, mockFollower);
+
+        timelockService = mock(TimelockService.class);
+        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -117,8 +122,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
-        assertThatThrownBy(() -> sweeper
-                .initialize(null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
+        assertThatThrownBy(() -> sweeper.initializeWithoutRunning(
+                null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -167,8 +172,29 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeMinusMillisAtTimestamp(2000, LOW_TS);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(2000L);
+        setTimelockTime(5_000L);
+        punchTimeAtTimestamp(2_000, LOW_TS);
+        // all entries were swept
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(0L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
+    }
+
+    @Test
+    public void sweepWithNoCandidatesBeforeSweepTimestampReportsNothingToSweep() {
+        enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+    }
+
+    @Test
+    public void sweepDisabledIsReportedInOutcome() {
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+
+        enabled = false;
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.DISABLED, 1L);
     }
 
     @Test
@@ -315,6 +341,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 4);
         enqueueTombstone(TABLE_CONS, LOW_TS + 6);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 8);
+        // ensure not all entries will be swept
+        enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
 
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         for (int i = 0; i < 10; i = i + 2) {
@@ -327,8 +355,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(0));
 
-        punchCurrentTimeMinusMillisAtTimestamp(5000L, LOW_TS + 8);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(5000L);
+        setTimelockTime(10_000L);
+        punchTimeAtTimestamp(5_000L, LOW_TS + 8);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(10_000L - 5000L);
     }
 
     @Test
@@ -336,9 +365,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         long tsFineTwo = LOW_TS + TS_FINE_GRANULARITY;
         long tsFineFour = LOW_TS + 3 * TS_FINE_GRANULARITY;
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        punchTimeAtTimestamp(100L, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, tsFineTwo);
+        punchTimeAtTimestamp(200L, tsFineTwo);
         enqueueWriteCommitted(TABLE_CONS, tsFineFour);
+        punchTimeAtTimestamp(300L, tsFineFour);
         enqueueWriteCommitted(TABLE_CONS, tsFineFour + 1L);
+        punchTimeAtTimestamp(400L, tsFineFour + 1L);
+
+        // add one more entry that will not be swept
+        enqueueWriteCommitted(TABLE_CONS, 5 * TS_FINE_GRANULARITY);
+        punchTimeAtTimestamp(3000L, 5 * TS_FINE_GRANULARITY);
+
 
         // first sweep effectively only writes a sentinel
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -360,8 +398,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(3));
 
-        punchCurrentTimeMinusMillisAtTimestamp(0L, tsFineFour + 1L);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeWithinOneSecondOf(0L);
+        setTimelockTime(5000L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5000L - 400L);
     }
 
     @Test
@@ -1019,8 +1057,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEmpty();
     }
 
-    private void punchCurrentTimeMinusMillisAtTimestamp(long minusMillis, long timestamp) {
-        puncherStore.put(timestamp, System.currentTimeMillis() - minusMillis);
+    private void setTimelockTime(long timeMillis) {
+        when(timelockService.currentTimeMillis()).thenReturn(timeMillis);
+    }
+
+    private void punchTimeAtTimestamp(long timeMillis, long timestamp) {
+        puncherStore.put(timestamp, timeMillis);
     }
 
     private void commitTransactionsWithWritesIntoUniqueCells(int transactions, int writes, TargetedSweeper sweeper) {
@@ -1037,7 +1079,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        sweeper.initialize(
+        sweeper.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), spiedKvs, mock(TargetedSweepFollower.class));
         return sweeper;
     }
@@ -1065,9 +1107,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
             TimelockService stickyLockService) throws InterruptedException {
         for (int i = 0; i < sweepers; i++) {
-            TargetedSweeper
-                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of())
-                    .initialize(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+            TargetedSweeper sweeperInstance = TargetedSweeper
+                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of());
+            sweeperInstance.initializeWithoutRunning(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+            sweeperInstance.runInBackground();
         }
         waitUntilBackgroundSweepRunsOneIteration();
     }

@@ -65,11 +65,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     @VisibleForTesting
-    protected static <T> AwaitingLeadershipProxy<T> proxyForTest(Supplier<T> delegateSupplier,
+    static <T> AwaitingLeadershipProxy<T> proxyForTest(Supplier<T> delegateSupplier,
             LeaderElectionService leaderElectionService,
             Class<T> interfaceClass,
             AtomicReference<LeadershipToken> leadershipTokenRef) {
-        return new AwaitingLeadershipProxy<>(delegateSupplier, leaderElectionService, interfaceClass, leadershipTokenRef);
+        return new AwaitingLeadershipProxy<>(delegateSupplier, leaderElectionService, interfaceClass,
+                leadershipTokenRef);
     }
 
     final Supplier<T> delegateSupplier;
@@ -93,7 +94,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private AwaitingLeadershipProxy(Supplier<T> delegateSupplier, LeaderElectionService leaderElectionService,
             Class<T> interfaceClass, AtomicReference<LeadershipToken> leadershipTokenRef) {
-        Preconditions.checkNotNull(delegateSupplier, "Unable to create an AwaitingLeadershipProxy with no supplier");
+        Preconditions.checkNotNull(delegateSupplier,
+                "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
@@ -212,7 +214,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     || e.getTargetException() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());
             }
-            // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts in case of a leader election.
+            // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
+            // in case of a leader election.
             if (e.getTargetException() instanceof InterruptedException && !isStillCurrentToken(leadershipToken)) {
                 throw notCurrentLeaderException("received an interrupt due to leader election.",
                         e.getTargetException());
@@ -222,7 +225,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     @VisibleForTesting
-    protected LeadershipToken getLeadershipToken() {
+    LeadershipToken getLeadershipToken() {
         LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
@@ -252,7 +255,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Optional<HostAndPort> maybeLeader = leaderElectionService.getSuspectedLeaderInMemory();
         if (maybeLeader.isPresent()) {
             HostAndPort leaderHint = maybeLeader.get();
-            return new NotCurrentLeaderException(message + "; hinting suspected leader host " + leaderHint, cause, leaderHint);
+            return new NotCurrentLeaderException(message + "; hinting suspected leader host " + leaderHint,
+                    cause, leaderHint);
         } else {
             return new NotCurrentLeaderException(message, cause);
         }

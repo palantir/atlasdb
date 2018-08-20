@@ -26,11 +26,13 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@AutoDelegate(typeToExtend = TimelockService.class)
 public interface TimelockService {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
@@ -53,7 +55,12 @@ public interface TimelockService {
 
     @POST
     @Path("lock-immutable-timestamp")
-    LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request);
+    // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
+    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction")
+    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
     @Path("immutable-timestamp")

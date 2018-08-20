@@ -28,8 +28,8 @@ import com.google.common.reflect.AbstractInvocationHandler;
 /**
  * Allows you to intercept and override methods in {@link javax.sql.DataSource}.
  * <p/>
- * We only care about {@link DataSource#getConnection()}(). Its partner, getConnection(String username, String password),
- * is never used since we pre-configure the datasources.
+ * We only care about {@link DataSource#getConnection()}().
+ * Its partner, getConnection(String username, String password), is never used since we pre-configure the data sources.
  * <p/>
  * We use this to run SQL against a connection to prepare it for use before placing it in a pool.
  * (i.e., create temporary tables on PostgreSQL, etc.)
@@ -51,10 +51,10 @@ public abstract class InterceptorDataSource {
                     throw e.getTargetException();
                 }
                 if (method.getName().equals("getConnection")) {
-                    Connection c = (Connection) ret;
-                    c = InterceptorConnection.wrapInterceptor(c);
-                    onAcquire(c);
-                    ret = c;
+                    Connection conn = (Connection) ret;
+                    conn = InterceptorConnection.wrapInterceptor(conn);
+                    onAcquire(conn);
+                    ret = conn;
                 }
                 return ret;
 
@@ -67,7 +67,7 @@ public abstract class InterceptorDataSource {
         };
     }
 
-    protected abstract void onAcquire(Connection c);
+    protected abstract void onAcquire(Connection conn);
 
     public static DataSource wrapInterceptor(InterceptorDataSource instance) {
         return (DataSource) Proxy.newProxyInstance(

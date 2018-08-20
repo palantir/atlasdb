@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -47,6 +46,8 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -95,6 +96,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
@@ -130,10 +133,11 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+
+import okio.ByteString;
 
 /**
  * Each service can have one or many C* KVS.
@@ -148,7 +152,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * if some nodes are down, and the change can be detected through active hosts,
  * and these inactive nodes will be removed afterwards.
  */
-@AutoDelegate(typeToExtend = CassandraKeyValueService.class)
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
     @VisibleForTesting
@@ -214,6 +217,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
     private final CassandraTableDropper cassandraTableDropper;
+    private final CheckAndSetRunner checkAndSetRunner;
 
     private final CassandraTables cassandraTables;
 
@@ -347,8 +351,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(AbstractKeyValueService.createFixedThreadPool("Atlas Cassandra KVS",
-                config.poolSize() * config.servers().size()));
+        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;
@@ -374,6 +377,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
+        this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+    }
+
+    private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
+            MetricRegistry registry) {
+        return new InstrumentedExecutorService(
+                createFixedThreadPool("Atlas Cassandra KVS",
+                        config.poolSize() * config.servers().size()),
+                registry,
+                MetricRegistry.name(CassandraKeyValueService.class, "executorService"));
     }
 
     @Override
@@ -1958,8 +1971,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
                 for (Entry<Cell, byte[]> e : values.entrySet()) {
                     CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
-                    CASResult casResult = executeCheckAndSet(client, request);
-                    if (!casResult.isSuccess()) {
+                    CheckAndSetResult casResult = checkAndSetRunner.executeCheckAndSet(client, request);
+                    if (!casResult.successful()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
                                 ImmutableList.of(e.getKey())));
@@ -1990,10 +2003,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void checkAndSet(final CheckAndSetRequest request) throws CheckAndSetException {
         try {
-            CASResult casResult = clientPool.runWithRetry(client -> executeCheckAndSet(client, request));
-            if (!casResult.isSuccess()) {
-                List<byte[]> currentValues = casResult.current_values.stream()
-                        .map(Column::getValue)
+            CheckAndSetResult casResult = clientPool.runWithRetry(
+                    client -> checkAndSetRunner.executeCheckAndSet(client, request));
+            if (!casResult.successful()) {
+                List<byte[]> currentValues = casResult.existingValues()
+                        .stream()
+                        .map(ByteString::toByteArray)
                         .collect(Collectors.toList());
 
                 throw new CheckAndSetException(
@@ -2007,48 +2022,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
-    }
-
-    private CASResult executeCheckAndSet(CassandraClient client, CheckAndSetRequest request)
-            throws TException {
-        try {
-            TableReference table = request.table();
-            Cell cell = request.cell();
-            long timestamp = AtlasDbConstants.TRANSACTION_TS;
-
-            ByteBuffer rowName = ByteBuffer.wrap(cell.getRowName());
-            byte[] colName = CassandraKeyValueServices
-                    .makeCompositeBuffer(cell.getColumnName(), timestamp)
-                    .array();
-
-            List<Column> oldColumns;
-            java.util.Optional<byte[]> oldValue = request.oldValue();
-            if (oldValue.isPresent()) {
-                oldColumns = ImmutableList.of(makeColumn(colName, oldValue.get(), timestamp));
-            } else {
-                oldColumns = ImmutableList.of();
-            }
-
-            Column newColumn = makeColumn(colName, request.newValue(), timestamp);
-            return queryRunner.run(client, table, () -> client.cas(
-                    table,
-                    rowName,
-                    oldColumns,
-                    ImmutableList.of(newColumn),
-                    ConsistencyLevel.SERIAL,
-                    writeConsistency));
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "Check-and-set requires " + writeConsistency + " Cassandra nodes to be up and available.", e);
-        }
-    }
-
-    private Column makeColumn(byte[] colName, byte[] contents, long timestamp) {
-        Column newColumn = new Column();
-        newColumn.setName(colName);
-        newColumn.setValue(contents);
-        newColumn.setTimestamp(timestamp);
-        return newColumn;
     }
 
     @Override

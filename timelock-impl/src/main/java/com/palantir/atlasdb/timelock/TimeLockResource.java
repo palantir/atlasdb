@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
@@ -39,15 +40,28 @@ import com.palantir.timestamp.TimestampService;
 public class TimeLockResource {
     private final Logger log = LoggerFactory.getLogger(TimeLockResource.class);
 
+    @VisibleForTesting
+    static final String ACTIVE_CLIENTS = "activeClients";
+    @VisibleForTesting
+    static final String MAX_CLIENTS = "maxClients";
+
     private final Function<String, TimeLockServices>  clientServicesFactory;
     private final ConcurrentMap<String, TimeLockServices> servicesByNamespace = Maps.newConcurrentMap();
     private final Supplier<Integer> maxNumberOfClients;
 
-    public TimeLockResource(
+    private TimeLockResource(
             Function<String, TimeLockServices> clientServicesFactory,
             Supplier<Integer> maxNumberOfClients) {
         this.clientServicesFactory = clientServicesFactory;
         this.maxNumberOfClients = maxNumberOfClients;
+    }
+
+    public static TimeLockResource create(MetricsManager metricsManager,
+            Function<String, TimeLockServices> clientServicesFactory,
+            Supplier<Integer> maxNumberOfClients) {
+        TimeLockResource resource = new TimeLockResource(clientServicesFactory, maxNumberOfClients);
+        registerClientCapacityMetrics(resource, metricsManager);
+        return resource;
     }
 
     @Path("/lock")
@@ -75,8 +89,12 @@ public class TimeLockResource {
         return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
     }
 
-    public int numberOfClients() {
+    public int getNumberOfActiveClients() {
         return servicesByNamespace.size();
+    }
+
+    public int getMaxNumberOfClients() {
+        return maxNumberOfClients.get();
     }
 
     private TimeLockServices createNewClient(String namespace) {
@@ -85,16 +103,21 @@ public class TimeLockResource {
                         + "used.",
                 PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE);
 
-        if (numberOfClients() >= maxNumberOfClients.get()) {
+        if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
                             + "increased via the maximum-number-of-clients runtime config property.",
                     SafeArg.of("client", namespace),
-                    SafeArg.of("maxNumberOfClients", maxNumberOfClients));
+                    SafeArg.of("maxNumberOfClients", getMaxNumberOfClients()));
             throw new IllegalStateException("Maximum number of clients exceeded");
         }
 
         return clientServicesFactory.apply(namespace);
+    }
+
+    private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {
+        metricsManager.registerMetric(TimeLockResource.class, ACTIVE_CLIENTS, resource::getNumberOfActiveClients);
+        metricsManager.registerMetric(TimeLockResource.class, MAX_CLIENTS, resource::getMaxNumberOfClients);
     }
 }

@@ -24,8 +24,8 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.CodedOutputStream;
@@ -50,7 +51,7 @@ import com.palantir.util.crypto.Sha256Hash;
 public class PaxosStateLogImpl<V extends Persistable & Versionable> implements PaxosStateLog<V> {
 
     private final ReentrantLock lock = new ReentrantLock();
-    private final HashMap<Long, Long> seqToVersionMap = new HashMap<Long, Long>();
+    private final Map<Long, Long> seqToVersionMap = Maps.newHashMap();
 
     private static final String TMP_FILE_SUFFIX = ".tmp";
     private static final Logger log = LoggerFactory.getLogger(PaxosStateLogImpl.class);
@@ -69,7 +70,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         };
     }
 
-    private static final Comparator<File> nameAsLongComparator() {
+    private static Comparator<File> nameAsLongComparator() {
         return (f1, f2) -> {
             Long s1 = getSeqFromFilename(f1);
             Long s2 = getSeqFromFilename(f2);
@@ -77,7 +78,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         };
     }
 
-    private static enum Extreme { GREATEST, LEAST }
+    private enum Extreme { GREATEST, LEAST }
 
     final String path;
 
@@ -199,6 +200,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
         }
     }
 
+    @SuppressWarnings("ParameterAssignment")
     @Override
     public void truncate(long toDeleteInclusive) {
         lock.lock();

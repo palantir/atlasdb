@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -30,6 +31,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcomeMetrics;
 import com.palantir.atlasdb.sweep.priority.NextTableToSweepProvider;
 import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
@@ -71,7 +74,7 @@ public class BackgroundSweepThread implements Runnable {
             MetricsManager metricsManager) {
         return new BackgroundSweepThread(lockService, nextTableToSweepProvider, sweepBatchConfigSource, isSweepEnabled,
                 sweepPauseMillis, sweepPriorityOverrideConfig, specificTableSweeper,
-                new SweepOutcomeMetrics(metricsManager), new CountDownLatch(1), 1);
+                SweepOutcomeMetrics.registerLegacy(metricsManager), new CountDownLatch(1), 1);
     }
 
     BackgroundSweepThread(LockService lockService,
@@ -101,7 +104,7 @@ public class BackgroundSweepThread implements Runnable {
         try (SingleLockService locks = createSweepLocks()) {
             // Wait a while before starting so short lived clis don't try to sweep.
             waitUntilSpecificTableSweeperIsInitialized();
-            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
+            sleepFor(getBackoffTimeWhenSweepHasNotRun());
             log.info("Starting background sweeper with thread index {}", SafeArg.of("threadIndex", threadIndex));
             while (true) {
                 // InterruptedException might be wrapped in RuntimeException (i.e. AtlasDbDependencyException),
@@ -140,7 +143,7 @@ public class BackgroundSweepThread implements Runnable {
             log.info("Sweep Priority Table and Sweep Progress Table are not initialized yet. If you have enabled "
                     + "asynchronous initialization, these tables are being initialized asynchronously. Background "
                     + "sweeper will start once the initialization is complete.");
-            sleepForMillis(getBackoffTimeWhenSweepHasNotRun());
+            sleepFor(getBackoffTimeWhenSweepHasNotRun());
         }
     }
 
@@ -174,11 +177,13 @@ public class BackgroundSweepThread implements Runnable {
     }
 
     private void sleepUntilNextRun(SweepOutcome outcome) throws InterruptedException {
-        long sleepDurationMillis = getBackoffTimeWhenSweepHasNotRun();
+        Duration sleepDuration = getBackoffTimeWhenSweepHasNotRun();
         if (outcome == SweepOutcome.SUCCESS) {
-            sleepDurationMillis = sweepPauseMillis.get();
+            sleepDuration = Duration.ofMillis(sweepPauseMillis.get());
+        } else if (outcome == SweepOutcome.NOTHING_TO_SWEEP) {
+            sleepDuration = getBackoffTimeWhenNothingToSweep();
         }
-        sleepForMillis(sleepDurationMillis);
+        sleepFor(sleepDuration);
     }
 
     @VisibleForTesting
@@ -210,8 +215,12 @@ public class BackgroundSweepThread implements Runnable {
         }
     }
 
-    private long getBackoffTimeWhenSweepHasNotRun() {
-        return 20 * (1000 + sweepPauseMillis.get());
+    private Duration getBackoffTimeWhenSweepHasNotRun() {
+        return Duration.ofMillis(sweepPauseMillis.get()).plusSeconds(1).multipliedBy(20); // 2 minutes by default
+    }
+
+    private Duration getBackoffTimeWhenNothingToSweep() {
+        return Duration.ofMinutes(10);
     }
 
     @VisibleForTesting
@@ -338,8 +347,8 @@ public class BackgroundSweepThread implements Runnable {
         specificTableSweeper.getSweepProgressStore().clearProgress(tableRef);
     }
 
-    private void sleepForMillis(long millis) throws InterruptedException {
-        if (shuttingDown.await(millis, TimeUnit.MILLISECONDS)) {
+    private void sleepFor(Duration duration) throws InterruptedException {
+        if (shuttingDown.await(duration.toNanos(), TimeUnit.NANOSECONDS)) {
             throw new InterruptedException();
         }
     }

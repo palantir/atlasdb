@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,15 +38,17 @@ import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.time.Clock;
-import com.palantir.common.time.SystemClock;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 
-public final class TargetedSweepMetrics {
+@SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
+public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
+    private final SweepOutcomeMetrics outcomeMetrics;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
@@ -54,10 +57,12 @@ public final class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
+        outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
-    public static TargetedSweepMetrics create(MetricsManager metricsManager, KeyValueService kvs, long millis) {
-        return createWithClock(metricsManager, kvs, new SystemClock(), millis);
+    public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
+            KeyValueService kvs, long millis) {
+        return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, millis);
     }
 
     public static TargetedSweepMetrics createWithClock(
@@ -74,8 +79,8 @@ public final class TargetedSweepMetrics {
                 .getMillisForTimestampIfNotPunchedBefore(kvs, ts, clock.getTimeMillis() - ONE_WEEK);
     }
 
-    public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes) {
-        getMetrics(shardStrategy).updateEnqueuedWrites(writes);
+    public void updateEnqueuedWrites(ShardAndStrategy shardStrategy, long writes, long timestamp) {
+        getMetrics(shardStrategy).updateEnqueuedWrites(writes, timestamp);
     }
 
     public void updateEntriesRead(ShardAndStrategy shardStrategy, long writes) {
@@ -98,6 +103,10 @@ public final class TargetedSweepMetrics {
         getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
     }
 
+    public void registerOccurrenceOf(SweepOutcome outcome) {
+        outcomeMetrics.registerOccurrenceOf(outcome);
+    }
+
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
         return metricsForStrategyMap.get(shardStrategy.strategy());
     }
@@ -113,6 +122,7 @@ public final class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
         private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
         private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
+        private final AtomicLong lastWrittenTs = new AtomicLong(0L);
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -136,12 +146,15 @@ public final class TargetedSweepMetrics {
             manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        private static Long estimateMillisSinceTs(Long timestamp, Clock clock, Function<Long, Long> tsToMillis) {
-            if (timestamp == null) {
+        private Long estimateMillisSinceTs(Long lastSweptTs, Clock clock, Function<Long, Long> tsToMillis) {
+            if (lastSweptTs == null) {
                 return null;
             }
+            if (lastSweptTs >= lastWrittenTs.get()) {
+                return 0L;
+            }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            long result = clock.getTimeMillis() - tsToMillis.apply(timestamp);
+            long result = clock.getTimeMillis() - tsToMillis.apply(lastSweptTs);
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
             if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
@@ -152,8 +165,9 @@ public final class TargetedSweepMetrics {
             return result;
         }
 
-        private void updateEnqueuedWrites(long writes) {
+        private void updateEnqueuedWrites(long writes, long timestamp) {
             enqueuedWrites.accumulateValue(writes);
+            lastWrittenTs.accumulateAndGet(timestamp, Long::max);
         }
 
         private void updateEntriesRead(long writes) {

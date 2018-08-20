@@ -29,11 +29,9 @@
     <suppress files="atlasdb-client/*" checks="." />
     <suppress files="atlasdb-commons/*" checks="." />
     <suppress files="atlasdb-console/*" checks="." />
-    <suppress files="atlasdb-dbkvs-hikari/*" checks="." />
     <suppress files="atlasdb-jdbc/*" checks="." />
     <suppress files="atlasdb-jdbc-tests/*" checks="." />
     <suppress files="cassandra-partitioner/*" checks="." />
     <suppress files="commons-db/*" checks="." />
-    <suppress files="leader-election-impl/*" checks="." />
     <suppress files="lock-impl/*" checks="." />
 </suppressions>

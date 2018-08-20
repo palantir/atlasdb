@@ -23,14 +23,9 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.logsafe.SafeArg;
 
-public class PaxosAcceptorImpl implements PaxosAcceptor {
+public final class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
 
-    /**
-     * @param logDir string path for directory to place durable logs
-     * @param type the type of the objects accepted by the acceptor
-     * @return a new acceptor
-     */
     public static PaxosAcceptor newAcceptor(String logDir) {
         PaxosStateLog<PaxosAcceptorState> log = new PaxosStateLogImpl<PaxosAcceptorState>(logDir);
         return new PaxosAcceptorImpl(

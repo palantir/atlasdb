@@ -30,6 +30,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -50,9 +51,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -75,6 +76,7 @@ import com.palantir.timestamp.TimestampService;
     final ExecutorService deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
+    final boolean validateLocksOnReads;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -95,10 +97,11 @@ import com.palantir.timestamp.TimestampService;
             Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
-            Supplier<Long> timestampCacheSize,
+            TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor) {
-        super(metricsManager, timestampCacheSize);
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads) {
+        super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -118,6 +121,7 @@ import com.palantir.timestamp.TimestampService;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
+        this.validateLocksOnReads = validateLocksOnReads;
     }
 
     @Override
@@ -142,19 +146,21 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        LockImmutableTimestampResponse immutableTsResponse = timelockService.lockImmutableTimestamp(
-                LockImmutableTimestampRequest.create());
+        StartAtlasDbTransactionResponse transactionResponse = timelockService.startAtlasDbTransaction(
+                IdentifiedTimeLockRequest.create());
         try {
-            LockToken immutableTsLock = immutableTsResponse.getLock();
-            long immutableTs = immutableTsResponse.getImmutableTimestamp();
+            LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
+            long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
-            Supplier<Long> startTimestampSupplier = getStartTimestampSupplier();
+
+            cleaner.punch(transactionResponse.freshTimestamp());
+            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(transactionResponse.freshTimestamp());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
             return TransactionAndImmutableTsLock.of(transaction, immutableTsLock);
         } catch (Throwable e) {
-            timelockService.tryUnlock(ImmutableSet.of(immutableTsResponse.getLock()));
+            timelockService.tryUnlock(ImmutableSet.of(transactionResponse.immutableTimestamp().getLock()));
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
@@ -166,10 +172,12 @@ import com.palantir.timestamp.TimestampService;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
+        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
-            result = runTaskThrowOnConflict(task, tx);
+            result = runTaskThrowOnConflict(wrappedTask, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
@@ -187,6 +195,18 @@ import com.palantir.timestamp.TimestampService;
                     tx.getTimestamp(),
                     tx.getCommitTimestamp());
         }
+    }
+
+    private <T, E extends Exception> TransactionTask<T, E> wrapTaskIfNecessary(
+            TransactionTask<T, E> task, LockToken immutableTsLock) {
+        if (taskWrappingIsNecessary()) {
+            return new LockCheckingTransactionTask<>(task, timelockService, immutableTsLock);
+        }
+        return task;
+    }
+
+    private boolean taskWrappingIsNecessary() {
+        return !validateLocksOnReads;
     }
 
     protected SnapshotTransaction createTransaction(
@@ -216,7 +236,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads);
     }
 
     @Override
@@ -246,7 +267,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

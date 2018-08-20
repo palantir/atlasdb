@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,22 @@
 
 package com.palantir.lock.v2;
 
-import java.util.UUID;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockImmutableTimestampRequest.class)
-@JsonDeserialize(as = ImmutableLockImmutableTimestampRequest.class)
-public interface LockImmutableTimestampRequest {
+@JsonSerialize(as = ImmutableStartAtlasDbTransactionResponse.class)
+@JsonDeserialize(as = ImmutableStartAtlasDbTransactionResponse.class)
+public interface StartAtlasDbTransactionResponse {
+    @Value.Parameter
+    LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    UUID getRequestId();
+    long freshTimestamp();
 
-    static LockImmutableTimestampRequest create() {
-        return ImmutableLockImmutableTimestampRequest.of(UUID.randomUUID());
+    static StartAtlasDbTransactionResponse of(LockImmutableTimestampResponse response, long timestamp) {
+        return ImmutableStartAtlasDbTransactionResponse.of(response, timestamp);
     }
-
 }

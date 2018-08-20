@@ -28,11 +28,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -44,21 +45,23 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private final TimelockService delegate;
     private final LockRefresher lockRefresher;
-    private final AsyncTimeLockUnlocker asyncUnlocker;
+    private final TimeLockUnlocker unlocker;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
-        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
-        LockRefresher lockRefresher = new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
         ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
         AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
-        return new TimeLockClient(timelockService, lockRefresher, asyncUnlocker);
+        return new TimeLockClient(timelockService, createLockRefresher(timelockService), asyncUnlocker);
+    }
+
+    public static TimeLockClient withSynchronousUnlocker(TimelockService timelockService) {
+        return new TimeLockClient(timelockService, createLockRefresher(timelockService), timelockService::unlock);
     }
 
     @VisibleForTesting
-    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, AsyncTimeLockUnlocker asyncUnlocker) {
+    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, TimeLockUnlocker unlocker) {
         this.delegate = delegate;
         this.lockRefresher = lockRefresher;
-        this.asyncUnlocker = asyncUnlocker;
+        this.unlocker = unlocker;
     }
 
     @Override
@@ -77,9 +80,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(LockImmutableTimestampRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
         LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
         lockRefresher.registerLock(response.getLock());
+        return response;
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        StartAtlasDbTransactionResponse response = executeOnTimeLock(() -> delegate.startAtlasDbTransaction(request));
+        lockRefresher.registerLock(response.immutableTimestamp().getLock());
         return response;
     }
 
@@ -116,7 +126,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void tryUnlock(Set<LockToken> tokens) {
         lockRefresher.unregisterLocks(tokens);
-        asyncUnlocker.enqueue(tokens);
+        unlocker.enqueue(tokens);
     }
 
     @Override
@@ -141,7 +151,12 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public void close() {
         lockRefresher.close();
-        asyncUnlocker.close();
+        unlocker.close();
+    }
+
+    private static LockRefresher createLockRefresher(TimelockService timelockService) {
+        ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
+        return new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
     }
 
     private static ScheduledExecutorService createSingleThreadScheduledExecutor(String operation) {

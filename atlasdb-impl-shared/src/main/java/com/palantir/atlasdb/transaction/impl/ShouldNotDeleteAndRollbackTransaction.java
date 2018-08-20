@@ -100,7 +100,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
     }
 
     @Override

@@ -120,7 +120,7 @@ public abstract class RegeneratingTable<T> {
 
         private static Multimap<Cell, Value> getVersions() {
             Multimap<Cell, Value> versions = ArrayListMultimap.create();
-            LongStream.range(1, CELL_VERSIONS + 1).boxed()
+            LongStream.rangeClosed(1, CELL_VERSIONS).boxed()
                     .forEach(timestamp -> versions.put(cell, Value.create(value, timestamp)));
             return versions;
         }

@@ -68,7 +68,8 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("SelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
+    // We're asserting that calling .equals on a proxy does not redirect
+    // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
@@ -85,7 +86,8 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("SelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
+    // We're asserting that calling .equals on a proxy does not redirect
+    // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() {
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
@@ -137,7 +139,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() {
+    public void shouldMapInterruptedExceptionToNcleIfLeadingStatusChanges() {
         Callable<Void> delegate = () -> {
             throw new InterruptedException(TEST_MESSAGE);
         };
@@ -150,7 +152,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges()  {
+    public void shouldNotMapOtherExceptionToNcleIfLeadingStatusChanges()  {
         Callable<Void> delegate = () -> {
             throw new RuntimeException(TEST_MESSAGE);
         };
@@ -161,7 +163,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapInterruptedExceptionToNCLEIfLeadingStatusDoesNotChange() throws InterruptedException {
+    public void shouldNotMapInterruptedExceptionToNcleIfLeadingStatusDoesNotChange() throws InterruptedException {
         Callable<Void> proxy = proxyFor(() -> {
             throw new InterruptedException(TEST_MESSAGE);
         });
@@ -194,6 +196,7 @@ public class AwaitingLeadershipProxyTest {
         verify(leaderElectionService).blockOnBecomingLeader();
     }
 
+    @SuppressWarnings("IllegalThrows")
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
         CountDownLatch leadershipLost = new CountDownLatch(1);

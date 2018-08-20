@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -42,6 +43,7 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 
@@ -100,7 +102,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
                 MultiTableSweepQueueWriter.NO_OP);
 
         // fetch an immutable timestamp once so it's cached
@@ -118,29 +119,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnThoroughSweptTable() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
-                keyValueService,
-                timelock,
-                mockLockService,
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
-
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
         assertThatThrownBy(() -> txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE_THOROUGH, "row1", "col1");
             return null;
@@ -150,29 +129,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldNotConflictIfImmutableTimestampLockExpiresEvenIfNoWritesOnNonThoroughSweptTable() {
-        TimelockService timelock = mock(TimelockService.class);
-        LockService mockLockService = mock(LockService.class);
-        TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
-                keyValueService,
-                timelock,
-                mockLockService,
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
-                false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
-
-        when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
-                LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> {
             get(txn, TEST_TABLE, "row1", "col1");
             return null;
@@ -181,6 +138,17 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
     public void shouldNotConflictIfImmutableTimestampLockExpiresIfNoReadsOrWrites() {
+        TransactionManager txnManagerWithMocks = setupTransactionManager();
+        txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        return new InMemoryKeyValueService(false,
+                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+    }
+
+    private TransactionManager setupTransactionManager() {
         TimelockService timelock = mock(TimelockService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
@@ -192,24 +160,22 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE,
+                TimestampCache.createForTests(),
                 false,
                 () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                true);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
+        when(timelock.startAtlasDbTransaction(any())).thenReturn(
+                StartAtlasDbTransactionResponse.of(
+                        LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
 
-        txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
+        return txnManagerWithMocks;
     }
 }

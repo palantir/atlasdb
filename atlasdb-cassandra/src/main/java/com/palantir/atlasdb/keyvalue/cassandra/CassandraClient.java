@@ -43,8 +43,10 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
+@AutoDelegate(typeToExtend = CassandraClient.class)
 public interface CassandraClient {
     /**
      * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool

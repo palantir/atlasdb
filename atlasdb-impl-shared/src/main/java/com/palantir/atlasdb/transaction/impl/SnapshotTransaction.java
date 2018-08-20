@@ -115,6 +115,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
@@ -214,11 +215,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
     protected final ExecutorService deleteExecutor;
-
-    protected volatile boolean hasReads;
-
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
+    protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
+    protected final boolean validateLocksOnReads;
+
+    protected volatile boolean hasReads;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
@@ -247,7 +249,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
-                               CommitProfileProcessor commitProfileProcessor) {
+                               CommitProfileProcessor commitProfileProcessor,
+                               boolean validateLocksOnReads) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -272,6 +275,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
         this.commitProfileProcessor = commitProfileProcessor;
+        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+        this.validateLocksOnReads = validateLocksOnReads;
     }
 
     @Override
@@ -331,7 +336,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return results;
     }
 
@@ -376,7 +381,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    batchHint,
                                                    getStartTimestamp());
         if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
@@ -429,7 +434,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -506,7 +511,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
@@ -570,7 +575,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
 
@@ -583,7 +588,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -629,7 +634,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -745,11 +750,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
-        if (!isValidationNecessary(tableRef)) {
+    private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef, long timestamp) {
+        if (!isValidationNecessaryOnReads(tableRef)) {
             return;
         }
         throwIfPreCommitRequirementsNotMet(null, timestamp);
+    }
+
+    private boolean isValidationNecessaryOnReads(TableReference tableRef) {
+        return validateLocksOnReads && isValidationNecessary(tableRef);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -900,7 +909,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1071,8 +1080,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
+        ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        int found = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1112,28 +1121,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
-                        found++;
                         results.put(key, transformer.apply(value));
+                        keysAddedBuilder.add(key);
                     }
                 }
             }
         }
-        count.set(found);
+        Set<Cell> keysAddedToResults = keysAddedBuilder.build();
+        count.addAndGet(keysAddedToResults.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return rawResults;
+                return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-            return nextRawResults;
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            return getRemainingResults(nextRawResults, keysAddedToResults);
         } else {
             return ImmutableMap.of();
         }
+    }
+
+    private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
+        Map<Cell, Value> remainingResults = Maps.newHashMap(rawResults);
+        remainingResults.keySet().removeAll(keysAddedToResults);
+        return remainingResults;
     }
 
     /**
@@ -1217,6 +1233,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 if (hasWrites()) {
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
+                transactionOutcomeMetrics.markAbort();
                 return;
             }
         }
@@ -1282,7 +1299,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             success = true;
         } finally {
             // Once we are in state committing, we need to try/finally to set the state to a terminal state.
-            state.set(success ? State.COMMITTED : State.FAILED);
+            if (success) {
+                state.set(State.COMMITTED);
+                transactionOutcomeMetrics.markSuccessfulCommit();
+            } else {
+                state.set(State.FAILED);
+                transactionOutcomeMetrics.markFailedCommit();
+            }
         }
     }
 
@@ -1376,7 +1399,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
                     () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
             long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
-                    () -> preCommitCondition.throwIfConditionInvalid(commitTimestamp), "userPreCommitCondition");
+                    () -> throwIfPreCommitConditionInvalid(commitTimestamp), "userPreCommitCondition");
 
             long microsForPutCommitTs = runAndReportTimeAndGetDurationMicros(
                     () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
@@ -1454,7 +1477,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
-        preCommitCondition.throwIfConditionInvalid(timestamp);
+        throwIfPreCommitConditionInvalid(timestamp);
+    }
+
+    private void throwIfPreCommitConditionInvalid(long timestamp) {
+        try {
+            preCommitCondition.throwIfConditionInvalid(timestamp);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
@@ -1464,6 +1496,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
             log.error(baseMsg + "{}", expiredLocksErrorString, ex);
+            transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
     }
@@ -1527,7 +1560,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
         } else {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
-                getTransactionConflictsMeter().mark();
+                transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
                 throw TransactionConflictException.create(tableRef, getStartTimestamp(), spanningWrites,
                         dominatingWrites, System.currentTimeMillis() - timeCreated);
             }
@@ -1592,7 +1625,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Predicate<CellConflict> conflicting = Predicates.compose(
                 Predicates.in(conflictingCells),
                 CellConflict.getCellFunction());
-        getTransactionConflictsMeter().mark();
+        transactionOutcomeMetrics.markWriteWriteConflict(table);
         throw TransactionConflictException.create(table,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
@@ -1712,6 +1745,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
         try {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
+            transactionOutcomeMetrics.markRollbackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
             log.info("This isn't a bug but it should be very infrequent. Two transactions tried to roll back someone"
@@ -1927,6 +1961,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     "This transaction failed writing the commit timestamp. "
                     + "It might have been committed, but it may not have.", e);
             log.error("failed to commit an atlasdb transaction", commitFailedEx);
+            transactionOutcomeMetrics.markPutUnlessExistsFailed();
             throw commitFailedEx;
         }
     }
@@ -1943,6 +1978,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
             if (!expiredLocks.isEmpty()) {
+                transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException("Our commit was already rolled back at commit time"
                         + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
                         + getExpiredLocksErrorString(commitLocksToken, expiredLocks), ex);
@@ -2047,10 +2083,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Histogram getHistogram(String name) {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
-    }
-
-    private Meter getTransactionConflictsMeter() {
-        return getMeter("SnapshotTransactionConflict");
     }
 
     private Meter getMeter(String name) {

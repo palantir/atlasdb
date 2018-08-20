@@ -34,7 +34,7 @@ import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.util.PersistableBoolean;
 
-public class SweepableTimestamps extends KvsSweepQueueWriter {
+public class SweepableTimestamps extends SweepQueueTable {
     private static final byte[] DUMMY = new byte[0];
 
     public SweepableTimestamps(KeyValueService kvs, WriteInfoPartitioner partitioner) {

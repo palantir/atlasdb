@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -30,6 +31,7 @@ import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
 
 public final class SweepQueueUtils {
+    public static final long REFRESH_TIME = TimeUnit.MINUTES.toMillis(5L);
     public static final long TS_COARSE_GRANULARITY = 10_000_000L;
     public static final long TS_FINE_GRANULARITY = 50_000L;
     public static final int MAX_CELLS_GENERIC = 50;

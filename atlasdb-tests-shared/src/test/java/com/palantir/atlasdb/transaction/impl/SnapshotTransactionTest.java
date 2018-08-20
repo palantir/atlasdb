@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -114,6 +115,8 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
@@ -131,7 +134,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -142,6 +145,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     protected final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     protected final int defaultGetRangesConcurrency = 2;
+    protected final TransactionOutcomeMetrics transactionOutcomeMetrics
+            = TransactionOutcomeMetrics.create(metricsManager);
 
     private class UnstableKeyValueService extends ForwardingKeyValueService {
         private final KeyValueService delegate;
@@ -223,6 +228,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void testConcurrentWriteWriteConflicts() throws InterruptedException, ExecutionException {
         long val = concurrentlyIncrementValueThousandTimesAndGet();
         assertEquals(1000, val);
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasPlaceholderWriteWriteConflictsSatisfying(conflicts ->
+                        assertThat(conflicts, greaterThanOrEqualTo(1L)));
     }
 
     @Test
@@ -288,7 +296,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
         try {
             snapshot.get(TABLE, ImmutableSet.of(cell));
             fail();
@@ -355,7 +364,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
         snapshot.commit();
 
@@ -861,6 +871,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         executor.runUntilIdle();
 
         verify(keyValueService, times(1)).delete(any(), any());
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasSuccessfulCommits(1)
+                .hasFailedCommits(1);
     }
 
     @Test
@@ -890,6 +903,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void readTransactionSucceedsIfConditionSucceeds() {
         serializableTxManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasSuccessfulCommits(1);
     }
 
     @Test
@@ -901,6 +916,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage(), containsString("Condition failed"));
         }
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1);
     }
 
     @Test
@@ -1011,32 +1028,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long transactionTs = timelockService.getFreshTimestamp();
-        SnapshotTransaction snapshot = new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
+
+        SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
                 () -> transactionTs,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(
-                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
-                SweepStrategyManagers.createDefault(keyValueService),
-                res.getImmutableTimestamp(),
-                Optional.of(res.getLock()),
-                condition,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                res,
+                condition);
 
         //simulate roll back at commit time
         transactionService.putUnlessExists(snapshot.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
@@ -1046,6 +1045,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(snapshot::commit);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        TransactionOutcomeMetricsAssert.assertThat(transactionOutcomeMetrics)
+                .hasFailedCommits(1)
+                .hasLocksExpired(1);
     }
 
     @Test
@@ -1054,32 +1057,14 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         long transactionTs = timelockService.getFreshTimestamp();
-        SnapshotTransaction snapshot = new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
+
+        SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
                 () -> transactionTs,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(
-                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
-                SweepStrategyManagers.createDefault(keyValueService),
-                res.getImmutableTimestamp(),
-                Optional.of(res.getLock()),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                10_000L,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                res,
+                PreCommitConditions.NO_OP);
 
         //forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, TransactionConstants.FAILED_COMMIT_TS);
@@ -1099,31 +1084,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
-        SnapshotTransaction snapshot = new SnapshotTransaction(
-                metricsManager,
-                keyValueService,
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
-                transactionService,
-                NoOpCleaner.INSTANCE,
                 () -> transactionTs,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(
-                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
-                SweepStrategyManagers.createDefault(keyValueService),
-                res.getImmutableTimestamp(),
-                Optional.of(res.getLock()),
-                PreCommitConditions.NO_OP,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                false,
-                timestampCache,
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
-                getRangesExecutor,
-                defaultGetRangesConcurrency,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                res,
+                PreCommitConditions.NO_OP);
 
         when(timestampServiceSpy.getFreshTimestamp()).thenReturn(10000000L);
 
@@ -1134,6 +1101,103 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         snapshot.commit();
 
         timelockService.unlock(Collections.singleton(res.getLock()));
+    }
+
+    @Test
+    public void validateLocksOnReadsIfThoroughlySwept() {
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() ->
+            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead)));
+    }
+
+    @Test
+    public void validateLocksOnlyOnCommitIfValidationFlagIsFalse() {
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+
+        TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                false);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            TimelockService timelockService,
+            Supplier<Long> startTs,
+            LockImmutableTimestampResponse lockImmutableTimestampResponse,
+            PreCommitCondition preCommitCondition) {
+        return getSnapshotTransactionWith(
+                timelockService,
+                startTs,
+                lockImmutableTimestampResponse,
+                preCommitCondition,
+                true);
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            TimelockService timelockService,
+            Supplier<Long> startTs,
+            LockImmutableTimestampResponse lockImmutableTimestampResponse,
+            PreCommitCondition preCommitCondition,
+            boolean validateLocksOnReads) {
+        return new SnapshotTransaction(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                startTs,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
+                SweepStrategyManagers.createDefault(keyValueService),
+                lockImmutableTimestampResponse.getImmutableTimestamp(),
+                Optional.of(lockImmutableTimestampResponse.getLock()),
+                preCommitCondition,
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
+                timestampCache,
+                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService(),
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                validateLocksOnReads);
     }
 
     private void writeCells(TableReference table, ImmutableMap<Cell, byte[]> cellsToWrite) {

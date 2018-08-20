@@ -1,3 +1,5 @@
+.. _isolation-levels:
+
 ================
 Isolation Levels
 ================
@@ -11,6 +13,8 @@ transactional properties.
 -  Serializable
 
    -  Read and Writes to this table both happen at commit time
+   -  Implemented by checking that reads made at startTs return the
+      same results at commitTs. ABA scenarios are permitted.
 
 -  Snapshot
 

@@ -22,11 +22,12 @@ import java.util.function.Supplier;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -60,8 +61,13 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(
-            LockImmutableTimestampRequest request) {
+            IdentifiedTimeLockRequest request) {
         return executeWithRecord(() -> timelockService.lockImmutableTimestamp(request));
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        return executeWithRecord(() -> timelockService.startAtlasDbTransaction(request));
     }
 
     @Override

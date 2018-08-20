@@ -22,6 +22,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -39,7 +41,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -58,8 +60,8 @@ public class TimeLockClientTest {
 
     private final LockRefresher refresher = mock(LockRefresher.class);
     private final TimelockService delegate = mock(TimelockService.class);
-    private final AsyncTimeLockUnlocker unlocker = mock(AsyncTimeLockUnlocker.class);
-    private final TimelockService timelock = new TimeLockClient(delegate, refresher, unlocker);
+    private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);
+    private final TimelockService timelock = spy(new TimeLockClient(delegate, refresher, unlocker));
 
     private static final long TIMEOUT = 10_000;
 
@@ -77,7 +79,7 @@ public class TimeLockClientTest {
     @Test
     public void registersImmutableTimestampLock() {
         when(delegate.lockImmutableTimestamp(any())).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
-        timelock.lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+        timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
 
         verify(refresher).registerLock(TOKEN_1);
     }
@@ -183,5 +185,14 @@ public class TimeLockClientTest {
 
         assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(RuntimeException.class)
             .isNotInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    @Test
+    public void clientWithSynchronousUnlockerDelegatesToUnlock() {
+        try (TimeLockClient client = TimeLockClient.withSynchronousUnlocker(timelock)) {
+            UUID uuid = UUID.randomUUID();
+            client.tryUnlock(ImmutableSet.of(LockToken.of(uuid)));
+            verify(timelock, times(1)).unlock(ImmutableSet.of(LockToken.of(uuid)));
+        }
     }
 }

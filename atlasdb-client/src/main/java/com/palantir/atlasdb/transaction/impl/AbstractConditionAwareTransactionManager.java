@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.UUID;
 
 import com.google.common.base.Supplier;
+import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -38,8 +39,8 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
         public void cleanup() {}
     };
 
-    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, Supplier<Long> timestampCacheSize) {
-        super(metricsManager, timestampCacheSize);
+    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
+        super(metricsManager, timestampCache);
     }
 
     @Override
@@ -82,7 +83,6 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
                 log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
                 throw e;
             }
-            sleepForBackoff(failureCount);
         }
     }
 

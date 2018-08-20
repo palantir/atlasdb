@@ -31,6 +31,7 @@ import com.palantir.annotations.remoting.CancelableServerCall;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * Defines the service which handles locking operations.
@@ -38,6 +39,7 @@ import com.palantir.logsafe.Safe;
  * @author jtamer
  */
 @Path("/lock")
+@AutoDelegate(typeToExtend = LockService.class)
 @Beta public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are

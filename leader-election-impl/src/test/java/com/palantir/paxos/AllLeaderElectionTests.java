@@ -22,10 +22,5 @@ import org.junit.runners.Suite.SuiteClasses;
 import com.palantir.paxos.persistence.ProtobufTest;
 
 @RunWith(Suite.class)
-@SuiteClasses({
-    ProtobufTest.class,
-    PaxosConsensusFastTest.class,
-    PaxosConsensusSlowTest.class
-})
-public class AllLeaderElectionTests {
-}
+@SuiteClasses({ProtobufTest.class, PaxosConsensusFastTest.class, PaxosConsensusSlowTest.class})
+public class AllLeaderElectionTests {}

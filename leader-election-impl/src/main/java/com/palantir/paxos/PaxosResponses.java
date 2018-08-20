@@ -18,15 +18,17 @@ package com.palantir.paxos;
 import com.google.common.base.Predicate;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 
-public class PaxosResponses {
+public final class PaxosResponses {
+    private PaxosResponses() {}
+
     public static Predicate<PaxosResponse> isSuccessfulPredicate() {
         return response -> response != null && response.isSuccessful();
     }
 
     public static PaxosAcceptorPersistence.PaxosResponse toProto(PaxosResponse result) {
-        return PaxosAcceptorPersistence.PaxosResponse.newBuilder().
-                setAck(result.isSuccessful()).
-                build();
+        return PaxosAcceptorPersistence.PaxosResponse.newBuilder()
+                .setAck(result.isSuccessful())
+                .build();
     }
 
     public static PaxosResponse fromProto(PaxosAcceptorPersistence.PaxosResponse proto) {

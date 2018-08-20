@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,27 @@ package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
 
-public interface SweepQueueWriter {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    void enqueue(List<WriteInfo> writes);
+import com.palantir.logsafe.SafeArg;
 
+class SweepQueueWriter implements MultiTableSweepQueueWriter {
+    private static final Logger log = LoggerFactory.getLogger(SweepQueueWriter.class);
+
+    private final SweepableTimestamps sweepableTimestamps;
+    private final SweepableCells sweepableCells;
+
+    SweepQueueWriter(SweepableTimestamps sweepableTimestamps,
+            SweepableCells sweepableCells) {
+        this.sweepableTimestamps = sweepableTimestamps;
+        this.sweepableCells = sweepableCells;
+    }
+
+    @Override
+    public void enqueue(List<WriteInfo> writes) {
+        sweepableTimestamps.enqueue(writes);
+        sweepableCells.enqueue(writes);
+        log.debug("Enqueued {} writes into the sweep queue.", SafeArg.of("writes", writes.size()));
+    }
 }

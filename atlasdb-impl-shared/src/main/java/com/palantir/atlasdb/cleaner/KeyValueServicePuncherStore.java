@@ -38,14 +38,12 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.processors.AutoDelegate;
 
 /**
  * A PuncherStore implemented as a table in the KeyValueService.
  *
  * @author jweel
  */
-@AutoDelegate(typeToExtend = PuncherStore.class)
 public final class KeyValueServicePuncherStore implements PuncherStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PuncherStore {
         @Override
