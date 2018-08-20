@@ -14,8 +14,13 @@ apply plugin: 'org.inferred.processors'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
 
+task ensureDateUtilPresent(type: Exec) {
+    commandLine 'ensure-date-util-present.sh'
+}
+
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
-   commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
+    dependsOn ensureDateUtilPresent
+    commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
 }
 
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
