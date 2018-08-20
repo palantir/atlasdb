@@ -131,6 +131,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     private String dockerExecOnClient(String... arguments) {
         for (int i = 1; i <= MAX_EXEC_TRIES; i++) {
             try {
+                System.out.println(dockerComposeRule.containers().allContainers());
                 log.info("Attempting docker-exec with arguments: {}", Arrays.asList(arguments));
                 return dockerComposeRule.exec(
                         DockerComposeExecOption.noOptions(),
