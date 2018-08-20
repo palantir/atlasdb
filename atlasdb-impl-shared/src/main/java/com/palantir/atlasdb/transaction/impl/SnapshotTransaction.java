@@ -218,6 +218,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Timer.Context transactionTimerContext;
     protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
+    protected final boolean validateLocksOnReads;
 
     protected volatile boolean hasReads;
 
@@ -248,7 +249,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
-                               CommitProfileProcessor commitProfileProcessor) {
+                               CommitProfileProcessor commitProfileProcessor,
+                               boolean validateLocksOnReads) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -274,6 +276,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.hasReads = false;
         this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+        this.validateLocksOnReads = validateLocksOnReads;
     }
 
     @Override
@@ -333,7 +336,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("getRows({}, {} rows) found {} rows, took {} ms",
                     tableRef, Iterables.size(rows), results.size(), getRowsMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return results;
     }
 
@@ -378,7 +381,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                    batchHint,
                                                    getStartTimestamp());
         if (!rawResults.hasNext()) {
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         } // else the postFiltered iterator will check for each batch.
 
         Iterator<Map.Entry<byte[], RowColumnRangeIterator>> rawResultsByRow = partitionByRow(rawResults);
@@ -431,7 +434,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     rawBuilder.put(result);
                 }
                 Map<Cell, Value> raw = rawBuilder.build();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                 if (raw.isEmpty()) {
                     return endOfData();
                 }
@@ -508,7 +511,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 ColumnSelection.all(),
                 getStartTimestamp()));
 
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
     }
 
@@ -572,7 +575,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
                     tableRef, cells.size(), result.size(), getMillis);
         }
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
 
@@ -585,7 +588,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         hasReads = true;
 
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
-        validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
         return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
     }
@@ -631,7 +634,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
                             keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
-                    validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
                     SortedMap<Cell, byte[]> postFiltered = postFilterPages(
                             tableRef,
@@ -747,11 +750,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         };
     }
 
-    private void validateExternalAndCommitLocksIfNecessary(TableReference tableRef, long timestamp) {
-        if (!isValidationNecessary(tableRef)) {
+    private void validatePreCommitRequirementsOnReadIfNecessary(TableReference tableRef, long timestamp) {
+        if (!isValidationNecessaryOnReads(tableRef)) {
             return;
         }
         throwIfPreCommitRequirementsNotMet(null, timestamp);
+    }
+
+    private boolean isValidationNecessaryOnReads(TableReference tableRef) {
+        return validateLocksOnReads && isValidationNecessary(tableRef);
     }
 
     private boolean isValidationNecessary(TableReference tableRef) {
@@ -902,7 +909,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch();
-                validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
@@ -1073,8 +1080,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Long, Long> commitTimestamps = getCommitTimestamps(tableRef, startTimestampsForValues, true);
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
+        ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        int found = 0;
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
@@ -1114,28 +1121,35 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
-                        found++;
                         results.put(key, transformer.apply(value));
+                        keysAddedBuilder.add(key);
                     }
                 }
             }
         }
-        count.set(found);
+        Set<Cell> keysAddedToResults = keysAddedBuilder.build();
+        count.addAndGet(keysAddedToResults.size());
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
             if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return rawResults;
+                return getRemainingResults(rawResults, keysAddedToResults);
             }
         }
 
         if (!keysToReload.isEmpty()) {
             Map<Cell, Value> nextRawResults = keyValueService.get(tableRef, keysToReload);
-            validateExternalAndCommitLocksIfNecessary(tableRef, getStartTimestamp());
-            return nextRawResults;
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+            return getRemainingResults(nextRawResults, keysAddedToResults);
         } else {
             return ImmutableMap.of();
         }
+    }
+
+    private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
+        Map<Cell, Value> remainingResults = Maps.newHashMap(rawResults);
+        remainingResults.keySet().removeAll(keysAddedToResults);
+        return remainingResults;
     }
 
     /**

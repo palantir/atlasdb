@@ -198,7 +198,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             boolean initializeAsync,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            Callback<TransactionManager> callback) {
+            Callback<TransactionManager> callback,
+            boolean validateLocksOnReads) {
 
         return create(metricsManager,
                 keyValueService,
@@ -219,7 +220,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 callback,
                 PTExecutors.newSingleThreadScheduledExecutor(
-                        new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)));
+                        new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
+                validateLocksOnReads);
     }
 
     public static TransactionManager create(MetricsManager metricsManager,
@@ -240,7 +242,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
-            ScheduledExecutorService initializer) {
+            ScheduledExecutorService initializer,
+            boolean validateLocksOnReads) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -257,7 +260,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                PTExecutors.newSingleThreadExecutor(true));
+                PTExecutors.newSingleThreadExecutor(true),
+                validateLocksOnReads);
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
@@ -297,7 +301,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                PTExecutors.newSingleThreadExecutor(true));
+                PTExecutors.newSingleThreadExecutor(true),
+                true);
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -315,7 +320,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads) {
         super(
                 metricsManager,
                 keyValueService,
@@ -332,7 +338,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 timestampCache,
                 sweepQueueWriter,
-                deleteExecutor
+                deleteExecutor,
+                validateLocksOnReads
         );
     }
 
@@ -363,7 +370,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads);
     }
 
     @VisibleForTesting

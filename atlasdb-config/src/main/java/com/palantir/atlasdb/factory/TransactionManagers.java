@@ -180,6 +180,11 @@ public abstract class TransactionManagers {
         return false;
     }
 
+    @Value.Default
+    boolean validateLocksOnReads() {
+        return true;
+    }
+
     abstract String userAgent();
 
     abstract MetricRegistry globalMetricsRegistry();
@@ -375,7 +380,8 @@ public abstract class TransactionManagers {
                         new TimestampCache(metricsManager.getRegistry(),
                                 () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
-                        callbacks),
+                        callbacks,
+                        validateLocksOnReads()),
                 closeables);
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);

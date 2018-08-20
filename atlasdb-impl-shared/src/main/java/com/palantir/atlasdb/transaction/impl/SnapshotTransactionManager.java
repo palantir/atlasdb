@@ -76,6 +76,7 @@ import com.palantir.timestamp.TimestampService;
     final ExecutorService deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
+    final boolean validateLocksOnReads;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -98,7 +99,8 @@ import com.palantir.timestamp.TimestampService;
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads) {
         super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -119,6 +121,7 @@ import com.palantir.timestamp.TimestampService;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
+        this.validateLocksOnReads = validateLocksOnReads;
     }
 
     @Override
@@ -169,10 +172,12 @@ import com.palantir.timestamp.TimestampService;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
+        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
-            result = runTaskThrowOnConflict(task, tx);
+            result = runTaskThrowOnConflict(wrappedTask, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
@@ -190,6 +195,18 @@ import com.palantir.timestamp.TimestampService;
                     tx.getTimestamp(),
                     tx.getCommitTimestamp());
         }
+    }
+
+    private <T, E extends Exception> TransactionTask<T, E> wrapTaskIfNecessary(
+            TransactionTask<T, E> task, LockToken immutableTsLock) {
+        if (taskWrappingIsNecessary()) {
+            return new LockCheckingTransactionTask<>(task, timelockService, immutableTsLock);
+        }
+        return task;
+    }
+
+    private boolean taskWrappingIsNecessary() {
+        return !validateLocksOnReads;
     }
 
     protected SnapshotTransaction createTransaction(
@@ -219,7 +236,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads);
     }
 
     @Override
@@ -249,7 +267,8 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
