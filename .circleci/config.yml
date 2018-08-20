@@ -74,7 +74,7 @@ jobs:
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
       - run: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
       - store_test_results:
-          path: /tmp/test-reports
+          path: /tmp/test-reports/junit/ # Circle doesn't do substitution in this path
       - run: mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: sudo apt-get install rsync
