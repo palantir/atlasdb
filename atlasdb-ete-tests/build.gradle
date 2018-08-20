@@ -51,7 +51,7 @@ task longTest(type: Test) {
 
 task timeLockTest(type: Test) {
     dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
-    include '**/*TimeLock*.class'
+    include '**/*TimeLockMigration*.class' //TODO jkong get rid of this
 }
 
 task startupIndependenceTest(type: Test) {
