@@ -104,6 +104,7 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
+      - run: sudo apt-get install python python-pip
       - run: ./scripts/circle-ci/publish-github-page.sh # Publishes external docs.
       - run: curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH # Publishes internal docs.
       - run:
