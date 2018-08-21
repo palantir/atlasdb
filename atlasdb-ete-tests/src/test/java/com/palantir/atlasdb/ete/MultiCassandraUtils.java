@@ -53,7 +53,7 @@ public final class MultiCassandraUtils {
     private static void waitForCassandraContainer(Container container) {
         DockerPort containerPort = new DockerPort(container.getContainerName(), CASSANDRA_PORT, CASSANDRA_PORT);
         Awaitility.await()
-                .atMost(60, TimeUnit.SECONDS)
+                .atMost(180, TimeUnit.SECONDS)
                 .until(containerPort::isListeningNow);
     }
 }

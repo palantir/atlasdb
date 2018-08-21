@@ -73,7 +73,9 @@ jobs:
           no_output_timeout: 600
       - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
       - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
-      - run: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS/junit/ \;
+          when: always
       - store_test_results:
           path: /tmp/test-reports/ # Circle doesn't do substitution in this path
       - run: mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs
