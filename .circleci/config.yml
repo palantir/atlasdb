@@ -41,7 +41,7 @@ jobs:
   test:
     parallelism: 8
     machine: { docker_layer_caching: true } # TODO (jkong): Change this out so only the ETEs run on the machine executor
-    resource_class: xlarge
+    resource_class: medium
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
@@ -62,6 +62,7 @@ jobs:
       - run:
           command: ./scripts/circle-ci/pull-all-images.sh
           background: true
+      - run: pwd
       - run:
           command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
