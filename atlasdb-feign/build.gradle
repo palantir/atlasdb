@@ -30,6 +30,9 @@ dependencies {
   explicitShadow group: 'com.palantir.remoting-api', name: 'service-config'
   explicitShadow group: 'com.palantir.remoting3', name: 'refresh-utils'
   explicitShadow group: 'javax.validation', name: 'validation-api'
+  explicitShadow (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
+    exclude (module:'jsr305')
+  }
 
   toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
   toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'

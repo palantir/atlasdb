@@ -56,8 +56,8 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
     *    - |fixed|
-         - Requests for which headers' values contain some metadata after the value are parsed correctly.
-           For example, `Content-Type: text/plain;charset=iso-8859-1` is now decoded correctly as plain text, instead of JSON.
+         - Now correctly parses the values for `Content-Type` header.
+           For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
 
 ========

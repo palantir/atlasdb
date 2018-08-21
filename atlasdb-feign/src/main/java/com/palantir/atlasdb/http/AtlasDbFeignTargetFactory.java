@@ -37,6 +37,7 @@ import feign.Client;
 import feign.Contract;
 import feign.Feign;
 import feign.Request;
+import feign.TextDelegateDecoder;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
