@@ -116,6 +116,7 @@ public class DockerClientOrchestrationRule extends ExternalResource {
     }
 
     private DockerMachine createDockerMachine() {
+        System.out.println("ENVIRONMENT " + getEnvironment());
         return DockerMachine.localMachine()
                 .withEnvironment(getEnvironment())
                 .build();
