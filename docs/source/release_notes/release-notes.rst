@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
 ========
 v0.101.0
