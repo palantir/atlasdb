@@ -45,7 +45,7 @@ public final class OneNodeDownTestSuite extends NodesDownTestSetup {
             .outerRule(new Containers(NodesDownTestSetup.class)
                     .with(new ThreeNodeCassandraCluster()))
             .around(SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-                    createCassandraKvs(), CONFIG));
+                    NodesDownTestSetup::createCassandraKvs, CONFIG));
 
     @BeforeClass
     public static void setup() {
