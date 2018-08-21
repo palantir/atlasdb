@@ -40,7 +40,7 @@ jobs:
 
   test:
     parallelism: 8
-    machine: { docker_layer_caching: true } # TODO (jkong): Change this out so only the ETEs run on the machine executor
+    machine: { docker_layer_caching: false } # TODO (jkong): Change this out so only the ETEs run on the machine executor
     resource_class: medium
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -55,6 +55,7 @@ jobs:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - run: ./scripts/circle-ci/download-moreutils.sh
       - run: ./scripts/circle-ci/install-docker.sh
       - run: sudo wget --retry-connrefused --waitretry=1 --read-timeout 20 --timeout 15 -t 10 -q -O /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m`
       - run: sudo chmod +x /usr/local/bin/docker-compose
