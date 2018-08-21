@@ -40,8 +40,7 @@ jobs:
 
   test:
     parallelism: 8
-    machine:
-      image: circleci/classic:latest # TODO (jkong): Change this out so only the ETEs run on the machine executor
+    machine: { docker_layer_caching: true } # TODO (jkong): Change this out so only the ETEs run on the machine executor
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
