@@ -81,8 +81,8 @@ jobs:
       - run: mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: sudo apt-get install rsync
-      - run: find . -type d -regex ".*/build/reports/checkstyle" | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash
-      - run: find . -type d -regex ".*/build/reports/findbugs" | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash
+      - run: find . -type d -regex ".*/build/reports/checkstyle" | grep -v profile-client | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash
+      - run: find . -type d -regex ".*/build/reports/findbugs" | grep -v profile-client | sed 's#\./\(\(.*\)/build/reports/findbugs\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/findbugs/\2#' | bash
       - run: rsync -uav "build/reports/profile" "$CIRCLE_ARTIFACTS/"
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
