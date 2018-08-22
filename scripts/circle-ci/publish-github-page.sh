@@ -8,7 +8,8 @@ sudo -H pip install --disable-pip-version-check --upgrade sphinx sphinx_rtd_them
 # Clone gh-pages into build
 cd docs/
 rm -rf build/
-yes | git clone git@github.com:palantir/atlasdb.git -b gh-pages build
+ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+git clone git@github.com:palantir/atlasdb.git -b gh-pages build
 
 # Rebuild the docs into the repo
 make html || { echo "doc build failed, build should not pass"; exit 1; }
