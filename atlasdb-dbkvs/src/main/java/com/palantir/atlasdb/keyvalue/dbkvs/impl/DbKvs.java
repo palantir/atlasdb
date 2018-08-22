@@ -599,6 +599,16 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
+        runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
+            table.deleteAllTimestamps(maxTimestampExclusiveByCell, deleteSentinels);
+            return null;
+        });
+
+    }
+
+    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef,
             Iterable<RangeRequest> rangeRequests,
@@ -1335,25 +1345,20 @@ public final class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private <T> T runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
-        ConnectionSupplier conns = new ConnectionSupplier(connections);
-        try {
+    private <T> void runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
+        try (ConnectionSupplier conns = new ConnectionSupplier(connections)) {
             SqlConnection conn = conns.get();
             boolean autocommit;
             try {
                 autocommit = conn.getUnderlyingConnection().getAutoCommit();
-            } catch (PalantirSqlException e1) {
-                throw Throwables.rewrapAndThrowUncheckedException(e1);
-            } catch (SQLException e1) {
+            } catch (PalantirSqlException | SQLException e1) {
                 throw Throwables.rewrapAndThrowUncheckedException(e1);
             }
             if (!autocommit) {
-                return runWriteFreshConnection(conns, tableRef, runner);
+                runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                return runner.apply(dbTables.createWrite(tableRef, conns));
+                runner.apply(dbTables.createWrite(tableRef, conns));
             }
-        } finally {
-            conns.close();
         }
     }
 

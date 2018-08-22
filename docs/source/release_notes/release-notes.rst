@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - DbKvs now implements its own version of ``deleteAllTimestamps`` instead of using the default AbstractKvs implementation.
+           This facilitates better performance of targeted sweep on DbKvs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3379>`__)
+
     *    - |fixed|
          - LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
