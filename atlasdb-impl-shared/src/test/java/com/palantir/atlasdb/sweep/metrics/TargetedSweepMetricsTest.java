@@ -197,19 +197,49 @@ public class TargetedSweepMetricsTest {
     }
 
     @Test
-    public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000_000);
+    public void secondMetricsInstanceUsesSameMetrics() {
+        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
+                .createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
+
+        metrics.updateEnqueuedWrites(CONS_ZERO, 10, 10);
+        metrics.updateEntriesRead(CONS_ZERO, 21);
+        metrics.updateNumberOfTombstones(CONS_ZERO, 1);
+        metrics.updateAbortedWritesDeleted(CONS_ZERO, 2);
+        metrics.updateSweepTimestamp(CONS_ZERO, 7);
+
+        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21);
+        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
+        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
+
+        secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5, 10);
+        secondMetrics.updateEntriesRead(CONS_ZERO, 5);
+        secondMetrics.updateNumberOfTombstones(CONS_ZERO, 5);
+        secondMetrics.updateAbortedWritesDeleted(CONS_ZERO, 5);
+        secondMetrics.updateSweepTimestamp(CONS_ZERO, 5);
+
+        assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(10 + 5);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(21 + 5);
+        assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1 + 5);
+        assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2 + 5);
+        assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
+    }
+
+    @Test
+    public void writeTimestampsAreSharedAcrossMetricsInstances() {
+        TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
+                .createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
+
         metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
-        metrics.updateProgressForShard(CONS_ZERO, 100);
+        secondMetrics.updateProgressForShard(CONS_ZERO, 100);
 
         puncherStore.put(0, 50);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
 
+        waitForProgressToRecompute();
         clockTime += 1;
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
-
-        clockTime += 100;
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
     }
 
     @Test

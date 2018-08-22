@@ -81,11 +81,15 @@ public class MetricsManager {
         registerMetric(clazz, metricName, (Metric) gauge);
     }
 
+    public void registerMetric(Class clazz, String metricName, Metric metric) {
+        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
+    }
+
     /**
      * Add a new gauge metric of the given name.
      *
      * If the metric already exists, this will REPLACE it with a new metric.
-     * Consider using {@link MetricsManager#registerIfNotExists} instead.
+     * Consider using {@link MetricsManager#registerOrGet} instead.
      */
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
@@ -101,33 +105,25 @@ public class MetricsManager {
         taggedMetricRegistry.gauge(metricToAdd, gauge);
     }
 
-    public void registerMetric(Class clazz, String metricName, Metric metric) {
-        registerMetricWithFqn(MetricRegistry.name(clazz, metricName), metric);
-    }
-
-    public void registerGaugeForTable(Class clazz, String metricName, TableReference tableRef, Gauge gauge) {
-        Map<String, String> tag = getTableNameTagFor(tableRef);
-        registerMetric(clazz, metricName, gauge, tag);
-    }
-
     /**
-     * Add a new gauge metric of the given name.
+     * Add a new gauge metric of the given name or get the existing gauge if it is already registered.
      *
-     * If the metric already exists, this is a noop.
+     * If a non-gauge metric with the same name already exists, return the supplied gauge, but do not register it.
      */
-    public void registerIfNotExists(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+    public Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
                 .safeName(MetricRegistry.name(clazz, metricName))
                 .safeTags(tag)
                 .build();
 
         try {
-            taggedMetricRegistry.gauge(metricToAdd, gauge);
+            return taggedMetricRegistry.gauge(metricToAdd, gauge);
         } catch (IllegalArgumentException ex) {
             log.warn("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
                     + " This indicates a product bug.",
                     SafeArg.of("metricName", metricName),
                     ex);
+            return gauge;
         }
     }
 
@@ -195,17 +191,6 @@ public class MetricsManager {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;
-    }
-
-    public Gauge registerOrGetGauge(Class clazz, String metricPrefix, String metricName,
-            MetricRegistry.MetricSupplier<Gauge> supplier) {
-        return registerOrGetGauge(MetricRegistry.name(clazz, metricPrefix, metricName), supplier);
-    }
-
-    private synchronized Gauge registerOrGetGauge(String name, MetricRegistry.MetricSupplier<Gauge> supplier) {
-        Gauge gauge = metricRegistry.gauge(name, supplier);
-        registeredMetrics.add(name);
-        return gauge;
     }
 
     public synchronized void deregisterMetrics() {
