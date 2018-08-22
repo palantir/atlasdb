@@ -53,6 +53,10 @@ develop
     *    -
          -
 
+    *    - |logs|
+         - Reduce logging level for locks not being refreshed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
+
 ========
 v0.101.0
 ========
