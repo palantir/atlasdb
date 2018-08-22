@@ -28,9 +28,6 @@ jobs:
           paths:
             - ~/.gradle/caches
       - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
-      - run:
-          command: ./scripts/circle-ci/stop-services.sh
-          background: true
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace classes testClasses
       - persist_to_workspace:
