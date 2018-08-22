@@ -16,18 +16,10 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-import static com.palantir.atlasdb.AtlasDbMetricNames.ABORTED_WRITES_DELETED;
-import static com.palantir.atlasdb.AtlasDbMetricNames.ENQUEUED_WRITES;
-import static com.palantir.atlasdb.AtlasDbMetricNames.ENTRIES_READ;
-import static com.palantir.atlasdb.AtlasDbMetricNames.SWEEP_TS;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TAG_STRATEGY;
-import static com.palantir.atlasdb.AtlasDbMetricNames.TOMBSTONES_PUT;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -135,13 +127,14 @@ public class TargetedSweepMetrics {
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
-            Map<String, String> tag = ImmutableMap.of(TAG_STRATEGY, strategy);
+            Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
             this.manager = manager;
-            enqueuedWrites = register(ENQUEUED_WRITES, TimestampedAccumulatingValueMetric.create(), tag);
-            entriesRead = registerAccumulating(ENTRIES_READ, tag);
-            tombstonesPut = registerAccumulating(TOMBSTONES_PUT, tag);
-            abortedWritesDeleted = registerAccumulating(ABORTED_WRITES_DELETED, tag);
-            sweepTimestamp = register(SWEEP_TS, new CurrentValueMetric<>(), tag);
+            enqueuedWrites = register(AtlasDbMetricNames.ENQUEUED_WRITES, TimestampedAccumulatingValueMetric.create(),
+                    tag);
+            entriesRead = registerAccumulating(AtlasDbMetricNames.ENTRIES_READ, tag);
+            tombstonesPut = registerAccumulating(AtlasDbMetricNames.TOMBSTONES_PUT, tag);
+            abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED, tag);
+            sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>(), tag);
 
             AggregatingVersionedSupplier<Long> lastSweptTsSupplier = new AggregatingVersionedSupplier<>(
                     TargetedSweepMetrics::minimum, recomputeMillis);
