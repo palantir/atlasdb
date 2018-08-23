@@ -44,7 +44,7 @@ apply plugin: 'com.palantir.baseline-config'
 dependencies {
     // Adds a dependency on the Baseline configuration files. Typically use
     // the same version as the plugin itself.
-    baseline "com.palantir.baseline:gradle-baseline-java-config:0.18.0@zip"
+    baseline "com.palantir.baseline:gradle-baseline-java-config:0.30.0@zip"
 }
 
 apply from: 'gradle/versions.gradle'
