@@ -25,7 +25,6 @@ buildscript {
 
 plugins {
     id 'com.github.johnrengelman.shadow' version '2.0.0'
-    id 'com.palantir.circle.style' version '1.1.4'
     id 'com.palantir.configuration-resolver' version '0.2.0'
     id 'com.palantir.git-version' version '0.5.2'
     id 'org.inferred.processors' version '1.2.12'
