@@ -60,6 +60,10 @@ develop
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
+    *    - |logs|
+         - Reduce logging level for locks not being refreshed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
+
 ========
 v0.101.0
 ========
