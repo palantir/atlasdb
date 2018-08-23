@@ -13,7 +13,6 @@ dependencies {
 
     processor group: 'org.immutables', name: 'value'
 
-    testCompile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock

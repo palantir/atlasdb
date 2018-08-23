@@ -18,19 +18,15 @@ package com.palantir.remoting;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
 import java.util.Map;
-
-import javax.ws.rs.core.MediaType;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.net.HttpHeaders;
 import com.palantir.common.remoting.HeaderAccessUtils;
 
 public class HeaderAccessUtilsTest {
@@ -99,15 +95,6 @@ public class HeaderAccessUtilsTest {
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
         assertEquals(VALUE_2, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()));
-    }
-
-    @Test
-    public void parseContentTypePlainText() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
-        testMap.put("Content-Type", ImmutableList.of("text/plain;charset=iso-8859-1"));
-        String CONTENT_TYPE = HttpHeaders.CONTENT_TYPE.toLowerCase();
-        assertTrue(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(
-                testMap, CONTENT_TYPE, MediaType.TEXT_PLAIN));
     }
 
     private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
