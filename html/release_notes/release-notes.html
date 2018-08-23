@@ -186,19 +186,9 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>DbKvs now implements its own version of <code class="docutils literal notranslate"><span class="pre">deleteAllTimestamps</span></code> instead of using the default AbstractKvs implementation.
-This facilitates better performance of targeted sweep on DbKvs.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3379">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
-Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3450">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
-<td>Reduce logging level for locks not being refreshed.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3458">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
