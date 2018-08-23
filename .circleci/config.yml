@@ -3,12 +3,11 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node-browsers
+      - image: circleci/openjdk:8u171-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
-      TERM: dumb
 
     steps:
       - checkout
@@ -38,14 +37,13 @@ jobs:
   test:
     parallelism: 8
     docker:
-      - image: circleci/openjdk:8u171-jdk-node-browsers
+      - image: circleci/openjdk:8u171-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
-      TERM: dumb
-      CIRCLE_TEST_REPORTS: /tmp/test-reports
-      CIRCLE_ARTIFACTS: /tmp/artifacts
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
 
     steps:
       - attach_workspace: { at: . }
@@ -69,13 +67,12 @@ jobs:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
           no_output_timeout: 600
       - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
-      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
       - run:
-          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS/junit/ \;
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
           when: always
       - store_test_results:
-          path: /tmp/test-reports/ # Circle doesn't do substitution in this path
-      - run: mkdir -p $CIRCLE_ARTIFACTS/checkstyle $CIRCLE_ARTIFACTS/findbugs
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
       - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
       - run: sudo apt-get install rsync
       - run: find . -type d -regex ".*/build/reports/checkstyle" | (grep -v profile-client || true) | sed 's#\./\(\(.*\)/build/reports/checkstyle\)#rsync -uav \1/ $CIRCLE_ARTIFACTS/checkstyle/\2#' | bash
@@ -84,19 +81,18 @@ jobs:
       - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
       - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
       - store_artifacts:
-          path: /tmp/artifacts
+          path: /home/circleci/artifacts
       - persist_to_workspace:
           root: .
           paths: [ . ]
 
   deploy:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node-browsers
+      - image: circleci/openjdk:8u171-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
       _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
-      TERM: dumb
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
