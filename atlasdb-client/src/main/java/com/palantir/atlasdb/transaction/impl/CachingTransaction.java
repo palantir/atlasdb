@@ -72,7 +72,7 @@ public class CachingTransaction extends ForwardingTransaction {
                                                         ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
             if (log.isTraceEnabled()) {
-                log.trace(String.format("Attempted getRows on %s table and %s with empty rows argument", tableRef, columnSelection), new Exception());
+                log.trace("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection, new Exception());
             } else if (log.isDebugEnabled()) {
                 log.debug("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection);
             }
@@ -119,7 +119,7 @@ public class CachingTransaction extends ForwardingTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         if (cells.isEmpty()) {
             if (log.isTraceEnabled()) {
-                log.trace(String.format("Attempted get on %s table with empty cells argument", tableRef), new Exception());
+                log.trace("Attempted get on '{}' table with empty cells argument", tableRef, new Exception());
             } else if (log.isDebugEnabled()) {
                 log.debug("Attempted get on '{}' table with empty cells argument", tableRef);
             }
