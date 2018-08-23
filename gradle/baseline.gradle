@@ -28,3 +28,4 @@ if (enableErrorProne.toBoolean()) {
 
 apply plugin: 'com.palantir.baseline-eclipse'
 apply plugin: 'com.palantir.baseline-idea'
+apply plugin: 'com.palantir.baseline-circleci'
