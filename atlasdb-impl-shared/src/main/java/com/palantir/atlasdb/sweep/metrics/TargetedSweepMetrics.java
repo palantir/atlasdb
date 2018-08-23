@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -37,9 +36,11 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.TimestampedAccumulatingValueMetric;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.util.AggregatingVersionedMetric;
 import com.palantir.util.AggregatingVersionedSupplier;
 import com.palantir.util.CachedComposedSupplier;
 
@@ -116,45 +117,54 @@ public class TargetedSweepMetrics {
     }
 
     private static final class MetricsForStrategy {
-        private final AccumulatingValueMetric enqueuedWrites = new AccumulatingValueMetric();
-        private final AccumulatingValueMetric entriesRead = new AccumulatingValueMetric();
-        private final AccumulatingValueMetric tombstonesPut = new AccumulatingValueMetric();
-        private final AccumulatingValueMetric abortedWritesDeleted = new AccumulatingValueMetric();
-        private final CurrentValueMetric<Long> sweepTimestamp = new CurrentValueMetric<>();
-        private final AggregatingVersionedSupplier<Long> lastSweptTsSupplier;
-        private final AtomicLong lastWrittenTs = new AtomicLong(0L);
+        private final MetricsManager manager;
+        private final TimestampedAccumulatingValueMetric enqueuedWrites;
+        private final AccumulatingValueMetric entriesRead;
+        private final AccumulatingValueMetric tombstonesPut;
+        private final AccumulatingValueMetric abortedWritesDeleted;
+        private final CurrentValueMetric<Long> sweepTimestamp;
+        private final AggregatingVersionedMetric<Long> lastSweptTs;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
             Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
-            register(manager, AtlasDbMetricNames.ENQUEUED_WRITES, enqueuedWrites, tag);
-            register(manager, AtlasDbMetricNames.ENTRIES_READ, entriesRead, tag);
-            register(manager, AtlasDbMetricNames.TOMBSTONES_PUT, tombstonesPut, tag);
-            register(manager, AtlasDbMetricNames.ABORTED_WRITES_DELETED, abortedWritesDeleted, tag);
-            register(manager, AtlasDbMetricNames.SWEEP_TS, sweepTimestamp, tag);
+            this.manager = manager;
+            enqueuedWrites = register(AtlasDbMetricNames.ENQUEUED_WRITES, TimestampedAccumulatingValueMetric.create(),
+                    tag);
+            entriesRead = registerAccumulating(AtlasDbMetricNames.ENTRIES_READ, tag);
+            tombstonesPut = registerAccumulating(AtlasDbMetricNames.TOMBSTONES_PUT, tag);
+            abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED, tag);
+            sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>(), tag);
 
-            lastSweptTsSupplier = new AggregatingVersionedSupplier<>(TargetedSweepMetrics::minimum, recomputeMillis);
+            AggregatingVersionedSupplier<Long> lastSweptTsSupplier = new AggregatingVersionedSupplier<>(
+                    TargetedSweepMetrics::minimum, recomputeMillis);
+            lastSweptTs = register(AtlasDbMetricNames.LAST_SWEPT_TS,
+                    new AggregatingVersionedMetric<>(lastSweptTsSupplier), tag);
+
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
-                    lastSweptTs -> estimateMillisSinceTs(lastSweptTs, wallClock, tsToMillis),
-                    lastSweptTsSupplier);
+                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis), lastSweptTs::getVersionedValue);
 
-            register(manager, AtlasDbMetricNames.LAST_SWEPT_TS, () -> lastSweptTsSupplier.get().value(), tag);
-            register(manager, AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
+            register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
 
-        private void register(MetricsManager manager, String name, Gauge<Long> metric, Map<String, String> tag) {
-            manager.registerMetric(TargetedSweepMetrics.class, name, metric, tag);
+        private AccumulatingValueMetric registerAccumulating(String name, Map<String, String> tag) {
+            return register(name, new AccumulatingValueMetric(), tag);
         }
 
-        private Long estimateMillisSinceTs(Long lastSweptTs, Clock clock, Function<Long, Long> tsToMillis) {
-            if (lastSweptTs == null) {
+        @SuppressWarnings("unchecked")
+        private <T extends Gauge<Long>> T register(String name, T metric, Map<String, String> tag) {
+            return (T) manager.registerOrGet(TargetedSweepMetrics.class, name, metric, tag);
+        }
+
+        private Long estimateMillisSinceTs(Long sweptTs, Clock clock, Function<Long, Long> tsToMillis) {
+            if (sweptTs == null) {
                 return null;
             }
-            if (lastSweptTs >= lastWrittenTs.get()) {
+            if (sweptTs >= enqueuedWrites.getLatestTimestamp()) {
                 return 0L;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            long result = clock.getTimeMillis() - tsToMillis.apply(lastSweptTs);
+            long result = clock.getTimeMillis() - tsToMillis.apply(sweptTs);
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
             if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
@@ -166,8 +176,7 @@ public class TargetedSweepMetrics {
         }
 
         private void updateEnqueuedWrites(long writes, long timestamp) {
-            enqueuedWrites.accumulateValue(writes);
-            lastWrittenTs.accumulateAndGet(timestamp, Long::max);
+            enqueuedWrites.accumulateValue(writes, timestamp);
         }
 
         private void updateEntriesRead(long writes) {
@@ -186,8 +195,8 @@ public class TargetedSweepMetrics {
             sweepTimestamp.setValue(value);
         }
 
-        private void updateProgressForShard(int shard, long lastSweptTs) {
-            lastSweptTsSupplier.update(shard, lastSweptTs);
+        private void updateProgressForShard(int shard, long sweptTs) {
+            lastSweptTs.update(shard, sweptTs);
         }
     }
 }

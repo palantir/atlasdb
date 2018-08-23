@@ -284,7 +284,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     }
 
     private void registerPoolMetric(String metricName, Gauge gauge) {
-        metricsManager.registerIfNotExists(
+        metricsManager.registerOrGet(
                 CassandraClientPoolingContainer.class,
                 metricName,
                 gauge,
