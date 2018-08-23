@@ -40,6 +40,7 @@ repositories {
     }
 }
 apply plugin: 'com.palantir.baseline-config'
+apply plugin: 'com.palantir.baseline-circleci'
 
 dependencies {
     // Adds a dependency on the Baseline configuration files. Typically use
