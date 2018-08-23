@@ -71,11 +71,6 @@ public class CachingTransaction extends ForwardingTransaction {
     public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
-            if (log.isTraceEnabled()) {
-                log.trace("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection, new Exception());
-            } else if (log.isDebugEnabled()) {
-                log.debug("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection);
-            }
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
 
@@ -118,11 +113,6 @@ public class CachingTransaction extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         if (cells.isEmpty()) {
-            if (log.isTraceEnabled()) {
-                log.trace("Attempted get on '{}' table with empty cells argument", tableRef, new Exception());
-            } else if (log.isDebugEnabled()) {
-                log.debug("Attempted get on '{}' table with empty cells argument", tableRef);
-            }
             return ImmutableMap.of();
         }
 
