@@ -68,6 +68,8 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
+    private static final long LOCK_ID = 123456789;
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(new CassandraContainer());
