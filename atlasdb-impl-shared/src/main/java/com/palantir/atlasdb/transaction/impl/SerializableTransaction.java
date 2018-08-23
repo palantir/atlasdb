@@ -247,7 +247,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             rangeEnds.put(range, maxRow);
         }
 
-        rangeEnds.compute(range, (r, curVal) -> {
+        rangeEnds.compute(range, (ignored, curVal) -> {
             if (curVal == null) {
                 return maxRow;
             } else if (curVal.length == 0) {
@@ -592,7 +592,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Entry<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>> rowAndRangeEnds :
                     columnRangeEnds.entrySet()) {
                 byte[] row = rowAndRangeEnds.getKey().array();
-		Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();                
+                Map<BatchColumnRangeSelection, byte[]> rangeEnds = rowAndRangeEnds.getValue();
 
                 for (Entry<BatchColumnRangeSelection, byte[]> e : rangeEnds.entrySet()) {
                     BatchColumnRangeSelection range = e.getKey();
