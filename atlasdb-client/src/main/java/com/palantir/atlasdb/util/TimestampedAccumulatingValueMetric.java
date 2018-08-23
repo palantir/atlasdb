@@ -20,6 +20,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.codahale.metrics.Gauge;
 
+/**
+ * A Gauge that takes a timestamp on each call to {@link #setValue(Long, long)} and {@link #setValue(Long, long)}, and
+ * exposes a method {@link #getLatestTimestamp()} to retrieve the greatest timestamp observed so far.
+ */
 public class TimestampedAccumulatingValueMetric implements Gauge<Long> {
     private final AccumulatingValueMetric delegate;
     private final AtomicLong latestTimestamp = new AtomicLong(0);

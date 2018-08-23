@@ -108,7 +108,7 @@ public class MetricsManager {
     /**
      * Add a new gauge metric of the given name or get the existing gauge if it is already registered.
      *
-     * If a non-gauge metric with the same name already exists, return the supplied gauge, but do not register it.
+     * @throws IllegalStateException if a non-gauge metric with the same name already exists.
      */
     public Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = MetricName.builder()
@@ -119,11 +119,11 @@ public class MetricsManager {
         try {
             return taggedMetricRegistry.gauge(metricToAdd, gauge);
         } catch (IllegalArgumentException ex) {
-            log.warn("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
+            log.error("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
                     + " This indicates a product bug.",
                     SafeArg.of("metricName", metricName),
                     ex);
-            return gauge;
+            throw ex;
         }
     }
 

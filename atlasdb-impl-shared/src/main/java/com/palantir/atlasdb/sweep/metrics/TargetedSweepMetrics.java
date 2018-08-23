@@ -142,7 +142,7 @@ public class TargetedSweepMetrics {
                     new AggregatingVersionedMetric<>(lastSweptTsSupplier), tag);
 
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
-                    swept -> estimateMillisSinceTs(swept, wallClock, tsToMillis), lastSweptTs::getVersionedValue);
+                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis), lastSweptTs::getVersionedValue);
 
             register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
@@ -156,15 +156,15 @@ public class TargetedSweepMetrics {
             return (T) manager.registerOrGet(TargetedSweepMetrics.class, name, metric, tag);
         }
 
-        private Long estimateMillisSinceTs(Long swept, Clock clock, Function<Long, Long> tsToMillis) {
-            if (swept == null) {
+        private Long estimateMillisSinceTs(Long sweptTs, Clock clock, Function<Long, Long> tsToMillis) {
+            if (sweptTs == null) {
                 return null;
             }
-            if (swept >= enqueuedWrites.getLatestTimestamp()) {
+            if (sweptTs >= enqueuedWrites.getLatestTimestamp()) {
                 return 0L;
             }
             long timeBeforeRecomputing = System.currentTimeMillis();
-            long result = clock.getTimeMillis() - tsToMillis.apply(swept);
+            long result = clock.getTimeMillis() - tsToMillis.apply(sweptTs);
 
             long timeTaken = System.currentTimeMillis() - timeBeforeRecomputing;
             if (timeTaken > TimeUnit.SECONDS.toMillis(10)) {
@@ -195,8 +195,8 @@ public class TargetedSweepMetrics {
             sweepTimestamp.setValue(value);
         }
 
-        private void updateProgressForShard(int shard, long swept) {
-            lastSweptTs.update(shard, swept);
+        private void updateProgressForShard(int shard, long sweptTs) {
+            lastSweptTs.update(shard, sweptTs);
         }
     }
 }
