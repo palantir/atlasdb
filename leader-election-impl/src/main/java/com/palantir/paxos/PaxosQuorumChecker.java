@@ -172,7 +172,7 @@ public final class PaxosQuorumChecker {
                     if (onlyLogOnQuorumFailure) {
                         toLog.add(e.getCause());
                     } else {
-                        log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
+                        log.error(PAXOS_MESSAGE_ERROR, e.getCause());
                     }
                 }
             }
@@ -187,7 +187,7 @@ public final class PaxosQuorumChecker {
                     interrupted = true;
                     break;
                 } catch (ExecutionException e) {
-                    log.warn(PAXOS_MESSAGE_ERROR, e.getCause());
+                    log.error(PAXOS_MESSAGE_ERROR, e.getCause());
                 }
             }
 
@@ -202,7 +202,7 @@ public final class PaxosQuorumChecker {
 
             if (onlyLogOnQuorumFailure && acksRecieved < quorumSize) {
                 for (Throwable throwable : toLog) {
-                    log.warn(PAXOS_MESSAGE_ERROR, throwable);
+                    log.error(PAXOS_MESSAGE_ERROR, throwable);
                 }
             }
         }
