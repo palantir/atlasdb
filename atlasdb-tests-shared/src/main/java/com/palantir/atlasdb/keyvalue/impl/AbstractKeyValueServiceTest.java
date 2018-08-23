@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +38,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -95,6 +100,10 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final byte[] column0 = PtBytes.toBytes("column0");
     protected static final byte[] column1 = PtBytes.toBytes("column1");
     protected static final byte[] column2 = PtBytes.toBytes("column2");
+    protected static final byte[] column3 = PtBytes.toBytes("column3");
+    protected static final byte[] column4 = PtBytes.toBytes("column4");
+    protected static final byte[] column5 = PtBytes.toBytes("column5");
+    protected static final byte[] column6 = PtBytes.toBytes("column6");
     protected static final byte[] value00 = PtBytes.toBytes("value00");
     protected static final byte[] value01 = PtBytes.toBytes("value01");
     protected static final byte[] value10 = PtBytes.toBytes("value10");
@@ -256,6 +265,39 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRowColumnRange_pagesInOrder() {
+        // reg test for bug where HashMap led to reorder, batch 3 to increase chance of that happening if HashMap change
+        Map<Cell, byte[]> values = new HashMap<>();
+        values.put(Cell.create(row1, column0), value10);
+        values.put(Cell.create(row1, column1), value10);
+        values.put(Cell.create(row1, column2), value10);
+        values.put(Cell.create(row1, column3), value10);
+        values.put(Cell.create(row1, column4), value10);
+        values.put(Cell.create(row1, column5), value10);
+        values.put(Cell.create(row1, column6), value10);
+        keyValueService.put(TEST_TABLE, values, TEST_TIMESTAMP);
+
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(row1),
+                BatchColumnRangeSelection.create(null, null, 3),
+                TEST_TIMESTAMP + 1).get(row1);
+        List<ByteBuffer> columns = StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
+                .map(entry -> entry.getKey().getColumnName())
+                .map(ByteBuffer::wrap)
+                .collect(Collectors.toList());
+        assertEquals(ImmutableList.of(
+                ByteBuffer.wrap(column0),
+                ByteBuffer.wrap(column1),
+                ByteBuffer.wrap(column2),
+                ByteBuffer.wrap(column3),
+                ByteBuffer.wrap(column4),
+                ByteBuffer.wrap(column5),
+                ByteBuffer.wrap(column6)), columns);
+    }
+
+    @Test
     public void testGetRowColumnRangeHistorical() {
         putTestDataForMultipleTimestamps();
         Map<byte[], RowColumnRangeIterator> values = keyValueService.getRowsColumnRange(TEST_TABLE,
@@ -379,6 +421,23 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void testGetRowColumnRangeCellBatchMultipleRowsAndSmallerBatchHint() {
+        putTestDataForSingleTimestamp();
+        RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row1, row0, row2),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                2,
+                TEST_TIMESTAMP + 1);
+        assertNextElementMatches(values, Cell.create(row1, column0), value10);
+        assertNextElementMatches(values, Cell.create(row1, column2), value12);
+        assertNextElementMatches(values, TEST_CELL, value00);
+        assertNextElementMatches(values, Cell.create(row0, column1), value01);
+        assertNextElementMatches(values, Cell.create(row2, column1), value21);
+        assertNextElementMatches(values, Cell.create(row2, column2), value22);
+        assertFalse(values.hasNext());
+    }
+
+    @Test
     public void testGetRowColumnRangeCellBatchHistorical() {
         putTestDataForMultipleTimestamps();
         RowColumnRangeIterator values = keyValueService.getRowsColumnRange(TEST_TABLE,
@@ -421,10 +480,11 @@ public abstract class AbstractKeyValueServiceTest {
     private static void assertNextElementMatches(RowColumnRangeIterator iterator,
                                                  Cell expectedCell,
                                                  byte[] expectedContents) {
-        assertTrue(iterator.hasNext());
+        assertTrue("Expected next element to match, but iterator was exhausted!", iterator.hasNext());
         Map.Entry<Cell, Value> entry = iterator.next();
-        assertEquals(expectedCell, entry.getKey());
-        assertArrayEquals(expectedContents, entry.getValue().getContents());
+        assertEquals("Expected next element to match, but keys were different!", expectedCell, entry.getKey());
+        assertArrayEquals("Expected next element to match, but values were different!",
+                expectedContents, entry.getValue().getContents());
     }
 
     @Test
