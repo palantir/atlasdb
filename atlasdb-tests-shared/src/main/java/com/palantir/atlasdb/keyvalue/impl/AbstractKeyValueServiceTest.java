@@ -38,7 +38,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -59,7 +62,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -280,7 +282,8 @@ public abstract class AbstractKeyValueServiceTest {
                 ImmutableList.of(row1),
                 BatchColumnRangeSelection.create(null, null, 3),
                 TEST_TIMESTAMP + 1).get(row1);
-        List<ByteBuffer> columns = Streams.stream(iterator)
+        List<ByteBuffer> columns = StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
                 .map(entry -> entry.getKey().getColumnName())
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toList());
