@@ -66,6 +66,11 @@ develop
            AtlasDB versions 0.95.0 through 0.101.0 (inclusive both ends) are affected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
 
+    *    - |devbreak| |improved|
+         - CqlQuery is now an abstract class and must now be created through its builder.
+           This makes the intention that the query string provided is safe considerably more explicit.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
+
     *    - |logs|
          - Reduce logging level for locks not being refreshed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
