@@ -38,7 +38,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -85,7 +85,7 @@ public final class CassandraTimestampUtils {
     }
 
     public static CqlQuery constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
-        ImmutableCqlBatchQuery.Builder batchQueryBuilder = CqlBatchQuery.builder();
+        ImmutableCqlSinglePartitionBatchQuery.Builder batchQueryBuilder = CqlSinglePartitionBatchQuery.builder();
         checkAndSetRequest.forEach((columnName, value) ->
                 batchQueryBuilder.addIndividualQueryStatements(
                         constructCheckAndSetQuery(columnName, value.getLhSide(), value.getRhSide())));
@@ -211,8 +211,7 @@ public final class CassandraTimestampUtils {
         return CqlQuery.builder()
                 .safeQueryFormat("INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
-                        SafeArg.of("tableRef",
-                                AbstractKeyValueService.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE)),
+                        LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
                         SafeArg.of("columnName", encodeCassandraHexString(columnName)),
                         SafeArg.of("atlasTimestamp", CASSANDRA_TIMESTAMP),
@@ -225,8 +224,7 @@ public final class CassandraTimestampUtils {
         return CqlQuery.builder()
                 .safeQueryFormat("UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
                 .addArgs(
-                        SafeArg.of("tableRef",
-                                AbstractKeyValueService.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE)),
+                        LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("newValue", encodeCassandraHexBytes(target)),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
                         SafeArg.of("columnName", encodeCassandraHexString(columnName)),

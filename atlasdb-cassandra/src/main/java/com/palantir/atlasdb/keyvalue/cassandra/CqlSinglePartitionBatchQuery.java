@@ -24,11 +24,11 @@ import com.google.common.collect.Lists;
 import com.palantir.logsafe.Arg;
 
 @Value.Immutable
-public abstract class CqlBatchQuery {
+public abstract class CqlSinglePartitionBatchQuery {
     abstract List<CqlQuery> individualQueryStatements();
 
-    public static ImmutableCqlBatchQuery.Builder builder() {
-        return ImmutableCqlBatchQuery.builder();
+    public static ImmutableCqlSinglePartitionBatchQuery.Builder builder() {
+        return ImmutableCqlSinglePartitionBatchQuery.builder();
     }
 
     @Value.Lazy
