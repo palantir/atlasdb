@@ -76,6 +76,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
@@ -85,6 +86,8 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     @ClassRule
@@ -440,15 +443,18 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             throws TException {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
         ckvs.getClientPool().runWithRetry(input -> {
-            CqlQuery cqlQuery = new CqlQuery(String.format("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
-                            + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;",
-                    CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow(),
-                    tableReference.getQualifiedName().replaceAll("\\.", "__"),
-                    convertBytesToHexString(cell.getRowName()),
-                    convertBytesToHexString(cell.getColumnName()),
-                    ~atlasTimestamp,
-                    convertBytesToHexString(PtBytes.toBytes("testtesttest")),
-                    cassandraTimestamp));
+            CqlQuery cqlQuery = CqlQuery.builder()
+                    .safeQueryFormat("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
+                            + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;")
+                    .addArgs(
+                            SafeArg.of("keyspace", CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow()),
+                            LoggingArgs.internalTableName(tableReference),
+                            UnsafeArg.of("row", convertBytesToHexString(cell.getRowName())),
+                            UnsafeArg.of("column", convertBytesToHexString(cell.getColumnName())),
+                            SafeArg.of("atlasTimestamp", ~atlasTimestamp),
+                            UnsafeArg.of("value", convertBytesToHexString(PtBytes.toBytes("testtesttest"))),
+                            SafeArg.of("cassandraTimestamp", cassandraTimestamp))
+                    .build();
             return input.execute_cql3_query(
                     cqlQuery,
                     Compression.NONE,

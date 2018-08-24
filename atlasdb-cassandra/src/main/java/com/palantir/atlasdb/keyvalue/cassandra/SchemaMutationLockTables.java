@@ -100,10 +100,13 @@ public class SchemaMutationLockTables {
                 + "    PRIMARY KEY (key, column1, column2)\n"
                 + ") WITH COMPACT STORAGE\n"
                 + "    AND id = '%s'";
-        CqlQuery query = new CqlQuery(createTableStatement,
-                SafeArg.of("keyspace", keyspace),
-                SafeArg.of("internalTableName", internalTableName),
-                SafeArg.of("cfId", uuid));
+        CqlQuery query = CqlQuery.builder()
+                .safeQueryFormat(createTableStatement)
+                .addArgs(
+                        SafeArg.of("keyspace", keyspace),
+                        SafeArg.of("internalTableName", internalTableName),
+                        SafeArg.of("cfId", uuid))
+                .build();
 
         clientPool.runWithRetry(client -> {
             try {
