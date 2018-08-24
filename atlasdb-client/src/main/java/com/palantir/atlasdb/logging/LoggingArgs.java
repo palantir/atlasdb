@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -69,6 +70,13 @@ public final class LoggingArgs {
     @VisibleForTesting
     static synchronized void setLogArbitrator(KeyValueServiceLogArbitrator arbitrator) {
         logArbitrator = arbitrator;
+    }
+
+    public static Arg<String> internalTableName(TableReference tableReference) {
+        return getArg(
+                "tableRef",
+                AbstractKeyValueService.internalTableName(tableReference),
+                logArbitrator.isTableReferenceSafe(tableReference));
     }
 
     public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {

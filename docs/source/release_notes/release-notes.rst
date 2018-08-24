@@ -60,6 +60,12 @@ develop
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
+    *    - |fixed|
+         - CQL queries are now logged correctly (with safe and unsafe arguments respected).
+           Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
+           AtlasDB versions 0.95.0 through 0.101.0 (inclusive both ends) are affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/abcd>`__)
+
     *    - |logs|
          - Reduce logging level for locks not being refreshed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
