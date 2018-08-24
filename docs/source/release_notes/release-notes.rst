@@ -62,8 +62,8 @@ develop
 
     *    - |fixed|
          - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
-           Previously, the exceptions thrown would erroneously contain ``{}`` values
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
 
     *    - |logs|
          - Reduce logging level for locks not being refreshed.
