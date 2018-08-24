@@ -53,7 +53,7 @@ develop
     *    - |fixed|
          - CQL queries are now logged correctly (with safe and unsafe arguments respected).
            Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
-           AtlasDB versions 0.95.0 through 0.101.0 (inclusive both ends) are affected.
+           AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
 
     *    - |devbreak| |improved|
