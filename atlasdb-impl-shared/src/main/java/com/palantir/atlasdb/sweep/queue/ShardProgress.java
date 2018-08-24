@@ -101,7 +101,7 @@ public class ShardProgress {
         return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS));
     }
 
-    Cell cellForShard(ShardAndStrategy shardAndStrategy) {
+    private Cell cellForShard(ShardAndStrategy shardAndStrategy) {
         SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
                 shardAndStrategy.shard(),
                 PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes());
@@ -120,16 +120,16 @@ public class ShardProgress {
 
         long currentValue = oldVal;
         while (currentValue < newVal) {
-            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, oldVal, colValNew);
+            CheckAndSetRequest casRequest = createRequest(shardAndStrategy, currentValue, colValNew);
             try {
                 kvs.checkAndSet(casRequest);
                 return newVal;
             } catch (CheckAndSetException e) {
                 log.info("Failed to check and set from expected old value {} to new value {}. Retrying if the old "
                                 + "value changed under us.",
-                        SafeArg.of("old value", oldVal),
+                        SafeArg.of("old value", currentValue),
                         SafeArg.of("new value", newVal));
-                currentValue = rethrowIfUnchanged(shardAndStrategy, oldVal, e);
+                currentValue = rethrowIfUnchanged(shardAndStrategy, currentValue, e);
             }
         }
         return currentValue;
