@@ -65,7 +65,8 @@ public class CheckAndSetQueriesTest {
                 .containsEntry("column", false)
                 .containsEntry("cassandraTimestamp", true)
                 .containsEntry("newValue", false)
-                .containsEntry("tableRef", false); // the table wasn't marked as safe
+                .containsEntry("unsafeTableRef", false)
+                .doesNotContainKey("tableRef"); // the table wasn't marked as safe
         assertThat(query.toString())
                 .isEqualTo("INSERT INTO \"ns__table\" (key, column1, column2, value)"
                         + " VALUES (0x616263, 0x313233, -1, 0x70747074) IF NOT EXISTS;");
@@ -91,7 +92,8 @@ public class CheckAndSetQueriesTest {
                 .containsEntry("cassandraTimestamp", true)
                 .containsEntry("oldValue", false)
                 .containsEntry("newValue", false)
-                .containsEntry("tableRef", false); // the table wasn't marked as safe
+                .containsEntry("unsafeTableRef", false)
+                .doesNotContainKey("tableRef"); // the table wasn't marked as safe
         assertThat(query.toString())
                 .isEqualTo("UPDATE \"ns__table\" SET value=0x626262"
                         + " WHERE key=0x616263 AND column1=0x313233 AND column2=-1 IF value=0x616161;");

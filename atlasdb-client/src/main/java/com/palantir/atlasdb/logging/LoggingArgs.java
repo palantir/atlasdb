@@ -73,10 +73,7 @@ public final class LoggingArgs {
     }
 
     public static Arg<String> internalTableName(TableReference tableReference) {
-        return getArg(
-                "tableRef",
-                AbstractKeyValueService.internalTableName(tableReference),
-                logArbitrator.isTableReferenceSafe(tableReference));
+        return safeInternalTableName(AbstractKeyValueService.internalTableName(tableReference));
     }
 
     public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {
