@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-public final class CommittedTransactionException extends RuntimeException {
+public final class CommittedTransactionException extends IllegalStateException {
     public CommittedTransactionException() {
         super("Transaction must be uncommitted");
     }
