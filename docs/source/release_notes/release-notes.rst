@@ -51,6 +51,11 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed an issue where targeted sweep would fail to increase the number of shards and error out if the default number of shards was ever persisted into the progress table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/34??>`__)
+
+
+    *    - |fixed|
          - CQL queries are now logged correctly (with safe and unsafe arguments respected).
            Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
            AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
