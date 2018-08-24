@@ -6,10 +6,6 @@ if (enableErrorProne.toBoolean()) {
     // installs the "processor" configuration needed for baseline-error-prone
     apply plugin: 'com.palantir.baseline-error-prone'
 
-    configurations.errorprone {
-        resolutionStrategy { force('com.google.guava:guava:21.0') }
-    }
-
     tasks.withType(JavaCompile) {
         options.compilerArgs += ['-XepDisableWarningsInGeneratedCode']
     }
