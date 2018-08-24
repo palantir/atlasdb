@@ -52,7 +52,7 @@ develop
 
     *    - |fixed|
          - Fixed an issue where targeted sweep would fail to increase the number of shards and error out if the default number of shards was ever persisted into the progress table.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/34??>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3473>`__)
 
 
     *    - |fixed|
