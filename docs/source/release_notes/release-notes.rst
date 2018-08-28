@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
+           Previously, we assumed the strategy was conservative, which could result in sweeping that should never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3476>`__)
+
     *    - |fixed|
          - CQL queries are now logged correctly (with safe and unsafe arguments respected).
            Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
