@@ -55,6 +55,10 @@ develop
            Previously, the exceptions thrown would erroneously contain ``{}`` values.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
 
+    *    - |fixed|
+         - Cassandra Key Value Service now no longer logs spurious ERROR warning messages when failing to read new-format table metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
 ========
 v0.102.0
 ========

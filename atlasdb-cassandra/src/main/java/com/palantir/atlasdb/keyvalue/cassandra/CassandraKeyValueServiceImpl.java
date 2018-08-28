@@ -441,8 +441,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
             for (CfDef clusterSideCf : knownCfs) {
                 TableReference tableRef = CassandraKeyValueServices.tableReferenceFromCfDef(clusterSideCf);
-                if (metadataForTables.containsKey(tableRef)) {
-                    byte[] clusterSideMetadata = metadataForTables.get(tableRef);
+                Optional<byte[]> relevantMetadata = lookupClusterSideMetadata(metadataForTables, tableRef);
+                if (relevantMetadata.isPresent()) {
+                    byte[] clusterSideMetadata = relevantMetadata.get();
                     CfDef clientSideCf = getCfForTable(tableRef, clusterSideMetadata,
                             config.gcGraceSeconds());
                     if (!ColumnFamilyDefinitions.isMatchingCf(clientSideCf, clusterSideCf)) {
@@ -474,6 +475,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             log.error("Couldn't upgrade from an older internal Cassandra schema."
                     + " New table-related settings may not have taken effect.");
         }
+    }
+
+    private Optional<byte[]> lookupClusterSideMetadata(
+            Map<TableReference, byte[]> metadataForTables,
+            TableReference tableRef) {
+        // TODO (jkong): Replace with or() once we can use Java 9
+        byte[] directMatch = metadataForTables.get(tableRef);
+        if (directMatch != null) {
+            return Optional.of(directMatch);
+        }
+
+        // No direct match but need to look for entries that match ignoring case.
+        return Maps.filterEntries(metadataForTables, entry -> matchingIgnoreCase(entry.getKey(), tableRef))
+                .values().stream().findAny();
     }
 
     private void lowerConsistencyWhenSafe() {
@@ -1608,6 +1623,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Gets the metadata for all non-hidden tables.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
+     *
+     * Note that this method does not guarantee that the case of {@link TableReference}s returned matches
+     * that found in the schema. It is likely to be difficult to reconcile this without schema information.
      *
      * @return a mapping of table names to their respective metadata in form of a byte array.  Consider
      * {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
