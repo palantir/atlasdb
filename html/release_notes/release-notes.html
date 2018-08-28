@@ -187,6 +187,28 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+Previously, the exceptions thrown would erroneously contain <code class="docutils literal notranslate"><span class="pre">{}</span></code> values.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3468">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-102-0">
+<h2>v0.102.0<a class="headerlink" href="#v0-102-0" title="Permalink to this headline">¶</a></h2>
+<p>24 Aug 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>CQL queries are now logged correctly (with safe and unsafe arguments respected).
 Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
 AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
@@ -207,12 +229,7 @@ This facilitates better performance of targeted sweep on DbKvs.
 Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3450">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
-Previously, the exceptions thrown would erroneously contain <code class="docutils literal notranslate"><span class="pre">{}</span></code> values.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3468">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
 <td>Reduce logging level for locks not being refreshed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3458">Pull Request</a>)</td>
 </tr>
