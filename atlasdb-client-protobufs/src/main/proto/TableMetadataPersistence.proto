@@ -1,0 +1,129 @@
+package com.palantir.atlasdb.protos.generated;
+
+message TableMetadata {
+    required NameMetadataDescription rowName = 1;
+    required ColumnMetadataDescription columns = 2;
+    required TableConflictHandler conflictHandler = 3;
+    optional CachePriority cachePriority = 4;
+    // Tag number 5 was previously used.
+    optional bool rangeScanAllowed = 6;
+    optional bool explicitCompression = 7 [deprecated = true];
+    optional bool negativeLookups = 8;
+    optional SweepStrategy sweepStrategy = 9;
+    optional int32 explicitCompressionBlockSizeKiloBytes = 10;
+    optional bool appendHeavyAndReadLight = 11;
+    optional LogSafety nameLogSafety = 12 [default = UNSAFE];
+}
+
+message NameMetadataDescription {
+    repeated NameComponentDescription nameParts = 1;
+    optional bool hasFirstComponentHash = 2 [deprecated = true, default = false];
+    optional int32 numberOfComponentsHashed = 3 [default = 0];
+}
+
+message NameComponentDescription {
+    required string componentName = 1;
+    required ValueType type = 2;
+    required ValueByteOrder order = 3;
+    optional bool hasUniformPartitioner = 4;
+    repeated string explicitPartitions = 5;
+    optional LogSafety logSafety = 6 [default = UNSAFE];
+}
+
+message ColumnMetadataDescription {
+    repeated NamedColumnDescription namedColumns = 1;
+    optional DynamicColumnDescription dynamicColumn = 2;
+}
+
+message DynamicColumnDescription {
+    required NameMetadataDescription columnNameDesc = 1;
+    required ColumnValueDescription value = 2;
+}
+
+message NamedColumnDescription {
+    required string shortName = 1;
+    required string longName = 2;
+    required ColumnValueDescription value = 3;
+    optional LogSafety logSafety = 4 [default = UNSAFE];
+}
+
+message ColumnValueDescription {
+    required ValueType type = 1;
+    optional string className = 2;
+    optional Compression compression = 3 [default = NONE];
+    optional ColumnValueFormat format = 4;
+    optional string canonicalClassName = 5;
+
+    // This is the proto descriptor so we can render the message without the compiled proto files.
+    optional bytes protoFileDescriptor = 6 [deprecated = true];
+    // This protoName is the name of the message in the protoFileDescriptor.
+    optional string protoMessageName = 7;
+
+    optional FileDescriptorTreeProto protoFileDescriptorTree = 8;
+}
+
+message FileDescriptorTreeProto {
+    required bytes protoFileDescriptor = 1;
+    repeated FileDescriptorTreeProto dependencies = 2;
+}
+
+enum ValueType {
+    VAR_LONG = 1;
+    FIXED_LONG = 2;
+    STRING = 3;
+    BLOB = 4;
+    VAR_SIGNED_LONG = 5;
+    FIXED_LONG_LITTLE_ENDIAN = 6;
+    SHA256HASH = 7;
+    VAR_STRING = 8;
+    NULLABLE_FIXED_LONG = 9;
+    SIZED_BLOB = 10;
+    UUID = 11;
+}
+
+enum Compression {
+    NONE = 1;
+    SNAPPY = 2;
+}
+
+enum ColumnValueFormat {
+    PROTO = 1;
+    PERSISTABLE = 2;
+    VALUE_TYPE = 3;
+    PERSISTER = 4;
+}
+
+enum ValueByteOrder {
+    ASCENDING = 1;
+    DESCENDING = 2;
+}
+
+enum TableConflictHandler {
+    IGNORE_ALL = 1;
+    RETRY_ON_WRITE_WRITE = 2;
+    RETRY_ON_VALUE_CHANGED = 3;
+    SERIALIZABLE = 4;
+    RETRY_ON_WRITE_WRITE_CELL = 5;
+    SERIALIZABLE_CELL = 6;
+    SERIALIZABLE_INDEX = 7;
+    SERIALIZABLE_LOCK_LEVEL_MIGRATION = 8;
+}
+
+enum CachePriority {
+    COLDEST = 0;
+    COLD = 32;
+    WARM = 64;
+    HOT = 96;
+    HOTTEST = 127;
+}
+
+enum SweepStrategy {
+    NOTHING = 0;
+    CONSERVATIVE = 1;
+    THOROUGH = 2;
+}
+
+enum LogSafety {
+    SAFE = 0;
+    UNSAFE = 1;
+}

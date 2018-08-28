@@ -20,13 +20,16 @@ import org.immutables.value.Value;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence;
-import com.palantir.atlasdb.protos.generated.SchemaMetadataPersistence.CleanupRequirement;
+import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
+import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 @Value.Immutable
 public abstract class SchemaDependentTableMetadata implements Persistable {
-    public static final Hydrator<SchemaDependentTableMetadata> HYDRATOR = input -> {
+    public static final Hydrator<SchemaDependentTableMetadata> BYTES_HYDRATOR = input -> {
         try {
             SchemaMetadataPersistence.SchemaDependentTableMetadata message =
                     SchemaMetadataPersistence.SchemaDependentTableMetadata.parseFrom(input);
@@ -36,7 +39,7 @@ public abstract class SchemaDependentTableMetadata implements Persistable {
         }
     };
 
-    public abstract CleanupRequirement cleanupRequirement();
+    public abstract CleanupMetadata cleanupMetadata();
 
     @Override
     public byte[] persistToBytes() {
@@ -46,18 +49,56 @@ public abstract class SchemaDependentTableMetadata implements Persistable {
     public SchemaMetadataPersistence.SchemaDependentTableMetadata persistToProto() {
         SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder builder =
                 SchemaMetadataPersistence.SchemaDependentTableMetadata.newBuilder();
-        builder.setCleanupRequirement(cleanupRequirement());
+        cleanupMetadata().accept(new CleanupMetadataPersisterVisitor(builder));
         return builder.build();
     }
 
     public static SchemaDependentTableMetadata hydrateFromProto(
             SchemaMetadataPersistence.SchemaDependentTableMetadata message) {
-        CleanupRequirement cleanupRequirement = CleanupRequirement.ARBITRARY_ASYNC; // strictest default
-        if (message.hasCleanupRequirement()) {
-            cleanupRequirement = message.getCleanupRequirement();
+        ImmutableSchemaDependentTableMetadata.Builder builder = ImmutableSchemaDependentTableMetadata.builder();
+        builder.cleanupMetadata(parseCleanupMetadata(message));
+        return builder.build();
+    }
+
+    private static CleanupMetadata parseCleanupMetadata(
+            SchemaMetadataPersistence.SchemaDependentTableMetadata message) {
+        switch (message.getCleanupMetadataCase()) {
+            case ARBITRARY_CLEANUP_METADATA:
+                return ArbitraryCleanupMetadata.hydrateFromProto(message.getArbitraryCleanupMetadata());
+            case NULL_CLEANUP_METADATA:
+                return NullCleanupMetadata.hydrateFromProto(message.getNullCleanupMetadata());
+            case STREAM_STORE_CLEANUP_METADATA:
+                return StreamStoreCleanupMetadata.hydrateFromProto(message.getStreamStoreCleanupMetadata());
+            default:
+                throw new IllegalStateException("Unexpected type of cleanup metadata found: "
+                        + message.getCleanupMetadataCase());
         }
-        return ImmutableSchemaDependentTableMetadata.builder()
-                .cleanupRequirement(cleanupRequirement)
-                .build();
+    }
+
+    private static class CleanupMetadataPersisterVisitor implements CleanupMetadata.Visitor<Void> {
+        private final SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder builder;
+
+        private CleanupMetadataPersisterVisitor(
+                SchemaMetadataPersistence.SchemaDependentTableMetadata.Builder builder) {
+            this.builder = builder;
+        }
+
+        @Override
+        public Void visit(ArbitraryCleanupMetadata metadata) {
+            builder.setArbitraryCleanupMetadata(metadata.persistToProto());
+            return null;
+        }
+
+        @Override
+        public Void visit(NullCleanupMetadata metadata) {
+            builder.setNullCleanupMetadata(metadata.persistToProto());
+            return null;
+        }
+
+        @Override
+        public Void visit(StreamStoreCleanupMetadata metadata) {
+            builder.setStreamStoreCleanupMetadata(metadata.persistToProto());
+            return null;
+        }
     }
 }

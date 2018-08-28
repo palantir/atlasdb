@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
 
@@ -41,6 +42,8 @@ import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -57,51 +60,76 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<TimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
-    public ServiceDiscoveringAtlasSupplier(KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this(config, leaderConfig, Optional.empty(), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+    public ServiceDiscoveringAtlasSupplier(
+            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
+        this(metricsManager,
+                config,
+                Optional::empty,
+                leaderConfig,
+                Optional.empty(),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 FakeQosClient.INSTANCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable) {
-        this(config, leaderConfig, namespace, timestampTable, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+        this(metricsManager,
+                config,
+                Optional::empty,
+                leaderConfig,
+                namespace,
+                timestampTable,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                FakeQosClient.INSTANCE,
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             boolean initializeAsync,
             QosClient qosClient) {
-        this(config, leaderConfig, namespace, Optional.empty(), initializeAsync, qosClient);
+        this(metricsManager,
+                config,
+                runtimeConfig,
+                leaderConfig,
+                namespace,
+                Optional.empty(),
+                initializeAsync,
+                qosClient,
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
     public ServiceDiscoveringAtlasSupplier(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
-            QosClient qosClient) {
+            QosClient qosClient,
+            LongSupplier timestampSupplier) {
+        // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
 
-        AtlasDbFactory atlasFactory = StreamSupport.stream(loader.spliterator(), false)
-                .filter(producesCorrectType())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException(
-                        "No atlas provider for KeyValueService type " + config.type() + " could be found."
-                        + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
-                ));
+        AtlasDbFactory atlasFactory = createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(
                 () -> atlasFactory.createRawKeyValueService(
+                        metricsManager,
                         config,
+                        runtimeConfig,
                         leaderConfig,
                         namespace,
+                        timestampSupplier,
                         initializeAsync,
                         qosClient));
         timestampService = () ->
@@ -138,6 +166,16 @@ public class ServiceDiscoveringAtlasSupplier {
             log.error("[timestamp-service-creation] The timestamp service was fetched for a second time. "
                     + "We tried to output thread dumps to a temporary file, but encountered an error.", e);
         }
+    }
+
+    private AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig kvsConfig) {
+        return StreamSupport.stream(loader.spliterator(), false)
+                .filter(producesCorrectType())
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "No atlas provider for KeyValueService type " + kvsConfig.type() + " could be found."
+                                + " Have you annotated it with @AutoService(AtlasDbFactory.class)?"
+                ));
     }
 
     @VisibleForTesting

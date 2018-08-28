@@ -28,12 +28,15 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -86,6 +89,12 @@ public class LoggingArgsTest {
             return tableReference.getQualifiedName().contains("safe");
         });
 
+        // Technically this may be inconsistent with the above, but this will do for our testing purposes
+        when(arbitrator.isInternalTableReferenceSafe(any())).thenAnswer(invocation -> {
+            String internalTableReference = (String) invocation.getArguments()[0];
+            return internalTableReference.contains("safe");
+        });
+
         when(arbitrator.isRowComponentNameSafe(any(), any(String.class))).thenAnswer(invocation -> {
             String rowName = (String) invocation.getArguments()[1];
             return rowName.contains("safe");
@@ -102,6 +111,24 @@ public class LoggingArgsTest {
     @AfterClass
     public static void tearDownClass() {
         LoggingArgs.setLogArbitrator(KeyValueServiceLogArbitrator.ALL_UNSAFE);
+    }
+
+    @Test
+    public void returnsSafeInternalTableNameCorrectly() {
+        Arg<String> internalTableNameArg = LoggingArgs.internalTableName(SAFE_TABLE_REFERENCE);
+        assertThat(internalTableNameArg.getName()).isEqualTo("tableRef");
+        assertThat(internalTableNameArg.getValue()).isEqualTo(
+                AbstractKeyValueService.internalTableName(SAFE_TABLE_REFERENCE));
+        assertThat(internalTableNameArg).isInstanceOf(SafeArg.class);
+    }
+
+    @Test
+    public void returnsUnsafeInternalTableNameCorrectly() {
+        Arg<String> internalTableNameArg = LoggingArgs.internalTableName(UNSAFE_TABLE_REFERENCE);
+        assertThat(internalTableNameArg.getName()).isEqualTo("unsafeTableRef");
+        assertThat(internalTableNameArg.getValue()).isEqualTo(
+                AbstractKeyValueService.internalTableName(UNSAFE_TABLE_REFERENCE));
+        assertThat(internalTableNameArg).isInstanceOf(UnsafeArg.class);
     }
 
     @Test
@@ -254,5 +281,11 @@ public class LoggingArgsTest {
                 LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
 
         assertThat(returnedList).containsOnly(expectedList.toArray(new TableReference[expectedList.size()]));
+    }
+
+    @Test
+    public void hydrateDoesNotThrowOnInvalidMetadata() {
+        LoggingArgs.hydrate(ImmutableMap.of(SAFE_TABLE_REFERENCE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        LoggingArgs.setLogArbitrator(arbitrator);
     }
 }

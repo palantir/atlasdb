@@ -29,11 +29,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.common.time.Clock;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -60,10 +65,15 @@ public class AsyncLockServiceEteTest {
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
-            new LockAcquirer(Executors.newSingleThreadScheduledExecutor()),
+            new LockAcquirer(
+                    new LockLog(new MetricRegistry(), () -> 2L),
+                    Executors.newSingleThreadScheduledExecutor()),
             new HeldLocksCollection(),
             new AwaitedLocksCollection(),
             executor);
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Test
     public void canLockAndUnlock() {
@@ -130,6 +140,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void requestsAreIdempotentWithRespectToTimeout() {
         lockSynchronously(REQUEST_1, LOCK_A);
         service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -227,6 +238,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void lockRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<LockToken> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -238,6 +250,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void waitForLocksRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Void> result = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -249,6 +262,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    @ShouldRetry
     public void timedOutRequestDoesNotHoldLocks() {
         LockToken lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
         service.lock(REQUEST_2, descriptors(LOCK_A, LOCK_B), SHORT_TIMEOUT);

@@ -34,34 +34,38 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 
 public class OneNodeDownPutTest {
 
-    private static final byte[] newContents = PtBytes.toBytes("new_value");
-    private static final long newTimestamp = 7L;
+    private static final byte[] NEW_CONTENTS = PtBytes.toBytes("new_value");
+    private static final long NEW_TIMESTAMP = 7L;
 
-    private static final Value newValue = Value.create(newContents, newTimestamp);
+    private static final Value NEW_VALUE = Value.create(NEW_CONTENTS, NEW_TIMESTAMP);
+
+    private static final byte[] ATOMIC_ROW = PtBytes.toBytes("atomicRow");
+    private static final byte[] ATOMIC_COLUMN = PtBytes.toBytes("atomicColumn");
+    private static final Cell ATOMIC_CELL = Cell.create(ATOMIC_ROW, ATOMIC_COLUMN);
 
     @Test
     public void canPut() {
         OneNodeDownTestSuite.kvs.put(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, newContents), newTimestamp);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, newValue);
+                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, NEW_CONTENTS), NEW_TIMESTAMP);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, NEW_VALUE);
     }
 
     @Test
     public void canPutWithTimestamps() {
         OneNodeDownTestSuite.kvs.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, newValue));
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, newValue);
+                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, NEW_VALUE));
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, NEW_VALUE);
     }
 
     @Test
     public void canMultiPut() {
         ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(
-                OneNodeDownTestSuite.CELL_2_1, newContents,
-                OneNodeDownTestSuite.CELL_2_2, newContents);
+                OneNodeDownTestSuite.CELL_2_1, NEW_CONTENTS,
+                OneNodeDownTestSuite.CELL_2_2, NEW_CONTENTS);
 
-        OneNodeDownTestSuite.kvs.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), newTimestamp);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, newValue);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, newValue);
+        OneNodeDownTestSuite.kvs.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), NEW_TIMESTAMP);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, NEW_VALUE);
+        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, NEW_VALUE);
     }
 
     @Test
@@ -74,14 +78,17 @@ public class OneNodeDownPutTest {
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
+        OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
+                ImmutableMap.of(ATOMIC_CELL, OneNodeDownTestSuite.DEFAULT_CONTENTS));
+
         assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_CONTENTS)))
+                ImmutableMap.of(ATOMIC_CELL, NEW_CONTENTS)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
 
         Map<Cell, Value> result = OneNodeDownTestSuite.kvs.get(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, AtlasDbConstants.TRANSACTION_TS));
-        assertThat(Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
-                .isNotEqualTo(result.get(OneNodeDownTestSuite.CELL_1_1));
+                ImmutableMap.of(ATOMIC_CELL, AtlasDbConstants.TRANSACTION_TS));
+        assertThat(Value.create(NEW_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
+                .isNotEqualTo(result.get(ATOMIC_CELL));
     }
 
     @Test

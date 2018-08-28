@@ -10,6 +10,7 @@ Configuration
 
    key_value_service_configs/index
    external_timelock_service_configs/index
+   qos_configs/index
    cassandra_config
    multinode_cassandra
    enabling_cassandra_tracing
@@ -41,6 +42,7 @@ For a full list of the configurations available at the ``atlasdb`` root level, s
 A second root configuration block can be specified for live-reloadable configs.
 Parameters related to :ref:`Sweep <sweep>` can be specified there and will be reloaded in each sweep run.
 Parameters concerning batching of timestamp requests may also be configured; see :ref:`Timestamp Client <timestamp-client-config>` for more details.
+Some of the KeyValueService parameters can be live-reloadable if specified in this block under the ``keyValueService`` config.
 For a full list of the configurations available at this block, see
 `AtlasDbRuntimeConfig.java <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
 
@@ -88,3 +90,6 @@ Example Configuration
     atlasdb-runtime:
       timestampClient:
         enableTimestampBatching: true
+      keyValueService:
+        type: cassandra
+        sweepReadThreads: 16

@@ -19,8 +19,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -28,7 +26,6 @@ import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Functions;
-import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
@@ -167,32 +164,33 @@ public class SweepCommand extends SingleBackendCommand {
 
         for (Map.Entry<TableReference, byte[]> entry : tableToStartRow.entrySet()) {
             final TableReference tableToSweep = entry.getKey();
-            Optional<byte[]> startRow = Optional.of(entry.getValue());
 
-            final AtomicLong cellsExamined = new AtomicLong();
-            final AtomicLong cellsDeleted = new AtomicLong();
+            SweepResults accumulatedResults = SweepResults.createEmptySweepResult(Optional.of(entry.getValue()));
 
-            while (startRow.isPresent()) {
-                Stopwatch watch = Stopwatch.createStarted();
+            while (accumulatedResults.getNextStartRow().isPresent()) {
+                SweepResults newResults = dryRun
+                        ? sweepRunner.dryRun(tableToSweep, batchConfig, accumulatedResults.getNextStartRow().get())
+                        : sweepRunner.run(tableToSweep, batchConfig, accumulatedResults.getNextStartRow().get());
 
-                SweepResults results = dryRun
-                        ? sweepRunner.dryRun(tableToSweep, batchConfig, startRow.get())
-                        : sweepRunner.run(tableToSweep, batchConfig, startRow.get());
+                accumulatedResults = accumulatedResults.accumulateWith(newResults);
                 printer.info(
                         "{} Swept from {} to {} in table {} in {} ms, examined {} cell values,"
-                                + " deleted {} stale versions of those cells.",
+                                + " deleted {} stale versions of those cells. Time elapsed since started sweeping:"
+                                + " {} ms. Total time sweeping this table: {} ms.",
                         SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
-                        UnsafeArg.of("startRow", encodeStartRow(startRow)),
-                        UnsafeArg.of("exclusiveEndRow", encodeEndRow(results.getNextStartRow())),
+                        UnsafeArg.of("startRow", encodeStartRow(accumulatedResults.getNextStartRow())),
+                        UnsafeArg.of("exclusiveEndRow", encodeEndRow(newResults.getNextStartRow())),
                         LoggingArgs.tableRef(tableToSweep),
-                        SafeArg.of("time taken millis", watch.elapsed(TimeUnit.MILLISECONDS)),
-                        SafeArg.of("cellTs pairs examined", results.getCellTsPairsExamined()),
-                        SafeArg.of("cellTs pairs deleted", results.getStaleValuesDeleted()));
-                startRow = results.getNextStartRow();
-                cellsDeleted.addAndGet(results.getStaleValuesDeleted());
-                cellsExamined.addAndGet(results.getCellTsPairsExamined());
+                        SafeArg.of("time taken millis", newResults.getTimeInMillis()),
+                        SafeArg.of("cellTs pairs examined", newResults.getCellTsPairsExamined()),
+                        SafeArg.of("cellTs pairs deleted", newResults.getStaleValuesDeleted()),
+                        SafeArg.of("time elapsed", accumulatedResults.getTimeElapsedSinceStartedSweeping()),
+                        SafeArg.of("time sweeping", accumulatedResults.getTimeInMillis()));
+
                 maybeSleep();
             }
+
+            SweepResults finalAccumulatedResults = accumulatedResults;
 
             if (!dryRun) {
                 services.getTransactionManager().runTaskWithRetry((TxTask) t -> {
@@ -200,8 +198,8 @@ public class SweepCommand extends SingleBackendCommand {
                     SweepPriorityTable.SweepPriorityRow row1 = SweepPriorityTable.SweepPriorityRow.of(
                             tableToSweep.getQualifiedName());
                     priorityTable.putWriteCount(row1, 0L);
-                    priorityTable.putCellsDeleted(row1, cellsDeleted.get());
-                    priorityTable.putCellsExamined(row1, cellsExamined.get());
+                    priorityTable.putCellsExamined(row1, finalAccumulatedResults.getCellTsPairsExamined());
+                    priorityTable.putCellsDeleted(row1, finalAccumulatedResults.getStaleValuesDeleted());
                     priorityTable.putLastSweepTime(row1, System.currentTimeMillis());
                     return null;
                 });
@@ -211,16 +209,8 @@ public class SweepCommand extends SingleBackendCommand {
                     "{} Finished sweeping {}, examined {} cell values, deleted {} stale versions of those cells.",
                     SafeArg.of("isDryRun", dryRun ? "[DRY RUN]" : ""),
                     LoggingArgs.tableRef(tableToSweep),
-                    SafeArg.of("cellTs pairs examined", cellsExamined.get()),
-                    SafeArg.of("cellTs pairs deleted", cellsDeleted.get()));
-
-            if (!dryRun && cellsDeleted.get() > 0) {
-                Stopwatch watch = Stopwatch.createStarted();
-                services.getKeyValueService().compactInternally(tableToSweep);
-                printer.info("Finished performing compactInternally on {} in {} ms.",
-                        LoggingArgs.tableRef(tableToSweep),
-                        SafeArg.of("time taken", watch.elapsed(TimeUnit.MILLISECONDS)));
-            }
+                    SafeArg.of("cellTs pairs examined", finalAccumulatedResults.getCellTsPairsExamined()),
+                    SafeArg.of("cellTs pairs deleted", finalAccumulatedResults.getStaleValuesDeleted()));
         }
         return 0;
     }

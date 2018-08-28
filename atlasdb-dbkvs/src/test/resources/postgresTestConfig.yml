@@ -5,7 +5,7 @@ atlasdb:
       type: postgres
     connection:
       type: postgres
-      host: postgres.palantir.dev
+      host: postgres.palantir.pt
       port: 1000
       dbName: test
       dbLogin: test

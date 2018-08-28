@@ -18,6 +18,7 @@ package com.palantir.leader;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
@@ -25,6 +26,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 
+@SuppressWarnings("HiddenField")
 public class PaxosLeaderElectionServiceBuilder {
     private PaxosProposer proposer;
     private PaxosLearner knowledge;
@@ -36,6 +38,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
+    private Supplier<Boolean> onlyLogOnQuorumFailure = () -> true;
 
     public PaxosLeaderElectionServiceBuilder proposer(PaxosProposer proposer) {
         this.proposer = proposer;
@@ -47,6 +50,9 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    /**
+     * Mapping containing the host/port information for all nodes in the cluster EXCEPT this one.
+     */
     public PaxosLeaderElectionServiceBuilder potentialLeadersToHosts(
             Map<PingableLeader, HostAndPort> potentialLeadersToHosts) {
         this.potentialLeadersToHosts = potentialLeadersToHosts;
@@ -89,6 +95,11 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    public PaxosLeaderElectionServiceBuilder onlyLogOnQuorumFailure(Supplier<Boolean> onlyLogOnQuorumFailure) {
+        this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
+        return this;
+    }
+
     public PaxosLeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposer,
@@ -100,6 +111,7 @@ public class PaxosLeaderElectionServiceBuilder {
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs,
-                eventRecorder);
+                eventRecorder,
+                onlyLogOnQuorumFailure);
     }
 }

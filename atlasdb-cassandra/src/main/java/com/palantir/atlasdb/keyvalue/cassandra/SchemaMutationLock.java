@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +44,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Longs;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
@@ -51,8 +52,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 final class SchemaMutationLock {
-    public static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
-    public static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
+    static final long GLOBAL_DDL_LOCK_CLEARED_ID = Long.MAX_VALUE;
+    static final int DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS = 60000;
 
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLock.class);
     private static final Pattern GLOBAL_DDL_LOCK_FORMAT_PATTERN = Pattern.compile(
@@ -65,11 +66,11 @@ final class SchemaMutationLock {
     private static final int MAX_UNLOCK_RETRY_COUNT = 5;
 
     private final boolean supportsCas;
-    private final CassandraKeyValueServiceConfigManager configManager;
+    private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel writeConsistency;
-    private final UniqueSchemaMutationLockTable lockTable;
+    private final Supplier<TableReference> lockTable;
     private final ReentrantLock schemaMutationLockForEarlierVersionsOfCassandra = new ReentrantLock(true);
     private final HeartbeatService heartbeatService;
     private final int deadHeartbeatTimeoutThreshold;
@@ -77,15 +78,15 @@ final class SchemaMutationLock {
     SchemaMutationLock(
             // TODO(ssouza): get rid of non-cas, since we've dropped support for Cassandra 1.2.
             boolean supportsCas,
-            CassandraKeyValueServiceConfigManager configManager,
+            CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel writeConsistency,
-            UniqueSchemaMutationLockTable lockTable,
+            Supplier<TableReference> lockTable,
             HeartbeatService heartbeatService,
             int deadHeartbeatTimeoutThreshold) {
         this.supportsCas = supportsCas;
-        this.configManager = configManager;
+        this.config = config;
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.writeConsistency = writeConsistency;
@@ -186,7 +187,7 @@ final class SchemaMutationLock {
 
                 // We use schemaMutationTimeoutMillis to wait for schema mutations to agree as well as
                 // to specify the timeout period before we give up trying to acquire the schema mutation lock
-                int mutationTimeoutMillis = configManager.getConfig().schemaMutationTimeoutMillis()
+                int mutationTimeoutMillis = config.schemaMutationTimeoutMillis()
                         * CassandraConstants.SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER;
                 Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -201,7 +202,7 @@ final class SchemaMutationLock {
                         if (existingColumn == null) {
                             throw new IllegalStateException("Something is wrong with underlying locks."
                                     + " Contact support for guidance on manually examining and clearing"
-                                    + " locks from " + lockTable.getOnlyTable() + " table.");
+                                    + " locks from " + lockTable.get() + " table.");
                         }
                         if (!existingColumn.equals(lastSeenColumn)) {
                             lastSeenColumn = existingColumn;
@@ -220,7 +221,6 @@ final class SchemaMutationLock {
                                 SafeArg.of("wait duration", stopwatch.elapsed(TimeUnit.MILLISECONDS)));
                         throw Throwables.rewrapAndThrowUncheckedException(schemaLockTimeoutError);
                     }
-
 
                     currentTimeBetweenLockAttemptsMillis = getCappedTimeBetweenLockAttemptsWithBackoff(
                             currentTimeBetweenLockAttemptsMillis);
@@ -272,7 +272,7 @@ final class SchemaMutationLock {
                                 + " clients operating on the %s keyspace and then run the clean-cass-locks-state"
                                 + " cli command.",
                         stopwatch.elapsed(TimeUnit.MILLISECONDS),
-                        configManager.getConfig().getKeyspaceOrThrow()));
+                        config.getKeyspaceOrThrow()));
     }
 
     private void waitForSchemaMutationLockWithoutCas() throws TimeoutException {
@@ -281,7 +281,7 @@ final class SchemaMutationLock {
                 + " in parallel, or extremely heavy Cassandra cluster load.";
         try {
             if (!schemaMutationLockForEarlierVersionsOfCassandra.tryLock(
-                    configManager.getConfig().schemaMutationTimeoutMillis(),
+                    config.schemaMutationTimeoutMillis(),
                     TimeUnit.MILLISECONDS)) {
                 throw new TimeoutException(message);
             }
@@ -342,7 +342,7 @@ final class SchemaMutationLock {
     }
 
     private Optional<Column> queryExistingLockColumn(CassandraClient client) throws TException {
-        TableReference lockTableRef = lockTable.getOnlyTable();
+        TableReference lockTableRef = lockTable.get();
         Column existingColumn = null;
         ConsistencyLevel localQuorum = ConsistencyLevel.LOCAL_QUORUM;
         try {
@@ -367,7 +367,7 @@ final class SchemaMutationLock {
             CassandraClient client,
             List<Column> expectedLockValue,
             Column newLockValue) throws TException {
-        TableReference lockTableRef = lockTable.getOnlyTable();
+        TableReference lockTableRef = lockTable.get();
         return queryRunner.run(client, lockTableRef,
                 () -> client.cas(
                         lockTableRef,

@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        CommandLineEteTest.class
+        SchemaMetadataServiceEteTest.class
         })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

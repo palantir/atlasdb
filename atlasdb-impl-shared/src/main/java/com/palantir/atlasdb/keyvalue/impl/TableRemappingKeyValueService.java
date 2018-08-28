@@ -115,6 +115,17 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
+        try {
+            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), maxTimestampExclusiveByCell,
+                    deleteSentinels);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void dropTable(TableReference tableRef) {
         dropTables(ImmutableSet.of(tableRef));
     }
@@ -427,8 +438,21 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        try {
+            delegate().compactInternally(tableMapper.getMappedTableName(tableRef), inMaintenanceMode);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
         return delegate().getClusterAvailabilityStatus();
     }
 
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate.shouldTriggerCompactions();
+    }
 }

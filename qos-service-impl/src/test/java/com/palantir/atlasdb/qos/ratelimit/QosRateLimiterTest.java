@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,31 +24,36 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
+import com.palantir.remoting.api.errors.QosException;
 
 public class QosRateLimiterTest {
 
     private static final long START_TIME_NANOS = 0L;
     private static final Supplier<Long> MAX_BACKOFF_TIME_MILLIS = () -> 10_000L;
 
-    RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
-    Supplier<Long> currentRate = mock(Supplier.class);
-    QosRateLimiter limiter;
+    private RateLimiter.SleepingStopwatch stopwatch = mock(RateLimiter.SleepingStopwatch.class);
+    private Supplier<Long> currentRate = mock(Supplier.class);
+    private QosRateLimiter limiter;
+    private DeterministicScheduler deterministicExecutor = new DeterministicScheduler();
 
     @Before
     public void before() {
         when(stopwatch.readNanos()).thenReturn(START_TIME_NANOS);
         when(currentRate.get()).thenReturn(10L);
 
-        limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate, "test");
+        limiter = new QosRateLimiter(stopwatch, MAX_BACKOFF_TIME_MILLIS, currentRate, "test", deterministicExecutor,
+                10L);
     }
 
     @Test
     public void doesNotLimitIfLimitIsVeryHigh() {
         when(currentRate.get()).thenReturn(Long.MAX_VALUE);
+        deterministicExecutor.tick(QosRateLimiter.RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
 
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
         assertThat(limiter.consumeWithBackoff(Integer.MAX_VALUE)).isEqualTo(Duration.ZERO);
@@ -59,7 +63,8 @@ public class QosRateLimiterTest {
     @Test
     public void limitsOnlyWhenConsumptionExceedsLimit() {
         when(currentRate.get()).thenReturn(100L);
-        limiter.consumeWithBackoff(1); // set the current time
+        deterministicExecutor.tick(QosRateLimiter.RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
+        assertThat(limiter.consumeWithBackoff(1L)).isEqualTo(Duration.ZERO);
 
         tickMillis(500);
 
@@ -90,14 +95,15 @@ public class QosRateLimiterTest {
         limiter.consumeWithBackoff(1_000);
 
         assertThatThrownBy(() -> limiter.consumeWithBackoff(100))
-                .isInstanceOf(RateLimitExceededException.class)
-                .hasMessageContaining("Rate limited");
+                .isInstanceOf(QosException.Throttle.class)
+                .hasMessageContaining(
+                        "Suggesting request throttling with optional retryAfter duration: Optional.empty");
     }
 
     @Test
     public void doesNotThrowIfMaxBackoffTimeIsVeryLarge() {
         QosRateLimiter limiterWithLargeBackoffLimit = new QosRateLimiter(stopwatch, () -> Long.MAX_VALUE, () -> 10L,
-                "test");
+                "test", deterministicExecutor, 10L);
 
         limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
         limiterWithLargeBackoffLimit.consumeWithBackoff(1_000_000_000);
@@ -223,6 +229,7 @@ public class QosRateLimiterTest {
 
         // increase to a large rate
         when(currentRate.get()).thenReturn(1000000L);
+        deterministicExecutor.tick(QosRateLimiter.RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
         limiter.consumeWithBackoff(1);
         tickMillis(1);
 
@@ -231,6 +238,7 @@ public class QosRateLimiterTest {
 
         // decrease to small rate
         when(currentRate.get()).thenReturn(10L);
+        deterministicExecutor.tick(QosRateLimiter.RATE_UPDATE_INTERVAL_IN_SECONDS, TimeUnit.SECONDS);
         tickMillis(1000);
 
         limiter.consumeWithBackoff(1);

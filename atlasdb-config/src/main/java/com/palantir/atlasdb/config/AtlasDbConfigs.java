@@ -37,58 +37,56 @@ import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
-import io.dropwizard.jackson.DiscoverableSubtypeResolver;
-
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";
 
+    static final String DISCOVERED_SUBTYPE_MARKER = "io.dropwizard.jackson.Discoverable";
+
     public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()
             .disable(YAMLGenerator.Feature.USE_NATIVE_TYPE_ID)
-            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
-
-    static {
-        OBJECT_MAPPER.setSubtypeResolver(new DiscoverableSubtypeResolver());
-        OBJECT_MAPPER.registerModule(new GuavaModule());
-        OBJECT_MAPPER.registerModule(new Jdk7Module());
-        OBJECT_MAPPER.registerModule(new Jdk8Module());
-    }
+            .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+            .setSubtypeResolver(new DiscoverableSubtypeResolver(DISCOVERED_SUBTYPE_MARKER))
+            .registerModule(new GuavaModule())
+            .registerModule(new Jdk7Module())
+            .registerModule(new Jdk8Module());
 
     private AtlasDbConfigs() {
         // uninstantiable
     }
 
-    public static AtlasDbConfig load(File configFile) throws IOException {
-        return load(configFile, ATLASDB_CONFIG_OBJECT_PATH);
+    public static <T> T load(File configFile, Class<T> clazz) throws IOException {
+        return load(configFile, ATLASDB_CONFIG_OBJECT_PATH, clazz);
     }
 
-    public static AtlasDbConfig load(InputStream configStream) throws IOException {
-        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH);
+    public static <T> T load(InputStream configStream, Class<T> clazz) throws IOException {
+        return loadFromStream(configStream, ATLASDB_CONFIG_OBJECT_PATH, clazz);
     }
 
-    public static AtlasDbConfig load(File configFile, @Nullable String configRoot) throws IOException {
+    public static <T> T load(File configFile, @Nullable String configRoot, Class<T> clazz) throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configFile);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    public static AtlasDbConfig loadFromString(String fileContents, @Nullable String configRoot) throws IOException {
+    public static <T> T loadFromString(String fileContents, @Nullable String configRoot, Class<T> clazz)
+            throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(fileContents);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    public static AtlasDbConfig loadFromStream(InputStream configStream, @Nullable String configRoot)
+    public static <T> T loadFromStream(InputStream configStream, @Nullable String configRoot, Class<T> clazz)
             throws IOException {
         JsonNode node = OBJECT_MAPPER.readTree(configStream);
-        return getConfig(node, configRoot);
+        return getConfig(node, configRoot, clazz);
     }
 
-    private static AtlasDbConfig getConfig(JsonNode node, @Nullable String configRoot) throws IOException {
+    private static <T> T getConfig(JsonNode node, @Nullable String configRoot, Class<T> clazz) throws IOException {
         JsonNode configNode = findRoot(node, configRoot);
 
         if (configNode == null) {
             throw new IllegalArgumentException("Could not find " + configRoot + " in input");
         }
 
-        return OBJECT_MAPPER.treeToValue(decryptConfigValues(configNode), AtlasDbConfig.class);
+        return OBJECT_MAPPER.treeToValue(decryptConfigValues(configNode), clazz);
     }
 
     private static JsonNode decryptConfigValues(JsonNode configNode) {

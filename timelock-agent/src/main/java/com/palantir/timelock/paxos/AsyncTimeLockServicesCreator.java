@@ -16,14 +16,15 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
@@ -31,22 +32,31 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
+import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.JavaSuppliers;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
 
+    private final MetricsManager metricsManager;
+    private final LockLog lockLog;
     private final PaxosLeadershipCreator leadershipCreator;
     private final AsyncLockConfiguration asyncLockConfiguration;
 
-    public AsyncTimeLockServicesCreator(PaxosLeadershipCreator leadershipCreator,
+    public AsyncTimeLockServicesCreator(MetricsManager metricsManager,
+            LockLog lockLog, PaxosLeadershipCreator leadershipCreator,
             AsyncLockConfiguration asyncLockConfiguration) {
+        this.metricsManager = metricsManager;
+        this.lockLog = lockLog;
         this.leadershipCreator = leadershipCreator;
         this.asyncLockConfiguration = asyncLockConfiguration;
     }
@@ -59,13 +69,15 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
+                metricsManager.getTaggedRegistry(),
                 AsyncTimelockService.class,
-                () -> AsyncTimeLockServicesCreator.createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
                 client);
         asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
-                new AsyncTimelockResource(asyncTimelockService));
+                new AsyncTimelockResource(lockLog, asyncTimelockService));
 
         LockService lockService = instrumentInLeadershipProxy(
+                metricsManager.getTaggedRegistry(),
                 LockService.class,
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
@@ -79,30 +91,35 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService);
     }
 
-    private static AsyncTimelockService createRawAsyncTimelockService(
+    private AsyncTimelockService createRawAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier) {
-        ScheduledExecutorService reaperExecutor = Executors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder()
+        ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
                         .setDaemon(true)
-                        .build());
-        ScheduledExecutorService timeoutExecutor = Executors.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder()
+                        .build()), metricsManager.getRegistry(), "async-lock-reaper");
+        ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
+                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-timeouts-" + client + "-%d")
                         .setDaemon(true)
-                        .build());
+                        .build()), metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor),
                 timestampServiceSupplier.get());
     }
 
-    private <T> T instrumentInLeadershipProxy(Class<T> serviceClass, Supplier<T> serviceSupplier, String client) {
-        return instrument(serviceClass, leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
+    private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,
+            Supplier<T> serviceSupplier, String client) {
+        return instrument(taggedMetrics, serviceClass,
+                leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
-    private static <T> T instrument(Class<T> serviceClass, T service, String client) {
-        // TODO(nziebart): tag with the client name, when tritium supports it
-        return AtlasDbMetrics.instrument(serviceClass, service, MetricRegistry.name(serviceClass));
+    private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {
+        return AtlasDbMetrics.instrumentWithTaggedMetrics(
+                metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
+                context -> ImmutableMap.of(
+                        "client", client,
+                        "isCurrentSuspectedLeader", String.valueOf(leadershipCreator.isCurrentSuspectedLeader())));
     }
 }

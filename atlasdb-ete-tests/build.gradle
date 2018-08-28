@@ -5,14 +5,15 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'org.inferred.processors'
 
 schemas = [
-        'com.palantir.atlasdb.cas.CheckAndSetSchema'
+        'com.palantir.atlasdb.cas.CheckAndSetSchema',
+        'com.palantir.atlasdb.blob.BlobSchema'
 ]
 
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
     compile project(':atlasdb-config')
-    compile project(':atlasdb-dropwizard-bundle')
+    compile project(':atlasdb-ete-test-utils')
     compile project(':atlasdb-hikari')
 
     compile group: 'org.awaitility', name: 'awaitility'
@@ -29,6 +30,7 @@ dependencies {
 
     testCompile project(':atlasdb-container-test-utils')
     testCompile project(':atlasdb-ete-test-utils')
+    testCompile project(':flake-rule')
 
     testCompile group: 'com.palantir.docker.compose', name: 'docker-compose-rule-core'
     testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
@@ -69,6 +71,7 @@ distribution {
     mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx384M'
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
 }
 
 sourceCompatibility = '1.8'

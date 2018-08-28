@@ -37,4 +37,27 @@ public final class AtlasDbMetricNames {
     public static final String SNAPSHOT_TRANSACTION_CELLS_RETURNED = "numCellsReturnedAfterFiltering";
     public static final String SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ = "tooManyBytesRead";
     public static final String SNAPSHOT_TRANSACTION_BYTES_WRITTEN = "bytesWritten";
+
+    public static final String CELLS_EXAMINED = "cellTimestampPairsExamined";
+    public static final String CELLS_SWEPT = "staleValuesDeleted";
+    public static final String TIME_SPENT_SWEEPING = "sweepTimeSweeping";
+    public static final String TIME_ELAPSED_SWEEPING = "sweepTimeElapsedSinceStart";
+    public static final String SWEEP_ERROR = "sweepError";
+
+    public static final String TIMELOCK_SUCCESSFUL_REQUEST = "timelockSuccessfulRequest";
+    public static final String TIMELOCK_FAILED_REQUEST = "timelockFailedRequest";
+
+    public static final String TAG_STRATEGY = "strategy";
+    public static final String TAG_CONSERVATIVE = "conservative";
+    public static final String TAG_THOROUGH = "thorough";
+    public static final String ENQUEUED_WRITES = "enqueuedWrites";
+    public static final String ENTRIES_READ = "entriesRead";
+    public static final String TOMBSTONES_PUT = "tombstonesPut";
+    public static final String ABORTED_WRITES_DELETED = "abortedWritesDeleted";
+    public static final String SWEEP_TS = "sweepTimestamp";
+    public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
+    public static final String LAG_MILLIS = "millisSinceLastSweptTs";
+
+    public static final String SWEEP_OUTCOME = "outcome";
+    public static final String TAG_OUTCOME = "status";
 }

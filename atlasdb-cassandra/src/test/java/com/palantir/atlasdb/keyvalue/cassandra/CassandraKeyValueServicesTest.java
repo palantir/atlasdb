@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,155 +16,41 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.thrift.TException;
-import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.Value;
 
-@RunWith(Parameterized.class)
 public class CassandraKeyValueServicesTest {
-    private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
-    private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
-    private static Cassandra.Client client = mock(Cassandra.Client.class);
+    private static final byte[] DATA = PtBytes.toBytes("data");
 
-    private static final Set<InetSocketAddress> FIVE_SERVERS = ImmutableSet.of(
-            new InetSocketAddress("1", 0),
-            new InetSocketAddress("2", 0),
-            new InetSocketAddress("3", 0),
-            new InetSocketAddress("4", 0),
-            new InetSocketAddress("5", 0));
-    private static final String TABLE = "table";
-    private static final String VERSION_1 = "v1";
-    private static final String VERSION_2 = "v2";
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
-    private static final List<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
-    private static final List<String> REST_OF_NODES = ImmutableList.of("4", "5");
-    private static final List<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
+    private static final Cell CELL = Cell.create(DATA, DATA);
 
-    @SuppressWarnings("WeakerAccess") // test parameter
-    @Parameterized.Parameter
-    public boolean requiresQuorum;
-
-    @SuppressWarnings("WeakerAccess") // test parameter
-    @Parameterized.Parameter(value = 1)
-    public int expectedAttempts;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {
-                { true, 3 },
-                { false, 4 }});
-    }
-
-    @BeforeClass
-    public static void initializeMocks() {
-        when(config.schemaMutationTimeoutMillis()).thenReturn(0);
-        when(config.servers()).thenReturn(FIVE_SERVERS);
-        when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
-        when(waitingConfig.servers()).thenReturn(FIVE_SERVERS);
+    @Test
+    public void createColumnWithGivenValueCreatesItWithAssociatedCassandraTimestamp() {
+        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 1000)).getTimestamp())
+                .isEqualTo(1000);
+        assertThat(CassandraKeyValueServices.createColumn(CELL, Value.create(DATA, 5000)).getTimestamp())
+                .isEqualTo(5000);
     }
 
     @Test
-    public void waitSucceedsForSameSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
+    public void createColumnForDeleteCreatesItWithSpecifiedCassandraTimestamp() {
+        assertThat(CassandraKeyValueServices.createColumnForDelete(
+                CELL,
+                Value.create(PtBytes.EMPTY_BYTE_ARRAY, 1000),
+                2000)
+                .getTimestamp())
+                .isEqualTo(2000);
     }
 
     @Test
-    public void waitThrowsForAllUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
-    }
-
-    @Test
-    public void waitThrowsForDifferentSchemaVersion() throws TException {
-        when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrows();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
-    }
-
-    @Test
-    public void waitWaitsForSchemaVersions() throws TException {
-        Cassandra.Client waitingClient = mock(Cassandra.Client.class);
-        when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
-                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, ALL_NODES));
-
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE, requiresQuorum);
-        verify(waitingClient, times(expectedAttempts)).describe_schema_versions();
-    }
-
-    private void assertWaitForSchemaVersionsThrows() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum))
+    public void createColumnForDeleteThrowsIfCreatingWithNonEmptyValue() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.createColumnForDelete(CELL, Value.create(DATA, 1000), 2000))
                 .isInstanceOf(IllegalStateException.class);
-    }
-
-    private void assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll() throws TException {
-        try {
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
-        } catch (IllegalStateException e) {
-            Assert.assertFalse(requiresQuorum);
-        }
     }
 }

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.persister.JsonNodePersister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
@@ -46,6 +47,7 @@ public class ProfileSchema implements AtlasSchema {
                 OptionalType.JAVA8);
 
         schema.addTableDefinition("user_profile", new TableDefinition() {{
+            allSafeForLoggingByDefault();
             rowName();
                 rowComponent("id", ValueType.UUID);
             columns();
@@ -57,6 +59,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("user_birthdays", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromColumn("birthday", ValueType.VAR_SIGNED_LONG, "metadata", "_value.getBirthEpochDay()");
             dynamicColumns();
@@ -67,6 +70,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("created", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromColumn("time", ValueType.VAR_LONG, "create", "_value.getTimeCreated()");
             dynamicColumns();
@@ -77,6 +81,7 @@ public class ProfileSchema implements AtlasSchema {
 
         schema.addIndexDefinition("cookies", new IndexDefinition(IndexType.CELL_REFERENCING) {{
             onTable("user_profile");
+            allSafeForLoggingByDefault();
             rowName();
                 componentFromIterableColumn("cookie", ValueType.STRING, ValueByteOrder.ASCENDING, "json",
                         "com.palantir.example.profile.schema.ProfileSchema.getCookies(_value)");
@@ -86,7 +91,9 @@ public class ProfileSchema implements AtlasSchema {
         }});
 
         schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG).build());
+                new StreamStoreDefinitionBuilder("user_photos", "user_photos", ValueType.VAR_LONG)
+                        .tableNameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+                        .build());
 
         return schema;
     }

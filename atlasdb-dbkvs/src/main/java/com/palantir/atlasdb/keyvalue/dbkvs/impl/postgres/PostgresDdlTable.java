@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
@@ -30,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
 
@@ -47,10 +51,11 @@ public class PostgresDdlTable implements DbDdlTable {
     private final TableReference tableName;
     private final ConnectionSupplier conns;
     private final PostgresDdlConfig config;
+    private final Semaphore compactionSemaphore = new Semaphore(1);
 
     public PostgresDdlTable(TableReference tableName,
-                            ConnectionSupplier conns,
-                            PostgresDdlConfig config) {
+            ConnectionSupplier conns,
+            PostgresDdlConfig config) {
         this.tableName = tableName;
         this.conns = conns;
         this.config = config;
@@ -81,7 +86,7 @@ public class PostgresDdlTable implements DbDdlTable {
             } else if (prefixedTableName.length() > ATLASDB_POSTGRES_TABLE_NAME_LIMIT) {
                 log.error(FAILED_TO_CREATE_TABLE_MESSAGE, prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT,
                         ATLASDB_POSTGRES_TABLE_NAME_LIMIT, e);
-                String exceptionMsg = MessageFormatter.arrayFormat(FAILED_TO_CREATE_TABLE_MESSAGE, new Object[]{
+                String exceptionMsg = MessageFormatter.arrayFormat(FAILED_TO_CREATE_TABLE_MESSAGE, new Object[] {
                         prefixedTableName, ATLASDB_POSTGRES_TABLE_NAME_LIMIT, ATLASDB_POSTGRES_TABLE_NAME_LIMIT})
                         .getMessage();
                 throw new RuntimeException(exceptionMsg, e);
@@ -117,7 +122,49 @@ public class PostgresDdlTable implements DbDdlTable {
     }
 
     @Override
-    public void compactInternally() {
+    public void compactInternally(boolean unused) {
+        if (compactionSemaphore.tryAcquire()) {
+            try {
+                if (shouldRunCompaction()) {
+                    runCompactOnTable();
+                }
+            } finally {
+                compactionSemaphore.release();
+            }
+        }
+    }
+
+    @VisibleForTesting
+    boolean shouldRunCompaction() {
+        long compactIntervalMillis = config.compactInterval().toMilliseconds();
+        return compactIntervalMillis <= 0 || getMillisSinceLastCompact() >= compactIntervalMillis;
+    }
+
+    /**
+     * Returns the number of milliseconds since the last compaction, or Long.MAX_VALUE if
+     * compaction has never run.
+     */
+    private long getMillisSinceLastCompact() {
+        AgnosticResultSet rs = conns.get().selectResultSetUnregisteredQuery(
+                "SELECT FLOOR(EXTRACT(EPOCH FROM GREATEST( "
+                        + "  last_vacuum, last_autovacuum, last_analyze, last_autoanalyze"
+                        + "))*1000) AS last, "
+                        + "FLOOR(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)*1000) AS current "
+                        + "FROM pg_stat_user_tables WHERE relname = ?",
+                prefixedTableName());
+
+        AgnosticResultRow row = Iterables.getOnlyElement(rs.rows());
+
+        // last could be null if vacuum has never run
+        long last = row.getLong("last", -1);
+        if (last == -1) {
+            return Long.MAX_VALUE;
+        }
+        long current = row.getLong("current");
+        return current - last;
+    }
+
+    private void runCompactOnTable() {
         // VACUUM FULL is /really/ what we want here, but it takes out a table lock
         conns.get().executeUnregisteredQuery("VACUUM ANALYZE " + prefixedTableName());
     }

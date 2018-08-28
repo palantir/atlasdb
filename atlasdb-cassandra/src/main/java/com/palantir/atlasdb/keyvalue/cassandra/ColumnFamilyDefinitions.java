@@ -15,25 +15,24 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.ColumnDef;
-import org.apache.cassandra.thrift.TriggerDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.logsafe.SafeArg;
 
 final class ColumnFamilyDefinitions {
     private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueService.class); // did this on purpose
@@ -132,25 +131,23 @@ final class ColumnFamilyDefinitions {
         CfDef cf = new CfDef(keyspace, internalTableName);
         cf.setComparator_type("CompositeType(BytesType,LongType)");
         cf.setCompaction_strategy(CassandraConstants.LEVELED_COMPACTION_STRATEGY);
-        cf.setCompaction_strategy_options(ImmutableMap.of("sstable_size_in_mb", CassandraConstants.SSTABLE_SIZE_IN_MB));
         cf.setCompression_options(Maps.<String, String>newHashMap());
         cf.setGc_grace_seconds(CassandraConstants.DEFAULT_GC_GRACE_SECONDS);
 
         // explicitly set fields to default values
         cf.setCaching("KEYS_ONLY");
         cf.setDclocal_read_repair_chance(0.1);
-        cf.setTriggers(new ArrayList<TriggerDef>());
+        cf.setTriggers(ImmutableList.of());
         cf.setCells_per_row_to_cache("0");
         cf.setMin_index_interval(128);
         cf.setMax_index_interval(2048);
         cf.setComment("");
-        cf.setColumn_metadata(new ArrayList<ColumnDef>());
+        cf.setColumn_metadata(ImmutableList.of());
         cf.setMin_compaction_threshold(4);
         cf.setMax_compaction_threshold(32);
         cf.setKey_validation_class("org.apache.cassandra.db.marshal.BytesType");
-        cf.setCompaction_strategy_options(new HashMap<String, String>());
+        cf.setCompaction_strategy_options(ImmutableMap.of());
         cf.setDefault_validation_class("org.apache.cassandra.db.marshal.BytesType");
-
         return cf;
     }
 
@@ -160,8 +157,16 @@ final class ColumnFamilyDefinitions {
     @SuppressWarnings("CyclomaticComplexity")
     static boolean isMatchingCf(CfDef clientSide, CfDef clusterSide) {
         String tableName = clientSide.name;
-        if (!Objects.equal(clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
+        if (!equalsIgnoringClasspath(clientSide.compaction_strategy, clusterSide.compaction_strategy)) {
             logMismatch("compaction strategy",
+                    tableName,
+                    clientSide.compaction_strategy,
+                    clusterSide.compaction_strategy);
+            return false;
+        }
+        if (!optionsMapsFunctionallyEqual(
+                clientSide.compaction_strategy_options, clusterSide.compaction_strategy_options)) {
+            logMismatch("compaction strategy options",
                     tableName,
                     clientSide.compaction_strategy_options,
                     clusterSide.compaction_strategy_options);
@@ -216,9 +221,45 @@ final class ColumnFamilyDefinitions {
     private static void logMismatch(String fieldName, String tableName,
             Object clientSideVersion, Object clusterSideVersion) {
         log.info("Found client/server disagreement on {} for table {}. (client = ({}), server = ({}))",
-                fieldName,
-                tableName,
-                clientSideVersion,
-                clusterSideVersion);
+                SafeArg.of("disagreementType", fieldName),
+                LoggingArgs.tableRef(TableReference.createUnsafe(tableName)),
+                SafeArg.of("clientVersion", clientSideVersion),
+                SafeArg.of("clusterVersion", clusterSideVersion));
+    }
+
+    private static boolean equalsIgnoringClasspath(String class1, String class2) {
+        if (class1 == class2) {
+            return true;
+        }
+        if (class1 == null || class2 == null) {
+            return false;
+        }
+        if (getLastElementOfClasspath(class1).equals(getLastElementOfClasspath(class2))) {
+            return true;
+        }
+        return false;
+    }
+
+    private static String getLastElementOfClasspath(String classpath) {
+        if (classpath.contains(".")) {
+            String[] periodDelimitedClasspath = classpath.split("\\.");
+            return periodDelimitedClasspath[periodDelimitedClasspath.length - 1];
+        } else {
+            return classpath;
+        }
+    }
+
+    private static boolean optionsMapsFunctionallyEqual(Map<String, String> client, Map<String, String> cluster) {
+        if (Objects.equal(client, cluster)) {
+            return true;
+        }
+
+        // consider null and empty map equivalent
+        if (client == null && ImmutableMap.of().equals(cluster)
+                || cluster == null && ImmutableMap.of().equals(client)) {
+            return true;
+        }
+
+        return false;
     }
 }

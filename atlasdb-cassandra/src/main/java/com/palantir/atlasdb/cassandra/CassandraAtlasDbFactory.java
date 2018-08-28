@@ -16,6 +16,11 @@
 package com.palantir.atlasdb.cassandra;
 
 import java.util.Optional;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
@@ -31,6 +36,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidato
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampService;
@@ -39,18 +46,30 @@ import com.palantir.util.OptionalResolver;
 
 @AutoService(AtlasDbFactory.class)
 public class CassandraAtlasDbFactory implements AtlasDbFactory {
+    private static Logger log = LoggerFactory.getLogger(CassandraAtlasDbFactory.class);
+    private CassandraKeyValueServiceRuntimeConfig latestValidRuntimeConfig =
+            CassandraKeyValueServiceRuntimeConfig.getDefault();
+
     @Override
     public KeyValueService createRawKeyValueService(
+            MetricsManager metricsManager,
             KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
+            LongSupplier freshTimestampSource,
             boolean initializeAsync,
             QosClient qosClient) {
         AtlasDbVersion.ensureVersionReported();
-        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, namespace);
+        CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
+        Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
+                runtimeConfig);
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(preprocessedConfig),
+                metricsManager,
+                preprocessedConfig,
+                cassandraRuntimeConfig,
                 leaderConfig,
+                CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync,
                 qosClient);
     }
@@ -58,14 +77,39 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
     @VisibleForTesting
     static CassandraKeyValueServiceConfig preprocessKvsConfig(
             KeyValueServiceConfig config,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace) {
         Preconditions.checkArgument(config instanceof CassandraKeyValueServiceConfig,
-                "CassandraAtlasDbFactory expects a configuration of type"
-                        + " CassandraKeyValueServiceConfig, found %s", config.getClass());
+                "Invalid KeyValueServiceConfig. Expected a KeyValueServiceConfig of type"
+                        + " CassandraKeyValueServiceConfig, found %s.", config.getClass());
         CassandraKeyValueServiceConfig cassandraConfig = (CassandraKeyValueServiceConfig) config;
 
         String desiredKeyspace = OptionalResolver.resolve(namespace, cassandraConfig.keyspace());
-        return CassandraKeyValueServiceConfigs.copyWithKeyspace(cassandraConfig, desiredKeyspace);
+        CassandraKeyValueServiceConfig configWithNamespace = CassandraKeyValueServiceConfigs
+                .copyWithKeyspace(cassandraConfig, desiredKeyspace);
+
+        return new CassandraReloadableKvsConfig(configWithNamespace, runtimeConfig);
+    }
+
+    @VisibleForTesting
+    Supplier<CassandraKeyValueServiceRuntimeConfig> preprocessKvsRuntimeConfig(
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig) {
+        return () -> {
+            Optional<KeyValueServiceRuntimeConfig> configOptional = runtimeConfig.get();
+
+            return configOptional.map(config -> {
+                if (!(config instanceof CassandraKeyValueServiceRuntimeConfig)) {
+                    log.error("Invalid KeyValueServiceRuntimeConfig. Expected a KeyValueServiceRuntimeConfig of type"
+                                    + " CassandraKeyValueServiceRuntimeConfig, found %s."
+                                    + " Using latest valid CassandraKeyValueServiceRuntimeConfig.",
+                            config.getClass());
+                    return latestValidRuntimeConfig;
+                }
+
+                latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
+                return latestValidRuntimeConfig;
+            }).orElse(CassandraKeyValueServiceRuntimeConfig.getDefault());
+        };
     }
 
     @Override
@@ -76,14 +120,14 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
         Preconditions.checkArgument(!timestampTable.isPresent()
                         || timestampTable.get().equals(AtlasDbConstants.TIMESTAMP_TABLE),
-                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: "
-                        + timestampTable.map(TableReference::getQualifiedName).orElse("unknown table")
+                "***ERROR:This can cause severe data corruption.***\nUnexpected timestamp table found: %s"
                         + "\nThis can happen if you configure the timelock server to use Cassandra KVS for timestamp"
                         + " persistence, which is unsupported.\nWe recommend using the default paxos timestamp"
                         + " persistence. However, if you are need to persist the timestamp service state in the"
                         + " database, please specify a valid DbKvs config in the timestampBoundPersister block."
                         + "\nNote that if the service has already been running, you will have to migrate the timestamp"
                         + " table to Postgres/Oracle and rename it to %s.",
+                timestampTable.map(TableReference::getQualifiedName).orElse("unknown table"),
                 AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE);
 
         AtlasDbVersion.ensureVersionReported();

@@ -104,7 +104,7 @@ public class GeneralTaskCheckpointer extends AbstractTaskCheckpointer {
 
     @Override
     public void deleteCheckpoints() {
-        Schemas.deleteTable(kvs, checkpointTable);
+        kvs.truncateTable(checkpointTable);
     }
 
     private Cell getCell(String extraId, long rangeId) {

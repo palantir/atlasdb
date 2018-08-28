@@ -19,33 +19,42 @@ package com.palantir.timelock.paxos;
 import java.nio.file.Paths;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.factory.ImmutableRemotePaxosServerSpec;
 import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.LeadershipResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
-import com.palantir.atlasdb.util.JavaSuppliers;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
+import com.palantir.util.JavaSuppliers;
 
 public class PaxosLeadershipCreator {
+    private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
     private final Consumer<Object> registrar;
 
+    private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
 
     public PaxosLeadershipCreator(
+            MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             Consumer<Object> registrar) {
+        this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
         this.registrar = registrar;
@@ -59,16 +68,19 @@ public class PaxosLeadershipCreator {
         Set<String> paxosSubresourceUris = PaxosTimeLockUriUtils.getLeaderPaxosUris(remoteServers);
 
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
+                metricsManager,
                 leaderConfig,
+                JavaSuppliers.compose(getLeaderRuntimeConfig, runtime),
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)
                         .remoteLearnerUris(paxosSubresourceUris)
                         .build(),
                 "leader-election-service");
+        localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
 
-        registrar.accept(localPaxosServices.pingableLeader());
+        registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
@@ -102,7 +114,16 @@ public class PaxosLeadershipCreator {
                 .build();
     }
 
+    private Function<PaxosRuntimeConfiguration, LeaderRuntimeConfig> getLeaderRuntimeConfig =
+            config -> ImmutableLeaderRuntimeConfig.builder()
+                    .onlyLogOnQuorumFailure(config.onlyLogOnQuorumFailure())
+                    .build();
+
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
+
+    public boolean isCurrentSuspectedLeader() {
+        return localPingableLeader.ping();
     }
 }

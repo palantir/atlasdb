@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -47,7 +48,7 @@ public final class LoggingArgs {
     private static final String PLACEHOLDER_TABLE_NAME = "{table}";
 
     @VisibleForTesting
-    static final TableReference PLACEHOLDER_TABLE_REFERENCE =
+    public static final TableReference PLACEHOLDER_TABLE_REFERENCE =
             TableReference.createWithEmptyNamespace(PLACEHOLDER_TABLE_NAME);
 
     @Value.Immutable
@@ -71,6 +72,10 @@ public final class LoggingArgs {
         logArbitrator = arbitrator;
     }
 
+    public static Arg<String> internalTableName(TableReference tableReference) {
+        return safeInternalTableName(AbstractKeyValueService.internalTableName(tableReference));
+    }
+
     public static SafeAndUnsafeTableReferences tableRefs(Collection<TableReference> tableReferences) {
         List<TableReference> safeTableRefs = new ArrayList<>();
         List<TableReference> unsafeTableRefs = new ArrayList<>();
@@ -84,8 +89,8 @@ public final class LoggingArgs {
         }
 
         return ImmutableSafeAndUnsafeTableReferences.builder()
-                .safeTableRefs(SafeArg.of("tableRefs", safeTableRefs))
-                .unsafeTableRefs(UnsafeArg.of("tableRefs", unsafeTableRefs))
+                .safeTableRefs(SafeArg.of("safeTableRefs", safeTableRefs))
+                .unsafeTableRefs(UnsafeArg.of("unsafeTableRefs", unsafeTableRefs))
                 .build();
     }
 
@@ -99,6 +104,10 @@ public final class LoggingArgs {
      */
     public static Arg<String> tableRef(TableReference tableReference) {
         return tableRef("tableRef", tableReference);
+    }
+
+    public static boolean isSafe(TableReference tableReference) {
+        return logArbitrator.isTableReferenceSafe(tableReference);
     }
 
     /**
@@ -120,6 +129,14 @@ public final class LoggingArgs {
             return internalTableReference;
         } else {
             return PLACEHOLDER_TABLE_NAME;
+        }
+    }
+
+    public static Arg<String> safeInternalTableName(String internalTableReference) {
+        if (logArbitrator.isInternalTableReferenceSafe(internalTableReference)) {
+            return SafeArg.of("tableRef", internalTableReference);
+        } else {
+            return UnsafeArg.of("unsafeTableRef", internalTableReference);
         }
     }
 
@@ -147,6 +164,10 @@ public final class LoggingArgs {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }
 
+    public static Arg<Long> startTimeMillis(long startTime) {
+        return getArg("startTimeMillis", startTime, true);
+    }
+
     public static Arg<String> method(String method) {
         return getArg("method", method, true);
     }
@@ -170,6 +191,10 @@ public final class LoggingArgs {
     public static Arg<?> columnCount(ColumnSelection columnSelection) {
         return getArg("columnCount", columnSelection.allColumnsSelected()
                 ? "all" : Iterables.size(columnSelection.getSelectedColumns()), true);
+    }
+
+    public static Arg<?> columnCount(int numberOfColumns) {
+        return getArg("columnCount", numberOfColumns == Integer.MAX_VALUE ? "all" : numberOfColumns, true);
     }
 
     public static Arg<Integer> batchHint(int batchHint) {

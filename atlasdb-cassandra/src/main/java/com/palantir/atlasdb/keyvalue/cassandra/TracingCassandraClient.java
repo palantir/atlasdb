@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
@@ -43,7 +42,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class TracingCassandraClient implements CassandraClient {
+public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     private static final String SERVICE_NAME = "cassandra-thrift-client";
 
     private final CassandraClient client;
@@ -53,8 +52,8 @@ public class TracingCassandraClient implements CassandraClient {
     }
 
     @Override
-    public Cassandra.Client rawClient() {
-        return client.rawClient();
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override
@@ -90,6 +89,16 @@ public class TracingCassandraClient implements CassandraClient {
                 LoggingArgs.safeTableOrPlaceholder(tableRef),
                 numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
             return client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level);
+        }
+    }
+
+    @Override
+    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        try (CloseableTrace trace = startLocalTrace(
+                "client.remove(consistency {}) on kvs.{}", consistency_level, kvsMethodName)) {
+            client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
         }
     }
 

@@ -1,0 +1,34 @@
+apply plugin: 'com.palantir.sls-java-service-distribution'
+apply plugin: 'org.inferred.processors'
+
+apply from: "../gradle/publish-dists.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/timelock.gradle"
+
+dependencies {
+    compile project(":timelock-server")
+    compile (project(":atlasdb-cassandra")) {
+        exclude group:'com.codahale.metrics'
+    }
+
+    compile group: 'junit', name: 'junit'
+    compile group: 'org.assertj', name: 'assertj-core'
+
+    runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+}
+
+distribution {
+    serviceName "timelock-benchmark-client"
+    mainClass 'com.palantir.atlasdb.timelock.benchmarks.TimelockBenchmarkClientLauncher'
+    args 'server', 'var/conf/timelock.yml'
+    defaultJvmOpts "-Xms4096m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
+}
+
+configurations.all {
+    resolutionStrategy {
+        force 'io.netty:netty-handler:4.1.5.Final'
+        force 'org.slf4j:log4j-over-slf4j:1.7.21'
+        force 'org.slf4j:jcl-over-slf4j:1.7.21'
+    }
+}

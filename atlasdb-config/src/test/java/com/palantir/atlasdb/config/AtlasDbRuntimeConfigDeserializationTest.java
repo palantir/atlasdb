@@ -47,6 +47,17 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                         "https://foo3:9421");
         assertThat(runtimeConfig.timelockRuntime().get().serversList().sslConfiguration()).satisfies(
                 sslConfiguration -> sslConfiguration.ifPresent(this::assertSslConfigDeserializedCorrectly));
+        assertThat(runtimeConfig.streamStorePersistence()).satisfies(
+                persistenceConfig -> {
+                    assertThat(persistenceConfig.numBlocksToWriteBeforePause()).isEqualTo(7);
+                    assertThat(persistenceConfig.writePauseDurationMillis()).isEqualTo(77);
+                });
+        assertThat(runtimeConfig.sweep().sweepPriorityOverrides()).satisfies(
+                overrides -> {
+                    assertThat(overrides.priorityTables()).containsExactlyInAnyOrder("atlas.mission_critical_table");
+                    assertThat(overrides.blacklistTables()).containsExactlyInAnyOrder(
+                            "atlas.bad_table", "atlas2.immutable_log");
+                });
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {

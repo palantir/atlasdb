@@ -13,31 +13,80 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.qos.config.ImmutableHealthMetric;
+import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsRuntimeConfig;
+import com.palantir.atlasdb.qos.config.ImmutableQosClientLimitsConfig;
+import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceRuntimeConfig;
 
 public class QosServiceRuntimeConfigTest {
     @Test
-    public void canBuildFromEmptyClientLimits() {
+    public void canBuildFromEmptyClientLimitsWithoutCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder().clientLimits(ImmutableMap.of()).build();
     }
 
     @Test
-    public void canBuildFromSingleClientLimit() {
-        ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", 10L))
+    public void canBuildFromEmptyClientLimitsWithCasandraMetricsConfig() {
+        ImmutableQosServiceRuntimeConfig.builder().clientLimits(ImmutableMap.of())
+                .qosCassandraMetricsConfig(getCassandraMetricsConfig())
                 .build();
     }
 
     @Test
-    public void canBuildFromMultipleClientLimits() {
+    public void canBuildFromSingleClientLimitWithoutCasandraMetricsConfig() {
         ImmutableQosServiceRuntimeConfig.builder()
-                .clientLimits(ImmutableMap.of("test_client", 10L, "test_client2", 100L))
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig()))
+                .qosCassandraMetricsConfig(getCassandraMetricsConfig());
+    }
+
+    @Test
+    public void canBuildFromSingleClientLimitWithCasandraMetricsConfig() {
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig()))
+                .build();
+    }
+
+    @Test
+    public void canBuildFromMultipleClientLimitsWithoutCassandraMetricsConfig() {
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(),
+                        "test_client2", getQosClientLimitsConfig()))
+                .build();
+    }
+
+    @Test
+    public void canBuildFromMultipleClientLimitsWithCassandraMetricsConfig() {
+        ImmutableQosServiceRuntimeConfig.builder()
+                .clientLimits(ImmutableMap.of("test_client", getQosClientLimitsConfig(),
+                        "test_client2", getQosClientLimitsConfig()))
+                .qosCassandraMetricsConfig(getCassandraMetricsConfig())
+                .build();
+    }
+
+    private ImmutableQosCassandraMetricsRuntimeConfig getCassandraMetricsConfig() {
+        return ImmutableQosCassandraMetricsRuntimeConfig.builder()
+                .cassandraHealthMetrics(ImmutableList.of(ImmutableHealthMetric.builder()
+                        .type("CommitLog")
+                        .name("PendingTasks")
+                        .attribute("Value")
+                        .lowerLimit(0)
+                        .upperLimit(50)
+                        .build()))
+                .build();
+    }
+
+    private ImmutableQosClientLimitsConfig getQosClientLimitsConfig() {
+        return ImmutableQosClientLimitsConfig.builder()
+                .limits(ImmutableQosLimitsConfig.builder()
+                        .readBytesPerSecond(10L)
+                        .writeBytesPerSecond(10L)
+                        .build())
                 .build();
     }
 }

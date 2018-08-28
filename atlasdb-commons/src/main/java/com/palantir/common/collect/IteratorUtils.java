@@ -30,7 +30,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ForwardingIterator;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
@@ -186,46 +185,6 @@ public class IteratorUtils {
                     }
                     return ret;
                 }
-            }
-        };
-    }
-
-    /**
-     * This will take 2 iterators sorted by the given ordering and will return an iterator that
-     * visits every element in the first one not in the second one.
-     *
-     * @param a must be sorted by ordering.
-     * @param b must be sorted by ordering.
-     * @param ordering
-     */
-    public static <T> Iterator<T> iteratorDifference(final Iterator<? extends T> a,
-                                                     final Iterator<? extends T> b,
-                                                     final Comparator<? super T> ordering) {
-        Preconditions.checkNotNull(ordering);
-        if (!a.hasNext()) {
-            return ImmutableSet.<T>of().iterator();
-        }
-        if (!b.hasNext()) {
-            return IteratorUtils.wrap(a);
-        }
-        return new AbstractIterator<T>() {
-            T currentB = b.next();
-
-            @Override
-            protected T computeNext() {
-                while (a.hasNext()) {
-                    T possibleNext = a.next();
-
-                    // Search for a new currentB that is >= possibleNext
-                    while (b.hasNext() && ordering.compare(possibleNext, currentB) > 0) {
-                        currentB = b.next();
-                    }
-
-                    if (ordering.compare(possibleNext, currentB) != 0) {
-                        return possibleNext;
-                    }
-                }
-                return endOfData();
             }
         };
     }

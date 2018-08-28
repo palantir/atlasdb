@@ -24,9 +24,8 @@ import org.apache.commons.lang3.Validate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.Renderers;
@@ -39,7 +38,6 @@ public class IndexMetadata {
     final ImmutableList<IndexComponent> colComponents;
     @Nullable final String columnNameToGetData;
     final CachePriority cachePriority;
-    final PartitionStrategy partitionStrategy;
     boolean rangeScanAllowed;
     int explicitCompressionBlockSizeKB;
     boolean negativeLookups;
@@ -47,25 +45,24 @@ public class IndexMetadata {
     final IndexCondition indexCondition;
     IndexType indexType;
     final SweepStrategy sweepStrategy;
-    private final ExpirationStrategy expirationStrategy;
     private boolean appendHeavyAndReadLight;
     private final int numberOfComponentsHashed;
+    final TableMetadataPersistence.LogSafety nameLogSafety;
 
     public static IndexMetadata createIndex(String name,
-                                            String javaName,
-                                            Iterable<IndexComponent> rowComponents,
-                                            CachePriority cachePriority,
-                                            PartitionStrategy partitionStrategy,
-                                            ConflictHandler conflictHandler,
-                                            boolean rangeScanAllowed,
-                                            int explicitCompressionBlockSizeKB,
-                                            boolean negativeLookups,
-                                            IndexCondition indexCondition,
-                                            IndexType indexType,
-                                            SweepStrategy sweepStrategy,
-                                            ExpirationStrategy expirationStrategy,
-                                            boolean appendHeavyAndReadLight,
-                                            int numberOfComponentsHashed) {
+            String javaName,
+            Iterable<IndexComponent> rowComponents,
+            CachePriority cachePriority,
+            ConflictHandler conflictHandler,
+            boolean rangeScanAllowed,
+            int explicitCompressionBlockSizeKB,
+            boolean negativeLookups,
+            IndexCondition indexCondition,
+            IndexType indexType,
+            SweepStrategy sweepStrategy,
+            boolean appendHeavyAndReadLight,
+            int numberOfComponentsHashed,
+            TableMetadataPersistence.LogSafety logSafety) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Iterable<IndexComponent> colComponents = ImmutableList.<IndexComponent>of();
         return new IndexMetadata(
@@ -75,7 +72,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -83,27 +79,26 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
-                numberOfComponentsHashed);
+                numberOfComponentsHashed,
+                logSafety);
     }
 
     public static IndexMetadata createDynamicIndex(String name,
-                                                   String javaName,
-                                                   Iterable<IndexComponent> rowComponents,
-                                                   Iterable<IndexComponent> colComponents,
-                                                   CachePriority cachePriority,
-                                                   PartitionStrategy partitionStrategy,
-                                                   ConflictHandler conflictHandler,
-                                                   boolean rangeScanAllowed,
-                                                   int explicitCompressionBlockSizeKB,
-                                                   boolean negativeLookups,
-                                                   IndexCondition indexCondition,
-                                                   IndexType indexType,
-                                                   SweepStrategy sweepStrategy,
-                                                   ExpirationStrategy expirationStrategy,
-                                                   boolean appendHeavyAndReadLight,
-                                                   int numberOfComponentsHashed) {
+            String javaName,
+            Iterable<IndexComponent> rowComponents,
+            Iterable<IndexComponent> colComponents,
+            CachePriority cachePriority,
+            ConflictHandler conflictHandler,
+            boolean rangeScanAllowed,
+            int explicitCompressionBlockSizeKB,
+            boolean negativeLookups,
+            IndexCondition indexCondition,
+            IndexType indexType,
+            SweepStrategy sweepStrategy,
+            boolean appendHeavyAndReadLight,
+            int numberOfComponentsHashed,
+            TableMetadataPersistence.LogSafety logSafety) {
         Validate.isTrue(!Iterables.isEmpty(rowComponents));
         Validate.isTrue(!Iterables.isEmpty(colComponents));
         return new IndexMetadata(
@@ -113,7 +108,6 @@ public class IndexMetadata {
                 colComponents,
                 getColNameToAccessFrom(rowComponents, colComponents, indexCondition),
                 cachePriority,
-                partitionStrategy,
                 conflictHandler,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
@@ -121,35 +115,33 @@ public class IndexMetadata {
                 indexCondition,
                 indexType,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
-                numberOfComponentsHashed);
+                numberOfComponentsHashed,
+                logSafety);
     }
 
     private IndexMetadata(String name,
-                          String javaName,
-                          Iterable<IndexComponent> rowComponents,
-                          Iterable<IndexComponent> colComponents,
-                          String colNameToAccessFrom,
-                          CachePriority cachePriority,
-                          PartitionStrategy partitionStrategy,
-                          ConflictHandler conflictHandler,
-                          boolean rangeScanAllowed,
-                          int explicitCompressionBlockSizeKB,
-                          boolean negativeLookups,
-                          IndexCondition indexCondition,
-                          IndexType indexType,
-                          SweepStrategy sweepStrategy,
-                          ExpirationStrategy expirationStrategy,
-                          boolean appendHeavyAndReadLight,
-                          int numberOfComponentsHashed) {
+            String javaName,
+            Iterable<IndexComponent> rowComponents,
+            Iterable<IndexComponent> colComponents,
+            String colNameToAccessFrom,
+            CachePriority cachePriority,
+            ConflictHandler conflictHandler,
+            boolean rangeScanAllowed,
+            int explicitCompressionBlockSizeKB,
+            boolean negativeLookups,
+            IndexCondition indexCondition,
+            IndexType indexType,
+            SweepStrategy sweepStrategy,
+            boolean appendHeavyAndReadLight,
+            int numberOfComponentsHashed,
+            TableMetadataPersistence.LogSafety logSafety) {
         this.name = name;
         this.javaName = javaName;
         this.rowComponents = ImmutableList.copyOf(rowComponents);
         this.colComponents = ImmutableList.copyOf(colComponents);
         this.columnNameToGetData = colNameToAccessFrom;
         this.cachePriority = cachePriority;
-        this.partitionStrategy = partitionStrategy;
         this.conflictHandler = conflictHandler;
         this.rangeScanAllowed = rangeScanAllowed;
         this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
@@ -157,9 +149,9 @@ public class IndexMetadata {
         this.indexCondition = indexCondition;
         this.indexType = indexType;
         this.sweepStrategy = sweepStrategy;
-        this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.numberOfComponentsHashed = numberOfComponentsHashed;
+        this.nameLogSafety = logSafety;
     }
 
     private static String getColNameToAccessFrom(Iterable<IndexComponent> rowComponents,
@@ -224,13 +216,12 @@ public class IndexMetadata {
                 column,
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
-                appendHeavyAndReadLight);
+                appendHeavyAndReadLight,
+                nameLogSafety);
     }
 
     public boolean isDynamicIndex() {

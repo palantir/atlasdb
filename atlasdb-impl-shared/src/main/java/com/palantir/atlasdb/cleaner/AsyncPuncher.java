@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Supplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * Wrap another Puncher, optimizing the #punch() operation to operate just on a local variable; the
@@ -44,8 +44,8 @@ public final class AsyncPuncher implements Puncher {
         return asyncPuncher;
     }
 
-    private final ScheduledExecutorService service = Tracers.wrap(PTExecutors.newSingleThreadScheduledExecutor(
-            new NamedThreadFactory("puncher", true /* daemon */)));
+    private final ScheduledExecutorService service = PTExecutors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("puncher", true /* daemon */));
 
     private final Puncher delegate;
     private final long interval;
@@ -57,12 +57,20 @@ public final class AsyncPuncher implements Puncher {
     }
 
     private void start() {
-        service.scheduleAtFixedRate(() -> {
-            long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
-            if (timestamp != INVALID_TIMESTAMP) {
+        service.scheduleAtFixedRate(this::punchWithRollback, 0, interval, TimeUnit.MILLISECONDS);
+    }
+
+    private void punchWithRollback() {
+        long timestamp = lastTimestamp.getAndSet(INVALID_TIMESTAMP);
+        if (timestamp != INVALID_TIMESTAMP) {
+            try {
                 delegate.punch(timestamp);
+            } catch (Throwable th) {
+                log.warn("Attempt to punch timestamp {} failed. Retrying in {} milliseconds.",
+                        SafeArg.of("timestamp", timestamp), SafeArg.of("interval", interval), th);
+                lastTimestamp.compareAndSet(INVALID_TIMESTAMP, timestamp);
             }
-        }, 0, interval, TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override

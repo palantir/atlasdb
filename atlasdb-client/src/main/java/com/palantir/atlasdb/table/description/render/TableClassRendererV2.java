@@ -97,7 +97,7 @@ public class TableClassRendererV2 {
             TableDefinition table) {
         Preconditions.checkArgument(
                 Schemas.isTableNameValid(rawTableName),
-                "Invalid table name " + rawTableName);
+                "Invalid table name %s", rawTableName);
         this.packageName = packageName;
         this.namespace = namespace;
         this.rawTableName = rawTableName;
@@ -261,7 +261,7 @@ public class TableClassRendererV2 {
 
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Optional.class),
-                ClassName.get(getColumnClassForGenericTypeParameter(col))));
+                TypeName.get(getColumnClassForGenericTypeParameter(col))));
         getterBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
                 .addStatement("byte[] bytes = row.persistToBytes()")
@@ -302,7 +302,7 @@ public class TableClassRendererV2 {
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
                 ClassName.get(rowComponent.getType().getJavaClass()),
-                ClassName.get(getColumnClassForGenericTypeParameter(col))));
+                TypeName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
@@ -344,7 +344,7 @@ public class TableClassRendererV2 {
         getterBuilder.returns(ParameterizedTypeName.get(
                 ClassName.get(Map.class),
                 rowType,
-                ClassName.get(getColumnClassForGenericTypeParameter(col))));
+                TypeName.get(getColumnClassForGenericTypeParameter(col))));
 
         getterBuilder
                 .addStatement("$T colSelection = \n "
@@ -645,8 +645,8 @@ public class TableClassRendererV2 {
         updateColumnIfExistsBuilder = addParametersFromRowComponents(updateColumnIfExistsBuilder, tableMetadata);
         updateColumnIfExistsBuilder.addParameter(ParameterizedTypeName.get(
                 ClassName.get(Function.class),
-                ClassName.get(getColumnClassForGenericTypeParameter(col)),
-                ClassName.get(getColumnClassForGenericTypeParameter(col))), "processor");
+                TypeName.get(getColumnClassForGenericTypeParameter(col)),
+                TypeName.get(getColumnClassForGenericTypeParameter(col))), "processor");
         String args = getArgumentsFromRowComponents(tableMetadata);
         updateColumnIfExistsBuilder
                 .addStatement("$T<$T> result = get$L($L)",

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -41,9 +42,15 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 
+@ShouldRetry
 public class OneNodeDownGetTest {
     private static final String REQUIRES_ALL_CASSANDRA_NODES = "requires ALL Cassandra nodes to be up and available.";
+
+    @Rule
+    public final FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
 
     ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(
             OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE,

@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -44,14 +45,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import com.palantir.util.debug.ThreadDumps;
 
-@AutoDelegate(typeToExtend = TimestampBoundStore.class)
 public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_TimestampBoundStore {
         @Override
@@ -90,7 +89,8 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                         ROW_AND_COLUMN_NAME,
                         "current_max_ts",
                         ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     @GuardedBy("this")
     private long currentLimit = -1;
@@ -154,10 +154,11 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
                 } catch (IllegalArgumentException e) {
                     String msg = "Caught an IllegalArgumentException trying to convert the stored value to a long. "
                             + "This can happen if you attempt to run AtlasDB without a timelock block after having "
-                            + "previously migrated to the TimeLock server. Please contact AtlasDB support. "
-                            + "If you are attempting a reverse migration, please consult the documentation here: "
-                            + "https://palantir.github.io/atlasdb/html/services/timelock_service/"
-                            + "reverse-migration.html (and also contact AtlasDB support).";
+                            + "previously migrated to the TimeLock server. Please adjust your configuration to allow "
+                            + "AtlasDB to talk to TimeLock, shut down all service nodes, and then restart. Consult the "
+                            + "documentation here: https://palantir.github.io/atlasdb/html/configuration/"
+                            + "external_timelock_service_configs/timelock_client_config.html#timelock-client-"
+                            + "configuration - contact AtlasDB support for additional guidance if necessary.";
                     throw new IllegalStateException(msg, e);
                 }
             }

@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Meter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.persistentlock.LockEntry;
 import com.palantir.atlasdb.persistentlock.PersistentLockId;
@@ -35,7 +34,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
-public class PersistentLockManager {
+public class PersistentLockManager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(PersistentLockManager.class);
 
     private final PersistentLockService persistentLockService;
@@ -50,21 +49,40 @@ public class PersistentLockManager {
     @GuardedBy("this")
     PersistentLockId lockId;
 
+    /* This is used to prevent the following error case:
+     * 1. Sweep thread 1 grabs the lock for deleting stuff
+     * 2. Sweep thread 2 grabs the lock for deleting stuff
+     * 3. Sweep thread 1 releases the lock
+     * 4. A backup starts
+     * 5. Sweep thread 2 releases the lock
+     *
+     * A backup taken between steps 4 and 5 is not guaranteed to be consistent, because sweep may be deleting data
+     * that it relies on.
+     */
+    @GuardedBy("this")
+    volatile int referenceCount = 0;
+
     @GuardedBy("this")
     private boolean isShutDown = false;
 
-    public PersistentLockManager(PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
+    public PersistentLockManager(MetricsManager metricsManager,
+            PersistentLockService persistentLockService, long persistentLockRetryWaitMillis) {
         this.persistentLockService = persistentLockService;
         this.persistentLockRetryWaitMillis = persistentLockRetryWaitMillis;
-        this.metricsManager = new MetricsManager();
+        this.metricsManager = metricsManager;
         this.lockFailureMeter = metricsManager.registerOrGetMeter(this.getClass(), null, ACQUIRE_FAILURE_METRIC_NAME);
         this.lockId = null;
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 
     public synchronized void shutdown() {
         log.info("Shutting down...");
         isShutDown = true;
-        if (lockId != null) {
+        while (lockId != null) {
             releasePersistentLock();
         }
         log.info("Shutdown completed!");
@@ -85,6 +103,7 @@ public class PersistentLockManager {
 
         try {
             lockId = persistentLockService.acquireBackupLock("Sweep");
+            referenceCount++;
             log.info("Successfully acquired persistent lock for sweep: {}", SafeArg.of("lockId", lockId));
             return true;
         } catch (CheckAndSetException e) {
@@ -92,22 +111,28 @@ public class PersistentLockManager {
             if (!actualValues.isEmpty()) {
                 // This should be the only element, otherwise something really odd happened.
                 LockEntry actualEntry = LockEntry.fromStoredValue(actualValues.get(0));
-                log.debug("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
+                log.info("CAS failed on lock acquire. We thought the lockId was {}, and the database has {}",
                         SafeArg.of("lockId", lockId),
                         SafeArg.of("actualEntry", actualEntry));
                 if (lockId != null && actualEntry.instanceId().equals(lockId.value())) {
                     // We tried to acquire while already holding the lock. Welp - but we still have the lock.
-                    log.info("Attempted to acquire the a new lock when we already held a lock."
+                    referenceCount++;
+                    log.info("Attempted to acquire a new lock when we already held a lock."
                             + " The acquire failed, but our lock is still valid, so we still hold the lock.");
                     return true;
                 } else {
                     // In this case, some other process holds the lock. Therefore, we don't hold the lock.
+                    referenceCount = 0;
                     lockId = null;
                 }
             }
 
+            // This is expected if backups are currently being taken.
+            // Not expected if we this continues to be logged for a long period of time — indicates a log has been
+            // lost (a service has been bounced and the shutdown hook did not run), and we need to manually clear it,
+            // via the CLI or the endpoint.
             lockFailureMeter.mark();
-            log.info("Failed to acquire persistent lock for sweep. Waiting and retrying.");
+            log.warn("Failed to acquire persistent lock for sweep. Waiting and retrying.");
             return false;
         } catch (NotInitializedException e) {
             log.info("The LockStore is not initialized yet. Waiting and retrying.");
@@ -121,15 +146,21 @@ public class PersistentLockManager {
             return;
         }
 
-        log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
-        try {
-            persistentLockService.releaseBackupLock(lockId);
-            lockId = null;
-        } catch (CheckAndSetException e) {
-            log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
-                            + "Future sweeps should correctly be able to re-acquire the lock.",
-                    SafeArg.of("lockId", lockId), e);
-            lockId = null;
+        referenceCount--;
+        if (referenceCount <= 0) {
+            log.info("Releasing persistent lock {}", SafeArg.of("lockId", lockId));
+            try {
+                persistentLockService.releaseBackupLock(lockId);
+                lockId = null;
+            } catch (CheckAndSetException e) {
+                log.error("Failed to release persistent lock {}. The lock must have been released from under us. "
+                                + "Future sweeps should correctly be able to re-acquire the lock.",
+                        SafeArg.of("lockId", lockId), e);
+                lockId = null;
+            }
+        } else {
+            log.info("Not releasing the persistent lock, because {} threads still hold it.",
+                    SafeArg.of("numLockHolders", referenceCount));
         }
     }
 
@@ -137,7 +168,8 @@ public class PersistentLockManager {
         try {
             Thread.sleep(persistentLockRetryWaitMillis);
         } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 }

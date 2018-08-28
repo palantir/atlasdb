@@ -43,11 +43,14 @@ dependencies {
   explicitShadow group: 'com.palantir.remoting3', name: 'keystores'
   explicitShadow group: 'com.palantir.remoting3', name: 'tracing'
 
-  explicitShadow group: 'com.google.code.findbugs', name: 'annotations'
+  // does shadowing statically analysed annotations really buy us anything?
+  explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
+  explicitShadow group: 'com.google.code.findbugs', name: 'jsr305'
 
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
+  testCompile project(":atlasdb-config")
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
@@ -77,3 +80,14 @@ shadowJar {
 
 jar.dependsOn shadowJar
 jar.onlyIf { false }
+
+apply plugin: 'com.palantir.sls-recommended-dependencies'
+
+recommendedProductDependencies {
+    productDependency {
+        productGroup = 'com.palantir.rescue'
+        productName = 'rescue'
+        minimumVersion = '3.0.0'
+        maximumVersion = '3.x.x'
+    }
+}

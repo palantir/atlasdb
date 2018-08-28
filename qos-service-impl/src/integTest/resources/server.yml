@@ -4,6 +4,37 @@ server:
     port: 5080
 
 runtime:
-  clientLimits:
-    test: 10
-    test2: 20
+  client-limits:
+    test:
+      limits:
+        readBytesPerSecond: 10
+        writeBytesPerSecond: 20
+    test2:
+      limits:
+        readBytesPerSecond: 30
+        writeBytesPerSecond: 40
+    test3:
+      limits:
+        readBytesPerSecond: 50
+        writeBytesPerSecond: 50
+  qos-cassandra-metrics:
+    cassandra-health-metrics:
+      - type: CommitLog
+        name: PendingTasks
+        attribute: Value
+        lowerLimit: 0
+        upperLimit: 50
+      - type: CommitLog
+        name: TotalCommitLogSize
+        attribute: Value
+        lowerLimit: 0
+        upperLimit: 1000
+
+install:
+  qos-cassandra-metrics:
+    cassandra-service-config:
+      uris:
+        - https://localhost:9161/cassandra-sidecar/api/
+      security:
+        trustStorePath: var/security/trustStore.jks
+    throttling-strategy: SIMPLE

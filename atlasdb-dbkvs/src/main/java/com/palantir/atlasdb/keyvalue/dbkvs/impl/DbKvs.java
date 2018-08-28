@@ -33,7 +33,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +60,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -109,11 +113,13 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.DbKvsGetCandidateCellsForS
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKvsPartitioners;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.collect.Maps2;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.PalantirSqlException;
@@ -209,7 +215,8 @@ public final class DbKvs extends AbstractKeyValueService {
         return new DbKvs(
                 executor,
                 oracleDdlConfig,
-                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache),
+                new OracleDbTableFactory(oracleDdlConfig, tableNameGetter, prefixedTableNames, valueStyleCache,
+                        PTExecutors.newSingleThreadScheduledExecutor()),
                 connections,
                 new ImmediateSingleBatchTaskRunner(),
                 overflowValueLoader,
@@ -378,8 +385,64 @@ public final class DbKvs extends AbstractKeyValueService {
         return entry -> Cells.getApproxSizeOfCell(entry.getKey()) + entry.getValue().getContents().length;
     }
 
+    /* (non-Javadoc)
+     * @see com.palantir.atlasdb.keyvalue.api.KeyValueService#multiPut(java.util.Map, long)
+     */
+    @Override
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp)
+            throws KeyAlreadyExistsException {
+        List<Callable<Void>> callables = Lists.newArrayList();
+        for (Entry<TableReference, ? extends Map<Cell, byte[]>> e : valuesByTable.entrySet()) {
+            final TableReference table = e.getKey();
+            // We sort here because some key value stores are more efficient if you store adjacent keys together.
+            NavigableMap<Cell, byte[]> sortedMap = ImmutableSortedMap.copyOf(e.getValue());
+
+            Iterable<List<Entry<Cell, byte[]>>> partitions = IterablePartitioner.partitionByCountAndBytes(
+                    sortedMap.entrySet(),
+                    getMultiPutBatchCount(),
+                    getMultiPutBatchSizeBytes(),
+                    table,
+                    entry -> entry == null ? 0 : entry.getValue().length + Cells.getApproxSizeOfCell(entry.getKey()));
+
+            for (final List<Entry<Cell, byte[]>> p : partitions) {
+                callables.add(() -> {
+                    String originalName = Thread.currentThread().getName();
+                    Thread.currentThread().setName("Atlas multiPut of " + p.size() + " cells into " + table);
+                    try {
+                        put(table, Maps2.fromEntries(p), timestamp);
+                        return null;
+                    } finally {
+                        Thread.currentThread().setName(originalName);
+                    }
+                });
+            }
+        }
+
+        List<Future<Void>> futures;
+        try {
+            futures = executor.invokeAll(callables);
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+        for (Future<Void> future : futures) {
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                throw Throwables.throwUncheckedException(e);
+            } catch (ExecutionException e) {
+                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+            }
+        }
+    }
+
+    @Override
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
+            throws KeyAlreadyExistsException {
+        put(tableRef, values, timestamp, true);
+    }
+
     private void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp, boolean idempotent) {
-        Iterable<List<Entry<Cell, byte[]>>> batches = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, byte[]>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 values.entrySet(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -400,12 +463,6 @@ public final class DbKvs extends AbstractKeyValueService {
             }
             return null;
         });
-    }
-
-    @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
-            throws KeyAlreadyExistsException {
-        put(tableRef, values, timestamp, true);
     }
 
     private void putIfNotUpdate(
@@ -455,7 +512,7 @@ public final class DbKvs extends AbstractKeyValueService {
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
             throws KeyAlreadyExistsException {
-        Iterable<List<Entry<Cell, Value>>> batches = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, Value>>> batches = IterablePartitioner.partitionByCountAndBytes(
                 cellValues.entries(),
                 config.mutationBatchCount(),
                 config.mutationBatchSizeBytes(),
@@ -511,7 +568,7 @@ public final class DbKvs extends AbstractKeyValueService {
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         // QA-86494: We sort our deletes here because we have seen oracle deadlock errors here.
         ImmutableList<Entry<Cell, Long>> sorted = ORDERING.immutableSortedCopy(keys.entries());
-        Iterable<List<Entry<Cell, Long>>> partitions = partitionByCountAndBytes(
+        Iterable<List<Entry<Cell, Long>>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 sorted,
                 10000,
                 getMultiPutBatchSizeBytes(),
@@ -539,6 +596,16 @@ public final class DbKvs extends AbstractKeyValueService {
             table.delete(range);
             return null;
         });
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
+        runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
+            table.deleteAllTimestamps(maxTimestampExclusiveByCell, deleteSentinels);
+            return null;
+        });
+
     }
 
     @Override
@@ -1167,9 +1234,19 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
+    public boolean shouldTriggerCompactions() {
+        return true;
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef) {
+        compactInternally(tableRef, false);
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         runDdl(tableRef, (Function<DbDdlTable, Void>) table -> {
-            table.compactInternally();
+            table.compactInternally(inMaintenanceMode);
             return null;
         });
     }
@@ -1268,25 +1345,20 @@ public final class DbKvs extends AbstractKeyValueService {
         }
     }
 
-    private <T> T runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
-        ConnectionSupplier conns = new ConnectionSupplier(connections);
-        try {
+    private <T> void runWriteForceAutocommit(TableReference tableRef, Function<DbWriteTable, T> runner) {
+        try (ConnectionSupplier conns = new ConnectionSupplier(connections)) {
             SqlConnection conn = conns.get();
             boolean autocommit;
             try {
                 autocommit = conn.getUnderlyingConnection().getAutoCommit();
-            } catch (PalantirSqlException e1) {
-                throw Throwables.rewrapAndThrowUncheckedException(e1);
-            } catch (SQLException e1) {
+            } catch (PalantirSqlException | SQLException e1) {
                 throw Throwables.rewrapAndThrowUncheckedException(e1);
             }
             if (!autocommit) {
-                return runWriteFreshConnection(conns, tableRef, runner);
+                runWriteFreshConnection(conns, tableRef, runner);
             } else {
-                return runner.apply(dbTables.createWrite(tableRef, conns));
+                runner.apply(dbTables.createWrite(tableRef, conns));
             }
-        } finally {
-            conns.close();
         }
     }
 

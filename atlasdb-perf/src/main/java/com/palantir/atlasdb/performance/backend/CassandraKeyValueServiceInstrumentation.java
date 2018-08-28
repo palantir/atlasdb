@@ -18,12 +18,8 @@ package com.palantir.atlasdb.performance.backend;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
@@ -31,8 +27,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 
 public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
-
-    private static final Logger log = LoggerFactory.getLogger(CassandraKeyValueServiceInstrumentation.class);
 
     public CassandraKeyValueServiceInstrumentation() {
         super(9160, "cassandra-docker-compose.yml");
@@ -59,9 +53,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
 
     @Override
     public boolean canConnect(InetSocketAddress addr) {
-        return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(
-                        (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr)),
+        return CassandraKeyValueServiceImpl.createForTesting(
+                (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
                 Optional.of(ImmutableLeaderConfig.builder()
                         .quorumSize(1)
                         .localServer(addr.getHostString())

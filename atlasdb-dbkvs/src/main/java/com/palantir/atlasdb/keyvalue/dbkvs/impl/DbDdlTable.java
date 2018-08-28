@@ -20,5 +20,5 @@ public interface DbDdlTable {
     void drop();
     void truncate();
     void checkDatabaseVersion();
-    void compactInternally();
+    void compactInternally(boolean inSafeHours);
 }

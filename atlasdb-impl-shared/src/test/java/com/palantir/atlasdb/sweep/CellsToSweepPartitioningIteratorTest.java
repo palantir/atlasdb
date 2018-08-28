@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
@@ -28,14 +29,11 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
-
 public class CellsToSweepPartitioningIteratorTest {
     @Test(expected = IllegalArgumentException.class)
     public void canNotCreateIteratorWithZeroBatchSize() {
         new CellsToSweepPartitioningIterator(
-                ImmutableList.of(batchWithThreeTssPerCell(1, 1)).iterator(),
+                ImmutableList.of(batchWithThreeTssPerCell(1, 1, 10)).iterator(),
                 0,
                 new CellsToSweepPartitioningIterator.ExaminedCellLimit(PtBytes.toBytes("row"), 1L));
     }
@@ -45,9 +43,9 @@ public class CellsToSweepPartitioningIteratorTest {
         List<BatchOfCellsToSweep> batches = partition(
                 // Three input batches with 6 (cell, timestamp) pairs in each
                 ImmutableList.of(
-                        batchWithThreeTssPerCell(0, 2),
-                        batchWithThreeTssPerCell(2, 2),
-                        batchWithThreeTssPerCell(4, 2)),
+                        batchWithThreeTssPerCell(0, 2, 6),
+                        batchWithThreeTssPerCell(2, 2, 6),
+                        batchWithThreeTssPerCell(4, 2, 6)),
                 // Request 12 (cell, ts) pairs per output batch: this should amount to
                 // exactly two input batches per one output batch
                 12,
@@ -55,7 +53,7 @@ public class CellsToSweepPartitioningIteratorTest {
                 // An arbitrarily large examined cell limit to make sure we go through the entire input
                 1000);
         // Expect two output batches: the first one should be the first two input batches combined
-        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 4), batchWithThreeTssPerCell(4, 2));
+        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 4, 12), batchWithThreeTssPerCell(4, 2, 6));
     }
 
     @Test
@@ -63,24 +61,24 @@ public class CellsToSweepPartitioningIteratorTest {
         List<BatchOfCellsToSweep> batches = partition(
                 // Three input batches with 6 (cell, timestamp) pairs in each
                 ImmutableList.of(
-                        batchWithThreeTssPerCell(0, 2),
-                        batchWithThreeTssPerCell(2, 2),
-                        batchWithThreeTssPerCell(4, 2)),
+                        batchWithThreeTssPerCell(0, 2, 6),
+                        batchWithThreeTssPerCell(2, 2, 6),
+                        batchWithThreeTssPerCell(4, 2, 6)),
                 // Request 8 (cell, ts) pairs per output batch. The first input batch is not sufficient
                 // to fill that, but the first two batches are.
                 8,
                 RangeRequests.getFirstRowName(),
                 1000);
-        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 4), batchWithThreeTssPerCell(4, 2));
+        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 4, 12), batchWithThreeTssPerCell(4, 2, 6));
     }
 
     @Test
     public void examinedCellLimit() {
         List<BatchOfCellsToSweep> batches = partition(
                 ImmutableList.of(
-                        batchWithExaminedCells(0, 20, 30),
-                        batchWithExaminedCells(20, 20, 60),
-                        batchWithExaminedCells(40, 20, 90)),
+                        batchWithThreeTssPerCell(0, 20, 30),
+                        batchWithThreeTssPerCell(20, 20, 30),
+                        batchWithThreeTssPerCell(40, 20, 30)),
                 // A large timestamp batch size. Without the examined cell limit, we would
                 // combine all three input batches in one.
                 100000,
@@ -89,7 +87,7 @@ public class CellsToSweepPartitioningIteratorTest {
         // The first input batch examines 30 cells and is not sufficient to satisfy the limit (50).
         // However, the first two batches combined together examine 60 cells, which covers the limit.
         // Hence we expect one output batch which is the concatenation of the first two input batches.
-        assertThat(batches).containsExactly(batchWithExaminedCells(0, 40, 60));
+        assertThat(batches).containsExactly(batchWithThreeTssPerCell(0, 40, 60));
     }
 
     @Test
@@ -133,35 +131,30 @@ public class CellsToSweepPartitioningIteratorTest {
                 new CellsToSweepPartitioningIterator.ExaminedCellLimit(startRow, maxCellsToExamine)));
     }
 
-    private static BatchOfCellsToSweep batchWithThreeTssPerCell(int firstCell, int numCells) {
+    private static BatchOfCellsToSweep batchWithThreeTssPerCell(int firstCell, int numCells,
+            int numCellsExaminedInBatch) {
         List<CellToSweep> cells = Lists.newArrayList();
         for (int i = 0; i < numCells; ++i) {
             cells.add(cellWithThreeTimestamps(firstCell + i, 0));
         }
         return ImmutableBatchOfCellsToSweep.builder()
                 .cells(cells)
-                // We don't really care about this field. 5 is quite arbitrary
-                .numCellTsPairsExaminedSoFar((firstCell + numCells) * 5)
+                .numCellTsPairsExamined(numCellsExaminedInBatch)
                 .lastCellExamined(cell(firstCell + numCells, 0))
                 .build();
-    }
-
-    private static BatchOfCellsToSweep batchWithExaminedCells(int firstCell, int numCells, int numCellsExaminedSoFar) {
-        return ImmutableBatchOfCellsToSweep.copyOf(batchWithThreeTssPerCell(firstCell, numCells))
-                .withNumCellTsPairsExaminedSoFar(numCellsExaminedSoFar);
     }
 
     private static BatchOfCellsToSweep batch(List<CellToSweep> cells, int numCellTsPairsExamined, Cell lastExamined) {
         return ImmutableBatchOfCellsToSweep.builder()
                     .cells(cells)
-                    .numCellTsPairsExaminedSoFar(numCellTsPairsExamined)
+                    .numCellTsPairsExamined(numCellTsPairsExamined)
                     .lastCellExamined(lastExamined)
                     .build();
     }
 
     private static CellToSweep cellWithThreeTimestamps(int row, int col) {
-        TLongList tss = new TLongArrayList();
-        for (int t = 0; t < 3; ++t) {
+        List<Long> tss = new ArrayList<>();
+        for (long t = 0; t < 3; ++t) {
             tss.add(1000 + t);
         }
         return ImmutableCellToSweep.builder()

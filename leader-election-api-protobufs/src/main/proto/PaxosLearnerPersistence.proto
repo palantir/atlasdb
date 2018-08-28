@@ -1,0 +1,20 @@
+package com.palantir.paxos.persistence.generated.remoting;
+
+import "PaxosPersistence.proto";
+
+message LearnerRequestProto {
+    required LearnerMethodProto method = 1;
+    repeated bytes arguments = 2;
+}
+
+message LearnerResponseProto {
+    repeated bytes response = 1;
+    optional ExceptionProto exception = 2;
+}
+
+enum LearnerMethodProto {
+    LEARN = 1;
+    GET_LEARNED_VALUE = 2;
+    GET_GREATEST_LEARNED_VALUE = 3;
+    GET_LEARNED_VALUES_SINCE = 4;
+}

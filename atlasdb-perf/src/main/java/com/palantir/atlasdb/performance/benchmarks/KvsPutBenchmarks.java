@@ -80,13 +80,13 @@ public class KvsPutBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 2, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 20, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsAndExists(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
         try {
             tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
-            Preconditions.checkArgument(false, "putUnlessExist should have failed");
+            Preconditions.checkArgument(false, "putUnlessExists should have failed");
         } catch (KeyAlreadyExistsException e) {
             // success
         }
@@ -96,7 +96,7 @@ public class KvsPutBenchmarks {
     @Benchmark
     @Threads(1)
     @Warmup(time = 1, timeUnit = TimeUnit.SECONDS)
-    @Measurement(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 10, timeUnit = TimeUnit.SECONDS)
     public Map<Cell, byte[]> putUnlessExistsDoesNotExist(EmptyTables tables) {
         Map<Cell, byte[]> batch = tables.generateBatchToInsert(1);
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -49,14 +50,12 @@ import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.processors.AutoDelegate;
 
 /**
  *
  * A ScrubberStore implemented as a table in the KeyValueService.
  *
  */
-@AutoDelegate(typeToExtend = ScrubberStore.class)
 public final class KeyValueServiceScrubberStore implements ScrubberStore {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_ScrubberStore {
         @Override
@@ -112,7 +111,8 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
                                         .type(ValueType.BLOB)
                                         .build())),
                         ColumnValueDescription.forType(ValueType.VAR_LONG))),
-                ConflictHandler.IGNORE_ALL);
+                ConflictHandler.IGNORE_ALL,
+                TableMetadataPersistence.LogSafety.SAFE);
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
     }
 

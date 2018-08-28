@@ -1,0 +1,3 @@
+dependencyRecommendations {
+    propertiesFile file: project.rootProject.file('qos.props')
+}

@@ -38,10 +38,12 @@ public final class AdjustableSweepBatchConfigSource {
         this.rawSweepBatchConfig = rawSweepBatchConfig;
     }
 
-    public static AdjustableSweepBatchConfigSource create(Supplier<SweepBatchConfig> rawSweepBatchConfig) {
+    public static AdjustableSweepBatchConfigSource create(
+            MetricsManager metricsManager,
+            Supplier<SweepBatchConfig> rawSweepBatchConfig) {
         AdjustableSweepBatchConfigSource configSource = new AdjustableSweepBatchConfigSource(rawSweepBatchConfig);
 
-        new MetricsManager().registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
+        metricsManager.registerMetric(AdjustableSweepBatchConfigSource.class, "batchSizeMultiplier",
                 () -> getBatchSizeMultiplier());
 
         return configSource;
@@ -87,7 +89,7 @@ public final class AdjustableSweepBatchConfigSource {
         // Cut batch size in half, always sweep at least one row.
         reduceBatchSizeMultiplier();
 
-        log.warn("Sweep failed unexpectedly with candidate batch size {},"
+        log.info("Sweep failed unexpectedly with candidate batch size {},"
                         + " delete batch size {},"
                         + " and {} cell+timestamp pairs to examine."
                         + " Attempting to continue with new batchSizeMultiplier {}",

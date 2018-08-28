@@ -38,7 +38,7 @@ public class CounterBackedRefreshingClientTest {
     private Supplier<Client> clientSupplier = (Supplier<Client>) mock(Supplier.class);
     private Client client = mock(Client.class);
 
-    private Request request = Request.create("POST", "atlas.palantir.dev", ImmutableMap.of(), null, null);
+    private Request request = Request.create("POST", "atlas.palantir.pt", ImmutableMap.of(), null, null);
     private Request.Options options = new Request.Options(1, 1);
 
     @Test

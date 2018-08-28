@@ -25,6 +25,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -34,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
@@ -42,11 +44,12 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting2.tracing.Tracers;
 
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test
@@ -90,14 +93,19 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
+        final MetricsManager metricsManager =
+                MetricsManagers.createForTests();
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
+                metricsManager,
                 kvs2,
                 timestampService,
                 lockClient,
                 lockService,
                 transactionService,
                 cdm2,
-                ssm2);
+                ssm2,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService());
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
@@ -114,7 +122,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
             TableMigratorBuilder builder = new TableMigratorBuilder()
                     .srcTable(name)
                     .partitions(1)
-                    .executor(Tracers.wrap(PTExecutors.newSingleThreadExecutor()))
+                    .executor(PTExecutors.newSingleThreadExecutor())
                     .checkpointer(checkpointer)
                     .rangeMigrator(rangeMigrator);
             TableMigrator migrator = builder.build();
@@ -125,13 +133,16 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
+                metricsManager,
                 kvs2,
                 timestampService,
                 lockClient,
                 lockService,
                 transactionService,
                 verifyCdm,
-                verifySsm);
+                verifySsm,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService());
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {

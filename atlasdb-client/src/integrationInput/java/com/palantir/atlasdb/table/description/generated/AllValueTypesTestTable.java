@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -57,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -382,7 +379,7 @@ public final class AllValueTypesTestTable implements
                 return false;
             }
             AllValueTypesTestRow other = (AllValueTypesTestRow) obj;
-            return Objects.equal(component0, other.component0) && Objects.equal(component1, other.component1) && Objects.equal(component2, other.component2) && Objects.equal(component3, other.component3) && Objects.equal(component4, other.component4) && Objects.equal(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equal(component9, other.component9) && Objects.equal(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
+            return Objects.equals(component0, other.component0) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2) && Objects.equals(component3, other.component3) && Objects.equals(component4, other.component4) && Objects.equals(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equals(component9, other.component9) && Objects.equals(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -1638,18 +1635,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn0UnlessExists(AllValueTypesTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column0.of(value)));
-    }
-
-    public void putColumn0UnlessExists(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column0.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn1(AllValueTypesTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column1.of(value)));
     }
@@ -1660,18 +1645,6 @@ public final class AllValueTypesTestTable implements
             toPut.put(e.getKey(), Column1.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putColumn1UnlessExists(AllValueTypesTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
-    }
-
-    public void putColumn1UnlessExists(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column1.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putColumn2(AllValueTypesTestRow row, Long value) {
@@ -1686,18 +1659,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2UnlessExists(AllValueTypesTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column2.of(value)));
-    }
-
-    public void putColumn2UnlessExists(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column2.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn3(AllValueTypesTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column3.of(value)));
     }
@@ -1708,18 +1669,6 @@ public final class AllValueTypesTestTable implements
             toPut.put(e.getKey(), Column3.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putColumn3UnlessExists(AllValueTypesTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column3.of(value)));
-    }
-
-    public void putColumn3UnlessExists(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column3.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putColumn4(AllValueTypesTestRow row, Sha256Hash value) {
@@ -1734,18 +1683,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn4UnlessExists(AllValueTypesTestRow row, Sha256Hash value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column4.of(value)));
-    }
-
-    public void putColumn4UnlessExists(Map<AllValueTypesTestRow, Sha256Hash> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Sha256Hash> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column4.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn5(AllValueTypesTestRow row, String value) {
         put(ImmutableMultimap.of(row, Column5.of(value)));
     }
@@ -1756,18 +1693,6 @@ public final class AllValueTypesTestTable implements
             toPut.put(e.getKey(), Column5.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putColumn5UnlessExists(AllValueTypesTestRow row, String value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column5.of(value)));
-    }
-
-    public void putColumn5UnlessExists(Map<AllValueTypesTestRow, String> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column5.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putColumn6(AllValueTypesTestRow row, String value) {
@@ -1782,18 +1707,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn6UnlessExists(AllValueTypesTestRow row, String value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column6.of(value)));
-    }
-
-    public void putColumn6UnlessExists(Map<AllValueTypesTestRow, String> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column6.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn7(AllValueTypesTestRow row, byte[] value) {
         put(ImmutableMultimap.of(row, Column7.of(value)));
     }
@@ -1804,18 +1717,6 @@ public final class AllValueTypesTestTable implements
             toPut.put(e.getKey(), Column7.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putColumn7UnlessExists(AllValueTypesTestRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column7.of(value)));
-    }
-
-    public void putColumn7UnlessExists(Map<AllValueTypesTestRow, byte[]> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column7.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putColumn8(AllValueTypesTestRow row, byte[] value) {
@@ -1830,18 +1731,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn8UnlessExists(AllValueTypesTestRow row, byte[] value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column8.of(value)));
-    }
-
-    public void putColumn8UnlessExists(Map<AllValueTypesTestRow, byte[]> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column8.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn9(AllValueTypesTestRow row, Long value) {
         put(ImmutableMultimap.of(row, Column9.of(value)));
     }
@@ -1852,18 +1741,6 @@ public final class AllValueTypesTestTable implements
             toPut.put(e.getKey(), Column9.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
-    }
-
-    public void putColumn9UnlessExists(AllValueTypesTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column9.of(value)));
-    }
-
-    public void putColumn9UnlessExists(Map<AllValueTypesTestRow, Long> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column9.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
     }
 
     public void putColumn10(AllValueTypesTestRow row, UUID value) {
@@ -1878,18 +1755,6 @@ public final class AllValueTypesTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn10UnlessExists(AllValueTypesTestRow row, UUID value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column10.of(value)));
-    }
-
-    public void putColumn10UnlessExists(Map<AllValueTypesTestRow, UUID> map) {
-        Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<AllValueTypesTestRow, UUID> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column10.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -1897,20 +1762,6 @@ public final class AllValueTypesTestTable implements
         for (AllValueTypesTestTrigger trigger : triggers) {
             trigger.putAllValueTypesTest(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> rows) {
-        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<AllValueTypesTestRow, ? extends AllValueTypesTestNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteColumn0(AllValueTypesTestRow row) {
@@ -2180,11 +2031,8 @@ public final class AllValueTypesTestTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -2259,5 +2107,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "db/N1QHzErWA9LjGunAMxg==";
+    static String __CLASS_HASH = "7ICgYboWGmlASXKikUY+zQ==";
 }

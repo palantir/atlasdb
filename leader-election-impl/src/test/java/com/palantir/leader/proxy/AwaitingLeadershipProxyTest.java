@@ -17,6 +17,7 @@ package com.palantir.leader.proxy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -31,13 +32,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -49,6 +53,9 @@ public class AwaitingLeadershipProxyTest {
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
     private final LeaderElectionService leaderElectionService = mock(LeaderElectionService.class);
+    private final Runnable mockRunnable = mock(Runnable.class);
+    private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
+    private final LeaderElectionService mockLeader = mock(LeaderElectionService.class);
 
     @Before
     public void before() throws InterruptedException {
@@ -61,12 +68,9 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("SelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
-    public void shouldAllowObjectMethodsWhenLeading() throws Exception {
-        Runnable mockRunnable = mock(Runnable.class);
-        Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-        LeaderElectionService mockLeader = mock(LeaderElectionService.class);
-
+    // We're asserting that calling .equals on a proxy does not redirect
+    // the .equals call to the instance its being proxied.
+    public void shouldAllowObjectMethodsWhenLeading() {
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
@@ -82,12 +86,9 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("SelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect the .equals call to the instance its being proxied.
-    public void shouldAllowObjectMethodsWhenNotLeading() throws Exception {
-        Runnable mockRunnable = mock(Runnable.class);
-        Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
-        LeaderElectionService mockLeader = mock(LeaderElectionService.class);
-
+    // We're asserting that calling .equals on a proxy does not redirect
+    // the .equals call to the instance its being proxied.
+    public void shouldAllowObjectMethodsWhenNotLeading() {
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
         when(mockLeader.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
@@ -102,7 +103,43 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldMapInterruptedExceptionToNCLEIfLeadingStatusChanges() throws Exception {
+    public void shouldNotRedirectToItself() {
+        HostAndPort localHost = HostAndPort.fromHost("localhost");
+        AtomicReference<LeaderElectionService.LeadershipToken> reference = new AtomicReference<>();
+
+        // This is a hacky way to "gain leadership" whilst checking the leader in memory.
+        Answer<Optional<HostAndPort>> answer = invocation -> {
+            reference.set(leadershipToken);
+            return Optional.of(localHost);
+        };
+        when(mockLeader.getSuspectedLeaderInMemory()).then(answer);
+
+        AwaitingLeadershipProxy<Runnable> proxy = AwaitingLeadershipProxy.proxyForTest(delegateSupplier,
+                mockLeader,
+                Runnable.class,
+                reference);
+
+        LeaderElectionService.LeadershipToken token = proxy.getLeadershipToken();
+        assertEquals(token, leadershipToken);
+    }
+
+    @Test
+    public void shouldRedirectToOtherHosts() {
+        HostAndPort otherHost = HostAndPort.fromHost("otherhost");
+        AtomicReference<LeaderElectionService.LeadershipToken> reference = new AtomicReference<>();
+        when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.of(otherHost));
+
+        AwaitingLeadershipProxy<Runnable> proxy = AwaitingLeadershipProxy.proxyForTest(delegateSupplier,
+                mockLeader,
+                Runnable.class,
+                reference);
+
+        assertThatThrownBy(proxy::getLeadershipToken).isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("hinting suspected leader host otherhost");
+    }
+
+    @Test
+    public void shouldMapInterruptedExceptionToNcleIfLeadingStatusChanges() {
         Callable<Void> delegate = () -> {
             throw new InterruptedException(TEST_MESSAGE);
         };
@@ -115,7 +152,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapOtherExceptionToNCLEIfLeadingStatusChanges()  {
+    public void shouldNotMapOtherExceptionToNcleIfLeadingStatusChanges()  {
         Callable<Void> delegate = () -> {
             throw new RuntimeException(TEST_MESSAGE);
         };
@@ -126,7 +163,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotMapInterruptedExceptionToNCLEIfLeadingStatusDoesNotChange() throws InterruptedException {
+    public void shouldNotMapInterruptedExceptionToNcleIfLeadingStatusDoesNotChange() throws InterruptedException {
         Callable<Void> proxy = proxyFor(() -> {
             throw new InterruptedException(TEST_MESSAGE);
         });
@@ -159,6 +196,7 @@ public class AwaitingLeadershipProxyTest {
         verify(leaderElectionService).blockOnBecomingLeader();
     }
 
+    @SuppressWarnings("IllegalThrows")
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
         CountDownLatch leadershipLost = new CountDownLatch(1);
@@ -199,7 +237,7 @@ public class AwaitingLeadershipProxyTest {
                 .hasMessage("method invoked on a non-leader (leadership lost)");
     }
 
-    private Callable proxyFor(Callable fn) throws InterruptedException {
+    private Callable proxyFor(Callable fn) {
         return AwaitingLeadershipProxy.newProxyInstance(Callable.class, () -> fn, leaderElectionService);
     }
 
@@ -208,22 +246,4 @@ public class AwaitingLeadershipProxyTest {
         Uninterruptibles.sleepUninterruptibly(100L, TimeUnit.MILLISECONDS);
     }
 
-    private LeaderElectionService mockLeaderElectionServiceWithSequence(
-            LeaderElectionService.StillLeadingStatus status1,
-            LeaderElectionService.StillLeadingStatus status2)
-            throws InterruptedException {
-        LeaderElectionService mockLeaderService = mock(LeaderElectionService.class);
-        LeaderElectionService.LeadershipToken leadershipToken = mock(PaxosLeadershipToken.class);
-        when(mockLeaderService.blockOnBecomingLeader()).thenReturn(
-                getToken(status1, leadershipToken),
-                getToken(status2, leadershipToken));
-        when(mockLeaderService.getSuspectedLeaderInMemory()).thenReturn(Optional.empty());
-        when(mockLeaderService.isStillLeading(leadershipToken)).thenReturn(status1, status2);
-        return mockLeaderService;
-    }
-
-    private LeaderElectionService.LeadershipToken getToken(LeaderElectionService.StillLeadingStatus status,
-            LeaderElectionService.LeadershipToken leadershipToken) {
-        return (status == LeaderElectionService.StillLeadingStatus.LEADING) ? leadershipToken : null;
-    }
 }

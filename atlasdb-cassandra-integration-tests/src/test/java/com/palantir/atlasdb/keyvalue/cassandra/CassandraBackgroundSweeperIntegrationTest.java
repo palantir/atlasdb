@@ -21,12 +21,13 @@ import org.junit.ClassRule;
 import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
@@ -41,14 +42,21 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return Arrays.asList(true, false);
     }
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
                 ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
                     .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
+
+        // Need to ensure that C* timestamps for sentinels and deletes occur after timestamps where values were put
+        // (which is true in practice assuming timestamp service is working properly)
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                CassandraContainer.LEADER_CONFIG);
+                metricsManager,
+                config,
+                CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }

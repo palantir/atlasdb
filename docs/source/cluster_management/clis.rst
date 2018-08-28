@@ -18,6 +18,53 @@ The CLI now comes prebuilt as an SLS distribution to be used with any AtlasDB-ba
 You can find the versions `here <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/>`__ for download.
 You can use the CLI by unpacking the tar ball and running the executable in ``service/bin/atlasdb-cli``.
 
+General CLI Options
+===================
+
+.. list-table::
+    :widths: 5 40 15
+    :header-rows: 1
+
+    *    - Option
+         - Description
+         - Required
+
+    *    - ``--config``
+         - The path to the install config yml file of the service. Usually ``var/conf/install.yml``.
+         - Yes
+
+    *    - ``--runtime-config``
+         - The path to the runtime config yml file of the service. Usually ``var/conf/runtime.yml``. You should always
+           specify one if you have a runtime config file.
+         - No
+
+    *    - ``--inline-config``
+         - Use it if you want to provide the AtlasDB config as a string/json.
+           The config string should immediately follow the option.
+         - No
+
+    *    - ``--config-root``
+         - The AtlasDB config root for your install config. The CLI will by default look for ``/atlasdb``/``/atlas`` blocks in the config, but services can name these blocks arbitrarily.
+           This can usually be found by cracking open the install config file and searching for parameters defined in
+           `Atlas Install config <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbConfig.java>`__.
+           The parent of these parameters will be the install config root.
+           Note that you have to provide the root with a '/' as the first character.
+         - No
+
+    *    - ``--runtime-config-root``
+         - The AtlasDB config root for your runtime config. The CLI will by default look for ``/atlasdb``/``/atlas`` blocks in the config, but services can name these blocks arbitrarily.
+           This can usually be found by cracking open the runtime config file and searching for parameters defined in
+           `Atlas Runtime config <https://github.com/palantir/atlasdb/blob/develop/atlasdb-config/src/main/java/com/palantir/atlasdb/config/AtlasDbRuntimeConfig.java>`__.
+           The parent of these parameters will be the runtime config root. If you do not have any AtlasDB runtime config,
+           you should get rid of the ``runtime-config`` option to the CLI and Atlas will assume the default config.
+           Note that you have to provide the root with a '/' as the first character.
+         - No
+
+    *    - ``--offline``
+         - Some CLIs can only be run in the offline mode. This means that you have to shut down all nodes of the service
+           and then pass in this flag to the CLI.
+         - No
+
 Compiling The CLI
 =================
 
@@ -60,12 +107,21 @@ For more information run ``./bin/atlasdb help migrate`` for more information.
 
 .. code-block:: bash
 
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb-cli --offline --config-root "/atlas" migrate –-fromConfig from.yml --migrateConfig to.yml --validate
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
+     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
 
 Note that the `migrate` CLI can safely be resumed (with the same arguments) if it fails during a step.
 The CLI will check and skip past tables that have already been processed.
+
+read-punch-table
+----------------
+
+Given an epoch time, in millis, the CLI reads the timestamp added to the punch table right before it.
+
+.. code-block:: bash
+
+     ./bin/atlasdb-cli --config config.yml read-punch-table --epoch
 
 .. _offline-clis:
 

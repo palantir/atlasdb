@@ -46,7 +46,7 @@ import org.junit.Test;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -67,15 +67,14 @@ public class CassandraSchemaLockTest {
     @Test
     public void shouldCreateTablesConsistentlyWithMultipleCassandraNodes() throws Exception {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.table1");
-        CassandraKeyValueServiceConfigManager configManager = CassandraKeyValueServiceConfigManager
-                .createSimpleManager(ThreeNodeCassandraCluster.KVS_CONFIG);
+        CassandraKeyValueServiceConfig config = ThreeNodeCassandraCluster.KVS_CONFIG;
 
         try {
             CyclicBarrier barrier = new CyclicBarrier(THREAD_COUNT);
             for (int i = 0; i < THREAD_COUNT; i++) {
                 async(() -> {
                     CassandraKeyValueService keyValueService =
-                            CassandraKeyValueServiceImpl.create(configManager, Optional.empty());
+                            CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
                     barrier.await();
                     keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
                     return null;
@@ -86,8 +85,7 @@ public class CassandraSchemaLockTest {
             assertTrue(executorService.awaitTermination(4, TimeUnit.MINUTES));
         }
 
-        CassandraKeyValueService kvs =
-                CassandraKeyValueServiceImpl.create(configManager, Optional.empty());
+        CassandraKeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(config, Optional.empty());
         assertThat(kvs.getAllTableNames(), hasItem(table1));
 
         assertThat(new File(CONTAINERS.getLogDirectory()),

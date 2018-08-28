@@ -19,6 +19,8 @@ package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -69,8 +71,10 @@ public class CoalescingSupplierTest {
 
         batch.await();
 
-        // once for initial task; once for batch
-        verify(delegate, times(2)).get();
+        // At least some of these requests should be batched. We can't guarantee it will always be 2 though, if
+        // we get really unlucky with scheduling.
+        verify(delegate, atLeast(2)).get();
+        verify(delegate, atMost(5)).get();
     }
 
     @Test
@@ -119,11 +123,11 @@ public class CoalescingSupplierTest {
 
         private final List<Future<?>> futures;
 
-        public AsyncTasks(List<Future<?>> futures) {
+        AsyncTasks(List<Future<?>> futures) {
             this.futures = futures;
         }
 
-        public static AsyncTasks runInParallel(Runnable task, int count) {
+        static AsyncTasks runInParallel(Runnable task, int count) {
             ExecutorService executor = Executors.newCachedThreadPool();
             List<Future<?>> futures = IntStream.range(0, count)
                     .mapToObj(i -> executor.submit(task))
@@ -144,7 +148,7 @@ public class CoalescingSupplierTest {
             }
         }
 
-        public void assertAllFailed(Throwable expectedError) {
+        void assertAllFailed(Throwable expectedError) {
             for (Future<?> future : futures) {
                 assertThatThrownBy(future::get).hasCause(expectedError);
             }
@@ -156,15 +160,15 @@ public class CoalescingSupplierTest {
         private volatile boolean isFrozen;
         private final Supplier<Integer> delegate;
 
-        public FreezableSupplier(Supplier<Integer> delegate) {
+        FreezableSupplier(Supplier<Integer> delegate) {
             this.delegate = delegate;
         }
 
-        public void freeze() {
+        void freeze() {
             isFrozen = true;
         }
 
-        public void unfreeze() {
+        void unfreeze() {
             isFrozen = false;
         }
 

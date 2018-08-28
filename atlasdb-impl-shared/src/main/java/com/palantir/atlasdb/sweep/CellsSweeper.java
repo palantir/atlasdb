@@ -16,21 +16,24 @@
 package com.palantir.atlasdb.sweep;
 
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
-import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
-import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 public class CellsSweeper {
     private static final Logger log = LoggerFactory.getLogger(CellsSweeper.class);
@@ -51,34 +54,20 @@ public class CellsSweeper {
         this.persistentLockManager = persistentLockManager;
     }
 
-    public CellsSweeper(
-            TransactionManager txManager,
-            KeyValueService keyValueService,
-            Collection<Follower> followers,
-            boolean initializeAsync) {
-        this(txManager, keyValueService,
-                new PersistentLockManager(getPersistentLockService(keyValueService, initializeAsync),
-                        AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS),
-                followers);
-    }
-
-    private static PersistentLockService getPersistentLockService(KeyValueService kvs, boolean initializeAsync) {
-        if (kvs.supportsCheckAndSet()) {
-            return KvsBackedPersistentLockService.create(kvs, initializeAsync);
-        } else {
-            log.warn("CellsSweeper is being set up without a persistent lock service. "
-                    + "It will not be safe to run backups while sweep is running.");
-            return new NoOpPersistentLockService();
-        }
-    }
-
     public void sweepCells(
             TableReference tableRef,
             Multimap<Cell, Long> cellTsPairsToSweep,
             Collection<Cell> sentinelsToAdd) {
         if (cellTsPairsToSweep.isEmpty()) {
+            log.info("Attempted to delete 0 cell+timestamp pairs from table {}.",
+                    LoggingArgs.tableRef(tableRef));
             return;
         }
+
+        log.info("Attempted to delete {} stale cell+timestamp pairs from table {}, and add {} sentinels.",
+                SafeArg.of("numCellTsPairsToDelete", cellTsPairsToSweep.size()),
+                LoggingArgs.tableRef(tableRef),
+                SafeArg.of("numGarbageCollectionSentinelsToAdd", sentinelsToAdd.size()));
 
         for (Follower follower : followers) {
             follower.run(txManager, tableRef, cellTsPairsToSweep.keySet(), Transaction.TransactionType.HARD_DELETE);
@@ -90,6 +79,13 @@ public class CellsSweeper {
                     sentinelsToAdd);
         }
 
+        if (cellTsPairsToSweep.entries().stream().anyMatch(entry -> entry.getValue() == null)) {
+            log.error("When sweeping table {} found cells to sweep with the start timestamp null."
+                            + " This is unexpected. The cellTs pairs to sweep were: {}.",
+                    LoggingArgs.tableRef(tableRef),
+                    getLoggingArgForCells(cellTsPairsToSweep));
+        }
+
         persistentLockManager.acquirePersistentLockWithRetry();
 
         try {
@@ -97,5 +93,16 @@ public class CellsSweeper {
         } finally {
             persistentLockManager.releasePersistentLock();
         }
+    }
+
+    private Arg<String> getLoggingArgForCells(Multimap<Cell, Long> cellTsPairsToSweep) {
+        return UnsafeArg.of("cellTsPairsToSweep", getMessage(cellTsPairsToSweep));
+    }
+
+    private String getMessage(Multimap<Cell, Long> cellTsPairsToSweep) {
+        return cellTsPairsToSweep.entries().stream()
+                .sorted(Comparator.comparing(Map.Entry::getKey))
+                .map(entry -> entry.getKey().toString() + "->" + entry.getValue())
+                .collect(Collectors.joining(", ", "[", "]"));
     }
 }

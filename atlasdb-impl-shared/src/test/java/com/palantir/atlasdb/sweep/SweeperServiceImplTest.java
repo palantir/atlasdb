@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -33,6 +34,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
@@ -54,9 +56,8 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     private static final String INVALID_START_ROW = "xyz";
     SweeperService sweeperService;
 
-    private static final SweepResults RESULTS_WITH_NO_MORE_TO_SWEEP = SweepResults.createEmptySweepResult();
-    private static final SweepResults RESULTS_WITH_MORE_TO_SWEEP = SweepResults.createEmptySweepResult(
-            Optional.of(new byte[] {0x55}));
+    private static final SweepResults RESULTS_NO_MORE_TO_SWEEP = SweepResults.createEmptySweepResultWithNoMoreToSweep();
+    private static final SweepResults RESULTS_MORE_TO_SWEEP = SweepResults.createEmptySweepResultWithMoreToSweep();
 
     @Rule
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
@@ -74,7 +75,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
                 SweeperServiceImplTest.class,
                 dropwizardClientRule.baseUri().toString());
 
-        setupTaskRunner(RESULTS_WITH_NO_MORE_TO_SWEEP);
+        setupTaskRunner(RESULTS_NO_MORE_TO_SWEEP);
         when(kvs.getAllTableNames()).thenReturn(ImmutableSet.of(TABLE_REF));
     }
 
@@ -94,7 +95,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public void sweepingNonExistingTableShouldNotBeSuccessful() {
         assertThatExceptionOfType(RemoteException.class)
                 .isThrownBy(() -> sweeperService.sweepTableFully("ns.non_existing_table"))
-                .matches(ex -> ex.getStatus() == Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+                .matches(ex -> ex.getStatus() == Response.Status.BAD_REQUEST.getStatusCode());
     }
 
     @Test
@@ -140,8 +141,11 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     @Test
     public void testWriteProgressAndPriorityNotUpdatedAfterSweepRunsSuccessfully_butMetricsAre() {
         sweeperService.sweepTableFrom(TABLE_REF.getQualifiedName(), encodeStartRow(new byte[] {1, 2, 3}));
-        Mockito.verify(sweepMetrics, times(1)).examinedCells(eq(0L));
-        Mockito.verify(sweepMetrics, times(1)).deletedCells(eq(0L));
+        ArgumentCaptor<Long> sweepTime = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> totalTimeElapsed = ArgumentCaptor.forClass(Long.class);
+
+        Mockito.verify(sweepMetrics, times(1)).updateSweepTime(sweepTime.capture(), totalTimeElapsed.capture());
+        verifyExpectedArgument(sweepTime.getValue(), totalTimeElapsed.getValue());
     }
 
     @Test
@@ -167,15 +171,23 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
         verifyNoMoreInteractions(sweepTaskRunner);
     }
 
+
     @Test
     public void runsOneIterationIfRequested() {
-        setupTaskRunner(RESULTS_WITH_MORE_TO_SWEEP);
+        setupTaskRunner(RESULTS_MORE_TO_SWEEP);
 
         sweeperService.sweepTable(TABLE_REF.getQualifiedName(), Optional.empty(), Optional.of(false),
                 Optional.empty(), Optional.empty(), Optional.empty());
 
         verify(sweepTaskRunner, times(1)).run(any(), any(), any());
         verifyNoMoreInteractions(sweepTaskRunner);
+    }
+
+    private void verifyExpectedArgument(long sweepTime, long totalTimeElapsed) {
+        assertThat(RESULTS_NO_MORE_TO_SWEEP.getTimeInMillis()).isEqualTo(sweepTime);
+        assertThat(totalTimeElapsed).isBetween(
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping() - 1000L,
+                RESULTS_NO_MORE_TO_SWEEP.getTimeElapsedSinceStartedSweeping());
     }
 
     private String encodeStartRow(byte[] rowBytes) {

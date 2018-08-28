@@ -50,7 +50,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockImmutableTimestampRequest;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -100,9 +100,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void canLockImmutableTimestamp() {
         LockImmutableTimestampResponse response1 = cluster.timelockService()
-                .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
         LockImmutableTimestampResponse response2 = cluster.timelockService()
-                .lockImmutableTimestamp(LockImmutableTimestampRequest.create());
+                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
@@ -309,7 +309,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void lockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
-            // legacy API does not support idempotence
+            // legacyModeForTestsOnly API does not support idempotence
             return;
         }
 
@@ -329,7 +329,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void waitForLockRequestsAreIdempotent() {
         if (isUsingSyncAdapter(cluster)) {
-            // legacy API does not support idempotence
+            // legacyModeForTestsOnly API does not support idempotence
             return;
         }
 

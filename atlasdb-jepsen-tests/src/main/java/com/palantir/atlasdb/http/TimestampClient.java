@@ -17,13 +17,14 @@ package com.palantir.atlasdb.http;
 
 import java.util.List;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampClient {
     private TimestampClient() {
     }
 
-    public static TimestampService create(List<String> hosts) {
-        return TimelockUtils.createClient(hosts, TimestampService.class);
+    public static TimestampService create(MetricRegistry metricRegistry, List<String> hosts) {
+        return TimelockUtils.createClient(metricRegistry, hosts, TimestampService.class);
     }
 }

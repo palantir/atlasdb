@@ -24,10 +24,16 @@ atlasdb:
     mutationBatchSizeBytes: 10000000
     fetchBatchCount: 1000
     autoRefreshNodes: false
-
+  targetedSweep:
+    enableSweepQueueWrites: true
   namespace: atlasete
 
-  timelock:
+atlasDbRuntime:
+  sweep:
+    enabled: false
+  targetedSweep:
+    enabled: true
+  timelockRuntime:
     serversList:
       servers:
         - 'http://timelock:8421'

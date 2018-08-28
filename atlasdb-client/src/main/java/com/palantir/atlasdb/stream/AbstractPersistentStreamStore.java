@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -45,8 +46,16 @@ import com.palantir.util.crypto.Sha256Hash;
 
 public abstract class AbstractPersistentStreamStore extends AbstractGenericStreamStore<Long>
         implements PersistentStreamStore {
+    private final StreamStoreBackoffStrategy backoffStrategy;
+
     protected AbstractPersistentStreamStore(TransactionManager txManager) {
+        this(txManager, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+    }
+
+    protected AbstractPersistentStreamStore(TransactionManager txManager,
+            Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
         super(txManager);
+        this.backoffStrategy = StandardPeriodicBackoffStrategy.create(persistenceConfiguration);
     }
 
     protected final void storeMetadataAndIndex(final long streamId, final StreamMetadata metadata) {
@@ -192,7 +201,17 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
                 storeBlockWithNonNullTransaction(tx, id, blockNumber, bytesToStore);
             }
             blockNumber++;
+            if (!streamOperationIsTransactional(tx)) {
+                backoffStrategy.accept(blockNumber);
+            }
         }
+    }
+
+    private boolean streamOperationIsTransactional(@Nullable Transaction tx) {
+        // TODO (jkong): I'm using tx == null as a proxy for whether the entire operation should be done
+        // transactionally or not (null implies nontransactional).
+        // This is not ideal, but was done in the interest of time.
+        return tx != null;
     }
 
     protected void storeBlockWithNonNullTransaction(@Nullable Transaction tx, final long id, final long blockNumber,

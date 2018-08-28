@@ -32,23 +32,14 @@ public final class Schemas {
     private static final String INDEX_SUFFIX = "idx";
 
     private Schemas() {
-        //
+        // utility
     }
 
     public static TableReference appendIndexSuffix(String indexName, IndexDefinition definition) {
         Preconditions.checkArgument(
                 !indexName.endsWith(INDEX_SUFFIX),
-                "Index name cannot end with '" + INDEX_SUFFIX + "': " + indexName);
+                "Index name cannot end with '%s': %s", INDEX_SUFFIX, indexName);
         return TableReference.createUnsafe(indexName + definition.getIndexType().getIndexSuffix());
-    }
-
-    public static void createIndex(KeyValueService kvs, TableReference fullIndexRef, IndexDefinition definition) {
-        createIndices(kvs, ImmutableMap.of(fullIndexRef, definition));
-    }
-
-    public static void createIndex(Schema schema, KeyValueService kvs, TableReference indexRef) {
-        IndexDefinition definition = schema.getIndex(indexRef);
-        createIndex(kvs, indexRef, definition);
     }
 
     public static void createIndices(KeyValueService kvs,
@@ -133,10 +124,6 @@ public final class Schemas {
         schemaFullTableNames.addAll(schema.getTableDefinitions().keySet());
 
         return schemaFullTableNames.stream().filter(allTables::contains).collect(Collectors.toSet());
-    }
-
-    public static void deleteTable(KeyValueService kvs, TableReference tableRef) {
-        kvs.dropTable(tableRef);
     }
 
 }

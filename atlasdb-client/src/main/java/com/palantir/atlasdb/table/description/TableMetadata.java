@@ -17,13 +17,10 @@ package com.palantir.atlasdb.table.description;
 
 import javax.annotation.concurrent.Immutable;
 
-import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -36,20 +33,23 @@ public class TableMetadata implements Persistable {
     final ColumnMetadataDescription columns;
     final ConflictHandler conflictHandler;
     final CachePriority cachePriority;
-    final PartitionStrategy partitionStrategy;
     final boolean rangeScanAllowed;
     final int explicitCompressionBlockSizeKB;
     final boolean negativeLookups;
     final SweepStrategy sweepStrategy;
-    final ExpirationStrategy expirationStrategy;
     final boolean appendHeavyAndReadLight;
     final LogSafety nameLogSafety;
 
     public TableMetadata() {
+        this(LogSafety.UNSAFE);
+    }
+
+    public TableMetadata(LogSafety logSafety) {
         this(
                 new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE);
+                ConflictHandler.RETRY_ON_WRITE_WRITE,
+                logSafety);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,
@@ -59,38 +59,45 @@ public class TableMetadata implements Persistable {
                 rowMetadata,
                 columns,
                 conflictHandler,
+                LogSafety.UNSAFE);
+    }
+
+    // NOTE: if you change the defaults here, make sure to change them in TableMetadataDeserializer as well!
+    public TableMetadata(NameMetadataDescription rowMetadata,
+            ColumnMetadataDescription columns,
+            ConflictHandler conflictHandler,
+            LogSafety logSafety) {
+        this(
+                rowMetadata,
+                columns,
+                conflictHandler,
                 CachePriority.WARM,
-                PartitionStrategy.ORDERED,
                 false,
                 0,
                 false,
                 SweepStrategy.CONSERVATIVE,
-                ExpirationStrategy.NEVER,
-                false);
+                false,
+                logSafety);
     }
 
     public TableMetadata(NameMetadataDescription rowMetadata,
                          ColumnMetadataDescription columns,
                          ConflictHandler conflictHandler,
                          CachePriority cachePriority,
-                         PartitionStrategy partitionStrategy,
                          boolean rangeScanAllowed,
                          int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
-                         ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight) {
         this(
                 rowMetadata,
                 columns,
                 conflictHandler,
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                expirationStrategy,
                 appendHeavyAndReadLight,
                 LogSafety.UNSAFE);
     }
@@ -99,29 +106,20 @@ public class TableMetadata implements Persistable {
                          ColumnMetadataDescription columns,
                          ConflictHandler conflictHandler,
                          CachePriority cachePriority,
-                         PartitionStrategy partitionStrategy,
                          boolean rangeScanAllowed,
                          int explicitCompressionBlockSizeKB,
                          boolean negativeLookups,
                          SweepStrategy sweepStrategy,
-                         ExpirationStrategy expirationStrategy,
                          boolean appendHeavyAndReadLight,
                          LogSafety nameLogSafety) {
-        if (rangeScanAllowed) {
-            Preconditions.checkArgument(
-                    partitionStrategy == PartitionStrategy.ORDERED,
-                    "range scan is only allowed if partition strategy is ordered");
-        }
         this.rowMetadata = rowMetadata;
         this.columns = columns;
         this.conflictHandler = conflictHandler;
         this.cachePriority = cachePriority;
-        this.partitionStrategy = partitionStrategy;
         this.rangeScanAllowed = rangeScanAllowed;
         this.explicitCompressionBlockSizeKB = explicitCompressionBlockSizeKB;
         this.negativeLookups = negativeLookups;
         this.sweepStrategy = sweepStrategy;
-        this.expirationStrategy = expirationStrategy;
         this.appendHeavyAndReadLight = appendHeavyAndReadLight;
         this.nameLogSafety = nameLogSafety;
     }
@@ -146,10 +144,6 @@ public class TableMetadata implements Persistable {
         return cachePriority;
     }
 
-    public PartitionStrategy getPartitionStrategy() {
-        return partitionStrategy;
-    }
-
     public boolean isRangeScanAllowed() {
         return rangeScanAllowed;
     }
@@ -164,10 +158,6 @@ public class TableMetadata implements Persistable {
 
     public SweepStrategy getSweepStrategy() {
         return sweepStrategy;
-    }
-
-    public ExpirationStrategy getExpirationStrategy() {
-        return expirationStrategy;
     }
 
     public boolean isAppendHeavyAndReadLight() {
@@ -198,7 +188,6 @@ public class TableMetadata implements Persistable {
         builder.setRowName(rowMetadata.persistToProto());
         builder.setColumns(columns.persistToProto());
         builder.setCachePriority(cachePriority);
-        builder.setPartitionStrategy(partitionStrategy);
         builder.setRangeScanAllowed(rangeScanAllowed);
         if (explicitCompressionBlockSizeKB != 0) {
             builder.setExplicitCompressionBlockSizeKiloBytes(explicitCompressionBlockSizeKB);
@@ -215,10 +204,6 @@ public class TableMetadata implements Persistable {
         CachePriority cachePriority = CachePriority.WARM;
         if (message.hasCachePriority()) {
             cachePriority = message.getCachePriority();
-        }
-        PartitionStrategy partitionStrategy = PartitionStrategy.ORDERED;
-        if (message.hasPartitionStrategy()) {
-            partitionStrategy = message.getPartitionStrategy();
         }
         boolean rangeScanAllowed = false;
         if (message.hasRangeScanAllowed()) {
@@ -250,12 +235,10 @@ public class TableMetadata implements Persistable {
                 ColumnMetadataDescription.hydrateFromProto(message.getColumns()),
                 ConflictHandlers.hydrateFromProto(message.getConflictHandler()),
                 cachePriority,
-                partitionStrategy,
                 rangeScanAllowed,
                 explicitCompressionBlockSizeKB,
                 negativeLookups,
                 sweepStrategy,
-                ExpirationStrategy.NEVER,
                 appendHeavyAndReadLight,
                 nameLogSafety);
     }
@@ -266,7 +249,6 @@ public class TableMetadata implements Persistable {
                 + "rowMetadata=" + rowMetadata
                 + ", columns=" + columns
                 + ", conflictHandler=" + conflictHandler
-                + ", partitionStrategy=" + partitionStrategy
                 + ", rowMetadata =" + rowMetadata
                 + ", rangeScanAllowed =" + rangeScanAllowed
                 + ", explicitCompressionBlockSizeKB =" + explicitCompressionBlockSizeKB
@@ -284,7 +266,6 @@ public class TableMetadata implements Persistable {
         result = prime * result + ((cachePriority == null) ? 0 : cachePriority.hashCode());
         result = prime * result + ((columns == null) ? 0 : columns.hashCode());
         result = prime * result + ((conflictHandler == null) ? 0 : conflictHandler.hashCode());
-        result = prime * result + ((partitionStrategy == null) ? 0 : partitionStrategy.hashCode());
         result = prime * result + (rangeScanAllowed ? 1231 : 1237);
         result = prime * result + ((rowMetadata == null) ? 0 : rowMetadata.hashCode());
         result = prime * result + (rangeScanAllowed ? 0 : 1);
@@ -319,9 +300,6 @@ public class TableMetadata implements Persistable {
             return false;
         }
         if (conflictHandler != other.conflictHandler) {
-            return false;
-        }
-        if (partitionStrategy != other.partitionStrategy) {
             return false;
         }
         if (rangeScanAllowed != other.rangeScanAllowed) {

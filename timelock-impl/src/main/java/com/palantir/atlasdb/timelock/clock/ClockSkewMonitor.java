@@ -21,7 +21,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -31,8 +30,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
@@ -48,15 +48,17 @@ public final class ClockSkewMonitor {
     private final ScheduledExecutorService executorService;
     private final ReversalDetectingClockService localClockService;
 
-    public static ClockSkewMonitor create(Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
+    public static ClockSkewMonitor create(MetricsManager metricsManager,
+            Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
-                (remoteServer) -> AtlasDbHttpClients.createProxy(optionalSecurity, remoteServer, ClockService.class));
+                (remoteServer) -> AtlasDbHttpClients.createProxy(metricsManager.getRegistry(),
+                        optionalSecurity, remoteServer, ClockService.class));
 
         return new ClockSkewMonitor(
                 clocksByServer,
-                new ClockSkewEvents(AtlasDbMetrics.getMetricRegistry()),
-                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
+                new ClockSkewEvents(metricsManager.getRegistry()),
+                PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("clock-skew-monitor", true)),
                 new ClockServiceImpl());
     }
 

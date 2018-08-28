@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.cassandra.thrift.CASResult;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.Compression;
@@ -42,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.AutoDelegate_CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlQuery;
 import com.palantir.atlasdb.keyvalue.cassandra.HiddenTables;
@@ -49,11 +49,11 @@ import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-public class QosCassandraClient implements CassandraClient {
+public class QosCassandraClient implements AutoDelegate_CassandraClient {
 
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
     private static final Function<TableReference, Boolean> ZERO_ESTIMATE_DETERMINING_FUNCTION = tRef ->
-            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || new HiddenTables().isHidden(tRef);
+            tRef.equals(TransactionConstants.TRANSACTION_TABLE) || HiddenTables.isHidden(tRef);
 
     private final CassandraClient client;
     private final QosClient qosClient;
@@ -64,8 +64,8 @@ public class QosCassandraClient implements CassandraClient {
     }
 
     @Override
-    public Cassandra.Client rawClient() {
-        return client.rawClient();
+    public CassandraClient delegate() {
+        return this.client;
     }
 
     @Override
@@ -84,6 +84,18 @@ public class QosCassandraClient implements CassandraClient {
         return qosClient.executeRead(
                 () -> client.get_range_slices(kvsMethodName, tableRef, predicate, range, consistency_level),
                 ThriftQueryWeighers.getRangeSlices(range, ZERO_ESTIMATE_DETERMINING_FUNCTION.apply(tableRef)));
+    }
+
+    @Override
+    public void remove(String kvsMethodName, TableReference tableRef, byte[] row, long timestamp,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        qosClient.executeWrite(
+                () -> {
+                    client.remove(kvsMethodName, tableRef, row, timestamp, consistency_level);
+                    return null;
+                    },
+                ThriftQueryWeighers.remove(row));
     }
 
     @Override

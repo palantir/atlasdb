@@ -1,3 +1,5 @@
+.. _isolation-levels:
+
 ================
 Isolation Levels
 ================
@@ -11,6 +13,8 @@ transactional properties.
 -  Serializable
 
    -  Read and Writes to this table both happen at commit time
+   -  Implemented by checking that reads made at startTs return the
+      same results at commitTs. ABA scenarios are permitted.
 
 -  Snapshot
 
@@ -75,7 +79,7 @@ exists must be composed of currently running transactions. If the cycle
 had one transaction already committed in it, then the transaction
 blocking on that one would be able to complete its read and there would
 be no deadlock. Since all the transactions are concurrent, we know at
-lease one dependency between them must be a r/w dependency (fekete2005).
+least one dependency between them must be a r/w dependency (fekete2005).
 Ideally we would only abort one of these transacitions, but that may be
 difficult. Instead we simplify and abort any transaction which may block
 on a startTs which is greater than their startTs. This situation is

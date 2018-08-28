@@ -131,6 +131,13 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+            boolean deleteSentinels) {
+        delegate1.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+        delegate2.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+    }
+
+    @Override
     public void truncateTable(TableReference tableRef) {
         delegate1.truncateTable(tableRef);
         delegate2.truncateTable(tableRef);
@@ -271,5 +278,16 @@ public class DualWriteKeyValueService implements KeyValueService {
                                                      int cellBatchHint,
                                                      long timestamp) {
         return delegate1.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        delegate1.compactInternally(tableRef, inMaintenanceMode);
+        delegate2.compactInternally(tableRef, inMaintenanceMode);
+    }
+
+    @Override
+    public boolean shouldTriggerCompactions() {
+        return delegate1.shouldTriggerCompactions() || delegate2.shouldTriggerCompactions();
     }
 }

@@ -18,10 +18,16 @@ package com.palantir.atlasdb.sweep.progress;
 
 import java.util.Optional;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
+
+@AutoDelegate(typeToExtend = SweepProgressStore.class)
 public interface SweepProgressStore {
-    void clearProgress();
+    void clearProgress(TableReference tableRef);
+
     void saveProgress(SweepProgress newProgress);
-    Optional<SweepProgress> loadProgress();
+
+    Optional<SweepProgress> loadProgress(TableReference tableRef);
 
     default boolean isInitialized() {
         return true;

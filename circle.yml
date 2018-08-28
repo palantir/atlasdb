@@ -1,7 +1,7 @@
 machine:
   java:
     version:
-      oraclejdk8
+      openjdk8
   environment:
     _JAVA_OPTIONS: "-Xmx512M -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
     TERM: dumb
@@ -14,6 +14,8 @@ machine:
 
 checkout:
   post:
+    # ensure all tags are fetched and up-to-date
+    - git tag -l | xargs git tag -d && git fetch -t
     - ./scripts/circle-ci/pull-all-images.sh:
         background: true
     - ./scripts/circle-ci/stop-services.sh:
@@ -37,10 +39,6 @@ test:
         timeout: 600
   post:
     - ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
-    - ./scripts/time-cmd.sh ./gradlew --profile jacocoFullReport -x classes:
-        parallel: true
-    - bash <(curl -s https://codecov.io/bash):
-        parallel: true
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/:
         parallel: true
     - find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;:
@@ -63,11 +61,12 @@ test:
 deployment:
   publish-docs:
     branch: develop
-    owner: palantir
+    owner: atlasdb
     commands:
-      - ./scripts/circle-ci/publish-github-page.sh
+      - ./scripts/circle-ci/publish-github-page.sh                                    # This command publishes the external docs.
+      - curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH # This command publishes the internal docs.
   bintray:
     tag: /[0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})?/
-    owner: palantir
+    owner: atlasdb # Use 'atlasdb' for publishing from internal circle and 'palantir' for publishing from external circle
     commands:
       - ./gradlew bintrayUpload -x check

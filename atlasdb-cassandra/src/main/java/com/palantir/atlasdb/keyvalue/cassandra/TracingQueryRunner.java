@@ -59,8 +59,8 @@ public class TracingQueryRunner {
         return run(client, ImmutableSet.of(tableRef), action);
     }
 
-    private <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
-        ByteBuffer traceId = client.rawClient().trace_next_query();
+    public  <V> V trace(Action<V> action, CassandraClient client, Set<TableReference> tableRefs) throws TException {
+        ByteBuffer traceId = client.trace_next_query();
         Stopwatch stopwatch = Stopwatch.createStarted();
         boolean failed = false;
         try {
@@ -85,13 +85,13 @@ public class TracingQueryRunner {
     }
 
     private void logFailedCall(Set<TableReference> tableRefs) {
-        log.error("A call to table(s) {} failed with an exception.",
+        log.warn("A call to table(s) {} failed with an exception.",
                 tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.getMinimumDurationToTraceMillis()) {
-            log.error("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+            log.info("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,

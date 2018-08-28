@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -55,7 +56,8 @@ public class KvTableMappingService extends AbstractTableMappingService {
                             AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME,
                             "short_name",
                             ColumnValueDescription.forType(ValueType.STRING)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     private final KeyValueService kv;
     private final Supplier<Long> uniqueLongSupplier;

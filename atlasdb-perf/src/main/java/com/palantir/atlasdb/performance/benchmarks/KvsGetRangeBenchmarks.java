@@ -75,7 +75,7 @@ public class KvsGetRangeBenchmarks {
             Preconditions.checkState(1 == result.getResults().size(), "Key %s, List size is %s",
                     Ints.fromByteArray(request.getStartInclusive()), result.getResults().size());
             Preconditions.checkState(!result.moreResultsAvailable(), "Key %s, result.moreResultsAvailable() %s",
-                    Ints.fromByteArray(request.getStartInclusive()), result.moreResultsAvailable());
+                    Ints.fromByteArray(request.getStartInclusive()), (Object) result.moreResultsAvailable());
             RowResult<Value> row = Iterables.getOnlyElement(result.getResults());
             Preconditions.checkState(Arrays.equals(request.getStartInclusive(), row.getRowName()),
                     "Request row is %s, result is %s",

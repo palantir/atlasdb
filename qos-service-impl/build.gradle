@@ -3,14 +3,10 @@ apply plugin: 'org.unbroken-dome.test-sets'
 
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/timelock.gradle"
+apply from: "../gradle/qos.gradle"
 
 testSets {
     integTest
-}
-
-jacocoTestReport {
-    executionData test, integTest
 }
 
 check.dependsOn integTest
@@ -20,12 +16,9 @@ dependencies {
 		exclude group: 'com.google.guava'
     }
     compile (project(":qos-service-api"));
-    compile (project(":atlasdb-client")) {
-		exclude group: 'com.squareup.okhttp3'
-		exclude group: 'com.google.guava'
-    }
+    compile group: 'com.google.guava', name: 'guava'
+    compile group: 'net.jcip', name: 'jcip-annotations'
 
-    processor project(":atlasdb-processors")
     processor group: 'org.immutables', name: 'value'
 
     testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
@@ -35,11 +28,12 @@ dependencies {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
-    integTestCompile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+    testCompile group: 'com.palantir.remoting-api', name: 'service-config'
+
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-core'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-http2'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-request-logging'
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
     integTestCompile group: 'com.palantir.remoting3', name: 'jersey-servers'
     integTestCompile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
@@ -49,8 +43,8 @@ dependencies {
 
 configurations.all {
     resolutionStrategy {
+        force 'org.assertj:assertj-core:3.5.2'
         force 'org.hamcrest:hamcrest-core:1.3'
-        force 'org.slf4j:slf4j-api:1.7.25'
     }
 }
 

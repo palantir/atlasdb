@@ -19,9 +19,9 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraJmxCompactionConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
@@ -37,8 +37,10 @@ public class CassandraContainer extends Container {
     public static final String USERNAME = "cassandra";
     public static final String PASSWORD = "cassandra";
 
+    public static final InetSocketAddress server = new InetSocketAddress("cassandra", CASSANDRA_PORT);
     public static final CassandraKeyValueServiceConfig KVS_CONFIG = ImmutableCassandraKeyValueServiceConfig.builder()
-            .addServers(new InetSocketAddress("cassandra", CASSANDRA_PORT))
+            .addServers(server)
+            .addressTranslation(ImmutableMap.of("172.24.0.2", server))
             .poolSize(20)
             .keyspace("atlasdb")
             .credentials(ImmutableCassandraCredentialsConfig.builder()
@@ -49,7 +51,6 @@ public class CassandraContainer extends Container {
             .mutationBatchCount(10000)
             .mutationBatchSizeBytes(10000000)
             .fetchBatchCount(1000)
-            .autoRefreshNodes(false)
             .jmx(ImmutableCassandraJmxCompactionConfig.builder()
                     .username(USERNAME)
                     .password(PASSWORD)
@@ -75,8 +76,8 @@ public class CassandraContainer extends Container {
 
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(KVS_CONFIG),
+        return SuccessOrFailure.onResultOf(() -> CassandraKeyValueServiceImpl.createForTesting(
+                KVS_CONFIG,
                 LEADER_CONFIG)
                 .isInitialized());
     }

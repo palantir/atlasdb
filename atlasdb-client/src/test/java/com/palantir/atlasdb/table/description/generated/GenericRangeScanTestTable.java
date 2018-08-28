@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -57,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -209,7 +206,7 @@ public final class GenericRangeScanTestTable implements
                 return false;
             }
             GenericRangeScanTestRow other = (GenericRangeScanTestRow) obj;
-            return Objects.equal(component1, other.component1);
+            return Objects.equals(component1, other.component1);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -301,7 +298,7 @@ public final class GenericRangeScanTestTable implements
                 return false;
             }
             GenericRangeScanTestColumn other = (GenericRangeScanTestColumn) obj;
-            return Objects.equal(component2, other.component2);
+            return Objects.equals(component2, other.component2);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -490,35 +487,6 @@ public final class GenericRangeScanTestTable implements
         for (GenericRangeScanTestTrigger trigger : triggers) {
             trigger.putGenericRangeScanTest(values);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(GenericRangeScanTestRow rowName, Iterable<GenericRangeScanTestColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(GenericRangeScanTestRow rowName, GenericRangeScanTestColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<GenericRangeScanTestRow, GenericRangeScanTestColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> rows) {
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumn> toGet = Multimaps.transformValues(rows, GenericRangeScanTestColumnValue.getColumnNameFun());
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> existing = get(toGet);
-        Multimap<GenericRangeScanTestRow, GenericRangeScanTestColumnValue> toPut = HashMultimap.create();
-        for (Entry<GenericRangeScanTestRow, ? extends GenericRangeScanTestColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     @Override
@@ -722,11 +690,8 @@ public final class GenericRangeScanTestTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -801,5 +766,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "S49NvKcB1MEC2LvdAnQEdw==";
+    static String __CLASS_HASH = "nLl28oDHfbNzyKxXdgdZ7Q==";
 }

@@ -36,7 +36,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
@@ -123,7 +122,7 @@ public class KeyValueServiceMigrator {
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
                     metadata != null && metadata.length != 0,
-                    "no metadata found for table " + tableRef);
+                    "no metadata found for table %s", tableRef);
             metadataByTableName.put(tableRef, metadata);
         }
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
@@ -179,7 +178,7 @@ public class KeyValueServiceMigrator {
         GeneralTaskCheckpointer checkpointer =
                 new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
 
-        ExecutorService executor = Tracers.wrap(PTExecutors.newFixedThreadPool(threads));
+        ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
         try {
             migrateTables(
                     tables,

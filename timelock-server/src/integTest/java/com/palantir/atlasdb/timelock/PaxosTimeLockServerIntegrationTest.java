@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -48,6 +47,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -126,6 +126,7 @@ public class PaxosTimeLockServerIntegrationTest {
     @BeforeClass
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
                 Optional.of(TestProxies.SSL_SOCKET_FACTORY),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
@@ -324,11 +325,13 @@ public class PaxosTimeLockServerIntegrationTest {
         long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
 
+        getFortyTwoFreshTimestamps(timestampService1);
+
         long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
-        assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
-        assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
+        assertThat(firstServiceSecondTimestamp - firstServiceFirstTimestamp).isGreaterThanOrEqualTo(FORTY_TWO);
+        assertThat(secondServiceSecondTimestamp - secondServiceFirstTimestamp).isBetween(0L, (long) FORTY_TWO);
     }
 
     @Test
@@ -374,7 +377,8 @@ public class PaxosTimeLockServerIntegrationTest {
 
         long currentTimestamp = timestampService.getFreshTimestamp();
         anotherClientTimestampManagementService.fastForwardTimestamp(currentTimestamp + ONE_MILLION);
-        assertEquals(currentTimestamp + 1, timestampService.getFreshTimestamp());
+        assertThat(timestampService.getFreshTimestamp())
+                .isBetween(currentTimestamp + 1, currentTimestamp + ONE_MILLION - 1);
     }
 
     @Test
@@ -437,10 +441,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         MetricsOutput metrics = getMetricsOutput();
 
-        // time / lock services
-        metrics.assertContainsTimer(
-                "com.palantir.atlasdb.timelock.AsyncTimelockService.getFreshTimestamp");
-        metrics.assertContainsTimer("com.palantir.lock.LockService.currentTimeMillis");
+        // Note that time/lock services are logged to the tagged metrics registry, which isn't a thing in Dropwizard.
 
         // local leader election classes
         metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.learn");
@@ -498,6 +499,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
                 Optional.of(TestProxies.SSL_SOCKET_FACTORY),
                 getRootUriForClient(client),
                 clazz,

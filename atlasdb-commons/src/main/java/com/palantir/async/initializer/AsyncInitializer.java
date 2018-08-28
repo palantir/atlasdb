@@ -16,7 +16,6 @@
 
 package com.palantir.async.initializer;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
@@ -38,12 +38,7 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    /**
-     * Note that this executor cannot be shutdown after the object has been initialized, as there might have been
-     * a {@code cancelInitialization} call to the initializing object, and we need to be able to process its handler.
-     */
     private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
-
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private volatile boolean initialized = false;
     private volatile boolean canceledInitialization = false;
@@ -80,7 +75,16 @@ public abstract class AsyncInitializer {
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
                     throwable);
-            cleanUpOnInitFailure();
+            try {
+                cleanUpOnInitFailure();
+            } catch (Throwable cleanupThrowable) {
+                log.error("Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
+                        SafeArg.of("className", getInitializingClassName()),
+                        SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
+                        SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
+                        cleanupThrowable);
+            }
+
             scheduleInitialization();
         }
     }
@@ -98,7 +102,7 @@ public abstract class AsyncInitializer {
 
     // Not final for tests
     ScheduledExecutorService getExecutorService() {
-        return Executors.newSingleThreadScheduledExecutor(
+        return PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
     }
 
@@ -129,6 +133,8 @@ public abstract class AsyncInitializer {
                 handler.run();
             }
         });
+
+        singleThreadedExecutor.shutdown();
     }
 
     protected final void checkInitialized() {
@@ -140,6 +146,11 @@ public abstract class AsyncInitializer {
     private void tryInitializeInternal() {
         tryInitialize();
         initialized = true;
+
+        // Close calls after this point will be handled by the object itself.
+        // There might be a close call already scheduled, so we need to schedule this shutdown to run after this
+        // possible close call.
+        singleThreadedExecutor.schedule(singleThreadedExecutor::shutdown, 0, TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests.

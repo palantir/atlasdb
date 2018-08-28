@@ -9,19 +9,14 @@ testSets {
     integTest
 }
 
-jacocoTestReport {
-    executionData test, integTest
-}
-
 check.dependsOn integTest
 
 dependencies {
     compile (project(":timelock-agent"))
 
-    compile group: 'io.dropwizard', name: 'dropwizard-core', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-http2', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard', name: 'dropwizard-request-logging', version: libVersions.timelock_dropwizard
-    compile group: 'io.dropwizard.modules', name: 'dropwizard-java8'
+    compile group: 'io.dropwizard', name: 'dropwizard-core'
+    compile group: 'io.dropwizard', name: 'dropwizard-http2'
+    compile group: 'io.dropwizard', name: 'dropwizard-request-logging'
     compile group: 'com.palantir.remoting-api', name: 'ssl-config'
     compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
@@ -50,6 +45,7 @@ dependencies {
         exclude(module:'log4j-over-slf4j')
         exclude(module:'jcl-over-slf4j')
     }
+    testCompile project(":flake-rule")
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile(group: "org.jmock", name: "jmock", version: libVersions.jmock) {
         exclude group: 'org.hamcrest'
@@ -58,6 +54,6 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
-    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing', version: libVersions.timelock_dropwizard
+    integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
     integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
 }

@@ -28,14 +28,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 
 public class PaxosConsensusSlowTest {
 
-    private final int NUM_POTENTIAL_LEADERS = 6;
-    private final int QUORUM_SIZE = 4;
+    Executor executor = PTExecutors.newCachedThreadPool();
 
-    Executor executor = Tracers.wrap(PTExecutors.newCachedThreadPool());
+    private static final int NUM_POTENTIAL_LEADERS = 6;
+    private static final int QUORUM_SIZE = 4;
+
     private PaxosTestState state;
 
     @Before
@@ -52,6 +52,7 @@ public class PaxosConsensusSlowTest {
     static final long NO_QUORUM_POLL_WAIT_TIME_IN_MS = 100;
     static final long QUORUM_POLL_WAIT_TIME_IN_MS = 30000;
 
+    @SuppressWarnings("EmptyCatchBlock")
     @Test
     public void waitingOnQuorum() {
         for (int i = 0; i < NUM_POTENTIAL_LEADERS - 1; i++) {
@@ -81,7 +82,7 @@ public class PaxosConsensusSlowTest {
                                     TimeUnit.MILLISECONDS));
                     return;
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException ignored) {
             } finally {
                 state.comeUp(i);
             }

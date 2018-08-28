@@ -19,12 +19,14 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
+import com.palantir.atlasdb.schema.CompactSchema;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -36,6 +38,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -49,18 +52,29 @@ public class KeyValueServiceModule {
     @Named("kvs")
     public KeyValueService provideWrappedKeyValueService(@Named("rawKvs") KeyValueService rawKvs,
                                                          TimestampService tss,
-                                                         ServicesConfig config) {
+                                                         ServicesConfig config,
+                                                         MetricsManager metricsManager) {
+        config.adapter().setTimestampService(tss);
+
         KvsProfilingLogger.setSlowLogThresholdMillis(config.atlasDbConfig().getKvsSlowLogThresholdMillis());
         KeyValueService kvs = ProfilingKeyValueService.create(rawKvs);
 
         kvs = TracingKeyValueService.create(kvs);
-        kvs = AtlasDbMetrics.instrument(KeyValueService.class, kvs);
+        kvs = AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, kvs);
         kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-        kvs = SweepStatsKeyValueService.create(kvs, tss);
+
+        SweepConfig sweepConfig = config.atlasDbRuntimeConfig().sweep();
+        kvs = SweepStatsKeyValueService.create(
+                kvs,
+                tss,
+                sweepConfig::writeThreshold,
+                sweepConfig::writeSizeThreshold);
+
         TransactionTables.createTables(kvs);
         ImmutableSet<Schema> schemas =
                 ImmutableSet.<Schema>builder()
                         .add(SweepSchema.INSTANCE.getLatestSchema())
+                        .add(CompactSchema.INSTANCE.getLatestSchema())
                         .addAll(config.schemas()).build();
         for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, kvs);

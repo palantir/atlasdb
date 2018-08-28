@@ -13,23 +13,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos;
 
-import java.util.function.Supplier;
-
-import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
+import com.palantir.atlasdb.qos.agent.QosClientConfigLoader;
+import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
+import com.palantir.atlasdb.qos.ratelimit.ClientLimitMultiplier;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public class QosResource implements QosService {
+    private final QosClientConfigLoader qosClientConfigLoader;
+    private final ClientLimitMultiplier clientLimitMultiplier;
+    private static volatile double readLimitMultiplier = 1.0;
+    private static volatile double writeLimitMultiplier = 1.0;
 
-    private Supplier<QosServiceRuntimeConfig> config;
-
-    public QosResource(Supplier<QosServiceRuntimeConfig> config) {
-        this.config = config;
+    public QosResource(
+            MetricsManager metricsManager,
+            QosClientConfigLoader qosClientConfigLoader,
+            ClientLimitMultiplier clientLimitMultiplier) {
+        this.qosClientConfigLoader = qosClientConfigLoader;
+        this.clientLimitMultiplier = clientLimitMultiplier;
+        metricsManager.registerMetric(QosResource.class, "readLimitMultiplier", this::getReadLimitMultiplier);
+        metricsManager.registerMetric(QosResource.class, "writeLimitMultiplier", this::getWriteLimitMultiplier);
     }
 
     @Override
-    public long getLimit(String client) {
-        return config.get().clientLimits().getOrDefault(client, Long.MAX_VALUE);
+    public long readLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
+        readLimitMultiplier = this.clientLimitMultiplier.getClientLimitMultiplier(
+        );
+        return (long) (readLimitMultiplier * qosClientLimitsConfig.limits().readBytesPerSecond());
+    }
+
+    @Override
+    public long writeLimit(String client) {
+        QosClientLimitsConfig qosClientLimitsConfig = qosClientConfigLoader.getConfigForClient(client);
+        writeLimitMultiplier = this.clientLimitMultiplier.getClientLimitMultiplier(
+        );
+        return (long) (writeLimitMultiplier * qosClientLimitsConfig.limits().writeBytesPerSecond());
+    }
+
+    private double getReadLimitMultiplier() {
+        return readLimitMultiplier;
+    }
+
+    private double getWriteLimitMultiplier() {
+        return writeLimitMultiplier;
     }
 }

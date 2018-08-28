@@ -19,39 +19,60 @@ package com.palantir.atlasdb.sweep;
 import java.util.Optional;
 
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.progress.SweepProgress;
+import com.palantir.lock.SingleLockService;
 
 public final class TableToSweep {
     private final TableReference tableRef;
-    private final Optional<SweepProgress> progress;
+    private final SingleLockService sweepLock;
+    private boolean hasPreviousProgress;
+    private SweepResults previousResults;
 
-    TableToSweep(TableReference tableRef, Optional<SweepProgress> progress) {
-        this.tableRef = tableRef;
-        this.progress = progress;
+    public static TableToSweep newTable(TableReference tableRef, SingleLockService sweepLockForTable) {
+        return new TableToSweep(tableRef, sweepLockForTable, Optional.empty());
     }
 
-    TableReference getTableRef() {
+    public static TableToSweep continueSweeping(TableReference tableRef, SingleLockService sweepLock,
+            SweepProgress progress) {
+        return new TableToSweep(tableRef, sweepLock, Optional.of(progress));
+    }
+
+    private TableToSweep(TableReference tableRef, SingleLockService sweepLock, Optional<SweepProgress> progress) {
+        this.tableRef = tableRef;
+        this.sweepLock = sweepLock;
+        this.hasPreviousProgress = progress.isPresent();
+        this.previousResults = progress.map(SweepProgress::getPreviousResults)
+                .orElse(SweepResults.createEmptySweepResultWithMoreToSweep());
+    }
+
+    public TableReference getTableRef() {
         return tableRef;
     }
 
+    public SingleLockService getSweepLock() {
+        return sweepLock;
+    }
+
+    public void refreshLock() throws InterruptedException {
+        sweepLock.lockOrRefresh();
+    }
+
     boolean hasPreviousProgress() {
-        return progress.isPresent();
+        return hasPreviousProgress;
     }
 
-    long getStaleValuesDeletedPreviously() {
-        return progress.map(SweepProgress::staleValuesDeleted).orElse(0L);
+    public byte[] getStartRow() {
+        return previousResults.getNextStartRow().orElse(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
-    long getCellsExaminedPreviously() {
-        return progress.map(SweepProgress::cellTsPairsExamined).orElse(0L);
+    SweepResults getPreviousSweepResults() {
+        return previousResults;
     }
 
-    Optional<Long> getPreviousMinimumSweptTimestamp() {
-        return progress.map(SweepProgress::minimumSweptTimestamp);
-    }
-
-    byte[] getStartRow() {
-        return progress.map(SweepProgress::startRow).orElse(PtBytes.EMPTY_BYTE_ARRAY);
+    public void setProgress(SweepProgress progress) {
+        this.hasPreviousProgress = true;
+        this.previousResults = progress.getPreviousResults();
     }
 }

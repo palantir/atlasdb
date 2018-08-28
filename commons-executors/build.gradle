@@ -4,16 +4,14 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-// Must maintain Java 6 bytecode compatibility as this module is consumed by several projects that still require Java 6 support.
-// We are not explicitly using separate Java 6 bootstrap classpath & IDE setup due to pain that imposes on AtlasDB project.
-sourceCompatibility = 1.6
-targetCompatibility = 1.6
-
 repositories {
     mavenCentral()
 }
 
 libsDirName = file('build/artifacts')
 dependencies {
+    compile project(":commons-executors-api")
+    compile "com.palantir.remoting3:tracing"
+
     testCompile group: 'com.google.guava', name: 'guava'
 }

@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +38,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
@@ -47,6 +47,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
@@ -61,7 +62,8 @@ public final class CassandraTimestampUtils {
                             CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
                             "current_max_ts",
                             ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL);
+            ConflictHandler.IGNORE_ALL,
+            TableMetadataPersistence.LogSafety.SAFE);
 
     public static final String ROW_AND_COLUMN_NAME = "ts";
     public static final String BACKUP_COLUMN_NAME = "oldTs";
@@ -92,7 +94,13 @@ public final class CassandraTimestampUtils {
             builder.append(constructCheckAndSetQuery(columnName, expected, target));
         });
         builder.append("APPLY BATCH;");
-        return new CqlQuery(builder.toString());
+
+        // This looks awkward. However, we know that all expressions in this String pertain to timestamps and known
+        // table references, hence this is actually safe. Doing this quickly owing to priority.
+        // TODO (jkong): Build up a query by passing around legitimate formats and args.
+        return CqlQuery.builder()
+                .safeQueryFormat(builder.toString())
+                .build();
     }
 
     public static boolean isValidTimestampData(byte[] data) {
@@ -100,12 +108,15 @@ public final class CassandraTimestampUtils {
     }
 
     public static CqlQuery constructSelectFromTimestampTableQuery() {
-        return new CqlQuery(String.format(
-                "SELECT %s, %s FROM %s WHERE key=%s;",
-                COLUMN_NAME_COLUMN,
-                VALUE_COLUMN,
-                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                ROW_AND_COLUMN_NAME_HEX_STRING));
+        // Timestamps are safe.
+        return ImmutableCqlQuery.builder()
+                .safeQueryFormat("SELECT %s, %s FROM %s WHERE key=%s;")
+                .addArgs(
+                        SafeArg.of("columnName", COLUMN_NAME_COLUMN),
+                        SafeArg.of("valueColumnName", VALUE_COLUMN),
+                        SafeArg.of("tableRef", wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName())),
+                        SafeArg.of("rowAndColumnValue", ROW_AND_COLUMN_NAME_HEX_STRING))
+                .build();
     }
 
     public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {
@@ -234,10 +245,6 @@ public final class CassandraTimestampUtils {
 
     private static String encodeCassandraHexBytes(byte[] bytes) {
         return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
-    }
-
-    private static ByteBuffer toByteBuffer(String string) {
-        return ByteBuffer.wrap(PtBytes.toBytes(string));
     }
 
     private static String wrapInQuotes(String tableName) {

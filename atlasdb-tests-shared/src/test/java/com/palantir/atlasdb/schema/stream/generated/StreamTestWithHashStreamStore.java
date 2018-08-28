@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Generated;
@@ -53,6 +54,7 @@ import com.palantir.atlasdb.stream.BlockGetter;
 import com.palantir.atlasdb.stream.BlockLoader;
 import com.palantir.atlasdb.stream.PersistentStreamStore;
 import com.palantir.atlasdb.stream.StreamCleanedException;
+import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -83,12 +85,20 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     private final StreamTestTableFactory tables;
 
     private StreamTestWithHashStreamStore(TransactionManager txManager, StreamTestTableFactory tables) {
-        super(txManager);
+        this(txManager, tables, () -> StreamStorePersistenceConfiguration.DEFAULT_CONFIG);
+    }
+
+    private StreamTestWithHashStreamStore(TransactionManager txManager, StreamTestTableFactory tables, Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
+        super(txManager, persistenceConfiguration);
         this.tables = tables;
     }
 
     public static StreamTestWithHashStreamStore of(TransactionManager txManager, StreamTestTableFactory tables) {
         return new StreamTestWithHashStreamStore(txManager, tables);
+    }
+
+    public static StreamTestWithHashStreamStore of(TransactionManager txManager, StreamTestTableFactory tables,  Supplier<StreamStorePersistenceConfiguration> persistenceConfiguration) {
+        return new StreamTestWithHashStreamStore(txManager, tables, persistenceConfiguration);
     }
 
     /**
@@ -484,6 +494,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link Status}
      * {@link StreamCleanedException}
      * {@link StreamMetadata}
+     * {@link StreamStorePersistenceConfiguration}
+     * {@link Supplier}
      * {@link TempFileUtils}
      * {@link Throwables}
      * {@link TimeUnit}

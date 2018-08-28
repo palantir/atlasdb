@@ -48,6 +48,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -68,8 +69,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.tracing.Tracers;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -81,11 +80,10 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public class InMemoryKeyValueService extends AbstractKeyValueService {
     private final ConcurrentMap<TableReference, Table> tables = Maps.newConcurrentMap();
     private final ConcurrentMap<TableReference, byte[]> tableMetadata = Maps.newConcurrentMap();
-    private volatile boolean createTablesAutomatically;
+    private final boolean createTablesAutomatically;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
-        this(createTablesAutomatically,
-                Tracers.wrap(PTExecutors.newFixedThreadPool(16, PTExecutors.newNamedThreadFactory(true))));
+        this(createTablesAutomatically, MoreExecutors.newDirectExecutorService());
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically,
@@ -95,6 +93,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                     ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();
@@ -357,6 +356,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         @Nullable T apply(Iterator<Entry<Key, byte[]>> timestampValues);
     }
 
+    @SuppressWarnings({"CheckReturnValue"}) // Consume all remaining values of iterator.
     private static <T> void collectValueForTimestamp(byte[] col,
                                                      Iterator<Entry<Key, byte[]>> timestampValues,
                                                      @Output ImmutableSortedMap.Builder<byte[], T> results,
@@ -372,6 +372,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         if (result != null) {
             results.put(col, result);
         }
+    }
+
+    @Override
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, final long timestamp) {
+        valuesByTable.forEach((tableRef, values) -> put(tableRef, values, timestamp));
     }
 
     @Override
@@ -480,6 +485,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public void dropTable(TableReference tableRef) {
         tables.remove(tableRef);
         tableMetadata.remove(tableRef);
+    }
+
+    @Override
+    public void truncateTables(final Set<TableReference> tableRefs) {
+        tableRefs.forEach(this::truncateTable);
     }
 
     @Override

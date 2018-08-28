@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -374,6 +375,22 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(@QueryParam("tableRef") TableReference tableRef, RangeRequest range);
 
     /**
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
+     * implementation, this may result in a range tombstone in the underlying KVS.
+     *
+     * @param tableRef the name of the table to delete the timestamps in.
+     * @param maxTimestampExclusiveByCell exclusive maximum timestamp to delete for each cell.
+     * @param deleteSentinels if true, this method will also delete garbage collection sentinels.
+     */
+    @POST
+    @Path("delete-all-timestamps")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Idempotent
+    void deleteAllTimestamps(@QueryParam("tableRef") TableReference tableRef,
+            Map<Cell, Long> maxTimestampExclusiveByCell,
+            @DefaultValue("false") @QueryParam("deleteSentinels") boolean deleteSentinels);
+
+    /**
      * Truncate a table in the key-value store.
      * <p>
      * This is preferred to dropping and re-adding a table, as live schema changes can
@@ -656,6 +673,14 @@ public interface KeyValueService extends AutoCloseable {
     void compactInternally(TableReference tableRef);
 
     /**
+     * Some compaction operations might block reads and writes.
+     * These operations will trigger only if inMaintenanceMode is set to true.
+     */
+    default void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        compactInternally(tableRef);
+    }
+
+    /**
      * Provides a {@link ClusterAvailabilityStatus}, indicating the current availability of the key value store.
      * This can be used to infer product health - in the usual, conservative case, products can call
      * {@link ClusterAvailabilityStatus#isHealthy()}, which returns true only if all KVS nodes are up.
@@ -673,6 +698,10 @@ public interface KeyValueService extends AutoCloseable {
     @Consumes(MediaType.APPLICATION_JSON)
     ClusterAvailabilityStatus getClusterAvailabilityStatus();
 
+    ////////////////////////////////////////////////////////////
+    // SPECIAL CASING SOME KVSs
+    ////////////////////////////////////////////////////////////
+
     /**
      * @return true iff the KeyValueService has been initialized and is ready to use
      *         Note that this check ignores the cluster's availability - use {@link #getClusterAvailabilityStatus()} if
@@ -687,6 +716,13 @@ public interface KeyValueService extends AutoCloseable {
      * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
      */
     default boolean performanceIsSensitiveToTombstones() {
+        return false;
+    }
+
+    /**
+     * Whether {@link #compactInternally(TableReference)} should be called to free disk space.
+     */
+    default boolean shouldTriggerCompactions() {
         return false;
     }
 }

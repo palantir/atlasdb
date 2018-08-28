@@ -23,9 +23,25 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
+import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ColumnFamilyDefinitionsTest {
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
+    private static final byte[] TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES =
+            new TableMetadata(
+                    new NameMetadataDescription(),
+                    new ColumnMetadataDescription(),
+                    ConflictHandler.RETRY_ON_WRITE_WRITE,
+                    TableMetadataPersistence.CachePriority.WARM,
+                    true,
+                    64,
+                    true,
+                    TableMetadataPersistence.SweepStrategy.THOROUGH,
+                    true).persistToBytes();
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
@@ -60,5 +76,39 @@ public class ColumnFamilyDefinitionsTest {
 
         assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void nonDefaultFeaturesCorrectlyCompared() {
+        CfDef cf1 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES);
+
+        CfDef cf2 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES);
+
+        assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
+    }
+
+    @Test
+    public void identicalCfsAreEqual() {
+        CfDef cf1 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        CfDef cf2 = ColumnFamilyDefinitions.getCfDef(
+                "test_keyspace",
+                TableReference.fromString("test_table"),
+                FOUR_DAYS_IN_SECONDS,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        assertTrue("identical CFs should equal each other", ColumnFamilyDefinitions.isMatchingCf(cf1, cf2));
     }
 }

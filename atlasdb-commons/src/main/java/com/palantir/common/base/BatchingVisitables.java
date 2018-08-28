@@ -407,7 +407,7 @@ public class BatchingVisitables {
                                                                                 int numToVisitArg,
                                                                                 Function<T, TOKEN> tokenExtractor) {
         Preconditions.checkArgument(numToVisitArg >= 0,
-                "numToVisit cannot be negative.  Value was: " + numToVisitArg);
+                "numToVisit cannot be negative.  Value was: %d", numToVisitArg);
 
         if (numToVisitArg == Integer.MAX_VALUE) {
             // prevent issue with overflow

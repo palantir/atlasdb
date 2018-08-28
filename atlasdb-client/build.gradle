@@ -11,6 +11,7 @@ repositories {
 
 schemas = [
     'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.schema.CompactSchema',
     'com.palantir.atlasdb.table.description.ApiTestSchema',
     'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]
@@ -54,13 +55,19 @@ dependencies {
   }
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
+  compile group: "com.github.ben-manes.caffeine", name: "caffeine"
   compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
-  compile group: "com.google.protobuf", name: "protobuf-java", version: "2.6.0"
+  compile group: "com.google.protobuf", name: "protobuf-java"
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core'
   compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
   compile group: 'com.palantir.remoting3', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  compile (group: 'com.palantir.tritium', name: 'tritium-caffeine') {
+    exclude (group: 'com.palantir.remoting3', module: 'tracing')
+    exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
+    exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
+  }
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')

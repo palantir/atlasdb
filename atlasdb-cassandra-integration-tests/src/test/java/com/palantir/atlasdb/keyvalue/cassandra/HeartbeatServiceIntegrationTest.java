@@ -29,15 +29,21 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 
+@ShouldRetry // There are flakes with the heartbeat service throwing because it was unable to stop beating.
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatServiceIntegrationTest.class);
 
@@ -46,6 +52,9 @@ public class HeartbeatServiceIntegrationTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(HeartbeatServiceIntegrationTest.class)
             .with(new CassandraContainer());
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     private HeartbeatService heartbeatService;
     private TracingQueryRunner queryRunner;
@@ -56,19 +65,20 @@ public class HeartbeatServiceIntegrationTest {
 
     private final long lockId = ThreadLocalRandom.current().nextLong(Long.MAX_VALUE - 2);
 
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() throws TException {
-        CassandraKeyValueServiceConfigManager simpleManager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                CassandraContainer.KVS_CONFIG);
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
+        CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
-        clientPool = CassandraClientPoolImpl.create(simpleManager.getConfig());
+        clientPool = CassandraClientPoolImpl.create(metricsManager, config);
         lockTable = new UniqueSchemaMutationLockTable(
-                new SchemaMutationLockTables(clientPool, CassandraContainer.KVS_CONFIG),
+                new SchemaMutationLockTables(clientPool, config),
                 LockLeader.I_AM_THE_LOCK_LEADER);
         heartbeatService = new HeartbeatService(clientPool,
                                                 queryRunner,

@@ -15,169 +15,90 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.TimedOutException;
-import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.stubbing.OngoingStubbing;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class CassandraClientPoolTest {
     private static final int POOL_REFRESH_INTERVAL_SECONDS = 3 * 60;
     private static final int TIME_BETWEEN_EVICTION_RUNS_SECONDS = 20;
+    private static final int UNRESPONSIVE_HOST_BACKOFF_SECONDS = 5 * 60;
     private static final int DEFAULT_PORT = 5000;
-    private static final int OTHER_PORT = 6000;
     private static final String HOSTNAME_1 = "1.0.0.0";
     private static final String HOSTNAME_2 = "2.0.0.0";
     private static final String HOSTNAME_3 = "3.0.0.0";
     private static final InetSocketAddress HOST_1 = new InetSocketAddress(HOSTNAME_1, DEFAULT_PORT);
     private static final InetSocketAddress HOST_2 = new InetSocketAddress(HOSTNAME_2, DEFAULT_PORT);
     private static final InetSocketAddress HOST_3 = new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT);
-    private MetricRegistry metricRegistry;
+
+    private final MetricRegistry metricRegistry = new MetricRegistry();
+    private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
+
+    private CassandraKeyValueServiceConfig config;
+    private Blacklist blacklist;
 
     @Before
     public void setup() {
-        AtlasDbMetrics.setMetricRegistries(new MetricRegistry(), DefaultTaggedMetricRegistry.getDefault());
-        this.metricRegistry = AtlasDbMetrics.getMetricRegistry();
+        config = mock(CassandraKeyValueServiceConfig.class);
+        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
+        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
+        when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
+
+        blacklist = new Blacklist(config);
     }
 
     @Test
-    public void shouldReturnAddressForSingleHostInPool() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
-
-        assertThat(resolvedHost, equalTo(HOST_1));
-    }
-
-    @Test
-    public void shouldReturnAddressForSingleServer() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_1);
-
-        assertThat(resolvedHost, equalTo(HOST_1));
-    }
-
-    @Test
-    public void shouldUseCommonPortIfThereIsOnlyOneAndNoAddressMatches() throws UnknownHostException {
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-
-        InetSocketAddress resolvedHost = cassandraClientPool.getAddressForHost(HOSTNAME_3);
-
-        assertThat(resolvedHost, equalTo(new InetSocketAddress(HOSTNAME_3, DEFAULT_PORT)));
-    }
-
-
-    @Test(expected = UnknownHostException.class)
-    public void shouldThrowIfPortsAreNotTheSameAddressDoesNotMatch() throws UnknownHostException {
-        InetSocketAddress host2 = new InetSocketAddress(HOSTNAME_2, OTHER_PORT);
-
-        CassandraClientPool cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, host2));
-
-        cassandraClientPool.getAddressForHost(HOSTNAME_3);
-    }
-
-    @Test
-    public void shouldReturnAbsentIfPredicateMatchesNoServers() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
-
-        Optional<CassandraClientPoolingContainer> container
-                = cassandraClientPool.getRandomGoodHostForPredicate(address -> false);
-        assertThat(container.isPresent(), is(false));
-    }
-
-    @Test
-    public void shouldOnlyReturnHostsMatchingPredicate() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
-                ImmutableSet.of(HOST_1, HOST_2));
-
-        int numTrials = 50;
-        for (int i = 0; i < numTrials; i++) {
-            Optional<CassandraClientPoolingContainer> container
-                    = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
-            assertContainerHasHostOne(container);
-        }
-    }
-
-    @Test
-    public void shouldNotReturnHostsNotMatchingPredicateEvenWithNodeFailure() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServersInCurrentPool(
-                ImmutableSet.of(HOST_1, HOST_2));
-        cassandraClientPool.getBlacklist().add(HOST_1);
-        Optional<CassandraClientPoolingContainer> container
-                = cassandraClientPool.getRandomGoodHostForPredicate(address -> address.equals(HOST_1));
-        assertContainerHasHostOne(container);
-    }
-
-    @SuppressWarnings({"OptionalUsedAsFieldOrParameterType", "ConstantConditions"})
-    private void assertContainerHasHostOne(Optional<CassandraClientPoolingContainer> container) {
-        assertThat(container.isPresent(), is(true));
-        assertThat(container.get().getHost(), equalTo(HOST_1));
-    }
-
-    @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForTwoPools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-
-        cassandraClientPool.removePool(HOST_1);
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool1")), is(false));
-        assertThatMetricsArePresent(ImmutableSet.of("pool2"));
-
-        cassandraClientPool.addPool(HOST_1);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2"));
-    }
-
-    @Test
-    public void cassandraPoolMetricsMustBeRegisteredAndDeregisteredForThreePools() {
-        CassandraClientPoolImpl cassandraClientPool = clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
-
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
-
-        cassandraClientPool.removePool(HOST_2);
-        assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool3"));
-        assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName("pool2")), is(false));
-
-        cassandraClientPool.addPool(HOST_2);
+    public void cassandraPoolMetricsMustBeRegisteredForThreePools() {
+        clientPoolWithServers(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
         assertThatMetricsArePresent(ImmutableSet.of("pool1", "pool2", "pool3"));
     }
 
     private void assertThatMetricsArePresent(ImmutableSet<String> poolNames) {
-        poolNames.forEach(poolName ->
-                assertThat(metricRegistry.getGauges().containsKey(getPoolMetricName(poolName)), is(true)));
+        assertThat(taggedMetricRegistry.getMetrics().keySet()).containsAll(
+                poolNames.stream().map(this::getPoolMetricName).collect(Collectors.toSet()));
+
     }
 
-    private String getPoolMetricName(String poolName) {
-        return MetricRegistry.name(CassandraClientPoolingContainer.class, poolName + ".proportionDestroyedByBorrower");
+    private MetricName getPoolMetricName(String poolName) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraClientPoolingContainer.class, "proportionDestroyedByBorrower"))
+                .safeTags(ImmutableMap.of("pool", poolName))
+                .build();
     }
 
     @Test
@@ -189,7 +110,9 @@ public class CassandraClientPoolTest {
 
     @Test
     public void shouldRetryOnSameNodeToFailureAndThenRedirect() {
-        int numHosts = CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST + 1;
+        // TODO(ssouza): make 4 =
+        // 1 + CassandraClientPoolImpl.MAX_TRIES_TOTAL - CassandraClientPoolImpl.MAX_TRIES_SAME_HOST
+        int numHosts = 4;
         List<InetSocketAddress> hostList = Lists.newArrayList();
         for (int i = 0; i < numHosts; i++) {
             hostList.add(new InetSocketAddress(i));
@@ -199,7 +122,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
         runNoopOnHostWithRetryWithException(hostList.get(0), cassandraClientPool);
 
-        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_SAME_HOST);
+        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, cassandraClientPool.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
             verifyNumberOfAttemptsOnHost(hostList.get(i), cassandraClientPool, 1);
         }
@@ -211,7 +134,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
         runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
-        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, CassandraClientPoolImpl.MAX_TRIES_TOTAL);
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, cassandraClientPool.getMaxTriesTotal());
     }
 
     @Test
@@ -253,45 +176,107 @@ public class CassandraClientPoolTest {
         verifyBlacklistMetric(1);
     }
 
+    @Test
+    public void successfulRequestCausesHostToBeRemovedFromBlacklist() {
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1));
+        CassandraClientPoolingContainer container = cassandraClientPool.getCurrentPools().get(HOST_1);
+        AtomicBoolean fail = new AtomicBoolean(true);
+        setConditionalTimeoutFailureForHost(container, unused -> fail.get());
+
+        assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
+                .isInstanceOf(SocketTimeoutException.class);
+        assertThat(blacklist.contains(HOST_1), is(true));
+
+        fail.set(false);
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_1), is(false));
+    }
+
+    @Test
+    public void resilientToRollingRestarts() {
+        CassandraClientPool cassandraClientPool = clientPoolWithServersInCurrentPool(ImmutableSet.of(HOST_1, HOST_2));
+        AtomicReference<InetSocketAddress> downHost = new AtomicReference<>(HOST_1);
+        cassandraClientPool.getCurrentPools().values().forEach(pool -> setConditionalTimeoutFailureForHost(
+                pool, container -> container.getHost().equals(downHost.get())));
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_1), is(true));
+
+        downHost.set(HOST_2);
+
+        runNoopWithRetryOnHost(HOST_2, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_1), is(false));
+    }
+
+    @Test
+    public void attemptsShouldBeCountedPerHost() {
+        CassandraClientPoolImpl cassandraClientPool =
+                CassandraClientPoolImpl.createImplForTest(
+                        MetricsManagers.of(metricRegistry, taggedMetricRegistry),
+                        config,
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                        blacklist);
+
+        host(HOST_1).throwsException(new SocketTimeoutException())
+                .throwsException(new InvalidRequestException())
+                .inPool(cassandraClientPool);
+
+        host(HOST_2).throwsException(new SocketTimeoutException())
+                .inPool(cassandraClientPool);
+
+        runNoopWithRetryOnHost(HOST_1, cassandraClientPool);
+        assertThat(blacklist.contains(HOST_2), is(false));
+    }
+
+    private HostBuilder host(InetSocketAddress address) {
+        return new HostBuilder(address);
+    }
+
+    class HostBuilder {
+        private InetSocketAddress address;
+        private List<Exception> exceptions = new LinkedList<>();
+        private boolean returnsValue = true;
+
+        HostBuilder(InetSocketAddress address) {
+            this.address = address;
+        }
+
+        HostBuilder throwsException(Exception ex) {
+            exceptions.add(ex);
+            return this;
+        }
+
+        HostBuilder continuesToThrow() {
+            returnsValue = false;
+            return this;
+        }
+
+        void inPool(CassandraClientPool cassandraClientPool) {
+            CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
+            when(container.getHost()).thenReturn(address);
+            try {
+                OngoingStubbing<Object> stubbing = when(container.runWithPooledResource(
+                        Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()));
+                for (Exception ex : exceptions) {
+                    stubbing = stubbing.thenThrow(ex);
+                }
+                if (returnsValue) {
+                    stubbing.thenReturn("Response");
+                }
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+            cassandraClientPool.getCurrentPools().put(address, container);
+        }
+    }
+
     private void verifyNumberOfAttemptsOnHost(InetSocketAddress host,
             CassandraClientPool cassandraClientPool,
             int numAttempts) {
         Mockito.verify(cassandraClientPool.getCurrentPools().get(host), Mockito.times(numAttempts))
                 .runWithPooledResource(
                         Mockito.<FunctionCheckedException<CassandraClient, Object, RuntimeException>>any());
-    }
-
-    @Test
-    public void testIsConnectionException() {
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TimedOutException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isConnectionException(new TTransportException(
-                new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TimedOutException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableException(new TTransportException(new SocketTimeoutException())));
-    }
-
-    @Test
-    public void testIsRetriableWithBackoffException() {
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new NoSuchElementException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(new UnavailableException()));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new SocketTimeoutException())));
-        assertTrue(CassandraClientPoolImpl.isRetriableWithBackoffException(
-                new TTransportException(new UnavailableException())));
-    }
-
-    @Test
-    public void testIsFastFailoverException() {
-        assertFalse(CassandraClientPoolImpl.isRetriableWithBackoffException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isRetriableException(new InvalidRequestException()));
-        assertFalse(CassandraClientPoolImpl.isConnectionException(new InvalidRequestException()));
-        assertTrue(CassandraClientPoolImpl.isFastFailoverException(new InvalidRequestException()));
     }
 
     private CassandraClientPoolImpl clientPoolWithServers(ImmutableSet<InetSocketAddress> servers) {
@@ -312,16 +297,18 @@ public class CassandraClientPoolTest {
             ImmutableSet<InetSocketAddress> servers,
             ImmutableSet<InetSocketAddress> serversInPool,
             Optional<Exception> failureMode) {
-        CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
-        when(config.poolRefreshIntervalSeconds()).thenReturn(POOL_REFRESH_INTERVAL_SECONDS);
-        when(config.timeBetweenConnectionEvictionRunsSeconds()).thenReturn(TIME_BETWEEN_EVICTION_RUNS_SECONDS);
         when(config.servers()).thenReturn(servers);
 
         CassandraClientPoolImpl cassandraClientPool =
-                CassandraClientPoolImpl.createImplForTest(config, CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN);
+                CassandraClientPoolImpl.createImplForTest(
+                        MetricsManagers.of(metricRegistry, taggedMetricRegistry),
+                        config,
+                        CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                        blacklist);
 
         serversInPool.forEach(address ->
-                cassandraClientPool.addPool(address, getMockPoolingContainerForHost(address, failureMode)));
+                cassandraClientPool.getCurrentPools()
+                        .put(address, getMockPoolingContainerForHost(address, failureMode)));
 
         return cassandraClientPool;
     }
@@ -340,6 +327,22 @@ public class CassandraClientPoolTest {
             when(poolingContainer.runWithPooledResource(
                     Mockito.<FunctionCheckedException<CassandraClient, Object, Exception>>any()))
                     .thenThrow(failureMode);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked") // We know the types are correct within this test.
+    private void setConditionalTimeoutFailureForHost(CassandraClientPoolingContainer container,
+            Function<CassandraClientPoolingContainer, Boolean> condition) {
+        try {
+            when(container.runWithPooledResource(any(FunctionCheckedException.class)))
+                    .then(invocation -> {
+                        if (condition.apply(container)) {
+                            throw new SocketTimeoutException();
+                        }
+                        return 42;
+                    });
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -388,16 +391,14 @@ public class CassandraClientPoolTest {
     private void verifyAggregateFailureMetrics(
             double requestFailureProportion,
             double requestConnectionExceptionProportion) {
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestFailureProportion"),
-                requestFailureProportion);
-        assertEquals(
-                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"),
-                requestConnectionExceptionProportion);
+        assertEquals(requestFailureProportion,
+                getAggregateMetricValueForMetricName("requestFailureProportion"));
+        assertEquals(requestConnectionExceptionProportion,
+                getAggregateMetricValueForMetricName("requestConnectionExceptionProportion"));
     }
 
     private void verifyBlacklistMetric(Integer expectedSize) {
-        assertEquals(getAggregateMetricValueForMetricName("numBlacklistedHosts"), expectedSize);
+        assertEquals(expectedSize, getAggregateMetricValueForMetricName("numBlacklistedHosts"));
     }
 
     private Object getAggregateMetricValueForMetricName(String metricName) {

@@ -16,12 +16,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate(typeToExtend = CassandraKeyValueService.class)
 public interface CassandraKeyValueService extends KeyValueService {
-    /**
-     * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
-     */
-    void cleanUpSchemaMutationLockTablesState() throws Exception;
     CassandraTables getCassandraTables();
     TracingQueryRunner getTracingQueryRunner();
     CassandraClientPool getClientPool();

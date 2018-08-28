@@ -26,8 +26,6 @@ import org.junit.ClassRule;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
@@ -38,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
@@ -63,6 +62,9 @@ public abstract class NodesDownTestSetup {
     static final long DEFAULT_TIMESTAMP = 2L;
     static final long OLD_TIMESTAMP = 1L;
     static final Value DEFAULT_VALUE = Value.create(DEFAULT_CONTENTS, DEFAULT_TIMESTAMP);
+    static final ImmutableCassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig
+            .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
+            .withSchemaMutationTimeoutMillis(3_000);
 
     static CassandraKeyValueService kvs;
 
@@ -96,12 +98,7 @@ public abstract class NodesDownTestSetup {
     }
 
     protected static CassandraKeyValueService createCassandraKvs() {
-        CassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
-                .withSchemaMutationTimeoutMillis(3_000);
-        return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config),
-                ThreeNodeCassandraCluster.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(CONFIG, ThreeNodeCassandraCluster.LEADER_CONFIG);
     }
 
     private static void degradeCassandraCluster(List<String> nodesToKill) {
@@ -134,11 +131,11 @@ public abstract class NodesDownTestSetup {
     }
 
     private static boolean startupChecksPass() {
-        CassandraKeyValueServiceConfigManager manager = CassandraKeyValueServiceConfigManager.createSimpleManager(
-                ThreeNodeCassandraCluster.KVS_CONFIG);
         try {
             // startup checks are done implicitly in the constructor
-            CassandraClientPoolImpl.create(manager.getConfig());
+            CassandraClientPoolImpl.create(
+                    MetricsManagers.createForTests(),
+                    ThreeNodeCassandraCluster.KVS_CONFIG);
             return true;
         } catch (Exception e) {
             return false;

@@ -36,8 +36,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting3.tracing.Tracers;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -46,7 +51,9 @@ import java.util.logging.Logger;
  *
  * @author jtamer
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public final class PTExecutors {
+    private static Logger log = LoggerFactory.getLogger(PTExecutors.class);
 
     private static final String FILE_NAME_FOR_THIS_CLASS = PTExecutors.class.getSimpleName() + ".java";
 
@@ -58,7 +65,7 @@ public final class PTExecutors {
      * run into a number of issues (e.g., QA-44927) where thread pool mismanagement has lead to
      * OutOfMemoryExceptions.
      */
-    private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 100;
+    private static final int DEFAULT_THREAD_POOL_TIMEOUT_MILLIS = 5000;
 
     private static final RejectedExecutionHandler defaultHandler = new AbortPolicy();
 
@@ -128,19 +135,19 @@ public final class PTExecutors {
 
     /**
      * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
-     * queue.  At any point, at most <tt>nThreads</tt> threads will be active processing tasks.  If
+     * queue.  At any point, at most <tt>numThreads</tt> threads will be active processing tasks.  If
      * additional tasks are submitted when all threads are active, they will wait in the queue until
      * a thread is available.  If any thread terminates due to a failure during execution prior to
      * shutdown, a new one will take its place if needed to execute subsequent tasks.  The threads
      * in the pool will exist until it is explicitly {@link
      * java.util.concurrent.ExecutorService#shutdown shutdown}.
      *
-     * @param nThreads the number of threads in the pool
+     * @param numThreads the number of threads in the pool
      * @return the newly created thread pool
-     * @throws IllegalArgumentException if <tt>nThreads &lt;= 0</tt>
+     * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
-    public static ThreadPoolExecutor newFixedThreadPool(int nThreads) {
-        return newThreadPoolExecutor(nThreads, nThreads,
+    public static ThreadPoolExecutor newFixedThreadPool(int numThreads) {
+        return newThreadPoolExecutor(numThreads, numThreads,
                 DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(), newNamedThreadFactory());
     }
@@ -148,20 +155,20 @@ public final class PTExecutors {
     /**
      * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
      * queue, using the provided ThreadFactory to create new threads when needed.  At any point, at
-     * most <tt>nThreads</tt> threads will be active processing tasks.  If additional tasks are
+     * most <tt>numThreads</tt> threads will be active processing tasks.  If additional tasks are
      * submitted when all threads are active, they will wait in the queue until a thread is
      * available.  If any thread terminates due to a failure during execution prior to shutdown, a
      * new one will take its place if needed to execute subsequent tasks.  The threads in the pool
      * will exist until it is explicitly {@link java.util.concurrent.ExecutorService#shutdown}.
      *
-     * @param nThreads the number of threads in the pool
+     * @param numThreads the number of threads in the pool
      * @param threadFactory the factory to use when creating new threads
      * @return the newly created thread pool
      * @throws NullPointerException if threadFactory is null
-     * @throws IllegalArgumentException if <tt>nThreads &lt;= 0</tt>
+     * @throws IllegalArgumentException if <tt>numThreads &lt;= 0</tt>
      */
-    public static ThreadPoolExecutor newFixedThreadPool(int nThreads, ThreadFactory threadFactory) {
-        return newThreadPoolExecutor(nThreads, nThreads,
+    public static ThreadPoolExecutor newFixedThreadPool(int numThreads, ThreadFactory threadFactory) {
+        return newThreadPoolExecutor(numThreads, numThreads,
                 DEFAULT_THREAD_POOL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(), threadFactory);
     }
@@ -361,11 +368,12 @@ public final class PTExecutors {
      * @throws NullPointerException if <tt>workQueue</tt> or <tt>threadFactory</tt> or
      *         <tt>handler</tt> are null.
      */
+    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     public static ThreadPoolExecutor newThreadPoolExecutor(int corePoolSize, int maximumPoolSize,
             long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
-        ThreadPoolExecutor e = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, // (authorized)
-                workQueue, threadFactory, handler) {
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, // (authorized)
+                unit, workQueue, threadFactory, handler) {
             @Override
             public void execute(Runnable command) {
                 super.execute(wrap(command));
@@ -373,9 +381,9 @@ public final class PTExecutors {
         };
         // QA-49019 - always allow core pool threads to timeout.
         if (keepAliveTime > 0) {
-            e.allowCoreThreadTimeOut(true);
+            tpe.allowCoreThreadTimeOut(true);
         }
-        return e;
+        return tpe;
     }
 
     /**
@@ -426,12 +434,15 @@ public final class PTExecutors {
      * @throws IllegalArgumentException if <tt>corePoolSize &lt; 0</tt>
      * @throws NullPointerException if threadFactory or handler is null
      */
+    @SuppressWarnings("DangerousThreadPoolExecutorUsage")
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
-        if (corePoolSize == 0) {
-            corePoolSize = 1;
-        }
-        ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(corePoolSize, threadFactory, handler) {
+        Preconditions.checkArgument(corePoolSize >= 0,
+                "Cannot create a ScheduledThreadPoolExecutor with {} threads - thread count must not be negative!",
+                SafeArg.of("corePoolSize", corePoolSize));
+        int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
+        ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
+                handler) {
             @Override
             public void execute(Runnable command) {
                 super.execute(wrap(command));
@@ -472,53 +483,18 @@ public final class PTExecutors {
      * interface, then the returned {@code Runnable} will also implement {@code Future}.
      */
     public static Runnable wrap(final Runnable runnable) {
-        final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
-                ExecutorInheritableThreadLocal.getMapForNewThread();
+        Runnable wrappedRunnable = wrapRunnable(runnable);
         if (runnable instanceof Future<?>) {
             @SuppressWarnings("unchecked")
             Future<Object> unsafeFuture = (Future<Object>) runnable;
-            return new ForwardingRunnableFuture<Object>(unsafeFuture) {
-                @Override
-                public void run() {
-                    ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                    try {
-                        super.run();
-                    } finally {
-                        ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                    }
-                }
-            };
+            return new ForwardingRunnableFuture<>(wrappedRunnable, unsafeFuture);
         }
-        return new Runnable() {
-            @Override
-            public void run() {
-                ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                try {
-                    runnable.run();
-                } finally {
-                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                }
-            }
-        };
+        return wrappedRunnable;
     }
 
     public static <T> RunnableFuture<T> wrap(RunnableFuture<T> rf) {
-        final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
-                ExecutorInheritableThreadLocal.getMapForNewThread();
-        return new ForwardingRunnableFuture<T>(rf) {
-            @Override
-            public void run() {
-                ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                    ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                try {
-                    super.run();
-                } finally {
-                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                }
-            }
-        };
+        Runnable wrappedRunnable = wrapRunnable(rf);
+        return new ForwardingRunnableFuture<>(wrappedRunnable, rf);
     }
 
     /**
@@ -528,18 +504,15 @@ public final class PTExecutors {
     public static <T> Callable<T> wrap(final Callable<? extends T> callable) {
         final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
                 ExecutorInheritableThreadLocal.getMapForNewThread();
-        return new Callable<T>() {
-            @Override
-            public T call() throws Exception {
-                ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
-                        ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
-                try {
-                    return callable.call();
-                } finally {
-                    ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
-                }
+        return Tracers.wrap(() -> {
+            ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
+                    ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+            try {
+                return callable.call();
+            } finally {
+                ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
             }
-        };
+        });
     }
 
     /**
@@ -553,6 +526,20 @@ public final class PTExecutors {
             wrapped.add(wrap(task));
         }
         return wrapped;
+    }
+
+    private static Runnable wrapRunnable(Runnable runnable) {
+        final Map<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> mapForNewThread =
+                ExecutorInheritableThreadLocal.getMapForNewThread();
+        return Tracers.wrap(() -> {
+            ConcurrentMap<WeakReference<? extends ExecutorInheritableThreadLocal<?>>, Object> oldMap =
+                    ExecutorInheritableThreadLocal.installMapOnThread(mapForNewThread);
+            try {
+                runnable.run();
+            } finally {
+                ExecutorInheritableThreadLocal.uninstallMapOnThread(oldMap);
+            }
+        });
     }
 
     public static ThreadFactory newNamedThreadFactory() {
@@ -577,8 +564,7 @@ public final class PTExecutors {
                 }
             }
         }
-        String errorMessage = "Can't figure out what name to use for this thread factory!";
-        Logger.getLogger(PTExecutors.class.getName()).log(Level.WARNING, errorMessage);
+        log.warn("Can't figure out what name to use for this thread factory!");
         return new NamedThreadFactory("Unnamed thread", isDaemon);
     }
 
@@ -586,11 +572,11 @@ public final class PTExecutors {
         ThreadFactory threadFactory = new ThreadFactory() {
             private final AtomicInteger nextThreadId = new AtomicInteger();
             @Override
-            public Thread newThread(Runnable r) {
-                Thread t = new Thread(r, prefix + "-" + nextThreadId.getAndIncrement());
-                t.setPriority(priority);
-                t.setDaemon(isDaemon);
-                return t;
+            public Thread newThread(Runnable runnable) {
+                Thread thread = new Thread(runnable, prefix + "-" + nextThreadId.getAndIncrement());
+                thread.setPriority(priority);
+                thread.setDaemon(isDaemon);
+                return thread;
             }
         };
 

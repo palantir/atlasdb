@@ -15,6 +15,8 @@
  */
 package com.palantir.lock.client;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,9 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.lock.ForwardingLockService;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
@@ -33,9 +35,11 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
+import com.palantir.lock.SimplifyingLockService;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
-public class LockRefreshingLockService extends ForwardingLockService {
+public class LockRefreshingLockService extends SimplifyingLockService {
+    public static final int REFRESH_BATCH_SIZE = 500_000;
     private static final Logger log = LoggerFactory.getLogger(LockRefreshingLockService.class);
 
     final LockService delegate;
@@ -51,15 +55,15 @@ public class LockRefreshingLockService extends ForwardingLockService {
             try {
                 ret.refreshLocks();
             } catch (Throwable t) {
-                log.error("Failed to refresh locks", t);
+                log.warn("Failed to refresh locks", t);
             } finally {
                 long elapsed = System.currentTimeMillis() - startTime;
 
                 if (elapsed > LockRequest.getDefaultLockTimeout().toMillis() / 2) {
-                    log.error("Refreshing locks took {} milliseconds"
+                    log.warn("Refreshing locks took {} milliseconds"
                             + " for tokens: {}", elapsed, ret.toRefresh);
                 } else if (elapsed > ret.refreshFrequencyMillis) {
-                    log.warn("Refreshing locks took {} milliseconds"
+                    log.info("Refreshing locks took {} milliseconds"
                             + " for tokens: {}", elapsed, ret.toRefresh);
                 }
             }
@@ -74,7 +78,7 @@ public class LockRefreshingLockService extends ForwardingLockService {
     }
 
     @Override
-    protected LockService delegate() {
+    public LockService delegate() {
         return delegate;
     }
 
@@ -124,11 +128,15 @@ public class LockRefreshingLockService extends ForwardingLockService {
         if (refreshCopy.isEmpty()) {
             return;
         }
-        Set<LockRefreshToken> refreshedTokens = delegate().refreshLockRefreshTokens(refreshCopy);
+        Set<LockRefreshToken> refreshedTokens = new HashSet<>();
+        // We batch refreshes to avoid sending payload of excessive size
+        for (List<LockRefreshToken> tokenBatch : Iterables.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
+            refreshedTokens.addAll(delegate.refreshLockRefreshTokens(tokenBatch));
+        }
         for (LockRefreshToken token : refreshCopy) {
             if (!refreshedTokens.contains(token)
                     && toRefresh.contains(token)) {
-                log.error("failed to refresh lock: {}", token);
+                log.warn("failed to refresh lock: {}", token);
                 toRefresh.remove(token);
             }
         }

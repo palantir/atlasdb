@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -40,6 +42,13 @@ public final class FeignOkHttpClients {
     static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
+
+    /**
+     * @deprecated Do not use; this method may be removed at any time. It is purely for internal benchmarking, which
+     * adds additional settings to the http clients.
+     */
+    @Deprecated
+    public static volatile Consumer<okhttp3.OkHttpClient.Builder> globalClientSettings = (client) -> { };
 
     public static final ImmutableList<ConnectionSpec> CONNECTION_SPEC_WITH_CYPHER_SUITES = ImmutableList.of(
             new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
@@ -103,8 +112,10 @@ public final class FeignOkHttpClients {
             Optional<SSLSocketFactory> sslSocketFactory,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return CounterBackedRefreshingClient.createRefreshingClient(
+        Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
                 () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+
+        return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
 
     @VisibleForTesting
@@ -122,6 +133,8 @@ public final class FeignOkHttpClients {
             builder.sslSocketFactory(sslSocketFactory.get());
         }
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+
+        globalClientSettings.accept(builder);
         return builder.build();
     }
 

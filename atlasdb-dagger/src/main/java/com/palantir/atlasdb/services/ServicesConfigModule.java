@@ -34,7 +34,8 @@ public class ServicesConfigModule {
 
     public static ServicesConfigModule create(File configFile, String configRoot, AtlasDbRuntimeConfig runtimeConfig)
             throws IOException {
-        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot), runtimeConfig);
+        return ServicesConfigModule.create(AtlasDbConfigs.load(configFile, configRoot, AtlasDbConfig.class),
+                runtimeConfig);
     }
 
     public static ServicesConfigModule create(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {

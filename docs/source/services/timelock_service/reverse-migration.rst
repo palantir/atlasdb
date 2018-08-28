@@ -3,6 +3,11 @@
 Reverse Migration
 =================
 
+.. warning::
+
+   Many Atlas clients switched to using TimeLock by default many versions after it was reasonable to use Atlas with TimeLock.
+   If you are on this page because you were directed to it by an error stating "This can happen if you attempt to run AtlasDB without a timelock block after having previously migrated to the TimeLock server", then please :ref:`configure your service<timelock-client-configuration>` to use TimeLock rather than attempting a reverse migration.
+
 .. danger::
 
    Improperly executing reverse migration from external timestamp and lock services can result in
@@ -19,7 +24,6 @@ Throughout this document, we assume the AtlasDB client you are trying to reverse
 #. Shut down your AtlasDB clients for ``client`` .
 #. Take a restore timestamp.
 #. Revert your AtlasDB client configuration.
-#. Remove your client from the list of TimeLock clients.
 #. Restart the TimeLock servers.
 #. Update your key-value service to the restore timestamp.
 #. Start your AtlasDB clients.
@@ -42,7 +46,7 @@ node that was not the leader; please try the other nodes.
 
 .. code-block:: none
 
-   $ curl -XPOST https://<timelock-host>:8421/client/timestamp/fresh-timestamp
+   $ curl -XPOST https://<timelock-host>:8421/timelock/api/client/timestamp/fresh-timestamp
    123456789
 
 Note down the value returned from this call; we'll refer to it as ``TS`` from here on.
@@ -53,29 +57,13 @@ Step 3: Revert AtlasDB Client Configurations
 Remove the ``timelock`` block from your AtlasDB client configurations. For more detail on options
 for using embedded timestamp and lock services, please consult :ref:`Leader Config<leader-config>`.
 
-Step 4: Reconfigure TimeLock
-----------------------------
-
-Remove ``client`` from the ``clients`` block of your TimeLock server configuration.
-
-Step 5: Start your TimeLock Servers
+Step 4: Start your TimeLock Servers
 -----------------------------------
 
 Start your TimeLock servers. Other services that were still dependent on TimeLock (if any) should now
-work normally. To verify that your client no longer uses TimeLock, it may be useful to curl the fresh-timestamp
-endpoint for your node, expecting a ``NotFoundException`` :
+work normally. This step is placed here to minimise downtime for other services that may be running against TimeLock.
 
-.. code-block:: none
-
-   $ curl -XPOST https://<timelock-host>:8421/client/timestamp/fresh-timestamp
-   {
-     "message" : "d37a5956-c492-4a3b-a057-b7b4ea557043",
-     "exceptionClass" : "javax.ws.rs.NotFoundException",
-     "stackTrace" : null
-   }
-
-
-Step 6: Update your Key-Value Service
+Step 5: Update your Key-Value Service
 -------------------------------------
 
 Update the timestamp table in your key value service, such that it is valid and has the bound set to ``TS`` .
@@ -131,7 +119,7 @@ This will vary depending on your choice of key-value service:
 
      ALTER TABLE atlasdb_timestamp RENAME LEGACY_last_allocated TO last_allocated;
 
-Step 7: Start your AtlasDB Clients
+Step 6: Start your AtlasDB Clients
 ----------------------------------
 
 Finally, start your AtlasDB clients. At this point, it may be useful to perform a simple smoke test to verify that your
@@ -140,7 +128,7 @@ timestamp from above.
 
   .. code-block:: none
 
-   $ curl -XPOST https://<client-host>:<application-port>/client/timestamp/fresh-timestamp
+   $ curl -XPOST https://<client-host>:<application-port><application-context-path>/timestamp/fresh-timestamp
    123456790 # greater than restore timestamp
 
 This completes the reverse migration process.

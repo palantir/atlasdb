@@ -21,12 +21,13 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
@@ -34,13 +35,23 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.flake.ShouldRetry;
 
 @RunWith(Parameterized.class)
+@ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(
                 CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
             .with(new CassandraContainer());
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+            getKeyValueService(), CassandraContainer.KVS_CONFIG);
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
@@ -50,7 +61,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return Arrays.asList(true, false);
     }
 
-
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
@@ -58,8 +68,13 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                         .withTimestampsGetterBatchSize(10)
                 : CassandraContainer.KVS_CONFIG;
 
+        // Timestamp of 1,000,000 is done to ensure that tombstones are written at a Cassandra timestamp that is
+        // greater than the Atlas timestamp for any values written during the test.
         return CassandraKeyValueServiceImpl.create(
-                CassandraKeyValueServiceConfigManager.createSimpleManager(config), CassandraContainer.LEADER_CONFIG);
+                metricsManager,
+                config,
+                CassandraContainer.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
     @Test
@@ -72,7 +87,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         insertMultipleValues(numInsertions);
 
         long sweepTimestamp = numInsertions + 1;
-        SweepResults results = completeSweep(sweepTimestamp);
+        SweepResults results = completeSweep(sweepTimestamp).get();
         Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
     }
 
@@ -85,7 +100,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
             put("row", "col2", "value", ts + 5);
         }
 
-        SweepResults results = completeSweep(350);
+        SweepResults results = completeSweep(350).get();
         Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 

@@ -15,16 +15,19 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.commons.lang3.Validate;
@@ -41,7 +44,9 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
@@ -60,7 +65,7 @@ public final class CassandraKeyValueServices {
 
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
-            Cassandra.Client client,
+            CassandraClient client,
             String tableName)
             throws TException {
         waitForSchemaVersions(config, client, tableName, false);
@@ -77,7 +82,7 @@ public final class CassandraKeyValueServices {
      */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
-            Cassandra.Client client,
+            CassandraClient client,
             String tableName,
             boolean allowQuorumAgreement)
             throws TException {
@@ -102,20 +107,28 @@ public final class CassandraKeyValueServices {
 
         StringBuilder schemaVersions = new StringBuilder();
         for (Entry<String, List<String>> version : versions.entrySet()) {
-            schemaVersions.append(String.format("%nAt schema version %s:", version.getKey()));
-            for (String node : version.getValue()) {
-                schemaVersions.append(String.format("%n\tNode: %s", node));
-            }
+            schemaVersions = addNodeInformation(schemaVersions,
+                    String.format("%nAt schema version %s:", version.getKey()),
+                    version.getValue());
         }
+
+        String configNodes = addNodeInformation(new StringBuilder(),
+                "Nodes specified in config file:",
+                config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
+                .toString();
+
         String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
                         + " after attempting to modify table %s. %s"
-                        + " \nFind the nodes above that diverge from the majority schema"
-                        + " or have schema 'UNKNOWN', which likely means they are down/unresponsive"
-                        + " and examine their logs to determine the issue."
+                        + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
+                        + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
-                        + " You can quick-check this with 'nodetool describecluster'.",
+                        + " You can quick-check this with 'nodetool describecluster'."
+                        + " \nIf nodes are specified in the config file, but do not have a schema version listed"
+                        + " above, then they may have never joined the cluster. Verify your configuration is correct"
+                        + " and that the nodes specified in the config are up and joined the cluster. %s",
                 tableName,
-                schemaVersions.toString());
+                schemaVersions.toString(),
+                configNodes);
         throw new IllegalStateException(errorMessage);
     }
 
@@ -127,7 +140,7 @@ public final class CassandraKeyValueServices {
             boolean allowQuorumAgreement,
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (getNumberOfReachableSchemas(versions) > 1) {
+        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
             return false;
         }
 
@@ -140,13 +153,21 @@ public final class CassandraKeyValueServices {
         return numberOfVisibleNodes == numberOfServers;
     }
 
-    private static long getNumberOfReachableSchemas(Map<String, List<String>> versions) {
+    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
     }
 
     private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
         return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
                 .map(Entry::getValue).mapToInt(List::size).sum();
+    }
+
+    private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
+        builder.append(message);
+        for (String node : nodes) {
+            builder.append(String.format("%n\tNode: %s", node));
+        }
+        return builder;
     }
 
     /**
@@ -161,7 +182,7 @@ public final class CassandraKeyValueServices {
             clientPool.run(client -> {
                 waitForSchemaVersions(
                         config,
-                        client.rawClient(),
+                        client,
                         "(none, just an initialization check)",
                         true);
                 return null;
@@ -247,18 +268,6 @@ public final class CassandraKeyValueServices {
         return new UUID(uuid.getLong(uuid.position()), uuid.getLong(uuid.position() + 8)).toString();
     }
 
-    static String buildErrorMessage(String prefix, Map<String, Throwable> errorsByHost) {
-        StringBuilder result = new StringBuilder();
-        result.append(prefix).append("\n\n");
-        for (Map.Entry<String, Throwable> entry : errorsByHost.entrySet()) {
-            String host = entry.getKey();
-            Throwable cause = entry.getValue();
-            result.append(String.format("Error on host %s:%n%s%n%n", host, cause));
-        }
-        return result.toString();
-    }
-
-
     static String getFilteredStackTrace(String filter) {
         Exception ex = new Exception();
         StackTraceElement[] stackTrace = ex.getStackTrace();
@@ -271,16 +280,76 @@ public final class CassandraKeyValueServices {
         return sb.toString();
     }
 
+    static Column createColumn(Cell cell, Value value) {
+        return createColumnAtSpecificCassandraTimestamp(cell, value, value.getTimestamp());
+    }
+
+    /**
+     * Creates a {@link Column} for an Atlas tombstone.
+     * These columns have an Atlas timestamp of zero, but should not have a Cassandra timestamp of zero as that may
+     * interfere with compactions. We want these to be at least reasonably consistent with Atlas's overall logical
+     * time.
+     *
+     * In practice, usage may involve obtaining a (reasonably) fresh timestamp and using that as the timestamp for the
+     * deletion.
+     */
+    static Column createColumnForDelete(Cell cell, Value value, long cassandraTimestamp) {
+        Preconditions.checkState(
+                Arrays.equals(value.getContents(), PtBytes.EMPTY_BYTE_ARRAY),
+                "Attempted to createColumnForDelete on a non-delete value, for cell %s and value %s",
+                cell,
+                value);
+        return createColumnAtSpecificCassandraTimestamp(cell, value, cassandraTimestamp);
+    }
+
+    private static Column createColumnAtSpecificCassandraTimestamp(Cell cell, Value value, long cassandraTimestamp) {
+        byte[] contents = value.getContents();
+        long atlasTimestamp = value.getTimestamp();
+        ByteBuffer colName = makeCompositeBuffer(cell.getColumnName(), atlasTimestamp);
+        Column col = new Column();
+        col.setName(colName);
+        col.setValue(contents);
+        col.setTimestamp(cassandraTimestamp);
+        return col;
+    }
+
+    static Cell getMetadataCell(TableReference tableRef) {
+        // would have preferred an explicit charset, but thrift uses default internally
+        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static Cell getOldMetadataCell(TableReference tableRef) {
+        return Cell.create(
+                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
+                "m".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    private static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static TableReference tableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
+    }
+
+    static TableReference tableReferenceFromCfDef(CfDef cf) {
+        return TableReference.fromInternalTableName(cf.getName());
+    }
+
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
         // marker
     }
 
     static class StartTsResultsCollector implements ThreadSafeResultVisitor {
         private final Map<Cell, Value> collectedResults = Maps.newConcurrentMap();
-        private final ValueExtractor extractor = new ValueExtractor(collectedResults);
+        private final ValueExtractor extractor;
         private final long startTs;
 
-        StartTsResultsCollector(long startTs) {
+        StartTsResultsCollector(MetricsManager metricsManager, long startTs) {
+            this.extractor = new ValueExtractor(metricsManager, collectedResults);
             this.startTs = startTs;
         }
 
@@ -316,13 +385,6 @@ public final class CassandraKeyValueServices {
                 ret.put(Cell.create(row, pair.lhSide), pair.rhSide);
             }
         }
-    }
-
-    protected static int convertTtl(final long durationMillis, TimeUnit sourceTimeUnit) {
-        long ttlSeconds = TimeUnit.SECONDS.convert(durationMillis, sourceTimeUnit);
-        Preconditions.checkArgument(ttlSeconds > 0 && ttlSeconds < Integer.MAX_VALUE,
-                "Expiration time must be between 0 and ~68 years");
-        return (int) ttlSeconds;
     }
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {

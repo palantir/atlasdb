@@ -17,13 +17,12 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.processors.AutoDelegate;
 
+@AutoDelegate(typeToExtend = CassandraClientPool.class)
 public interface CassandraClientPool {
     FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner();
     <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,
@@ -33,9 +32,7 @@ public interface CassandraClientPool {
             InetSocketAddress specifiedHost,
             FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
-    InetSocketAddress getAddressForHost(String host) throws UnknownHostException;
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
-    <V> void markWritesForTable(Map<Cell, V> entries, TableReference tableRef);
     void shutdown();
 }

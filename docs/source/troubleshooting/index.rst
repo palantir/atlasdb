@@ -39,17 +39,20 @@ You will see one or both of the following exceptions when the schema mutation lo
 Clear with CLI
 --------------
 
-The :ref:`AtlasDB Dropwizard bundle <dropwizard-bundle>` comes with a command that will clear the schema mutation lock.
-To use the CLI, shut down your AtlasDB clients and run:
+One runs the CLIs as a separate distribution. These distributions are published on
+`Bintray <https://palantir.bintray.com/releases/com/palantir/atlasdb/atlasdb-cli-distribution/0.78.0/>`__ - please make
+sure to use the corresponding version of the CLIs with your service. The command can then be invoked as
 
 .. code-block:: bash
 
-   ./service/bin/<service> atlasdb clean-cass-locks-state var/conf/<service>.yml --offline
+   ./service/bin/atlasdb-cli --offline -c var/conf/<service>.yml clean-cass-locks-state
 
 Clear with CQL
 --------------
 
 If you prefer to clear the lock with the Cassandra Query Language (CQL), then you can run commands similar to the below.
+Note that on more recent versions of AtlasDB, the ``_locks`` table will have a hexadecimal string suffix; however, the
+truncation process remains similar.
 
 .. code-block:: none
 
@@ -167,6 +170,7 @@ compare-and-set operation here.
 
 .. code-block:: none
 
+   cqlsh:keyspace> CONSISTENCY QUROUM;
    cqlsh:keyspace> UPDATE "_persisted_locks" SET value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303030222c22726561736f6e223a22417661696c61626c65227d WHERE key=0x4261636b75704c6f636b AND column1=0x6c6f636b AND column2=-1 IF value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2234323765623032612d663031372d343063642d386430382d306131363333313530323961222c22726561736f6e223a22666f6f227d;
 
     [applied]

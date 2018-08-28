@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -30,7 +29,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.base.Throwables;
@@ -44,16 +43,11 @@ public final class ColumnValues {
     }
 
     public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map) {
-        return toCellValues(map, Cell.INVALID_TTL, Cell.INVALID_TTL_TYPE);
-    }
-
-    public static <T extends Persistable, V extends ColumnValue<?>> Map<Cell, byte[]> toCellValues(Multimap<T, V> map,
-            long duration, TimeUnit durationTimeUnit) {
         Map<Cell, byte[]> ret = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<T, Collection<V>> e : map.asMap().entrySet()) {
             byte[] rowName = e.getKey().persistToBytes();
             for (V val : e.getValue()) {
-                ret.put(Cell.create(rowName, val.persistColumnName(), duration, durationTimeUnit), val.persistValue());
+                ret.put(Cell.create(rowName, val.persistColumnName()), val.persistValue());
             }
         }
         return ret;
@@ -82,7 +76,7 @@ public final class ColumnValues {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T extends GeneratedMessage> T parseProtoBuf(Class<T> clazz, byte[] msg) {
+    public static <T extends AbstractMessage> T parseProtoBuf(Class<T> clazz, byte[] msg) {
         try {
             Method parseMethod = clazz.getMethod("parseFrom", byte[].class);
             return (T) parseMethod.invoke(null, msg);

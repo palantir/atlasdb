@@ -20,7 +20,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -109,16 +108,15 @@ public final class SweeperServiceImpl implements SweeperService {
     }
 
     private void checkTableExists(String tableName, TableReference tableRef) {
-        Preconditions.checkState(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
-                String.format("Table requested to sweep %s does not exist", tableName));
+        WebPreconditions.checkArgument(specificTableSweeper.getKvs().getAllTableNames().contains(tableRef),
+                "Table requested to sweep %s does not exist", tableName);
     }
 
     private SweepResults runFullSweepWithoutSavingResults(
             TableReference tableRef,
             byte[] startRow,
             SweepBatchConfig sweepBatchConfig) {
-        SweepResults cumulativeResults = SweepResults.createEmptySweepResult(
-                Optional.of(startRow));
+        SweepResults cumulativeResults = SweepResults.createEmptySweepResult(Optional.of(startRow));
 
         while (cumulativeResults.getNextStartRow().isPresent()) {
             SweepResults results = runOneBatchWithoutSavingResults(
@@ -126,6 +124,8 @@ public final class SweeperServiceImpl implements SweeperService {
                     cumulativeResults.getNextStartRow().get(),
                     sweepBatchConfig);
 
+            specificTableSweeper.updateTimeMetricsOneIteration(results.getTimeInMillis(),
+                    results.getTimeElapsedSinceStartedSweeping());
             cumulativeResults = cumulativeResults.accumulateWith(results);
         }
 

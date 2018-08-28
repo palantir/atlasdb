@@ -26,6 +26,7 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -47,8 +48,14 @@ public class KvsDeleteBenchmarks {
                         : table.getRangeRequests(1, table.getNumRows() / numBatches, true);
 
         rangeRequests.forEach(rangeRequest -> table.getKvs().deleteRange(table.getTableRef(), rangeRequest));
-
         return rangeRequests;
+    }
+
+    private Object doDeleteAllTimestamps(RegeneratingTable<Cell> table) {
+        table.getKvs().deleteAllTimestamps(table.getTableRef(),
+                ImmutableMap.of(table.getTableCells(), RegeneratingTable.CELL_VERSIONS),
+                false);
+        return table.getTableCells();
     }
 
     @Benchmark
@@ -83,4 +90,11 @@ public class KvsDeleteBenchmarks {
         return doDeleteRange(table, 1);
     }
 
+    @Benchmark
+    @Threads(1)
+    @Warmup(time = 5, timeUnit = TimeUnit.SECONDS)
+    @Measurement(time = 30, timeUnit = TimeUnit.SECONDS)
+    public Object deleteAllTimestamps(RegeneratingTable.VersionedCellRegeneratingTable table) {
+        return doDeleteAllTimestamps(table);
+    }
 }

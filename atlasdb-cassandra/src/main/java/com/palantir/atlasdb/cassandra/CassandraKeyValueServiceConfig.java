@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cassandra;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,20 +29,29 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
+@AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
 @Value.Immutable
 public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
 
     public static final String TYPE = "cassandra";
 
     public abstract Set<InetSocketAddress> servers();
+
+    @Value.Default
+    public Map<String, InetSocketAddress> addressTranslation() {
+        return ImmutableMap.of();
+    }
 
     @Override
     @JsonIgnore
@@ -98,10 +108,15 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     /**
      * The minimal period we wait to check if a Cassandra node is healthy after it's been blacklisted.
+     *
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#unresponsiveHostBackoffTimeSeconds()} to make this
+     * value live-reloadable.
      */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int unresponsiveHostBackoffTimeSeconds() {
-        return 30;
+        return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
     }
 
     /**
@@ -150,19 +165,37 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
 
     public abstract int replicationFactor();
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
+     * live-reloadable.
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int mutationBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
     }
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchSizeBytes()} to make this value
+     * live-reloadable.
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int mutationBatchSizeBytes() {
-        return 4 * 1024 * 1024;
+        return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#fetchBatchCount()} to make this value
+     * live-reloadable.
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
+    @Deprecated
     public int fetchBatchCount() {
-        return 5000;
+        return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
     }
 
     @Value.Default
@@ -231,14 +264,27 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
         return 32;
     }
 
+    /**
+     * Obsolete value, replaced by {@link SweepConfig#readLimit}.
+     *
+     * @deprecated this parameter is unused and should be removed from the configuration
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed") // Used by immutable copy of this file
     @Value.Default
-    public boolean scyllaDb() {
-        return false;
-    }
-
-    @Value.Default
+    @Deprecated
     public Integer timestampsGetterBatchSize() {
         return 1_000;
+    }
+
+    /**
+     * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#sweepReadThreads()} to make this value
+     * live-reloadable.
+     */
+    @SuppressWarnings("DeprecatedIsStillUsed")
+    @Value.Default
+    @Deprecated
+    public Integer sweepReadThreads() {
+        return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
     public abstract Optional<CassandraJmxCompactionConfig> jmx();

@@ -16,37 +16,35 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableMap;
 
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
+import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
@@ -55,10 +53,20 @@ public class CassandraClientPoolIntegrationTest {
             .with(new CassandraContainer());
     private static final int MODIFIED_REPLICATION_FACTOR = CassandraContainer.KVS_CONFIG.replicationFactor() + 1;
 
+    private Blacklist blacklist = new Blacklist(CassandraContainer.KVS_CONFIG);
+
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
+    private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+            CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
-            CassandraContainer.LEADER_CONFIG);
-    private CassandraClientPoolImpl clientPool = (CassandraClientPoolImpl) kv.getClientPool();
+            metricsManager,
+            CassandraContainer.KVS_CONFIG,
+            CassandraContainer.LEADER_CONFIG,
+            CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
+            clientPool);
+
 
     @Before
     public void setUp() {
@@ -70,13 +78,11 @@ public class CassandraClientPoolIntegrationTest {
         kv.close();
     }
 
-    // This is a dumb test in the current test suite that has just one local Cassandra node.
-    // Pretty legit test if run manually or if we go back to multi-node tests
     @Test
     public void testTokenMapping() {
         Map<Range<LightweightOppToken>, List<InetSocketAddress>> mapOfRanges =
-                clientPool.tokenMap.asMapOfRanges();
-
+                clientPool.getTokenMap().asMapOfRanges();
+        assertFalse(mapOfRanges.isEmpty());
         for (Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry :
                 mapOfRanges.entrySet()) {
             Range<LightweightOppToken> tokenRange = entry.getKey();
@@ -97,7 +103,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         CassandraContainer.KVS_CONFIG);
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
@@ -110,7 +116,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorFailsAfterManipulatingReplicationFactorInConfig() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
                                 CassandraContainer.KVS_CONFIG).withReplicationFactor(
                                 MODIFIED_REPLICATION_FACTOR));
@@ -127,7 +133,7 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client.rawClient(),
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         CassandraContainer.KVS_CONFIG);
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
@@ -146,146 +152,29 @@ public class CassandraClientPoolIntegrationTest {
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
         clientPool.run((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.rawClient().describe_keyspace(
+            KsDef originalKsDef = client.describe_keyspace(
                     CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
             modifiedKsDef.setCf_defs(ImmutableList.of());
-            client.rawClient().system_update_keyspace(modifiedKsDef);
+            client.system_update_keyspace(modifiedKsDef);
             return null;
         });
     }
 
     @Test
     public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        clientPool.getBlacklist().addAll(clientPool.getCurrentPools().keySet());
+        blacklist.addAll(clientPool.getCurrentPools().keySet());
         try {
             clientPool.run(describeRing);
         } catch (Exception e) {
             fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
         }
 
-        clientPool.getBlacklist().removeAll();
+        blacklist.removeAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
-            client -> client.rawClient().describe_ring("atlasdb");
-
-    @Test
-    public void testWeightedHostsWithUniformActivity() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(10));
-
-        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPoolImpl.WeightedHosts.create(pools).hosts;
-
-        int expectedWeight = result.firstEntry().getKey();
-        int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
-            int currWeight = entry.getKey() - prevKey;
-            assertEquals(expectedWeight, currWeight);
-            prevKey = entry.getKey();
-        }
-    }
-
-    @Test
-    public void testWeightedHostsWithLowActivityPool() {
-        InetSocketAddress lowActivityHost = new InetSocketAddress(2);
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                lowActivityHost, createMockClientPoolingContainerWithUtilization(0));
-
-        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPoolImpl.WeightedHosts.create(pools).hosts;
-
-        int largestWeight = result.firstEntry().getKey();
-        InetSocketAddress hostWithLargestWeight = result.firstEntry().getValue();
-        int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
-            int currWeight = entry.getKey() - prevKey;
-            prevKey = entry.getKey();
-            if (currWeight > largestWeight) {
-                largestWeight = currWeight;
-                hostWithLargestWeight = entry.getValue();
-            }
-        }
-        assertEquals(lowActivityHost, hostWithLargestWeight);
-    }
-
-    @Test
-    public void testWeightedHostsWithMaxActivityPool() {
-        InetSocketAddress highActivityHost = new InetSocketAddress(2);
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(5),
-                highActivityHost, createMockClientPoolingContainerWithUtilization(20));
-
-        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPoolImpl.WeightedHosts.create(pools).hosts;
-
-        int smallestWeight = result.firstEntry().getKey();
-        InetSocketAddress hostWithSmallestWeight = result.firstEntry().getValue();
-        int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
-            int currWeight = entry.getKey() - prevKey;
-            prevKey = entry.getKey();
-            if (currWeight < smallestWeight) {
-                smallestWeight = currWeight;
-                hostWithSmallestWeight = entry.getValue();
-            }
-        }
-        assertEquals(highActivityHost, hostWithSmallestWeight);
-    }
-
-    @Test
-    public void testWeightedHostsWithNonZeroWeights() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(15));
-
-        NavigableMap<Integer, InetSocketAddress> result = CassandraClientPoolImpl.WeightedHosts.create(pools).hosts;
-
-        int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : result.entrySet()) {
-            int currWeight = entry.getKey() - prevKey;
-            assertThat(currWeight, Matchers.greaterThan(0));
-            prevKey = entry.getKey();
-        }
-    }
-
-    // Covers a bug where we used ceilingEntry instead of higherEntry
-    @Test
-    public void testSelectingHostFromWeightedHostsMatchesWeight() {
-        Map<InetSocketAddress, CassandraClientPoolingContainer> pools = ImmutableMap.of(
-                new InetSocketAddress(0), createMockClientPoolingContainerWithUtilization(5),
-                new InetSocketAddress(1), createMockClientPoolingContainerWithUtilization(10),
-                new InetSocketAddress(2), createMockClientPoolingContainerWithUtilization(15));
-        CassandraClientPoolImpl.WeightedHosts weightedHosts = CassandraClientPoolImpl.WeightedHosts.create(pools);
-        Map<InetSocketAddress, Integer> hostsToWeight = new HashMap<>();
-        int prevKey = 0;
-        for (Map.Entry<Integer, InetSocketAddress> entry : weightedHosts.hosts.entrySet()) {
-            hostsToWeight.put(entry.getValue(), entry.getKey() - prevKey);
-            prevKey = entry.getKey();
-        }
-
-        // Exhaustively test all indexes
-        Map<InetSocketAddress, Integer> numTimesSelected = new HashMap<>();
-        for (int index = 0; index < weightedHosts.hosts.lastKey(); index++) {
-            InetSocketAddress host = weightedHosts.getRandomHostInternal(index);
-            if (!numTimesSelected.containsKey(host)) {
-                numTimesSelected.put(host, 0);
-            }
-            numTimesSelected.put(host, numTimesSelected.get(host) + 1);
-        }
-
-        assertEquals(hostsToWeight, numTimesSelected);
-    }
-
-    private static CassandraClientPoolingContainer createMockClientPoolingContainerWithUtilization(int utilization) {
-        CassandraClientPoolingContainer mock = Mockito.mock(CassandraClientPoolingContainer.class);
-        Mockito.when(mock.getOpenRequests()).thenReturn(utilization);
-        return mock;
-    }
+            client -> client.describe_ring("atlasdb");
 }

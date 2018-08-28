@@ -15,8 +15,9 @@
  */
 package com.palantir.paxos;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -37,13 +38,13 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.DelegatingInvocationHandler;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.remoting3.tracing.Tracers;
 
 public class PaxosConsensusFastTest {
-
-    private final int NUM_POTENTIAL_LEADERS = 6;
-    private final int QUORUM_SIZE = 4;
     private PaxosTestState state;
+
+    private static final int NUM_POTENTIAL_LEADERS = 6;
+    private static final int QUORUM_SIZE = 4;
+
 
     @Before
     public void setup() {
@@ -89,64 +90,65 @@ public class PaxosConsensusFastTest {
 
     @Test
     public void loseQuorum() {
-        LeadershipToken t = state.gainLeadership(0);
+        LeadershipToken token = state.gainLeadership(0);
         for (int i = 1; i < NUM_POTENTIAL_LEADERS - QUORUM_SIZE + 2; i++) {
             state.goDown(i);
         }
-        assertFalse(
-                "leader cannot maintain leadership withou quorum",
-                state.leader(0).isStillLeading(t) == StillLeadingStatus.LEADING);
+        assertNotSame("leader cannot maintain leadership without quorum",
+                state.leader(0).isStillLeading(token), StillLeadingStatus.LEADING);
         state.comeUp(1);
         state.gainLeadership(0);
-        assertTrue("leader can confirm leadership with quorum", state.leader(0).isStillLeading(t) != StillLeadingStatus.NOT_LEADING);
+        assertNotSame("leader can confirm leadership with quorum",
+                state.leader(0).isStillLeading(token), StillLeadingStatus.NOT_LEADING);
     }
 
     @Test
     public void loseQuorumMany() {
-        for (int i = 0 ; i < 100 ; i++) {
+        for (int i = 0; i < 100; i++) {
             loseQuorum();
         }
     }
 
     @Test
     public void loseQuorumDiffTokenMany() throws InterruptedException {
-        for (int i = 0 ; i < 100 ; i++) {
+        for (int i = 0; i < 100; i++) {
             loseQuorumDiffToken();
         }
     }
 
     @Test
     public void loseQuorumDiffToken() throws InterruptedException {
-        for (int i = QUORUM_SIZE; i < NUM_POTENTIAL_LEADERS ; i++) {
+        for (int i = QUORUM_SIZE; i < NUM_POTENTIAL_LEADERS; i++) {
             state.goDown(i);
         }
-        LeadershipToken t = state.gainLeadership(0);
+        LeadershipToken token = state.gainLeadership(0);
         state.goDown(QUORUM_SIZE - 1);
-        ExecutorService exec = Tracers.wrap(PTExecutors.newSingleThreadExecutor());
-        Future<Void> f = exec.submit(() -> {
-            int i = QUORUM_SIZE-1;
+        ExecutorService exec = PTExecutors.newSingleThreadExecutor();
+        Future<Void> future = exec.submit(() -> {
+            int it = QUORUM_SIZE - 1;
             while (!Thread.currentThread().isInterrupted()) {
-                int next = i+1;
+                int next = it + 1;
                 if (next == NUM_POTENTIAL_LEADERS) {
-                    next = QUORUM_SIZE-1;
+                    next = QUORUM_SIZE - 1;
                 }
                 state.goDown(next);
-                state.comeUp(i);
-                i = next;
+                state.comeUp(it);
+                it = next;
             }
             return null;
         });
         // Don't check leadership immediately after gaining it, since quorum might get lost.
         LeadershipToken token2 = state.gainLeadershipWithoutCheckingAfter(0);
-        assertTrue("leader can confirm leadership with quorum", t.sameAs(token2));
-        f.cancel(true);
+        assertTrue("leader can confirm leadership with quorum", token.sameAs(token2));
+        future.cancel(true);
         exec.shutdown();
         exec.awaitTermination(10, TimeUnit.SECONDS);
-        for (int i = 0; i < NUM_POTENTIAL_LEADERS ; i++) {
+        for (int i = 0; i < NUM_POTENTIAL_LEADERS; i++) {
             state.comeUp(i);
         }
     }
 
+    @SuppressWarnings("EmptyCatchBlock")
     @Test
     public void simpleLogTest() {
         String leaderUuid = "I-AM-DA-LEADER";
@@ -161,8 +163,8 @@ public class PaxosConsensusFastTest {
         try {
             byte[] bytes = log.readRound(seq);
             assertNotNull(bytes);
-            PaxosValue p = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
-            assertTrue(p.getLeaderUUID().equals(leaderUuid));
+            PaxosValue paxosValue = PaxosValue.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            assertEquals(paxosValue.getLeaderUUID(), leaderUuid);
         } catch (IOException e1) {
             fail("IO exception when reading log");
         }
@@ -170,7 +172,8 @@ public class PaxosConsensusFastTest {
         // cleanup
         try {
             FileUtils.deleteDirectory(new File(dir));
-        } catch (Exception e) {}
+        } catch (Exception ignored) {
+        }
     }
 
     @Test

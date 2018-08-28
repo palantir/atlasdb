@@ -30,7 +30,7 @@ import com.palantir.atlasdb.factory.TransactionManagers
 import com.palantir.atlasdb.impl.AtlasDbServiceImpl
 import com.palantir.atlasdb.impl.TableMetadataCache
 import com.palantir.atlasdb.jackson.AtlasJacksonModule
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager
+import com.palantir.atlasdb.transaction.api.TransactionManager
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
@@ -207,15 +207,15 @@ class AtlasCoreModule implements AtlasConsoleModule {
     }
 
     public connect(String yamlFilePath) {
-        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath)))
+        setupConnection(AtlasDbConfigs.load(new File(yamlFilePath), AtlasDbConfig.class))
     }
 
     public connectInline(String fileContents) {
-        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null))
+        setupConnection(AtlasDbConfigs.loadFromString(fileContents, null, AtlasDbConfig.class))
     }
 
     private setupConnection(AtlasDbConfig config) {
-        SerializableTransactionManager tm = TransactionManagers.builder()
+        TransactionManager tm = TransactionManagers.builder()
                 .config(config)
                 .userAgent("atlasdb console")
                 .globalMetricsRegistry(new MetricRegistry())

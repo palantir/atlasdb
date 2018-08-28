@@ -21,7 +21,6 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,26 +28,33 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.Meter;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 
+@SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {
 
     public static final int DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS = 5;
     private static final Logger log = LoggerFactory.getLogger(PaxosQuorumChecker.class);
     private static final String PAXOS_MESSAGE_ERROR =
-                    "We encountered an error while trying to request an acknowledgement from another paxos node. " +
-                    "This could mean the node is down, or we cannot connect to it for some other reason.";
+            "We encountered an error while trying to request an acknowledgement from another paxos node."
+                    + " This could mean the node is down, or we cannot connect to it for some other reason.";
 
     // used to cancel outstanding reqeusts after we have already achieved a quorum or otherwise finished collecting
     // responses
-    private static final ScheduledExecutorService CANCELLATION_EXECUTOR = Executors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService CANCELLATION_EXECUTOR = PTExecutors.newSingleThreadScheduledExecutor(
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
+
+    private static final Meter cancelOutstandingRequestNoOp =  new Meter();
+    private static final Meter cancelOutstandingRequestSuccess = new Meter();
 
     private PaxosQuorumChecker() {
         // Private constructor. Disallow instantiation.
@@ -221,9 +227,21 @@ public final class PaxosQuorumChecker {
         // throwing exceptions
         CANCELLATION_EXECUTOR.schedule(() -> {
             for (Future<?> future : responseFutures) {
-                future.cancel(true);
+                boolean isCanceled = future.cancel(true);
+                if (isCanceled) {
+                    cancelOutstandingRequestSuccess.mark();
+                } else {
+                    cancelOutstandingRequestNoOp.mark();
+                }
             }
         }, OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+
+        if (log.isDebugEnabled() && shouldLogCancellationStatus()) {
+            log.debug("Quorum checker canceled pending requests"
+                    + ". Rate of successful cancellations: {}, rate of no-op cancellations: {}",
+                    SafeArg.of("rateCancelled", cancelOutstandingRequestSuccess.getOneMinuteRate()),
+                    SafeArg.of("rateNoOpCancellation", cancelOutstandingRequestNoOp.getOneMinuteRate()));
+        }
     }
 
     public static boolean hasQuorum(List<? extends PaxosResponse> responses, int quorumSize) {
@@ -242,5 +260,9 @@ public final class PaxosQuorumChecker {
 
     private static boolean hasAnyDisagreements(List<PaxosResponse> responses) {
         return responses.stream().anyMatch(response -> !response.isSuccessful());
+    }
+
+    private static boolean shouldLogCancellationStatus() {
+        return Math.random() < 0.01;
     }
 }

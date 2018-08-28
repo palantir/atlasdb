@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -57,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -211,7 +208,7 @@ public final class SchemaApiTestTable implements
                 return false;
             }
             SchemaApiTestRow other = (SchemaApiTestRow) obj;
-            return Objects.equal(component1, other.component1);
+            return Objects.equals(component1, other.component1);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -522,18 +519,6 @@ public final class SchemaApiTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn1UnlessExists(SchemaApiTestRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column1.of(value)));
-    }
-
-    public void putColumn1UnlessExists(Map<SchemaApiTestRow, Long> map) {
-        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column1.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     public void putColumn2(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
         put(ImmutableMultimap.of(row, Column2.of(value)));
     }
@@ -546,18 +531,6 @@ public final class SchemaApiTestTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2UnlessExists(SchemaApiTestRow row, com.palantir.atlasdb.table.description.test.StringValue value) {
-        putUnlessExists(ImmutableMultimap.of(row, Column2.of(value)));
-    }
-
-    public void putColumn2UnlessExists(Map<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> map) {
-        Map<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SchemaApiTestRow, com.palantir.atlasdb.table.description.test.StringValue> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column2.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -565,20 +538,6 @@ public final class SchemaApiTestTable implements
         for (SchemaApiTestTrigger trigger : triggers) {
             trigger.putSchemaApiTest(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> rows) {
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SchemaApiTestRow, SchemaApiTestNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SchemaApiTestRow, ? extends SchemaApiTestNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteColumn1(SchemaApiTestRow row) {
@@ -798,11 +757,8 @@ public final class SchemaApiTestTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -877,5 +833,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Zz41MJU+YZOGsjp4b1BexQ==";
+    static String __CLASS_HASH = "gJjGs7nehodvK83lsXBdyA==";
 }

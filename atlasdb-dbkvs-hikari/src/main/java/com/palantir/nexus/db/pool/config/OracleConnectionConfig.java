@@ -15,9 +15,6 @@
  */
 package com.palantir.nexus.db.pool.config;
 
-import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCP;
-import static com.palantir.nexus.db.pool.config.ConnectionProtocol.TCPS;
-
 import java.io.File;
 import java.util.Map;
 import java.util.Optional;
@@ -46,19 +43,18 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
     public abstract int getPort();
 
     @Override
-    @Value.Derived
-    @JsonIgnore
+    @Value.Default
     public String getUrl() {
         if (getServerDn().isPresent()) {
-            return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +
-                            "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))" +
-                            "(CONNECT_DATA=(SID=%s))" +
-                            "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
+            return String.format("jdbc:oracle:thin:@(DESCRIPTION="
+                            + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
+                            + "(CONNECT_DATA=(SID=%s))"
+                            + "(SECURITY=(SSL_SERVER_CERT_DN=\"%s\")))",
                     getProtocol().getUrlString(), getHost(), getPort(), getSid(), getServerDn().get());
         } else {
-            return String.format("jdbc:oracle:thin:@(DESCRIPTION=" +
-                            "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))" +
-                            "(CONNECT_DATA=(SID=%s)))",
+            return String.format("jdbc:oracle:thin:@(DESCRIPTION="
+                            + "(ADDRESS=(PROTOCOL=%s)(HOST=%s)(PORT=%s))"
+                            + "(CONNECT_DATA=(SID=%s)))",
                     getProtocol().getUrlString(), getHost(), getPort(), getSid());
         }
     }
@@ -107,7 +103,7 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Value.Default
     public ConnectionProtocol getProtocol() {
-        return TCP;
+        return ConnectionProtocol.TCP;
     }
 
     public abstract Optional<String> getKeystorePassword();
@@ -127,13 +123,15 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
         props.setProperty("password", getDbPassword().unmasked());
 
         props.setProperty("oracle.net.keepAlive", "true");
-        props.setProperty("oracle.jdbc.ReadTimeout", Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));
+        props.setProperty("oracle.jdbc.ReadTimeout",
+                Long.toString(TimeUnit.SECONDS.toMillis(getSocketTimeoutSeconds())));
 
-        props.setProperty("oracle.net.CONNECT_TIMEOUT", Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
+        props.setProperty("oracle.net.CONNECT_TIMEOUT",
+                Long.toString(TimeUnit.SECONDS.toMillis(getConnectionTimeoutSeconds())));
 
         props.setProperty("oracle.jdbc.maxCachedBufferSize", "100000");
 
-        if (getProtocol() == TCPS) {
+        if (getProtocol() == ConnectionProtocol.TCPS) {
             // Create the truststore
             File clientTrustore = new File(getTruststorePath().get());
             props.setProperty("javax.net.ssl.trustStore", clientTrustore.getAbsolutePath());
@@ -169,25 +167,36 @@ public abstract class OracleConnectionConfig extends ConnectionConfig {
 
     @Value.Check
     protected final void check() {
-        if (getProtocol() == TCPS) {
-            Preconditions.checkArgument(getTruststorePath().isPresent(), "tcps requires a truststore");
-            Preconditions.checkArgument(new File(getTruststorePath().get()).exists(), "truststore file not found at %s", getTruststorePath().get());
-            Preconditions.checkArgument(getTruststorePassword().isPresent(), "tcps requires a truststore password");
+        if (getProtocol() == ConnectionProtocol.TCPS) {
+            Preconditions.checkArgument(getTruststorePath().isPresent(),
+                    "ConnectionProtocol.TCPS requires a truststore");
+            Preconditions.checkArgument(new File(getTruststorePath().get()).exists(),
+                    "truststore file not found at %s", getTruststorePath().get());
+            Preconditions.checkArgument(getTruststorePassword().isPresent(),
+                    "ConnectionProtocol.TCPS requires a truststore password");
             if (getTwoWaySsl()) {
                 Preconditions.checkArgument(getKeystorePath().isPresent(), "two way ssl requires a keystore");
-                Preconditions.checkArgument(new File(getKeystorePath().get()).exists(), "keystore file not found at %s", getKeystorePath().get());
-                Preconditions.checkArgument(getKeystorePassword().isPresent(), "two way ssl requires a keystore password");
+                Preconditions.checkArgument(new File(getKeystorePath().get()).exists(),
+                        "keystore file not found at %s", getKeystorePath().get());
+                Preconditions.checkArgument(getKeystorePassword().isPresent(),
+                        "two way ssl requires a keystore password");
             }
             if (!getServerDn().isPresent()) {
                 Preconditions.checkArgument(!getMatchServerDn(), "cannot force match server dn without a server dn");
             }
         } else {
-            Preconditions.checkArgument(!getTwoWaySsl(), "two way ssl cannot be enabled without enabling tcps");
-            Preconditions.checkArgument(!getServerDn().isPresent(), "a server dn cannot be given without enabling tcps");
-            Preconditions.checkArgument(!getTruststorePath().isPresent(), "a truststore path cannot be given without enabling tcps");
-            Preconditions.checkArgument(!getTruststorePassword().isPresent(), "a truststore password cannot be given without enabling tcps");
-            Preconditions.checkArgument(!getKeystorePath().isPresent(), "a keystore file cannot be given without enabling tcps");
-            Preconditions.checkArgument(!getKeystorePassword().isPresent(), "a keystore password without enabling tcps");
+            Preconditions.checkArgument(!getTwoWaySsl(),
+                    "two way ssl cannot be enabled without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(!getServerDn().isPresent(),
+                    "a server dn cannot be given without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(!getTruststorePath().isPresent(),
+                    "a truststore path cannot be given without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(!getTruststorePassword().isPresent(),
+                    "a truststore password cannot be given without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(!getKeystorePath().isPresent(),
+                    "a keystore file cannot be given without enabling ConnectionProtocol.TCPS");
+            Preconditions.checkArgument(!getKeystorePassword().isPresent(),
+                    "a keystore password without enabling ConnectionProtocol.TCPS");
         }
     }
 }

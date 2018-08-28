@@ -15,43 +15,42 @@
  */
 package com.palantir.atlasdb.cache;
 
-import java.util.concurrent.ConcurrentMap;
-
 import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
-/**
- * This class just here for readability and not directly leaking / tying us down to a Guava class in our API.
- */
 public class TimestampCache {
     private final Supplier<Long> size;
 
-    private volatile Cache<Long, Long> startToCommitTimestampCache;
+    private final Cache<Long, Long> startToCommitTimestampCache;
+    private final Policy.Eviction<Long, Long> evictionPolicy;
 
     @VisibleForTesting
     static Cache<Long, Long> createCache(long size) {
-        return CacheBuilder.newBuilder()
+        return Caffeine.newBuilder()
                 .maximumSize(size)
                 .recordStats()
                 .build();
     }
 
-    public TimestampCache(Supplier<Long> size) {
+    public TimestampCache(MetricRegistry metricRegistry, Supplier<Long> size) {
         this.size = size;
         startToCommitTimestampCache = createCache(size.get());
-        AtlasDbMetrics.registerCache(startToCommitTimestampCache,
+        evictionPolicy = startToCommitTimestampCache.policy().eviction().get();
+        AtlasDbMetrics.registerCache(metricRegistry, startToCommitTimestampCache,
                 MetricRegistry.name(TimestampCache.class, "startToCommitTimestamp"));
     }
 
     @VisibleForTesting
     TimestampCache(Cache<Long, Long> cache) {
-        this.size = null;
+        this.evictionPolicy = cache.policy().eviction().get();
+        this.size = evictionPolicy::getMaximum;
         this.startToCommitTimestampCache = cache;
     }
 
@@ -63,7 +62,14 @@ public class TimestampCache {
      */
     @Nullable
     public Long getCommitTimestampIfPresent(Long startTimestamp) {
+        resizeIfNecessary();
         return startToCommitTimestampCache.getIfPresent(startTimestamp);
+    }
+
+    private void resizeIfNecessary() {
+        if (evictionPolicy.getMaximum() != size.get()) {
+            evictionPolicy.setMaximum(size.get());
+        }
     }
 
     /**
@@ -84,11 +90,7 @@ public class TimestampCache {
         startToCommitTimestampCache.invalidateAll();
     }
 
-    // TODO(2565): create a background thread periodically polls the supplier to look for a change and
-    // resizes accordingly.
-    private void resize(long newSize) {
-        ConcurrentMap<Long, Long> existing = startToCommitTimestampCache.asMap();
-        startToCommitTimestampCache = createCache(newSize);
-        startToCommitTimestampCache.putAll(existing);
+    public static TimestampCache createForTests() {
+        return new TimestampCache(new MetricRegistry(), () -> 1000L);
     }
 }

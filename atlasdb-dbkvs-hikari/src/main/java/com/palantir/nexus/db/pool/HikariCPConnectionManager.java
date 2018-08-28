@@ -46,6 +46,7 @@ import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
  *
  * @author dstipp
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final Logger log = LoggerFactory.getLogger(HikariCPConnectionManager.class);
 
@@ -68,7 +69,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         final HikariPoolMXBean poolProxy;
         final Throwable closeTrace;
 
-        public State(StateType type, HikariDataSource dataSourcePool, HikariPoolMXBean poolProxy, Throwable closeTrace) {
+        State(StateType type, HikariDataSource dataSourcePool, HikariPoolMXBean poolProxy, Throwable closeTrace) {
             this.type = type;
             this.dataSourcePool = dataSourcePool;
             this.poolProxy = poolProxy;
@@ -79,7 +80,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private volatile State state = new State(StateType.ZERO, null, null, null);
 
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
-        this.connConfig = Preconditions.checkNotNull(connConfig);
+        this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
     }
 
     @Override
@@ -302,7 +303,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 String tzname = TimeZone.getDefault().getID();
 
                 final String errorPreamble = "Invalid system timezone " + tzname + " detected.";
-                final String errorAfterward = "This can be corrected at the system level or overridden in the JVM startup flags by appending -Duser.timezone=UTC. Contact support for more information.";
+                final String errorAfterward = "This can be corrected at the system level or overridden in the JVM "
+                        + "startup flags by appending -Duser.timezone=UTC. Contact support for more information.";
 
                 if (tzname.equals("Etc/Universal")) {
                     // Really common failure case. UTC is both a name AND an abbreviation.
@@ -330,15 +332,16 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
      * Setup JMX client.  This is only used for trace logging.
      */
     private HikariPoolMXBean initPoolMbeans() {
-        MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+        MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
         ObjectName poolName = null;
         try {
-            poolName = new ObjectName("com.zaxxer.hikari:type=Pool (" + "db-pool-" + connConfig.getConnId() + "-" + connConfig.getDbLogin() + ")");
+            poolName = new ObjectName("com.zaxxer.hikari:type=Pool (" + "db-pool-" + connConfig.getConnId() + "-"
+                    + connConfig.getDbLogin() + ")");
         } catch (MalformedObjectNameException e) {
             log.error("Unable to setup mBean monitoring for pool.", e);
         }
-        return JMX.newMBeanProxy(mBeanServer, poolName, HikariPoolMXBean.class);
+        return JMX.newMBeanProxy(mbeanServer, poolName, HikariPoolMXBean.class);
     }
 
     @Override

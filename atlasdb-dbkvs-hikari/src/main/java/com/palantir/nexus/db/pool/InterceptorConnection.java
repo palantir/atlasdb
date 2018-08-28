@@ -32,10 +32,11 @@ import com.google.common.reflect.AbstractInvocationHandler;
 /**
  * Allows you to intercept and override methods in {@link java.sql.Connection}.
  */
-public class InterceptorConnection extends AbstractInvocationHandler implements InvocationHandler {
+public final class InterceptorConnection extends AbstractInvocationHandler implements InvocationHandler {
     private final Connection delegate;
 
-    private static final Map<String, Class<? extends Statement>> INTERCEPT_METHODS = ImmutableMap.<String, Class<? extends Statement>>builder()
+    private static final Map<String, Class<? extends Statement>> INTERCEPT_METHODS
+            = ImmutableMap.<String, Class<? extends Statement>>builder()
             .put("createStatement", Statement.class)
             .put("prepareCall", CallableStatement.class)
             .put("prepareStatement", PreparedStatement.class)

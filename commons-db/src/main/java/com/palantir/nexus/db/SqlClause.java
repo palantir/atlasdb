@@ -23,8 +23,8 @@ public class SqlClause {
     private final String clause;
 
     public SqlClause(String key, String clause) {
-        Validate.notNull(key);
-        Validate.notNull(clause);
+        Validate.notNull(key, "key should not be null");
+        Validate.notNull(clause, "clause should not be null");
         this.key = key;
         this.clause = clause;
     }

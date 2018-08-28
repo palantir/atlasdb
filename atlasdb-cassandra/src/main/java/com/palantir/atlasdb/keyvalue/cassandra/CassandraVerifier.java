@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.Cassandra.Client;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
@@ -57,12 +55,12 @@ public final class CassandraVerifier {
     }
 
     static final FunctionCheckedException<CassandraClient, Void, Exception> healthCheck = client -> {
-        client.rawClient().describe_version();
+        client.describe_version();
         return null;
     };
 
     static Set<String> sanityCheckDatacenters(
-            Cassandra.Client client, CassandraKeyValueServiceConfig config)
+            CassandraClient client, CassandraKeyValueServiceConfig config)
             throws TException {
         Set<String> hosts = Sets.newHashSet();
         Multimap<String, String> dataCenterToRack = HashMultimap.create();
@@ -115,11 +113,13 @@ public final class CassandraVerifier {
         return dataCenterToRack.keySet();
     }
 
+    @SuppressWarnings("ValidateConstantMessage") // https://github.com/palantir/gradle-baseline/pull/175
     static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
                 || AtlasDbConstants.hiddenTables.contains(tableRef)
-                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX), "invalid tableName: " + tableName);
+                || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                "invalid tableName: %s", tableName);
     }
 
     /**
@@ -196,7 +196,7 @@ public final class CassandraVerifier {
     private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
         try {
-            Client client = CassandraClientFactory.getClientInternal(host, config);
+            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
             client.describe_keyspace(config.getKeyspaceOrThrow());
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
@@ -211,7 +211,7 @@ public final class CassandraVerifier {
 
     private static void attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        Client client = CassandraClientFactory.getClientInternal(host, config);
+        CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
         KsDef ks = new KsDef(config.getKeyspaceOrThrow(), CassandraConstants.NETWORK_STRATEGY,
                 ImmutableList.of());
         checkAndSetReplicationFactor(
@@ -244,12 +244,12 @@ public final class CassandraVerifier {
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
         clientPool.runWithRetry((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.rawClient().describe_keyspace(config.getKeyspaceOrThrow());
+            KsDef originalKsDef = client.describe_keyspace(config.getKeyspaceOrThrow());
             // there was an existing keyspace
             // check and make sure it's definition is up to date with our config
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             checkAndSetReplicationFactor(
-                    client.rawClient(),
+                    client,
                     modifiedKsDef,
                     false,
                     config);
@@ -257,10 +257,10 @@ public final class CassandraVerifier {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.rawClient().system_update_keyspace(modifiedKsDef);
+                client.system_update_keyspace(modifiedKsDef);
                 CassandraKeyValueServices.waitForSchemaVersions(
                         config,
-                        client.rawClient(),
+                        client,
                         "(updating the existing keyspace)");
             }
 
@@ -269,7 +269,7 @@ public final class CassandraVerifier {
     }
 
     private static void checkAndSetReplicationFactor(
-            Cassandra.Client client,
+            CassandraClient client,
             KsDef ks,
             boolean freshInstance,
             CassandraKeyValueServiceConfig config) throws TException {
@@ -310,7 +310,7 @@ public final class CassandraVerifier {
         sanityCheckReplicationFactor(ks, config, dcs);
     }
 
-    static void currentRfOnKeyspaceMatchesDesiredRf(Cassandra.Client client, CassandraKeyValueServiceConfig config)
+    static void currentRfOnKeyspaceMatchesDesiredRf(CassandraClient client, CassandraKeyValueServiceConfig config)
             throws TException {
         KsDef ks = client.describe_keyspace(config.getKeyspaceOrThrow());
         Set<String> dcs = sanityCheckDatacenters(client, config);
@@ -339,7 +339,7 @@ public final class CassandraVerifier {
     static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
             underlyingCassandraClusterSupportsCASOperations = client -> {
                 try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.rawClient().describe_version());
+                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
                     log.debug("Connected cassandra thrift version is: {}",
                             SafeArg.of("cassandraVersion", serverVersion));
                     return serverVersion.supportsCheckAndSet();

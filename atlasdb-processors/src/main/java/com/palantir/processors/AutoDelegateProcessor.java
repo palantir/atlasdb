@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -247,13 +248,18 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         for (ExecutableElement methodElement : typeToExtend.getMethods()) {
             String returnStatement = (methodElement.getReturnType().getKind() == TypeKind.VOID) ? "" : "return ";
 
+            int numParams = methodElement.getParameters().size();
+            String callFormat = "$L$L().$L(" + joinMultiple("$L", numParams, ", ") + ")";
+            Object[] callArgs = new Object[3 + methodElement.getParameters().size()];
+            callArgs[0] = returnStatement;
+            callArgs[1] = DELEGATE_METHOD;
+            callArgs[2] = methodElement.getSimpleName();
+            for (int i = 0; i < methodElement.getParameters().size(); ++i) {
+                callArgs[i + 3] = methodElement.getParameters().get(i);
+            }
             MethodSpec.Builder method = MethodSpec
                     .overriding(methodElement)
-                    .addStatement("$L$L().$L($L)",
-                            returnStatement,
-                            DELEGATE_METHOD,
-                            methodElement.getSimpleName(),
-                            methodElement.getParameters());
+                    .addStatement(callFormat, callArgs);
             if (typeToExtend.isInterface()) {
                 method.addModifiers(Modifier.DEFAULT);
             }
@@ -285,5 +291,9 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
      */
     private void error(Element element, String msg) {
         messager.printMessage(Diagnostic.Kind.ERROR, msg, element);
+    }
+
+    private static String joinMultiple(String string, int times, String delimiter) {
+        return Stream.generate(() -> string).limit(times).collect(Collectors.joining(delimiter));
     }
 }

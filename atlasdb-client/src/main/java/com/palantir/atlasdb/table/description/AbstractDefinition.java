@@ -22,8 +22,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ExpirationStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.PartitionStrategy;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
@@ -36,10 +34,8 @@ abstract class AbstractDefinition {
             ValueType.SIZED_BLOB);
 
     CachePriority cachePriority = CachePriority.WARM;
-    PartitionStrategy partitionStrategy = PartitionStrategy.ORDERED;
     ConflictHandler conflictHandler = defaultConflictHandler();
     SweepStrategy sweepStrategy = SweepStrategy.CONSERVATIVE;
-    ExpirationStrategy expirationStrategy = ExpirationStrategy.NEVER;
     boolean ignoreHotspottingChecks = false;
     boolean explicitCompressionRequested = false;
     int explicitCompressionBlockSizeKb = 0;
@@ -51,20 +47,8 @@ abstract class AbstractDefinition {
         this.cachePriority = priority;
     }
 
-    public void partitionStrategy(PartitionStrategy strat) {
-        partitionStrategy = strat;
-    }
-
     public void conflictHandler(ConflictHandler handler) {
         conflictHandler = handler;
-    }
-
-    public void expirationStrategy(ExpirationStrategy strategy) {
-        expirationStrategy = strategy;
-    }
-
-    public ExpirationStrategy getExpirationStrategy() {
-        return expirationStrategy;
     }
 
     public void sweepStrategy(SweepStrategy strategy) {

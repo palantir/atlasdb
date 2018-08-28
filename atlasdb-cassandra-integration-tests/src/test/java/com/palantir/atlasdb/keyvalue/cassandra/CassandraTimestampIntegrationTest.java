@@ -19,23 +19,30 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigManager;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
+@ShouldRetry
 public class CassandraTimestampIntegrationTest {
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
             .with(new CassandraContainer());
 
-    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            CassandraKeyValueServiceConfigManager.createSimpleManager(CassandraContainer.KVS_CONFIG),
+    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
+            CassandraContainer.KVS_CONFIG,
             CassandraContainer.LEADER_CONFIG);
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
+            CassandraContainer.KVS_CONFIG);
 
     @Before
     public void setUp() {

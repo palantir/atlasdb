@@ -20,9 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Ticker;
@@ -31,18 +28,16 @@ import com.palantir.atlasdb.qos.QueryWeight;
 import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
-import com.palantir.atlasdb.qos.ratelimit.RateLimitExceededException;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.remoting.api.errors.QosException;
 
 public class AtlasDbQosClient implements QosClient {
-
-    private static final Logger log = LoggerFactory.getLogger(AtlasDbQosClient.class);
-
     private final QosRateLimiters rateLimiters;
     private final QosMetrics metrics;
     private final Ticker ticker;
 
-    public static AtlasDbQosClient create(QosRateLimiters rateLimiters) {
-        return new AtlasDbQosClient(rateLimiters, new QosMetrics(), Ticker.systemTicker());
+    public static AtlasDbQosClient create(MetricsManager metrics, QosRateLimiters rateLimiters) {
+        return new AtlasDbQosClient(rateLimiters, new QosMetrics(metrics), Ticker.systemTicker());
     }
 
     @VisibleForTesting
@@ -77,8 +72,8 @@ public class AtlasDbQosClient implements QosClient {
                 Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
                 metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
             }
-        } catch (RateLimitExceededException ex) {
-            metrics.recordRateLimitedException();
+        } catch (QosException.Throttle ex) {
+            metrics.recordThrottleExceptions();
             throw ex;
         }
 
@@ -98,4 +93,12 @@ public class AtlasDbQosClient implements QosClient {
         }
     }
 
+    @Override
+    public void close() {
+        try {
+            rateLimiters.read().close();
+        } finally {
+            rateLimiters.write().close();
+        }
+    }
 }

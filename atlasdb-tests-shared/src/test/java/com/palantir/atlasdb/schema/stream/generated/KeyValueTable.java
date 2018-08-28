@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -57,11 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -211,7 +208,7 @@ public final class KeyValueTable implements
                 return false;
             }
             KeyValueRow other = (KeyValueRow) obj;
-            return Objects.equal(key, other.key);
+            return Objects.equals(key, other.key);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -418,18 +415,6 @@ public final class KeyValueTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putStreamIdUnlessExists(KeyValueRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, StreamId.of(value)));
-    }
-
-    public void putStreamIdUnlessExists(Map<KeyValueRow, Long> map) {
-        Map<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<KeyValueRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), StreamId.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -437,20 +422,6 @@ public final class KeyValueTable implements
         for (KeyValueTrigger trigger : triggers) {
             trigger.putKeyValue(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    @Override
-    public void putUnlessExists(Multimap<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> rows) {
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<KeyValueRow, KeyValueNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<KeyValueRow, ? extends KeyValueNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteStreamId(KeyValueRow row) {
@@ -610,11 +581,8 @@ public final class KeyValueTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
@@ -689,5 +657,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FywAYzLeV7fRBQjGFBX/nQ==";
+    static String __CLASS_HASH = "yq2eXKtO//M5nxFkoep7Tw==";
 }

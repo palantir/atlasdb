@@ -1,0 +1,13 @@
+client-limits:
+  test:
+    limits:
+      readBytesPerSecond: 10
+      writeBytesPerSecond: 20
+  test2:
+    limits:
+      readBytesPerSecond: 30
+      writeBytesPerSecond: 40
+  test3:
+    limits:
+      readBytesPerSecond: 50
+      writeBytesPerSecond: 50

@@ -54,11 +54,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.api.AtlasDbDynamicMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbMutableExpiringTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
-import com.palantir.atlasdb.table.api.AtlasDbNamedExpiringSet;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedPersistentSet;
 import com.palantir.atlasdb.table.api.ColumnValue;
@@ -488,17 +485,14 @@ public final class ValueStreamIdxTable implements
         }
     }
 
-    @Override
     public void putUnlessExists(ValueStreamIdxRow rowName, Iterable<ValueStreamIdxColumnValue> values) {
         putUnlessExists(ImmutableMultimap.<ValueStreamIdxRow, ValueStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
-    @Override
     public void putUnlessExists(ValueStreamIdxRow rowName, ValueStreamIdxColumnValue... values) {
         putUnlessExists(ImmutableMultimap.<ValueStreamIdxRow, ValueStreamIdxColumnValue>builder().putAll(rowName, values).build());
     }
 
-    @Override
     public void putUnlessExists(Multimap<ValueStreamIdxRow, ? extends ValueStreamIdxColumnValue> rows) {
         Multimap<ValueStreamIdxRow, ValueStreamIdxColumn> toGet = Multimaps.transformValues(rows, ValueStreamIdxColumnValue.getColumnNameFun());
         Multimap<ValueStreamIdxRow, ValueStreamIdxColumnValue> existing = get(toGet);
