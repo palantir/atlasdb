@@ -281,6 +281,53 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
     }
 
+    @Override
+    public void deleteAllTimestamps(Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
+        List<Object[]> args = Lists.newArrayListWithCapacity(maxTimestampExclusiveByCell.size());
+        long minTsToDelete = getLowerBound(deleteSentinels);
+        maxTimestampExclusiveByCell.forEach((cell, ts) ->
+                args.add(new Object[] {cell.getRowName(), cell.getColumnName(), minTsToDelete, ts}));
+
+        switch (config.overflowMigrationState()) {
+            case UNSTARTED:
+                deleteAllTimestampsOverflow(config.singleOverflowTable(), args);
+                break;
+            case IN_PROGRESS:
+                deleteAllTimestampsOverflow(config.singleOverflowTable(), args);
+                deleteAllTimestampsOverflow(getShortOverflowTableName(), args);
+                break;
+            case FINISHING: // fall through
+            case FINISHED:
+                deleteAllTimestampsOverflow(getShortOverflowTableName(), args);
+                break;
+            default:
+                throw new EnumConstantNotPresentException(
+                        OverflowMigrationState.class, config.overflowMigrationState().name());
+        }
+        String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
+        SqlConnection conn = conns.get();
+        try {
+            log.info("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
+                    shortTableName,
+                    conn.getUnderlyingConnection(),
+                    conn.getUnderlyingConnection().getAutoCommit());
+        } catch (PalantirSqlException | SQLException e) {
+            //
+        }
+        conn.updateManyUnregisteredQuery(" /* DELETE_ALL_TS (" + shortTableName + ") */ "
+                        + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
+                        + " FROM " + shortTableName + " m "
+                        + " WHERE m.row_name = ? "
+                        + "  AND m.col_name = ? "
+                        + "  AND m.ts >= ? "
+                        + "  AND m.ts < ?",
+                args);
+    }
+
+    private long getLowerBound(boolean includeSentinels) {
+        return includeSentinels ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
+    }
+
     private void deleteOverflow(String overflowTable, List<Object[]> args) {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ONE_OVERFLOW (" + overflowTable + ") */ "
@@ -323,6 +370,22 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
 
         // execute the query
         conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
+    private void deleteAllTimestampsOverflow(String overflowTable, List<Object[]> args) {
+        String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ALL_TS_OVERFLOW (" + overflowTable + ") */ "
+                + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(overflowTable) + ") */ "
+                + "   FROM " + overflowTable + " m "
+                + "  WHERE m.id IN (SELECT /*+ INDEX(i " + PrimaryKeyConstraintNames.get(shortTableName) + ") */ "
+                + "                        i.overflow "
+                + "                   FROM " + shortTableName + " i "
+                + "                  WHERE i.row_name = ? "
+                + "                    AND i.col_name = ? "
+                + "                    AND i.ts >= ? "
+                + "                    AND i.ts < ? "
+                + "                    AND i.overflow IS NOT NULL)",
+                args);
     }
 
     private String getShortTableName() {

@@ -44,7 +44,9 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public class ProfilingCassandraClientTest {
-    private static final CqlQuery CQL_QUERY = new CqlQuery("SELECT * FROM atlasdb.foo LIMIT 1;");
+    private static final CqlQuery CQL_QUERY = CqlQuery.builder()
+            .safeQueryFormat("SELECT * FROM atlasdb.foo LIMIT 1;")
+            .build();
 
     private final CassandraClient delegate = mock(CassandraClient.class);
     private final CassandraClient profilingClient = new ProfilingCassandraClient(delegate);

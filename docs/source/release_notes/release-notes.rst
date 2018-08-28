@@ -54,6 +54,36 @@ develop
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
+    *    - |fixed|
+         - CQL queries are now logged correctly (with safe and unsafe arguments respected).
+           Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
+           AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
+    *    - |devbreak| |improved|
+         - CqlQuery is now an abstract class and must now be created through its builder.
+           This makes the intention that the query string provided is safe considerably more explicit.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
+    *    - |improved|
+         - DbKvs now implements its own version of ``deleteAllTimestamps`` instead of using the default AbstractKvs implementation.
+           This facilitates better performance of targeted sweep on DbKvs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3379>`__)
+
+    *    - |fixed|
+         - LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
+           Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
+
+    *    - |fixed|
+         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+    *    - |logs|
+         - Reduce logging level for locks not being refreshed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
+
 ========
 v0.101.0
 ========

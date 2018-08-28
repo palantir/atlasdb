@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -326,11 +325,13 @@ public class PaxosTimeLockServerIntegrationTest {
         long firstServiceFirstTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceFirstTimestamp = timestampService2.getFreshTimestamp();
 
+        getFortyTwoFreshTimestamps(timestampService1);
+
         long firstServiceSecondTimestamp = timestampService1.getFreshTimestamp();
         long secondServiceSecondTimestamp = timestampService2.getFreshTimestamp();
 
-        assertEquals(firstServiceFirstTimestamp + 1, firstServiceSecondTimestamp);
-        assertEquals(secondServiceFirstTimestamp + 1, secondServiceSecondTimestamp);
+        assertThat(firstServiceSecondTimestamp - firstServiceFirstTimestamp).isGreaterThanOrEqualTo(FORTY_TWO);
+        assertThat(secondServiceSecondTimestamp - secondServiceFirstTimestamp).isBetween(0L, (long) FORTY_TWO);
     }
 
     @Test

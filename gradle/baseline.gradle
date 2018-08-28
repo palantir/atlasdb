@@ -13,12 +13,18 @@ if (enableErrorProne.toBoolean()) {
     compileJava {
         options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
         options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
+
+        // I'd like to change this, but preserving log message format for now
+        options.compilerArgs += ['-Xep:CatchBlockLogException:OFF']
     }
 
     compileTestJava {
         // CheckReturnValue can be problematic for tests asserting that various Immutable objects may or may not
         // be created.
         options.compilerArgs += ['-Xep:CheckReturnValue:OFF']
+
+        // ReturnValueIgnored can be problematic for tests asserting a call to some method throws an exception.
+        options.compilerArgs += ['-Xep:ReturnValueIgnored:OFF']
     }
 }
 
