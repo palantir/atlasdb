@@ -207,7 +207,12 @@ This facilitates better performance of targeted sweep on DbKvs.
 Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3450">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+Previously, the exceptions thrown would erroneously contain <code class="docutils literal notranslate"><span class="pre">{}</span></code> values.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3468">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
 <td>Reduce logging level for locks not being refreshed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3458">Pull Request</a>)</td>
 </tr>
