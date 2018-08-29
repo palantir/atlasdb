@@ -94,8 +94,17 @@ jobs:
     steps:
       - attach_workspace: { at: . }
       - run: sudo apt-get install python python-pip
-      - run: ./scripts/circle-ci/publish-github-page.sh # Publishes external docs.
-      - run: curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH # Publishes internal docs.
+      - run:
+        command: |
+          # hack - notion of "owners" isn't supported in Circle 2
+          if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+            if [[ "${CIRCLE_TAG}" =~ develop ]]; then
+              ./scripts/circle-ci/publish-github-page.sh
+              curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
+            else
+              echo "Internal and external docs are typically published from develop, not ${CIRCLE_TAG}."
+            fi
+          fi
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
