@@ -31,4 +31,5 @@ public interface DbWriteTable {
     void update(Cell cell, long ts, byte[] oldValue, byte[] newValue);
     void delete(List<Entry<Cell, Long>> partition);
     void delete(RangeRequest range);
+    void deleteAllTimestamps(Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels);
 }

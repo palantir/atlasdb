@@ -987,7 +987,7 @@ public final class LockServiceImpl
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
-                    log.warn("Lock token {} was not properly refreshed and is now being reaped.",
+                    log.info("Lock token {} was not properly refreshed and is now being reaped.",
                             UnsafeArg.of("token", realToken));
                     unlockInternal(realToken, heldLocksMap);
                 }

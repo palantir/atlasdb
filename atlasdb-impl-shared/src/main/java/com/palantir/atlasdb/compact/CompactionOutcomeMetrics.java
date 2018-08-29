@@ -31,7 +31,7 @@ class CompactionOutcomeMetrics {
 
     CompactionOutcomeMetrics(MetricsManager metricsManager) {
         Arrays.stream(BackgroundCompactor.CompactionOutcome.values()).forEach(outcome ->
-                metricsManager.registerIfNotExists(BackgroundCompactor.class, "outcome",
+                metricsManager.registerOrGet(BackgroundCompactor.class, "outcome",
                         () -> getOutcomeCount(outcome), ImmutableMap.of("status", outcome.name())));
         reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
     }
