@@ -431,7 +431,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
-    private void upgradeFromOlderInternalSchema() {
+    @VisibleForTesting
+    void upgradeFromOlderInternalSchema() {
         try {
             Map<TableReference, byte[]> metadataForTables = getMetadataForTables();
             final Collection<CfDef> updatedCfs = Lists.newArrayListWithExpectedSize(metadataForTables.size());
