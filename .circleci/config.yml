@@ -98,11 +98,11 @@ jobs:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
-              if [[ "${CIRCLE_TAG}" =~ develop ]]; then
+              if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
                 ./scripts/circle-ci/publish-github-page.sh
                 curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
               else
-                echo "Internal and external docs are typically published from develop, not ${CIRCLE_TAG}."
+                echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
               fi
             fi
       - run:
