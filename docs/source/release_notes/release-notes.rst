@@ -54,6 +54,22 @@ develop
          - Fixed an issue where targeted sweep would fail to increase the number of shards and error out if the default number of shards was ever persisted into the progress table.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3473>`__)
 
+         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+========
+v0.102.0
+========
+
+24 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - CQL queries are now logged correctly (with safe and unsafe arguments respected).
