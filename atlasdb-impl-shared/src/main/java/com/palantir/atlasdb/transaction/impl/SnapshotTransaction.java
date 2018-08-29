@@ -304,7 +304,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
-        ensureUncommitted();
+
+        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
+            throw new CommittedTransactionException();
+        }
     }
 
     @Override
