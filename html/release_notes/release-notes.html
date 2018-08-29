@@ -186,7 +186,12 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
+Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3477">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
 Previously, the exceptions thrown would erroneously contain <code class="docutils literal notranslate"><span class="pre">{}</span></code> values.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3468">Pull Request</a>)</td>
