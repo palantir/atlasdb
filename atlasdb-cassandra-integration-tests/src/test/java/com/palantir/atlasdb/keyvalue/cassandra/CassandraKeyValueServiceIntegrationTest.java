@@ -440,6 +440,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithUpperCaseCharacters() {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
         keyValueService.put(
@@ -453,6 +454,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithOldMetadata() {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
         keyValueService.put(
