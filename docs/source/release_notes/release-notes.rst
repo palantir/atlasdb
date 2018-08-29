@@ -56,6 +56,24 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)
 
     *    - |fixed|
+         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+========
+v0.102.0
+========
+
+24 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
          - CQL queries are now logged correctly (with safe and unsafe arguments respected).
            Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
            AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
@@ -75,11 +93,6 @@ develop
          - LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
-
-    *    - |fixed|
-         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
-           Previously, the exceptions thrown would erroneously contain ``{}`` values.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
 
     *    - |logs|
          - Reduce logging level for locks not being refreshed.
