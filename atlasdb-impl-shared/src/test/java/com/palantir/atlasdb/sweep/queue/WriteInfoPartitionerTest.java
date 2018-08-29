@@ -76,9 +76,11 @@ public class WriteInfoPartitionerTest {
 
     @Test
     public void getStrategyThrowsOnUncheckedException() {
-        when(mockKvs.getMetadataForTable(any())).thenThrow(new RuntimeException());
+        RuntimeException cause = new RuntimeException("cause");
+        when(mockKvs.getMetadataForTable(any())).thenThrow(cause);
         assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
-                .isInstanceOf(UncheckedExecutionException.class);
+                .isInstanceOf(UncheckedExecutionException.class)
+                .hasCause(cause);
     }
 
     @Test
