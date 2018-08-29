@@ -64,6 +64,10 @@ develop
          - Cassandra Key Value Service now no longer logs spurious ERROR warning messages when failing to read new-format table metadata.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3478>`__)
 
+    *    - |improved|
+         - Throw more specific CommittedTransactionException when operating on a committed transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
+
 ========
 v0.102.0
 ========
