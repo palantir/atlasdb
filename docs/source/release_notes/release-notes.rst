@@ -50,14 +50,61 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
+           Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)
+
+    *    - |fixed|
+         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+    *    - |fixed|
+         - Cassandra Key Value Service now no longer logs spurious ERROR warning messages when failing to read new-format table metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3478>`__)
+
+    *    - |improved|
+         - Throw more specific CommittedTransactionException when operating on a committed transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
+
+========
+v0.102.0
+========
+
+24 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - CQL queries are now logged correctly (with safe and unsafe arguments respected).
+           Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
+           AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
+    *    - |devbreak| |improved|
+         - CqlQuery is now an abstract class and must now be created through its builder.
+           This makes the intention that the query string provided is safe considerably more explicit.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
+    *    - |improved|
+         - DbKvs now implements its own version of ``deleteAllTimestamps`` instead of using the default AbstractKvs implementation.
+           This facilitates better performance of targeted sweep on DbKvs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3379>`__)
+
     *    - |fixed|
          - LockRefreshingLockService now batches calls to refresh locks in batches of 650K.
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
-    *    - |improved|
-         - Throw more specific CommittedTransactionException when operating on a committed transaction.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
+    *    - |logs|
+         - Reduce logging level for locks not being refreshed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3458>`__)
 
 ========
 v0.101.0

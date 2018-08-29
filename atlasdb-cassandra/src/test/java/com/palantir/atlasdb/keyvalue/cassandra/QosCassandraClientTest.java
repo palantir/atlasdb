@@ -78,7 +78,9 @@ public class QosCassandraClientTest {
 
     @Test
     public void executeCqlQueryChecksLimit() throws TException, LimitExceededException {
-        CqlQuery query = new CqlQuery("SELECT * FROM test_table LIMIT 1");
+        CqlQuery query = CqlQuery.builder()
+                .safeQueryFormat("SELECT * FROM test_table LIMIT 1")
+                .build();
         client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.ANY);
 
         verify(qosClient, times(1)).executeRead(any(), any());
