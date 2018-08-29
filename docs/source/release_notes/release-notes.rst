@@ -55,6 +55,10 @@ develop
            Previously, trying to refresh a larger number of locks could trigger the 50MB limit in payload size.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3450>`__)
 
+    *    - |improved|
+         - Throw more specific CommittedTransactionException when operating on a committed transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
+
 ========
 v0.101.0
 ========
