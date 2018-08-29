@@ -11,17 +11,17 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra-integration-tests:memorySensitiveTest')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra:check')
 
-CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-test-utils:check')
 
-CONTAINER_3=(':atlasdb-perf:postgresBenchmarkTest')
+CONTAINER_3=(':atlasdb-dbkvs:check'  ':atlasdb-perf:postgresBenchmarkTest')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-integration-tests:longTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-integration-tests:longTest' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
+CONTAINER_5=(':atlasdb-cassandra-integration-tests:memorySensitiveTest' ':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check')
 
-CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
+CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest')
 
 CONTAINER_7=('compileJava' 'compileTestJava')
 
