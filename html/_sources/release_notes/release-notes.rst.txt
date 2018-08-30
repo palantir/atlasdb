@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Now correctly parses the values for `Content-Type` header.
+           For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
 
 ========
 v0.103.0
@@ -179,7 +181,7 @@ v0.101.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
 
     *    - |new| |devbreak|
-         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``. 
+         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``.
            A transaction will validate pre-commit conditions and immutable ts lock after every read operation if underlying table is thoroughly swept (Default behavior). Setting ``validateLocksOnReads`` to ``false`` will stop transaction to do the mentioned validation on read operations; causing validations to take place only at commit time for the sake of reducing number of round-trips to improve overall transaction perf.
            This change will cause a devbreak if you are constructing a ``TransactionManager`` outside of ``TransactionManagers``. This can be resolved by adding an additional boolean parameter to the constructor (``true`` if you would like to keep previous behaviour)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3414>`__)

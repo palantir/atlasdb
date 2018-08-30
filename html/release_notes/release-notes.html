@@ -186,8 +186,10 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td>&#160;</td>
-<td>&#160;</td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Now correctly parses the values for <cite>Content-Type</cite> header.
+For example, a request with the header <cite>Content-Type: text/plain;charset=iso-8859-1</cite> is now correctly decoded as plain text, instead of JSON.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3459">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
