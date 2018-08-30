@@ -304,8 +304,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
         Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
-        Preconditions.checkState(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING,
-                "Transaction must be uncommitted.");
+
+        if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
+            throw new CommittedTransactionException();
+        }
     }
 
     @Override
@@ -801,8 +803,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     int userRequestedSize,
                     ConsistentVisitor<RowResult<byte[]>, K> visitor)
                     throws K {
-                Preconditions.checkState(state.get() == State.UNCOMMITTED,
-                        "Transaction must be uncommitted.");
+                ensureUncommitted();
 
                 int requestSize = range.getBatchHint() != null ? range.getBatchHint() : userRequestedSize;
                 int preFilterBatchSize = getRequestHintToKvStore(requestSize);
@@ -996,7 +997,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private <T> SortedMap<Cell, T> postFilterRows(TableReference tableRef,
                                                   List<RowResult<Value>> rangeRows,
                                                   Function<Value, T> transformer) {
-        Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
+        ensureUncommitted();
 
         if (rangeRows.isEmpty()) {
             return ImmutableSortedMap.of();
@@ -1182,7 +1183,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         numWriters.incrementAndGet();
         try {
             // We need to check the status after incrementing writers to ensure that we fail if we are committing.
-            Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
+            ensureUncommitted();
 
             ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
 
@@ -1228,7 +1229,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
         while (true) {
-            Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
+            ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
                     throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
@@ -1249,6 +1250,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return state.get() == State.UNCOMMITTED;
     }
 
+    private void ensureUncommitted() {
+        if (!isUncommitted()) {
+            throw new CommittedTransactionException();
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     /// Committing
     ///////////////////////////////////////////////////////////////////////////
@@ -1267,7 +1274,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             throw new IllegalStateException("this transaction has already failed");
         }
         while (true) {
-            Preconditions.checkState(state.get() == State.UNCOMMITTED, "Transaction must be uncommitted.");
+            ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.COMMITTING)) {
                 break;
             }

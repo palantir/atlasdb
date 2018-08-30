@@ -56,11 +56,22 @@ develop
            Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
+         - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
+           Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)
 
     *    - |fixed|
          - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
            Previously, the exceptions thrown would erroneously contain ``{}`` values.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+    *    - |fixed|
+         - Cassandra Key Value Service now no longer logs spurious ERROR warning messages when failing to read new-format table metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3478>`__)
+
+    *    - |improved|
+         - Throw more specific CommittedTransactionException when operating on a committed transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
 
 ========
 v0.102.0
