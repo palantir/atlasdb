@@ -15,7 +15,7 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
@@ -25,51 +25,48 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownMetadataTest {
+    private static final TableMetadata GENERIC = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(
+            AtlasDbConstants.GENERIC_TABLE_METADATA);
 
     @Test
     public void canGetMetadataForTable() {
-        byte[] metadata = OneNodeDownTestSuite.kvs.getMetadataForTable(OneNodeDownTestSuite.TEST_TABLE);
-        assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
-                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
+        assertContainsGenericMetadata(OneNodeDownTestSuite.TEST_TABLE);
     }
 
     @Test
     public void canGetMetadataForAll() {
         Map<TableReference, byte[]> metadataMap = OneNodeDownTestSuite.kvs.getMetadataForTables();
-        assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
+        assertEquals(GENERIC,
                 TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataMap.get(OneNodeDownTestSuite.TEST_TABLE)));
     }
 
     @Test
-    public void putMetadataForTableThrows() {
-        TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
-                newTableMetadata.persistToBytes()))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
+    public void canPutMetadataForTable() {
+        assertMetadataEmpty(OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA);
+        OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA,
+                AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        canGetMetadataForTable();
+        assertContainsGenericMetadata(OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA);
     }
 
     @Test
-    public void putMetadataForTablesThrows() {
-        TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTables(
-                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
+    public void canPutMetadataForTables() {
+        assertMetadataEmpty(OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA2);
+        OneNodeDownTestSuite.kvs.putMetadataForTables(ImmutableMap.of(
+                OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA2, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-        canGetMetadataForTable();
+        assertContainsGenericMetadata(OneNodeDownTestSuite.TEST_TABLE_FOR_METADATA2);
+    }
+
+    static void assertContainsGenericMetadata(TableReference tableRef) {
+        assertEquals(GENERIC,
+                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(OneNodeDownTestSuite.kvs.getMetadataForTable(tableRef)));
+    }
+
+    static void assertMetadataEmpty(TableReference table) {
+        assertArrayEquals(OneNodeDownTestSuite.kvs.getMetadataForTable(table), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 }

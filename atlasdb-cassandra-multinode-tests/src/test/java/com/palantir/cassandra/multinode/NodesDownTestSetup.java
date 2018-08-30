@@ -45,7 +45,9 @@ public abstract class NodesDownTestSetup {
 
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
     static final TableReference TEST_TABLE_TO_DROP = TableReference.createWithEmptyNamespace("test_table_to_drop");
-    static final TableReference TEST_TABLE_TO_DROP_2 = TableReference.createWithEmptyNamespace("test_table_to_drop_2");
+    static final TableReference TEST_TABLE_TO_DROP2 = TableReference.createWithEmptyNamespace("test_table_to_drop_2");
+    static final TableReference TEST_TABLE_FOR_METADATA = TableReference.createWithEmptyNamespace("test_table_mtd");
+    static final TableReference TEST_TABLE_FOR_METADATA2 = TableReference.createWithEmptyNamespace("test_table_mtd2");
 
     static final byte[] FIRST_ROW = PtBytes.toBytes("row1");
     static final byte[] SECOND_ROW = PtBytes.toBytes("row2");
@@ -92,7 +94,10 @@ public abstract class NodesDownTestSetup {
         setupDb.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, DEFAULT_CONTENTS), DEFAULT_TIMESTAMP);
 
         setupDb.createTable(TEST_TABLE_TO_DROP, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        setupDb.createTable(TEST_TABLE_TO_DROP_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        setupDb.createTable(TEST_TABLE_TO_DROP2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        setupDb.createTable(TEST_TABLE_FOR_METADATA, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        setupDb.createTable(TEST_TABLE_FOR_METADATA2, AtlasDbConstants.EMPTY_TABLE_METADATA);
 
         setupDb.close();
     }

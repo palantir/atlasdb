@@ -17,6 +17,7 @@ package com.palantir.cassandra.multinode;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -39,13 +40,13 @@ import com.palantir.flake.ShouldRetry;
 @ShouldRetry(numAttempts = 3)
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 
-    // Reusing containers when the FlakeRule kicks in.
     @ClassRule
-    public static final RuleChain ruleChain = RuleChain
-            .outerRule(new Containers(NodesDownTestSetup.class)
-                    .with(new ThreeNodeCassandraCluster()))
-            .around(SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-                    createCassandraKvs(), CONFIG));
+    public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
+            .with(new ThreeNodeCassandraCluster());
+
+    @Rule
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
+                    NodesDownTestSetup.kvs, CONFIG);
 
     @BeforeClass
     public static void setup() {

@@ -105,7 +105,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Range;
@@ -367,7 +366,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
-        this.cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
+        this.cellLoader = new CellLoader(clientPool, wrappingQueryRunner, taskRunner);
         this.cellValuePutter = new CellValuePutter(
                 config,
                 clientPool,
@@ -375,7 +374,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 wrappingQueryRunner,
                 writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellLoader, cellValuePutter,
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
     }
@@ -1343,14 +1342,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Drop the table, and also delete its table metadata.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
-     * quorum of Cassandra nodes are up, the table will be dropped in the KVS before the exception is thrown, but
-     * the metadata table will not be updated.
+     * Requires a quorum of Cassandra nodes to be up and available.
      *
      * @param tableRef the name of the table to drop.
      *
-     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
-     * not come to agreement in 1 minute.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
@@ -1361,9 +1358,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Drop the tables, and also delete their table metadata.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
-     * quorum of Cassandra nodes are up, the tables will be dropped in the KVS before the exception is thrown, but
-     * the metadata table will not be updated.
+     * Requires a quorum of Cassandra nodes to be up and available.
+
      * <p>
      * Main gains here vs. dropTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
@@ -1373,8 +1369,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tablesToDrop the set of tables to drop.
      *
-     * @throws AtlasDbDependencyException if not all hosts respond successfully, or if their schema versions do
-     * not come to agreement in 1 minute.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
@@ -1387,14 +1383,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
-     * quorum of Cassandra nodes are up, the table will be created in the KVS before the exception is thrown, but
-     * the metadata table will not be updated.
+     * Requires a quorum of Cassandra nodes to be up and available.
      *
      * @param tableRef the name of the table to create.
      * @param tableMetadata the metadata of the table to create.
      *
-     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
@@ -1406,9 +1401,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * Creates a table with the specified name. If the table already exists, no action is performed
      * (the table is left in its current state).
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException. If a
-     * quorum of Cassandra nodes are up, the table will be created in the KVS before the exception is thrown, but
-     * the metadata table will not be updated.
+     * Requires a quorum of Cassandra nodes to be up and available.
      * <p>
      * Main gains here vs. createTable:
      *    - problems excepting, we will basically be serializing a rapid series of schema changes
@@ -1423,7 +1416,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
      *
-     * @throws AtlasDbDependencyException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
@@ -1678,12 +1672,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Records the specified metadata for a given table.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires a quorum of Cassandra nodes to be up and available.
      *
      * @param tableRef the name of the table to record metadata for.
      * @param meta a byte array representing the metadata to record.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
+     * @throws InsufficientConsistencyException if there isn't quorum of nodes up and available.
      */
     @Override
     public void putMetadataForTable(final TableReference tableRef, final byte[] meta) {
@@ -1693,12 +1689,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * For each specified table records the respective metadata.
      * <p>
-     * Requires all Cassandra nodes to be up and available, otherwise throws an IllegalStateException.
+     * Requires a quorum of Cassandra nodes to be up and available.
      *
      * @param tableRefToMetadata a mapping from each table's name to the respective byte array representing
      * the metadata to record.
      *
-     * @throws IllegalStateException if not all hosts respond successfully.
+     * @throws AtlasDbDependencyException if some nodes do not agree on schema version within 1 minute, or there are
+     * fewer than a quorum of reachable nodes.
+     * @throws InsufficientConsistencyException if there isn't quorum of nodes up and available.
      */
     @Override
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
@@ -1830,86 +1828,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
             boolean deleteSentinels) {
-        if (maxTimestampExclusiveByCell.isEmpty()) {
-            return;
-        }
-
-        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
-                clientPool, maxTimestampExclusiveByCell.entrySet());
-
-        // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
-        long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream()
-                .mapToLong(x -> x).max().getAsLong();
-        long rangeTombstoneCassandraTimestamp =
-                mutationTimestampProvider.getRangeTombstoneTimestamp(maxTimestampForAllCells);
-        for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
-            deleteAllTimestampsOnSingleHost(
-                    tableRef,
-                    entry.getKey(),
-                    entry.getValue(),
-                    deleteSentinels,
-                    rangeTombstoneCassandraTimestamp);
-        }
-    }
-
-    public void deleteAllTimestampsOnSingleHost(
-            TableReference tableRef,
-            InetSocketAddress host,
-            Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels,
-            long rangeTombstoneCassandraTs) {
-        if (maxTimestampExclusiveByCell.isEmpty()) {
-            return;
-        }
-
-        try {
-            clientPool.runWithRetryOnHost(host, new FunctionCheckedException<CassandraClient, Void, Exception>() {
-
-                @Override
-                public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef,
-                            deleteSentinels, rangeTombstoneCassandraTs);
-                    return null;
-                }
-
-                @Override
-                public String toString() {
-                    return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                            + maxTimestampExclusiveByCell.size() + " column timestamp ranges)";
-                }
-            });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
-                    e);
-        } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
-        }
-    }
-
-    private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef, boolean deleteSentinel, long rangeTombstoneCassandraTs) throws TException {
-        MutationMap mutationMap = new MutationMap();
-
-        maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel, rangeTombstoneCassandraTs);
-
-            mutationMap.addMutationForCell(cell, tableRef, mutation);
-        });
-
-        wrappingQueryRunner.batchMutate("deleteAllTimestamps", client, ImmutableSet.of(tableRef), mutationMap,
-                deleteConsistency);
-    }
-
-    private Mutation getMutation(Cell cell, long maxTimestampExclusive,
-            boolean deleteSentinel, long rangeTombstoneCassandraTimestamp) {
-        if (deleteSentinel) {
-            return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive,
-                    rangeTombstoneCassandraTimestamp);
-        }
-        return Mutations.rangeTombstoneForColumn(
-                cell.getColumnName(),
-                maxTimestampExclusive,
-                rangeTombstoneCassandraTimestamp);
+        new CellRangeDeleter(clientPool,
+                wrappingQueryRunner,
+                deleteConsistency,
+                mutationTimestampProvider::getRangeTombstoneTimestamp)
+                .deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
 
     /**

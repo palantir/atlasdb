@@ -70,7 +70,6 @@ public final class CassandraSchemaLockCleaner {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(config.poolSize(),
                 new NamedThreadFactory("Atlas CleanCassLocksState", false));
         TaskRunner taskRunner = new TaskRunner(executorService);
-        CellLoader cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
 
         CellValuePutter cellValuePutter = new CellValuePutter(
                 config,
@@ -82,7 +81,6 @@ public final class CassandraSchemaLockCleaner {
 
         return new CassandraTableDropper(config,
                 clientPool,
-                cellLoader,
                 cellValuePutter,
                 wrappingQueryRunner,
                 ConsistencyLevel.ALL);

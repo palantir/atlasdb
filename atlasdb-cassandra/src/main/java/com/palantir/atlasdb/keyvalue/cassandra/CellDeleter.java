@@ -41,11 +41,10 @@ import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
 
 class CellDeleter {
+    private final CassandraClientPool clientPool;
+    private final WrappingQueryRunner wrappingQueryRunner;
+    private final ConsistencyLevel deleteConsistency;
     private final LongUnaryOperator deleteTimestampGetter;
-
-    private CassandraClientPool clientPool;
-    private WrappingQueryRunner wrappingQueryRunner;
-    private ConsistencyLevel deleteConsistency;
 
     CellDeleter(CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,

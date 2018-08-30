@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
@@ -33,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
 import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class OneNodeDownTableManipulationTest {
     private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
@@ -44,9 +42,8 @@ public class OneNodeDownTableManipulationTest {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE);
         OneNodeDownTestSuite.kvs.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        // This documents and verifies the current behaviour, creating the table in spite of the exception
-        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE);
+        OneNodeDownMetadataTest.assertContainsGenericMetadata(NEW_TABLE);
     }
 
     @Test
@@ -54,33 +51,27 @@ public class OneNodeDownTableManipulationTest {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE2);
         OneNodeDownTestSuite.kvs.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-        // This documents and verifies the current behaviour, creating the table in spite of the exception
-        // Seems to be inconsistent with the API
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE2);
+        OneNodeDownMetadataTest.assertContainsGenericMetadata(NEW_TABLE2);
     }
 
     @Test
-    public void dropTableThrows() {
+    public void canDropTable() {
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(UncheckedExecutionException.class);
-        // This documents and verifies the current behaviour, dropping the table in spite of the exception
-        // Seems to be inconsistent with the API
+        OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
+
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
+        OneNodeDownMetadataTest.assertMetadataEmpty(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
     }
 
     @Test
-    public void dropTablesThrows() {
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTables(
-                ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(UncheckedExecutionException.class);
-        // This documents and verifies the current behaviour, dropping the table in spite of the exception
-        // Seems to be inconsistent with the API
+    public void canDropTables() {
+        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP2);
+        OneNodeDownTestSuite.kvs.dropTables(ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP2));
+
         assertThat(OneNodeDownTestSuite.kvs.getAllTableNames())
-                .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
+                .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP2);
+        OneNodeDownMetadataTest.assertMetadataEmpty(OneNodeDownTestSuite.TEST_TABLE_TO_DROP2);
     }
 
     @Test
