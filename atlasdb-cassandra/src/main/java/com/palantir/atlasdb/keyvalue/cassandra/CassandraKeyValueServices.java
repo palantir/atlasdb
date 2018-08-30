@@ -63,28 +63,18 @@ public final class CassandraKeyValueServices {
         // Utility class
     }
 
-    static void waitForSchemaVersions(
-            CassandraKeyValueServiceConfig config,
-            CassandraClient client,
-            String tableName)
-            throws TException {
-        waitForSchemaVersions(config, client, tableName, false);
-    }
-
     /**
      * Attempt to wait until nodes' schema versions match.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
      * @param tableName table being modified.
-     * @param allowQuorumAgreement if true, only a quorum of nodes must agree if the rest of the nodes are unreachable.
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
-            String tableName,
-            boolean allowQuorumAgreement)
+            String tableName)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -94,7 +84,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)) {
+            if (quorumOfNodesAgreesAndOthersUnreachable(config, versions)) {
                 return;
             }
             try {
@@ -132,12 +122,7 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    /**
-     * @param allowQuorumAgreement if true, requires only a quorum of nodes to be in agreement. If false, all nodes
-     * need to have the same schema version.
-     */
-    private static boolean requiredNumberNodesAgreeOnSchemaVersion(
-            boolean allowQuorumAgreement,
+    private static boolean quorumOfNodesAgreesAndOthersUnreachable(
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
         if (getNumberOfDistinctReachableSchemas(versions) > 1) {
@@ -147,10 +132,7 @@ public final class CassandraKeyValueServices {
         int numberOfServers = config.servers().size();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
-        if (allowQuorumAgreement) {
-            return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
-        }
-        return numberOfVisibleNodes == numberOfServers;
+        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
     }
 
     private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
@@ -180,11 +162,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(
-                        config,
-                        client,
-                        "(none, just an initialization check)",
-                        true);
+                waitForSchemaVersions(config, client, "(none, just an initialization check)");
                 return null;
             });
         } catch (Exception e) {

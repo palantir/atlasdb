@@ -201,8 +201,7 @@ public final class CassandraVerifier {
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
                     client,
-                    "(checking if schemas diverged on startup)",
-                    true);
+                    "(checking if schemas diverged on startup)");
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -225,8 +224,7 @@ public final class CassandraVerifier {
         CassandraKeyValueServices.waitForSchemaVersions(
                 config,
                 client,
-                "(adding the initial empty keyspace)",
-                true);
+                "(adding the initial empty keyspace)");
     }
 
     private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {

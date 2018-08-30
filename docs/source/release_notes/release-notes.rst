@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, some Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
+
+
     *    - |fixed|
          - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
            Previously, the exceptions thrown would erroneously contain ``{}`` values.

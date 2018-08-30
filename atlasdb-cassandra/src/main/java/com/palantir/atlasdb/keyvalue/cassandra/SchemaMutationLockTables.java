@@ -115,8 +115,7 @@ public class SchemaMutationLockTables {
                 CassandraKeyValueServices.waitForSchemaVersions(
                         config,
                         client,
-                        tableRef.getQualifiedName(),
-                        true);
+                        tableRef.getQualifiedName());
                 return null;
             } catch (TException ex) {
                 log.warn("Failed to create table", ex);
