@@ -55,6 +55,19 @@ develop
            For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
 
+========
+v0.103.0
+========
+
+30 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
            Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
