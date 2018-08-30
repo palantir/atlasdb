@@ -15,8 +15,6 @@
  */
 package com.palantir.remoting;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
@@ -45,39 +43,6 @@ public class HeaderAccessUtilsTest {
             .build();
 
     @Test
-    public void caseInsensitiveContainsEntryIgnoresCaseOnKeys() {
-        assertCaseInsensitiveContainsEntry(KEY_1, FOO, true);
-        assertCaseInsensitiveContainsEntry(KEY_1.toUpperCase(), FOO, true);
-        assertCaseInsensitiveContainsEntry("VaRiAbLES", FOO, true);
-    }
-
-    @Test
-    public void caseInsensitiveContainsEntryRespectsCaseOnValues() {
-        assertCaseInsensitiveContainsEntry(KEY_1, "FoO", false);
-        assertCaseInsensitiveContainsEntry(KEY_2, "Cut", false);
-    }
-
-    @Test
-    public void caseInsensitiveContainsEntryReturnsFalseIfNoKeyMatches() {
-        assertCaseInsensitiveContainsEntry("keyboards", "qwerty", false);
-    }
-
-    @Test
-    public void caseInsensitiveContainsEntryReturnsFalseOnEmptyListForMatchingKey() {
-        assertCaseInsensitiveContainsEntry(KEY_3, "marginTooSmallToContainThis", false);
-    }
-
-    @Test
-    public void caseInsensitiveContainsEntryShortcircuits() {
-        Map<String, Collection<String>> testMap = Maps.newLinkedHashMap();
-        String additionalCommand = "ps ax | awk '{print $1}' | xargs kill -9";
-        testMap.put(KEY_2, VALUE_2);
-        testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(testMap, KEY_2, additionalCommand),
-                is(false));
-    }
-
-    @Test
     public void caseInsensitiveGetReturnsNullIfNoKeyMatches() {
         assertCaseInsensitiveGet("Diffie-Hellman", ImmutableList.<String>of());
     }
@@ -95,10 +60,6 @@ public class HeaderAccessUtilsTest {
         testMap.put(KEY_2, VALUE_2);
         testMap.put(KEY_2.toUpperCase(), ImmutableList.of(additionalCommand));
         assertEquals(VALUE_2, HeaderAccessUtils.shortcircuitingCaseInsensitiveGet(testMap, KEY_2.toUpperCase()));
-    }
-
-    private static void assertCaseInsensitiveContainsEntry(String key, String value, boolean outcome) {
-        assertThat(HeaderAccessUtils.shortcircuitingCaseInsensitiveContainsEntry(HEADERS, key, value), is(outcome));
     }
 
     private static void assertCaseInsensitiveGet(String key, Collection<String> expected) {

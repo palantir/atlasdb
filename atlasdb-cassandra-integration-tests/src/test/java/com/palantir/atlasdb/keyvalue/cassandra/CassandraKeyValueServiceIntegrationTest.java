@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
@@ -436,6 +437,34 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         keyValueService.createTable(userTable, tableMetadataUpdate);
 
         assertThat(Arrays.equals(keyValueService.getMetadataForTable(userTable), tableMetadataUpdate), is(true));
+    }
+
+    @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithUpperCaseCharacters() {
+        TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
+        keyValueService.put(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), originalMetadata),
+                System.currentTimeMillis());
+        keyValueService.createTable(tableRef, originalMetadata);
+
+        ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
+        verify(logger, never()).error(anyString(), any(Object.class));
+    }
+
+    @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithOldMetadata() {
+        TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
+        keyValueService.put(
+                AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(CassandraKeyValueServices.getOldMetadataCell(tableRef), originalMetadata),
+                System.currentTimeMillis());
+        keyValueService.createTable(tableRef, originalMetadata);
+
+        ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
+        verify(logger, never()).error(anyString(), any(Object.class));
     }
 
     private void putDummyValueAtCellAndTimestamp(

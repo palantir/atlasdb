@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.common.base.Throwables;
 
 public class WriteInfoPartitioner {
     private static final Logger log = LoggerFactory.getLogger(WriteInfoPartitioner.class);
@@ -88,10 +89,10 @@ public class WriteInfoPartitioner {
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {
         try {
             return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
-        } catch (Throwable th) {
-            log.warn("Failed to obtain sweep strategy for table {}. Assuming sweep strategy is CONSERVATIVE.",
-                    LoggingArgs.tableRef(tableRef), th);
-            return TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+        } catch (Exception e) {
+            log.warn("Failed to obtain sweep strategy for table {}.",
+                    LoggingArgs.tableRef(tableRef), e);
+            throw Throwables.rewrapAndThrowUncheckedException(e);
         }
     }
 
