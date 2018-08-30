@@ -50,6 +50,22 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+========
+v0.103.0
+========
+
+30 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
            Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
