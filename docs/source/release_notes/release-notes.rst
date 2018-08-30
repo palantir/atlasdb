@@ -55,6 +55,10 @@ develop
            For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
 
+    *    - |changed|
+         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+
 ========
 v0.103.0
 ========
