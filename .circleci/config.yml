@@ -16,7 +16,9 @@ jobs:
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
 
-      - run: ./gradlew --parallel resolveConfigurations
+      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
+      - run: ./scripts/circle-ci/download-moreutils.sh
+      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace resolveConfigurations classes testClasses
 
       - save_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
@@ -26,9 +28,6 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
           paths:
             - ~/.gradle/caches
-      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
-      - run: ./scripts/circle-ci/download-moreutils.sh
-      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace classes testClasses
       - persist_to_workspace:
           root: .
           paths: [ . ]
