@@ -56,6 +56,7 @@ develop
            Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
+    *    - |improved|
          - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
            Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)

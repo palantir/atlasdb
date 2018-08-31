@@ -1567,7 +1567,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *
-     * @param tableRef the name of the table to get metadatafor.
+     * @param tableRef the name of the table to get metadata for.
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
@@ -1717,7 +1717,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         // technically we're racing other nodes from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
-        // few dead rows in the metadata table.
+        // fe
         Map<Cell, Value> existingMetadataAtNewName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 tableRefToNewCell.values().stream()
                         .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
