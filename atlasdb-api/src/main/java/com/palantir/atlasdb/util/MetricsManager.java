@@ -92,10 +92,7 @@ public class MetricsManager {
      * Consider using {@link MetricsManager#registerOrGet} instead.
      */
     public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        MetricName metricToAdd = MetricName.builder()
-                .safeName(MetricRegistry.name(clazz, metricName))
-                .safeTags(tag)
-                .build();
+        MetricName metricToAdd = getTaggedMetricName(clazz, metricName, tag);
         if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
             log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
                             + "or have two tagged metrics with the same name across the application.",
@@ -111,10 +108,7 @@ public class MetricsManager {
      * @throws IllegalStateException if a non-gauge metric with the same name already exists.
      */
     public Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
-        MetricName metricToAdd = MetricName.builder()
-                .safeName(MetricRegistry.name(clazz, metricName))
-                .safeTags(tag)
-                .build();
+        MetricName metricToAdd = getTaggedMetricName(clazz, metricName, tag);
 
         try {
             return taggedMetricRegistry.gauge(metricToAdd, gauge);
@@ -125,6 +119,13 @@ public class MetricsManager {
                     ex);
             throw ex;
         }
+    }
+
+    private static MetricName getTaggedMetricName(Class clazz, String metricName, Map<String, String> tags) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(clazz, metricName))
+                .safeTags(tags)
+                .build();
     }
 
     @VisibleForTesting
