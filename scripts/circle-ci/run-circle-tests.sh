@@ -11,11 +11,11 @@ function checkDocsBuild {
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra:check')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-test-utils:check')
 
-CONTAINER_3=(':atlasdb-dbkvs:check'  ':atlasdb-perf:postgresBenchmarkTest')
+CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-perf:postgresBenchmarkTest' ':atlasdb-cassandra:check')
 
 CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-integration-tests:longTest' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
@@ -90,6 +90,6 @@ case $CIRCLE_NODE_INDEX in
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ${ETE_EXCLUDES[@]} && checkDocsBuild ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ${ETE_EXCLUDES[@]} ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true && checkDocsBuild ;;
 esac
