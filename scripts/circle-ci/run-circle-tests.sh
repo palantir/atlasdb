@@ -5,6 +5,7 @@ set -x
 BASE_GRADLE_ARGS="--profile --continue"
 
 function checkDocsBuild {
+    sudo apt-get install python-pip
     sudo -H pip install --upgrade sphinx sphinx_rtd_theme requests recommonmark
     cd docs/
     make html

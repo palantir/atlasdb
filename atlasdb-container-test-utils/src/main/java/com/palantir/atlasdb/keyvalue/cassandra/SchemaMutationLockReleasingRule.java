@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
@@ -36,10 +38,11 @@ import com.palantir.flake.FlakeRetryingRule;
 public class SchemaMutationLockReleasingRule implements TestRule {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockReleasingRule.class);
 
-    private final CassandraKeyValueService kvs;
+    private final Supplier<CassandraKeyValueService> kvs;
     private final CassandraKeyValueServiceConfig config;
 
-    public SchemaMutationLockReleasingRule(CassandraKeyValueService kvs, CassandraKeyValueServiceConfig config) {
+    public SchemaMutationLockReleasingRule(Supplier<CassandraKeyValueService> kvs,
+            CassandraKeyValueServiceConfig config) {
         this.kvs = kvs;
         this.config = config;
     }
@@ -48,8 +51,14 @@ public class SchemaMutationLockReleasingRule implements TestRule {
         // The ordering is important. If an attempt fails, we want to release the schema mutation lock BEFORE retrying.
         Preconditions.checkArgument(kvs instanceof CassandraKeyValueService,
                 "SchemaMutationLockReleasingRule requires a Cassandra KVS");
+        return createChainedReleaseAndRetry(Suppliers.ofInstance((CassandraKeyValueService) kvs), config);
+    }
+
+    public static RuleChain createChainedReleaseAndRetry(Supplier<CassandraKeyValueService> kvs,
+            CassandraKeyValueServiceConfig config) {
+        // The ordering is important. If an attempt fails, we want to release the schema mutation lock BEFORE retrying.
         return RuleChain.outerRule(new FlakeRetryingRule())
-                .around(new SchemaMutationLockReleasingRule((CassandraKeyValueService) kvs, config));
+                .around(new SchemaMutationLockReleasingRule(kvs, config));
     }
 
     @Override
@@ -60,7 +69,7 @@ public class SchemaMutationLockReleasingRule implements TestRule {
                 try {
                     base.evaluate();
                 } catch (Throwable t) {
-                    CassandraClientPool clientPool = kvs.getClientPool();
+                    CassandraClientPool clientPool = kvs.get().getClientPool();
                     SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
                     TracingQueryRunner tracingQueryRunner = new TracingQueryRunner(log, new TracingPrefsConfig());
 
