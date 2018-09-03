@@ -363,7 +363,7 @@ public abstract class BasicSQL {
     // TODO (jkong): Should these be lazily initialized?
     private static final ExecutorService DEFAULT_SELECT_EXECUTOR = PTExecutors.newCachedThreadPool(
             new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
-    private static final ExecutorService DEFAULT_EXECUTE_EXECUTOR = PTExecutors.newCachedThreadPool(
+    static final ExecutorService DEFAULT_EXECUTE_EXECUTOR = PTExecutors.newCachedThreadPool(
             new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
 
     private ExecutorService selectStatementExecutor;
