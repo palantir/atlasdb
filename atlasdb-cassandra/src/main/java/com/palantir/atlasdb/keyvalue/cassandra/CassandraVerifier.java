@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.EndpointDetails;
@@ -25,7 +25,6 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TokenRange;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -36,7 +35,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -92,8 +90,9 @@ public final class CassandraVerifier {
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
-        List<String> existingKeyspaces = Lists.transform(client.describe_keyspaces(), KsDef::getName);
-        if (!existingKeyspaces.contains(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
+        if (client.describe_keyspaces().stream()
+                .map(KsDef::getName)
+                .noneMatch(keyspace -> Objects.equals(keyspace, CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))) {
             client.system_add_keyspace(SIMPLE_RF_TEST_KS_DEF);
         }
     }
@@ -184,35 +183,23 @@ public final class CassandraVerifier {
         }
     }
 
-    // Returns true iff we successfully created the keyspace on some host.
-    private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config)
-            throws InvalidRequestException {
-        for (InetSocketAddress host : config.servers()) { // try until we find a server that works
-            try {
-                if (!keyspaceAlreadyExists(host, config)) {
-                    attemptToCreateKeyspaceOnHost(host, config);
-                }
+    private static boolean attemptToCreateKeyspace(CassandraKeyValueServiceConfig config) {
+        return config.servers().stream().anyMatch(host -> attemptToCreateIfNotExists(config, host));
+    }
 
-                // if we got this far, we're done, no need to continue on other hosts
-                return true;
-            } catch (InvalidRequestException ire) {
-                if (attemptedToCreateKeyspaceTwice(ire)) {
-                    // if we got this far, we're done, no need to continue on other hosts
-                    return true;
-                } else {
-                    throw ire;
-                }
-            } catch (Exception exception) {
-                log.warn("Couldn't use host {} to create keyspace."
-                        + " It returned exception \"{}\" during the attempt."
-                        + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
-                        + " See the debug-level log for the stack trace.",
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
-                        UnsafeArg.of("exceptionMessage", exception.toString()));
-                log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
-            }
+    private static boolean attemptToCreateIfNotExists(CassandraKeyValueServiceConfig config, InetSocketAddress host) {
+        try {
+            return keyspaceAlreadyExists(host, config) || attemptToCreateKeyspaceOnHost(host, config);
+        } catch (Exception exception) {
+            log.warn("Couldn't use host {} to create keyspace."
+                    + " It returned exception \"{}\" during the attempt."
+                    + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
+                    + " See the debug-level log for the stack trace.",
+                    SafeArg.of("host", CassandraLogHelper.host(host)),
+                    UnsafeArg.of("exceptionMessage", exception.toString()));
+            log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
+            return false;
         }
-        return false;
     }
 
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
@@ -232,30 +219,23 @@ public final class CassandraVerifier {
         }
     }
 
-    private static void attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
+    private static boolean attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
-        KsDef ksDef = createKsDefForFresh(client, config);
-        client.system_add_keyspace(ksDef);
-        log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-        CassandraKeyValueServices.waitForSchemaVersions(
-                config,
-                client,
-                "(adding the initial empty keyspace)",
-                true);
-    }
-
-    private static boolean attemptedToCreateKeyspaceTwice(InvalidRequestException ex) {
-        String exceptionString = ex.toString();
-        if (exceptionString.contains("case-insensitively unique")) {
-            String[] keyspaceNames = StringUtils.substringsBetween(exceptionString, "\"", "\"");
-            if (keyspaceNames.length == 2 && keyspaceNames[0].equals(keyspaceNames[1])) {
-                return true;
-            }
+        try {
+            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
+            KsDef ksDef = createKsDefForFresh(client, config);
+            client.system_add_keyspace(ksDef);
+            log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
+            CassandraKeyValueServices.waitForSchemaVersions(
+                    config,
+                    client,
+                    "(adding the initial empty keyspace)",
+                    true);
+            return true;
+        } catch (InvalidRequestException e) {
+            return keyspaceAlreadyExists(host, config);
         }
-        return false;
     }
-
 
     private static void updateExistingKeyspace(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config)
             throws TException {
@@ -294,17 +274,17 @@ public final class CassandraVerifier {
 
     static KsDef checkAndSetReplicationFactor(CassandraClient client, KsDef ksDef,
             CassandraKeyValueServiceConfig config) throws TException {
-
+        KsDef result = ksDef;
         Set<String> dataCenters;
-        if (CassandraConstants.SIMPLE_STRATEGY.equals(ksDef.getStrategy_class())) {
-            dataCenters = getDcForSimpleStrategy(client, ksDef, config);
-            ksDef = setNetworkStrategyIfCheckedTopology(ksDef, config, dataCenters);
+        if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
+            dataCenters = getDcForSimpleStrategy(client, result, config);
+            result = setNetworkStrategyIfCheckedTopology(result, config, dataCenters);
         } else {
             dataCenters = sanityCheckDatacenters(client, config);
         }
 
-        sanityCheckReplicationFactor(ksDef, config, dataCenters);
-        return ksDef;
+        sanityCheckReplicationFactor(result, config, dataCenters);
+        return result;
     }
 
     private static Set<String> getDcForSimpleStrategy(CassandraClient client, KsDef ksDef,
