@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
@@ -267,9 +268,12 @@ public class BasicSQLUtils {
      * essentially declaring that the child thread now owns
      * this connection.
      */
-    public static <T> T runUninterruptably(final Callable<T> callable, String threadString,
-                                           final @Nullable Connection connection) throws PalantirSqlException {
-        Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(
+    public static <T> T runUninterruptably(
+            ExecutorService executorService,
+            final Callable<T> callable,
+            String threadString,
+            final @Nullable Connection connection) throws PalantirSqlException {
+        Future<T> future = executorService.submit(ThreadNamingCallable.wrapWithThreadName(
                 ThreadConfinedProxy.threadLendingCallable(connection,
                         () -> {
 
