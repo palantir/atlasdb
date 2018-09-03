@@ -351,24 +351,26 @@ public abstract class BasicSQL {
     }
 
     public static boolean assertNotOnSqlThread() {
-        assert !Thread.currentThread().getName().contains(selectThreadName);
-        assert !Thread.currentThread().getName().contains(executeThreadName);
+        assert !Thread.currentThread().getName().contains(SELECT_THREAD_NAME);
+        assert !Thread.currentThread().getName().contains(EXECUTE_THREAD_NAME);
         return true;
     }
 
-    private static final String selectThreadName = "SQL select statement"; //$NON-NLS-1$
-    private static final String executeThreadName = "SQL execute statement"; //$NON-NLS-1$
+    private static final String SELECT_THREAD_NAME = "SQL select statement"; //$NON-NLS-1$
+    private static final String EXECUTE_THREAD_NAME = "SQL execute statement"; //$NON-NLS-1$
     private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
 
+    // TODO (jkong): Should these be lazily initialized?
+    private static final ExecutorService DEFAULT_SELECT_EXECUTOR = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+    private static final ExecutorService DEFAULT_EXECUTE_EXECUTOR = PTExecutors.newCachedThreadPool(
+            new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+
     private ExecutorService selectStatementExecutor;
-    ExecutorService executeStatementExecutor;
+    private ExecutorService executeStatementExecutor;
 
     public BasicSQL() {
-        this(
-                PTExecutors.newCachedThreadPool(
-                        new NamedThreadFactory(selectThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT),
-                PTExecutors.newCachedThreadPool(
-                        new NamedThreadFactory(executeThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+        this(DEFAULT_SELECT_EXECUTOR, DEFAULT_EXECUTE_EXECUTOR);
     }
 
     public BasicSQL(ExecutorService selectStatementExecutor, ExecutorService executeStatementExecutor) {
