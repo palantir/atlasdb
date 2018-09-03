@@ -209,7 +209,8 @@ public final class CassandraTimestampUtils {
 
     private static CqlQuery constructInsertIfNotExistsQuery(String columnName, byte[] target) {
         return CqlQuery.builder()
-                .safeQueryFormat("INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
+                .safeQueryFormat("INSERT INTO \"%s\" (key, column1, column2, value)"
+                        + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
                 .addArgs(
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
@@ -222,7 +223,7 @@ public final class CassandraTimestampUtils {
     private static CqlQuery constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
         // Timestamps are safe.
         return CqlQuery.builder()
-                .safeQueryFormat("UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
+                .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
                 .addArgs(
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("newValue", encodeCassandraHexBytes(target)),

@@ -37,7 +37,7 @@ public abstract class CqlSinglePartitionBatchQuery {
         List<Arg<?>> queryArgs = Lists.newArrayList();
         queryFormat.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
         individualQueryStatements().forEach(query -> {
-            queryFormat.append(query.safeQueryFormat());
+            queryFormat.append(query.safeQueryFormat()).append("\n");
             queryArgs.addAll(query.args());
         });
         queryFormat.append("APPLY BATCH;");
