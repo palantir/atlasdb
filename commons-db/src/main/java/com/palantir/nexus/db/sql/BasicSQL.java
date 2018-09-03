@@ -373,6 +373,9 @@ public abstract class BasicSQL {
         this(DEFAULT_SELECT_EXECUTOR, DEFAULT_EXECUTE_EXECUTOR);
     }
 
+    /**
+     * Management of the life-cycle of these executors is left to the user.
+     */
     public BasicSQL(ExecutorService selectStatementExecutor, ExecutorService executeStatementExecutor) {
         this.selectStatementExecutor = selectStatementExecutor;
         this.executeStatementExecutor = executeStatementExecutor;
