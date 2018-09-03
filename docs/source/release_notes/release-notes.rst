@@ -50,6 +50,28 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Now correctly parses the values for `Content-Type` header.
+           For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
+
+    *    - |changed|
+         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+
+========
+v0.103.0
+========
+
+30 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Schema mutations against the Cassandra KVS are now HA.
            Previously, some Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
@@ -60,6 +82,10 @@ develop
          - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
            Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)
+
+    *    - |fixed|
+         - Fixed an issue where targeted sweep would fail to increase the number of shards and error out if the default number of shards was ever persisted into the progress table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3473>`__)
 
     *    - |fixed|
          - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
@@ -165,7 +191,7 @@ v0.101.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
 
     *    - |new| |devbreak|
-         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``. 
+         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``.
            A transaction will validate pre-commit conditions and immutable ts lock after every read operation if underlying table is thoroughly swept (Default behavior). Setting ``validateLocksOnReads`` to ``false`` will stop transaction to do the mentioned validation on read operations; causing validations to take place only at commit time for the sake of reducing number of round-trips to improve overall transaction perf.
            This change will cause a devbreak if you are constructing a ``TransactionManager`` outside of ``TransactionManagers``. This can be resolved by adding an additional boolean parameter to the constructor (``true`` if you would like to keep previous behaviour)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3414>`__)
