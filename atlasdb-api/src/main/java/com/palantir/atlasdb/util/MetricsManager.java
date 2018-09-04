@@ -128,18 +128,13 @@ public class MetricsManager {
                 .build();
     }
 
-    @VisibleForTesting
-    Map<String, String> getTableNameTagFor(TableReference tableRef) {
-        String tableName = tableRef.getTablename();
+    public Map<String, String> getTableNameTagFor(TableReference tableRef) {
+        String tableName = tableRef == null ? "unknown" : tableRef.getTablename();
         if (!isSafeToLog.test(tableRef)) {
-            tableName = "unsafeTable_" + obfuscate(tableRef);
+            tableName = "unsafeTable";
         }
 
         return ImmutableMap.of("tableName", tableName);
-    }
-
-    private String obfuscate(TableReference tableRef) {
-        return Sha256Hash.computeHash(tableRef.getTablename().getBytes()).serializeToHexString().substring(0, 16);
     }
 
     private synchronized void registerMetricWithFqn(String fullyQualifiedMetricName, Metric metric) {
@@ -192,6 +187,12 @@ public class MetricsManager {
         Meter meter = metricRegistry.meter(fullyQualifiedMeterName);
         registeredMetrics.add(fullyQualifiedMeterName);
         return meter;
+    }
+
+    public synchronized Meter registerOrGetTaggedMeter(Class clazz, String metricName, Map<String, String> tags) {
+        MetricName name = getTaggedMetricName(clazz, metricName, tags);
+        // TODO(tboam): do we need to keep a seprate record of registeredTaggedMetrics so we can clean those up too?
+        return taggedMetricRegistry.meter(name);
     }
 
     public synchronized void deregisterMetrics() {

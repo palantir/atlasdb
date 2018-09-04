@@ -783,6 +783,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 rangeRequest.getStartInclusive(),
                 endRowExclusive).entrySet();
         return mergeInLocalWrites(
+                tableRef,
                 postFilteredCells.iterator(),
                 localWritesInRange.iterator(),
                 rangeRequest.isReverse());
@@ -867,6 +868,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private List<Entry<Cell, byte[]>> mergeInLocalWrites(
+            TableReference tableRef,
             Iterator<Entry<Cell, byte[]>> postFilterIterator,
             Iterator<Entry<Cell, byte[]>> localWritesInRange,
             boolean isReverse) {
@@ -876,10 +878,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 isReverse ? ordering.reverse() : ordering,
                 from -> from.rhSide); // always override their value with written values
 
-        return postFilterEmptyValues(mergeIterators);
+        return postFilterEmptyValues(tableRef, mergeIterators);
     }
 
     private List<Entry<Cell, byte[]>> postFilterEmptyValues(
+            TableReference tableRef,
             Iterator<Entry<Cell, byte[]>> mergeIterators) {
         List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
         Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
@@ -893,7 +896,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 numEmptyValues++;
             }
         }
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE).mark(numEmptyValues);
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef).mark(numEmptyValues);
         return mergedWritesWithoutEmptyValues;
     }
 
@@ -1044,8 +1047,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
             getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
         }
-        // TODO(hsaraogi): add table names as a tag
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ).mark(rawResults.size());
+
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
         if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
@@ -1065,7 +1068,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     tableRef, remainingResultsToPostfilter, results, resultCount, transformer);
         }
 
-        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED).mark(resultCount.get());
+        getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef).mark(resultCount.get());
     }
 
     /**
@@ -1088,7 +1091,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Value value = e.getValue();
 
             if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
-                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS).mark();
+                getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
@@ -1110,7 +1113,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     if (shouldDeleteAndRollback()) {
                         // This is from a failed transaction so we can roll it back and then reload it.
                         keysToDelete.put(key, value.getTimestamp());
-                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS).mark();
+                        getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef).mark();
                     }
                 } else if (theirCommitTimestamp > getStartTimestamp()) {
                     // The value's commit timestamp is after our start timestamp.
@@ -1118,7 +1121,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS).mark();
+                    getMeter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                            .mark();
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -1922,6 +1926,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.trace("Getting commit timestamps for {} start timestamps",
                     SafeArg.of("numTimestamps", gets.size()));
         }
+        // TODO (tboam): also log if we're getting loads of timestamps!
 
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
@@ -2088,12 +2093,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
     }
 
+    // TODO (tboam): should the histograms be tagged too?
     private Histogram getHistogram(String name) {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
 
-    private Meter getMeter(String name) {
-        // TODO(hsaraogi): add table names as a tag
-        return metricsManager.registerOrGetMeter(SnapshotTransaction.class, name);
+    private Meter getMeter(String name, TableReference tableRef) {
+        return metricsManager.registerOrGetTaggedMeter(
+                SnapshotTransaction.class,
+                name,
+                metricsManager.getTableNameTagFor(tableRef));
     }
 }
