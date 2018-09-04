@@ -2093,7 +2093,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
     }
 
-    // TODO (tboam): should the histograms be tagged too?
     private Histogram getHistogram(String name) {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
