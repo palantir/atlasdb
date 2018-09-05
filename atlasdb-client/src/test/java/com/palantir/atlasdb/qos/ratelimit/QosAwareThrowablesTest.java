@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class QosAwareThrowablesTest {
     private static final Exception THROTTLE_EXCEPTION = QosException.throttle();

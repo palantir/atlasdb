@@ -10,7 +10,7 @@ dependencies {
   compile project(":atlasdb-commons")
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
-  compile group: 'com.palantir.remoting3', name: 'tracing'
+  compile group: 'com.palantir.tracing', name: 'tracing'
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
   compile group: 'joda-time', name: 'joda-time'
   compile group: 'org.yaml', name: 'snakeyaml'

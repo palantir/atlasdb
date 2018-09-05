@@ -31,7 +31,7 @@ import com.google.common.math.LongMath;
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.guava.SmoothRateLimiter;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 /**
  * A rate limiter for database queries, based on "units" of expense. This limiter strives to maintain an upper limit on

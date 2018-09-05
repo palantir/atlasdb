@@ -19,11 +19,14 @@ package com.palantir.atlasdb.util;
 import java.nio.file.Paths;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.clients.ClientConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.client.config.ClientConfiguration;
+import com.palantir.conjure.java.client.config.ClientConfigurations;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 
 import io.dropwizard.testing.ResourceHelpers;
 
@@ -38,7 +41,8 @@ public final class TestJaxRsClientFactory {
             String... uris) {
         return JaxRsClient.create(
                 serviceClass,
-                testClass.getName() + " (unknown)",
+                UserAgents.parse(testClass.getName() + " (unknown)"),
+                new HostMetricsRegistry(),
                 createTestConfig(uris));
     }
 

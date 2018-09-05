@@ -21,7 +21,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.tritium.metrics.MetricRegistries;
 
 import io.dropwizard.Application;
@@ -48,6 +48,6 @@ public class TimelockBenchmarkClientLauncher extends Application<TimelockBenchma
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
         environment.jersey().register(new BenchmarksResource(configuration.getAtlas()));
-        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
     }
 }

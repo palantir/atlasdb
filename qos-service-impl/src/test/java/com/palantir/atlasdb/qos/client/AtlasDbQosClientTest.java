@@ -42,7 +42,7 @@ import com.palantir.atlasdb.qos.metrics.QosMetrics;
 import com.palantir.atlasdb.qos.ratelimit.ImmutableQosRateLimiters;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiter;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 @RunWith(Parameterized.class)
 public final class AtlasDbQosClientTest {

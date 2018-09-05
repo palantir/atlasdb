@@ -27,9 +27,9 @@ configurations {
 dependencies {
   explicitShadow project(':lock-api')
   explicitShadow group: 'com.squareup.okhttp3', name: 'okhttp'
-  explicitShadow group: 'com.palantir.remoting-api', name: 'service-config'
-  explicitShadow group: 'com.palantir.remoting3', name: 'jaxrs-clients'
-  explicitShadow group: 'com.palantir.remoting3', name: 'refresh-utils'
+  explicitShadow group: 'com.palantir.conjure.java.api', name: 'service-config'
+  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
+  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'refresh-utils'
   explicitShadow group: 'javax.validation', name: 'validation-api'
 
   toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
@@ -69,7 +69,7 @@ shadowJar {
     include (dependency('com.netflix.feign:feign-.*'))
     include (dependency('com.palantir.remoting2:jackson-support'))
     include (dependency('com.palantir.remoting2:error-handling'))
-    include (dependency('com.palantir.remoting3:jaxrs-clients'))
+    include (dependency('com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'))
     include (dependency('com.squareup.okio:okio'))
     include (dependency('org.jvnet:animal-sniffer-annotation'))
   }

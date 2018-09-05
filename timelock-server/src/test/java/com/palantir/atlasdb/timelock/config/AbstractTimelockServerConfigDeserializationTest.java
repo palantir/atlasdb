@@ -30,7 +30,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk7.Jdk7Module;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;

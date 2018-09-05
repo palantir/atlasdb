@@ -24,10 +24,12 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.qos.config.QosClientLimitsConfig;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.client.config.ClientConfigurations;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 
 public class QosServiceIntegrationTest {
     @ClassRule
@@ -45,7 +47,8 @@ public class QosServiceIntegrationTest {
 
     private static QosService service = JaxRsClient.create(
             QosService.class,
-            "integration tests",
+            UserAgents.parse("integration tests"),
+            new HostMetricsRegistry(),
             ClientConfigurations.of(SERVICE_CONFIGURATION));
 
     @Test

@@ -32,10 +32,10 @@ import com.palantir.atlasdb.qos.config.ImmutableQosClientConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.ext.jackson.ShimJdk7Module;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.serialization.ShimJdk7Module;
 
 public class QosClientConfigDeserializationTest {
 

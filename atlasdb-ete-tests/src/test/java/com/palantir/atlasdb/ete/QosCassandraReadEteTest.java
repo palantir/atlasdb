@@ -42,7 +42,7 @@ import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class QosCassandraReadEteTest extends QosCassandraEteTestSetup {
     private static final int ONE_TODO_SIZE_IN_BYTES = 1050;

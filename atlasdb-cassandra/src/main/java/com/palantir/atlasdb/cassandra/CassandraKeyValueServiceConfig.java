@@ -33,8 +33,8 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.processors.AutoDelegate;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)

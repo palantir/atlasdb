@@ -20,7 +20,7 @@ import com.palantir.atlasdb.qos.agent.QosAgent;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 import io.dropwizard.Application;
@@ -40,7 +40,7 @@ public class QosServerLauncher extends Application<QosServerConfig> {
 
     @Override
     public void run(QosServerConfig configuration, Environment environment) {
-        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         QosAgent agent = new QosAgent(metricsManager, configuration::runtime, configuration.install(),
                 PTExecutors.newSingleThreadScheduledExecutor(), environment.jersey()::register);

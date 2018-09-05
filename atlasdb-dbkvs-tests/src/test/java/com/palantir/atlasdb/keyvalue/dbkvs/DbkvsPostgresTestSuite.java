@@ -36,7 +36,7 @@ import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 
 @RunWith(Suite.class)
 @SuiteClasses({

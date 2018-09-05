@@ -24,7 +24,7 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class AtlasDbRuntimeConfigDeserializationTest {
     private static final File TEST_RUNTIME_CONFIG_FILE = new File(

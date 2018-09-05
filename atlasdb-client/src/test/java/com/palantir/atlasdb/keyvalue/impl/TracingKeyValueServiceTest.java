@@ -57,8 +57,8 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.tracing.TestSpanObserver;
-import com.palantir.remoting.api.tracing.SpanType;
-import com.palantir.remoting3.tracing.Tracer;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.api.SpanType;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 @RunWith(MockitoJUnitRunner.class)

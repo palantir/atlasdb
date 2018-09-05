@@ -24,8 +24,8 @@ import org.junit.Test;
 import com.palantir.atlasdb.qos.config.ImmutableQosCassandraMetricsInstallConfig;
 import com.palantir.atlasdb.qos.config.ImmutableQosServiceInstallConfig;
 import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class QosServiceInstallConfigTest {
     @Test

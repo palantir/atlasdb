@@ -20,7 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.ExecutionException;
 
 import com.palantir.common.base.Throwables;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public final class QosAwareThrowables {
     private QosAwareThrowables() {

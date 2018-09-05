@@ -28,8 +28,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting3.ext.refresh.Refreshable;
 
 /**
  * A PollingRefreshable serves as a bridge between a {@link Supplier} and {@link Refreshable}, polling for changes

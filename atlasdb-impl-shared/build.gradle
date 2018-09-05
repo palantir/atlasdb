@@ -23,8 +23,8 @@ dependencies {
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.palantir.remoting3', name: 'tracing'
-  compile (group: 'com.palantir.remoting3', name: 'jersey-servers') {
+  compile group: 'com.palantir.tracing', name: 'tracing'
+  compile (group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server') {
     exclude module: 'jersey-server'
   }
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
@@ -33,7 +33,7 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
   processor project(":atlasdb-processors")
 
-  testCompile group: 'com.palantir.remoting3', name: 'jaxrs-clients'
+  testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'

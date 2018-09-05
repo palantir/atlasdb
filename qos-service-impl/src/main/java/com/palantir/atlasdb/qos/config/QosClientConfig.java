@@ -22,8 +22,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableQosClientConfig.class)

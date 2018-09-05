@@ -28,7 +28,7 @@ import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class TimeLockTestUtils {

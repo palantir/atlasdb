@@ -31,8 +31,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)

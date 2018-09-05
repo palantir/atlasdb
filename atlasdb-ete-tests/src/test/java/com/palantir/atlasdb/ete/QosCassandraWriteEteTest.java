@@ -34,7 +34,7 @@ import org.junit.Test;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class QosCassandraWriteEteTest extends QosCassandraEteTestSetup {
 

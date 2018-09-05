@@ -41,7 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.remoting3.tracing.Tracers;
+import com.palantir.tracing.Tracers;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link

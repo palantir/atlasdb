@@ -54,8 +54,8 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 
 public class AtlasDbHttpClientsTest {
     private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();

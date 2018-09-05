@@ -29,8 +29,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;

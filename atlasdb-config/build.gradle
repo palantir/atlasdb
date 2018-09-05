@@ -14,16 +14,16 @@ dependencies {
 
     compile group: 'javax.validation', name: 'validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
-    compile group: 'com.palantir.remoting-api', name: 'service-config'
+    compile group: 'com.palantir.conjure.java.api', name: 'service-config'
     compile group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
-    compile group: 'com.palantir.remoting3', name: 'keystores'
+    compile group: 'com.palantir.conjure.java.runtime', name: 'keystores'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
         exclude (group: 'com.palantir.remoting3', module: 'tracing')
         exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
         exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
     }
-    compile group: 'com.palantir.remoting3', name: 'tracing'
+    compile group: 'com.palantir.tracing', name: 'tracing'
     compile group: 'org.hdrhistogram', name: 'HdrHistogram'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

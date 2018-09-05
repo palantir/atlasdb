@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.qos.ratelimit.guava.RateLimiter;
-import com.palantir.remoting.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class QosRateLimiterTest {
 

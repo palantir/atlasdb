@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableQosCassandraMetricsInstallConfig.class)

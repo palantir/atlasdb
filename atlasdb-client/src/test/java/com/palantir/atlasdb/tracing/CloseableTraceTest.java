@@ -29,10 +29,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.remoting.api.tracing.Span;
-import com.palantir.remoting3.tracing.AlwaysSampler;
-import com.palantir.remoting3.tracing.Tracer;
-
+import com.palantir.tracing.AlwaysSampler;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.api.Span;
 
 public class CloseableTraceTest {
 

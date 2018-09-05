@@ -22,8 +22,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)

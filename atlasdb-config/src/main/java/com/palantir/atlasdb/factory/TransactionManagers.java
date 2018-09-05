@@ -124,6 +124,11 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.client.config.ClientConfigurations;
+import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
+import com.palantir.conjure.java.okhttp.HostMetricsRegistry;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -138,9 +143,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -456,7 +458,11 @@ public abstract class TransactionManagers {
         Optional<ServiceConfiguration> qosServiceConfig = config.get().qosService();
         QosRateLimiters rateLimiters;
         if (qosServiceConfig.isPresent()) {
-            QosService qosService = JaxRsClient.create(QosService.class, userAgent(),
+
+            // HACHACK: to get build pass
+            QosService qosService = JaxRsClient.create(QosService.class,
+                    com.palantir.conjure.java.api.config.service.UserAgents.parse(userAgent()),
+                    new HostMetricsRegistry(),
                     ClientConfigurations.of(qosServiceConfig.get()));
             rateLimiters = QosRateLimiters.create(
                     JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),

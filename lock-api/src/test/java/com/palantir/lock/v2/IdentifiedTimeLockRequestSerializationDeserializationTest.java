@@ -27,7 +27,7 @@ import java.util.UUID;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();

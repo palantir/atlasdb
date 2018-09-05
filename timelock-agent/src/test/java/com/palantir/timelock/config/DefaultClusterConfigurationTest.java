@@ -23,7 +23,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 public class DefaultClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";

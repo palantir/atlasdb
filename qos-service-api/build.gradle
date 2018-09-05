@@ -13,7 +13,7 @@ dependencies {
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
-    compile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
+    compile (group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client') {
         exclude (module:'okhttp')
         exclude (module:'jsr305')
     }

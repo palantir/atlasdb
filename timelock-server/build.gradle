@@ -17,11 +17,12 @@ dependencies {
     compile group: 'io.dropwizard', name: 'dropwizard-core'
     compile group: 'io.dropwizard', name: 'dropwizard-http2'
     compile group: 'io.dropwizard', name: 'dropwizard-request-logging'
-    compile group: 'com.palantir.remoting-api', name: 'ssl-config'
-    compile group: 'com.palantir.remoting3', name: 'tracing'
+    compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+    compile group: 'com.palantir.conjure.java.runtime', name: 'jetty-http2-agent'
+    compile group: 'com.palantir.tracing', name: 'tracing'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
-    compile (group: 'com.palantir.remoting3', name: 'jersey-servers')
+    compile (group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jersey-server')
 
     processor group: 'org.immutables', name: 'value'
 
@@ -55,5 +56,5 @@ dependencies {
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
-    integTestCompile group: 'com.palantir.remoting3', name: 'http2-agent'
+    integTestCompile group: 'com.palantir.tracing', name: 'tracing'
 }

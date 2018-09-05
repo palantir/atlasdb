@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 

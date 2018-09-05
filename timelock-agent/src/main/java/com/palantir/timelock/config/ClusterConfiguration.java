@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.base.Preconditions;
-import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,

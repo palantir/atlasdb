@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 
-import com.palantir.remoting3.ext.refresh.Refreshable;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 
 public class PollingRefreshableTest {
     private static final long FORTY_TWO = 42L;

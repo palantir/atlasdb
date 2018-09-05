@@ -6,7 +6,7 @@ package com.palantir.atlasdb.timelock.config;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.timelock.lock.BlockingTimeouts;
-import com.palantir.remoting.api.config.service.PartialServiceConfiguration;
+import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;

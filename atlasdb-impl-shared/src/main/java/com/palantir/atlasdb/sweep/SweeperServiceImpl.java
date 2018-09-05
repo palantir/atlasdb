@@ -24,9 +24,9 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.conjure.java.server.jersey.WebPreconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.remoting3.servers.jersey.WebPreconditions;
 
 public final class SweeperServiceImpl implements SweeperService {
     private static final Logger log = LoggerFactory.getLogger(SweeperServiceImpl.class);

@@ -33,9 +33,9 @@ import com.palantir.atlasdb.qos.config.ImmutableQosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceInstallConfig;
 import com.palantir.atlasdb.qos.config.QosServiceRuntimeConfig;
 import com.palantir.atlasdb.qos.ratelimit.ThrottlingStrategyEnum;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.ext.jackson.ShimJdk7Module;
+import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.serialization.ShimJdk7Module;
 
 public class QosServerInstallConfigDeserializationTest {
 

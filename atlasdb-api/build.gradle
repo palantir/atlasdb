@@ -14,8 +14,8 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'javax.validation', name: 'validation-api'
 
-  compile group: 'com.palantir.remoting-api', name: 'ssl-config'
-  compile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
+  compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  compile (group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client') {
     exclude (module:'jsr305')
   }
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {

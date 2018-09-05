@@ -51,7 +51,7 @@ import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class QosCassandraEteTestSetup {

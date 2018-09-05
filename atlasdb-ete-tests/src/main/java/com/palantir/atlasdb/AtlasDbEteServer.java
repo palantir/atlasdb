@@ -60,7 +60,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -105,7 +105,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 sweepTaskRunner,
                 sweeperSupplier)));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
-        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new CleanupMetadataResourceImpl(
                 txManager,
