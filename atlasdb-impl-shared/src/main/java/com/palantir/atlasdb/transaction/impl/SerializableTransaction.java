@@ -128,7 +128,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
                                    CommitProfileProcessor commitProfileProcessor,
-                                   boolean validateLocksOnReads) {
+                                   boolean validateLocksOnReads,
+                                   Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -151,7 +152,8 @@ public class SerializableTransaction extends SnapshotTransaction {
               sweepQueue,
               deleteExecutor,
               commitProfileProcessor,
-              validateLocksOnReads);
+              validateLocksOnReads,
+              thresholdForLoggingLargeNumberOfTransactionLookups);
     }
 
     @Override
@@ -712,7 +714,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads) {
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

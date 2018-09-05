@@ -119,7 +119,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                true) {
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());

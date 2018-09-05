@@ -73,7 +73,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 deleteExecutor,
-                true);
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -100,7 +101,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                true);
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
     }
 
     @Override
@@ -144,7 +146,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueueWriter,
                 deleteExecutor,
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                validateLocksOnReads);
+                validateLocksOnReads,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
     }
 
     @Override

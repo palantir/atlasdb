@@ -77,6 +77,7 @@ import com.palantir.timestamp.TimestampService;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
+    final Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -100,7 +101,8 @@ import com.palantir.timestamp.TimestampService;
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -122,6 +124,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
+        this.thresholdForLoggingLargeNumberOfTransactionLookups = thresholdForLoggingLargeNumberOfTransactionLookups;
     }
 
     @Override
@@ -237,7 +240,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads);
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
     }
 
     @Override
@@ -268,7 +272,8 @@ import com.palantir.timestamp.TimestampService;
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads);
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));

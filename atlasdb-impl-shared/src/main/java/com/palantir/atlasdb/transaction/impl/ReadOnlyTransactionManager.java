@@ -47,6 +47,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final boolean allowHiddenTableAccess;
     private final int defaultGetRangesConcurrency;
+    private final Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups;
 
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
@@ -57,7 +58,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
-            TimestampCache timestampCache) {
+            TimestampCache timestampCache,
+            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         super(metricsManager, timestampCache);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -67,6 +69,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.thresholdForLoggingLargeNumberOfTransactionLookups = thresholdForLoggingLargeNumberOfTransactionLookups;
     }
 
     @Override
@@ -200,7 +203,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 MoreExecutors.newDirectExecutorService(),
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
         return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
     }

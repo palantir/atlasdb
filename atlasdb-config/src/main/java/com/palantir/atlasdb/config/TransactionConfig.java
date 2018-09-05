@@ -32,4 +32,8 @@ public abstract class TransactionConfig {
         return AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
     }
 
+    @Value.Default
+    public int getThresholdForLoggingLargeNumberOfTransactionLookups() {
+        return AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS;
+    }
 }

@@ -113,7 +113,8 @@ public class TransactionManagerModule {
                 MultiTableSweepQueueWriter.NO_OP,
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
-                true);
+                true,
+                () -> config.atlasDbRuntimeConfig().transaction().getThresholdForLoggingLargeNumberOfTransactionLookups());
     }
 
 }

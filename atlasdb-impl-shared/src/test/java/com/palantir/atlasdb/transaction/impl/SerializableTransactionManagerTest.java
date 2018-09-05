@@ -40,6 +40,7 @@ import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -280,7 +281,8 @@ public class SerializableTransactionManagerTest {
                 MultiTableSweepQueueWriter.NO_OP,
                 callBack,
                 executor,
-                true);
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
     }
 
     private void nothingInitialized() {

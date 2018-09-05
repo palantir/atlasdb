@@ -381,7 +381,9 @@ public abstract class TransactionManagers {
                                 () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
                         callbacks,
-                        validateLocksOnReads()),
+                        validateLocksOnReads(),
+                        () -> runtimeConfigSupplier.get().transaction()
+                                .getThresholdForLoggingLargeNumberOfTransactionLookups()),
                 closeables);
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);

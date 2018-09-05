@@ -21,6 +21,7 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -77,7 +78,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampCache,
                                ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency) {
+                               int defaultGetRangesConcurrency,
+                               Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         super(metricsManager,
                 keyValueService,
                 null,
@@ -101,7 +103,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                true);
+                true,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
     }
 
     @Override

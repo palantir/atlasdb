@@ -199,7 +199,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
 
         return create(metricsManager,
                 keyValueService,
@@ -221,7 +222,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 callback,
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
-                validateLocksOnReads);
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
     }
 
     public static TransactionManager create(MetricsManager metricsManager,
@@ -243,7 +245,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -261,7 +264,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 PTExecutors.newSingleThreadExecutor(true),
-                validateLocksOnReads);
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
@@ -302,7 +306,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueue,
                 PTExecutors.newSingleThreadExecutor(true),
-                true);
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -321,7 +326,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         super(
                 metricsManager,
                 keyValueService,
@@ -339,7 +345,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 timestampCache,
                 sweepQueueWriter,
                 deleteExecutor,
-                validateLocksOnReads
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups
         );
     }
 
@@ -371,7 +378,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads);
+                validateLocksOnReads,
+                thresholdForLoggingLargeNumberOfTransactionLookups);
     }
 
     @VisibleForTesting

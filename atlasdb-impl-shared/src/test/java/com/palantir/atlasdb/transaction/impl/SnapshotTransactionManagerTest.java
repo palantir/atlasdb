@@ -84,7 +84,8 @@ public class SnapshotTransactionManagerTest {
             TimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
             executorService,
-            true);
+            true,
+            () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
 
     @Test
     public void isAlwaysInitialized() {
@@ -129,7 +130,8 @@ public class SnapshotTransactionManagerTest {
                 TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService,
-                true);
+                true,
+                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
         newTransactionManager.close(); // should not throw
     }
 

@@ -219,6 +219,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
+    protected final Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups;
 
     protected volatile boolean hasReads;
 
@@ -250,7 +251,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
                                CommitProfileProcessor commitProfileProcessor,
-                               boolean validateLocksOnReads) {
+                               boolean validateLocksOnReads,
+                               Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -277,6 +279,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
+        this.thresholdForLoggingLargeNumberOfTransactionLookups = thresholdForLoggingLargeNumberOfTransactionLookups;
     }
 
     @Override
@@ -1926,7 +1929,16 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             log.trace("Getting commit timestamps for {} start timestamps",
                     SafeArg.of("numTimestamps", gets.size()));
         }
-        // TODO (tboam): also log if we're getting loads of timestamps!
+
+        if (gets.size() > thresholdForLoggingLargeNumberOfTransactionLookups.get()) {
+            log.info(
+                    "Looking up a large number of transactions ({}) for table {}",
+                    SafeArg.of("numberOfTransactionIds", gets.size()),
+                    tableRef == null
+                            ? SafeArg.of("tableRef", "no_table")
+                            : LoggingArgs.tableRef(tableRef)
+            );
+        }
 
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 

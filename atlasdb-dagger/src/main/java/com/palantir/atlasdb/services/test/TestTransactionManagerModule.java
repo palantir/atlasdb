@@ -116,7 +116,9 @@ public class TestTransactionManagerModule {
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 PTExecutors.newSingleThreadExecutor(true),
-                true);
+                true,
+                () -> config.atlasDbRuntimeConfig().transaction()
+                        .getThresholdForLoggingLargeNumberOfTransactionLookups());
     }
 
 }
