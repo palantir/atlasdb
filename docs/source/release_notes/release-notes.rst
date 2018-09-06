@@ -63,6 +63,11 @@ develop
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
+    *    - |logging| |metrics|
+         - Improved visibility into sources of high DB load.
+           We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
+
 ========
 v0.103.0
 ========
