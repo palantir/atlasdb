@@ -29,6 +29,7 @@ import com.palantir.conjure.java.api.errors.QosException;
 
 public class QosAwareThrowablesTest {
     private static final Exception THROTTLE_EXCEPTION = QosException.throttle();
+    private static final Exception REMOTING_THROTTLE_EXCEPTION = com.palantir.remoting.api.errors.QosException.throttle();
     private static final Exception ATLASDB_DEPENDENCY_EXCEPTION =
             new AtlasDbDependencyException("The TimeLock is dead, long live the TimeLock");
 
@@ -36,6 +37,12 @@ public class QosAwareThrowablesTest {
     public void unwrapAndThrowRateLimitExceededOrAtlasDbDependencyExceptionCanThrowRateLimitExceededException() {
         assertThatThrownBy(() -> QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
                 THROTTLE_EXCEPTION)).isEqualTo(THROTTLE_EXCEPTION);
+    }
+
+    @Test
+    public void unwrapAndThrowRateLimitExceededOrAtlasDbDependencyExceptionCanThrowRemotingRateLimitExceededException() {
+        assertThatThrownBy(() -> QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
+                REMOTING_THROTTLE_EXCEPTION)).isEqualTo(REMOTING_THROTTLE_EXCEPTION);
     }
 
     @Test

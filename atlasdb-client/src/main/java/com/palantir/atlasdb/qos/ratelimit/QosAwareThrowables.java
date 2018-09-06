@@ -39,6 +39,8 @@ public final class QosAwareThrowables {
             throw unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(ex.getCause());
         } else if (ex instanceof QosException.Throttle) {
             throw (QosException.Throttle) ex;
+        } else if (ex instanceof com.palantir.remoting.api.errors.QosException.Throttle) {
+            throw (com.palantir.remoting.api.errors.QosException.Throttle) ex;
         }
         throw Throwables.unwrapAndThrowAtlasDbDependencyException(ex);
     }

@@ -72,7 +72,7 @@ public class AtlasDbQosClient implements QosClient {
                 Duration waitTime = rateLimiter.consumeWithBackoff(estimatedWeight.numBytes());
                 metrics.recordBackoffMicros(TimeUnit.NANOSECONDS.toMicros(waitTime.toNanos()));
             }
-        } catch (QosException.Throttle ex) {
+        } catch (QosException.Throttle | com.palantir.remoting.api.errors.QosException ex) {
             metrics.recordThrottleExceptions();
             throw ex;
         }

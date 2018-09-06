@@ -53,6 +53,7 @@ dependencies {
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
+  compile group: 'com.palantir.remoting-api', name: 'errors'
   compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   compile group: "com.github.ben-manes.caffeine", name: "caffeine"
