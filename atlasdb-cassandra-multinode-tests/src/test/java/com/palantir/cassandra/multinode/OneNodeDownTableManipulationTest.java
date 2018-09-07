@@ -57,7 +57,7 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     public void canCreateTables() {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table2");
         getTestKvs().createTables(ImmutableMap.of(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
-        
+
         assertThat(getTestKvs().getAllTableNames()).contains(tableToCreate);
     }
 
