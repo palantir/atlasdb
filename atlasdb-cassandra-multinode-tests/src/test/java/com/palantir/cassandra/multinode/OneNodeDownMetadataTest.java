@@ -33,6 +33,8 @@ public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
     @Override
     void testSetup(CassandraKeyValueService kvs) {
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(TEST_TABLE_2, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable(TEST_TABLE_3, AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     @Test

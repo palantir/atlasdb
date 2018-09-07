@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
@@ -110,7 +111,7 @@ class CassandraTableDropper {
             new CellRangeDeleter(clientPool, wrappingQueryRunner, deleteConsistency, no -> System.currentTimeMillis())
                     .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                             ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), ts), true);
-        } catch (InsufficientConsistencyException e) {
+        } catch (AtlasDbDependencyException e) {
             log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up. However,"
                     + "the table has been dropped and the table metadata reflecting this has been successfully "
                     + "persisted.", LoggingArgs.tableRef(tableRef), e);

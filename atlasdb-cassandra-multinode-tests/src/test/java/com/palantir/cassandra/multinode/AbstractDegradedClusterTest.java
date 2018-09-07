@@ -67,6 +67,6 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertKvsReturnsEmptyMetadata(TableReference tableRef) {
-        assertThat(getTestKvs().getMetadataForTable(tableRef)).isEqualTo(AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThat(getTestKvs().getMetadataForTable(tableRef)).isEqualTo(AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 }

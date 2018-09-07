@@ -73,7 +73,7 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
 
     @Test
     public void canDropTables() {
-        getTestKvs().dropTables(ImmutableSet.of());
+        getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2));
 
         assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP_2);
         assertKvsReturnsEmptyMetadata(TABLE_TO_DROP_2);
