@@ -72,21 +72,21 @@ public final class CassandraVerifier {
             throws TException {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
-        Multimap<String, String> dataCenterToRack = HashMultimap.create();
+        Multimap<String, String> datacenterToRack = HashMultimap.create();
         Set<String> hosts = Sets.newHashSet();
         for (TokenRange tokenRange : client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
-                dataCenterToRack.put(details.datacenter, details.rack);
+                datacenterToRack.put(details.datacenter, details.rack);
                 hosts.add(details.host);
             }
         }
 
-        if (clusterHasExactlyOneDatacenter(dataCenterToRack) && config.replicationFactor() > 1) {
-            checkNodeTopologyIsSet(config, dataCenterToRack);
-            checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, dataCenterToRack);
+        if (clusterHasExactlyOneDatacenter(datacenterToRack) && config.replicationFactor() > 1) {
+            checkNodeTopologyIsSet(config, datacenterToRack);
+            checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, datacenterToRack);
         }
 
-        return dataCenterToRack.keySet();
+        return datacenterToRack.keySet();
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
@@ -97,12 +97,12 @@ public final class CassandraVerifier {
         }
     }
 
-    private static boolean clusterHasExactlyOneDatacenter(Multimap<String, String> dataCenterToRack) {
-        return dataCenterToRack.keySet().size() == 1;
+    private static boolean clusterHasExactlyOneDatacenter(Multimap<String, String> datacenterToRack) {
+        return datacenterToRack.keySet().size() == 1;
     }
 
-    private static boolean clusterHasExactlyOneRack(Multimap<String, String> dataCenterToRack) {
-        return dataCenterToRack.values().size() == 1;
+    private static boolean clusterHasExactlyOneRack(Multimap<String, String> datacenterToRack) {
+        return datacenterToRack.values().size() == 1;
     }
 
     private static void checkMoreRacksThanRfOrFewerHostsThanRf(CassandraKeyValueServiceConfig config, Set<String> hosts,
@@ -121,9 +121,9 @@ public final class CassandraVerifier {
 
     private static void checkNodeTopologyIsSet(CassandraKeyValueServiceConfig config, Multimap<String, String> dcRack) {
         if (clusterHasExactlyOneRack(dcRack)) {
-            String dataCenter = Iterables.getOnlyElement(dcRack.keySet());
+            String datacenter = Iterables.getOnlyElement(dcRack.keySet());
             String rack = Iterables.getOnlyElement(dcRack.values());
-            if (dataCenter.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)) {
+            if (datacenter.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)) {
                 logErrorOrThrow("The cassandra cluster is not set up to be datacenter and rack aware. Please set up "
                                 + "Cassandra to use NetworkTopology and add corresponding snitch information "
                                 + "before running with a replication factor higher than 1. "
@@ -225,7 +225,7 @@ public final class CassandraVerifier {
             CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
-            log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
+            log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
             CassandraKeyValueServices.waitForSchemaVersions(
                     config,
                     client,
@@ -233,6 +233,7 @@ public final class CassandraVerifier {
                     true);
             return true;
         } catch (InvalidRequestException e) {
+            // request could fail due to a race condition where the keyspace was created in the meantime, so recheck
             return keyspaceAlreadyExists(host, config);
         }
     }
@@ -275,31 +276,31 @@ public final class CassandraVerifier {
     static KsDef checkAndSetReplicationFactor(CassandraClient client, KsDef ksDef,
             CassandraKeyValueServiceConfig config) throws TException {
         KsDef result = ksDef;
-        Set<String> dataCenters;
+        Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
-            dataCenters = getDcForSimpleStrategy(client, result, config);
-            result = setNetworkStrategyIfCheckedTopology(result, config, dataCenters);
+            datacenters = getDcForSimpleStrategy(client, result, config);
+            result = setNetworkStrategyIfCheckedTopology(result, config, datacenters);
         } else {
-            dataCenters = sanityCheckDatacenters(client, config);
+            datacenters = sanityCheckDatacenters(client, config);
         }
 
-        sanityCheckReplicationFactor(result, config, dataCenters);
+        sanityCheckReplicationFactor(result, config, datacenters);
         return result;
     }
 
     private static Set<String> getDcForSimpleStrategy(CassandraClient client, KsDef ksDef,
             CassandraKeyValueServiceConfig config) throws TException {
         checkKsDefRfEqualsOne(ksDef, config);
-        Set<String> dataCenters = sanityCheckDatacenters(client, config);
-        checkOneDatacenter(config, dataCenters);
-        return dataCenters;
+        Set<String> datacenters = sanityCheckDatacenters(client, config);
+        checkOneDatacenter(config, datacenters);
+        return datacenters;
     }
 
     private static KsDef setNetworkStrategyIfCheckedTopology(KsDef ksDef, CassandraKeyValueServiceConfig config,
-            Set<String> dataCenters) {
+            Set<String> datacenters) {
         if (!config.ignoreNodeTopologyChecks()) {
             ksDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
-            ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(dataCenters), "1"));
+            ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(datacenters), "1"));
         }
         return ksDef;
     }
@@ -311,8 +312,8 @@ public final class CassandraVerifier {
         }
     }
 
-    private static void checkOneDatacenter(CassandraKeyValueServiceConfig config, Set<String> dataCenters) {
-        if (dataCenters.size() > 1) {
+    private static void checkOneDatacenter(CassandraKeyValueServiceConfig config, Set<String> datacenters) {
+        if (datacenters.size() > 1) {
             logErrorOrThrow(SIMPLE_PARTITIONING_ERROR_MSG, config.ignoreNodeTopologyChecks());
         }
     }
@@ -331,10 +332,10 @@ public final class CassandraVerifier {
 
     private static void checkRfsSpecified(CassandraKeyValueServiceConfig config, Set<String> dcs,
             Map<String, String> strategyOptions) {
-        for (String dataCenter : dcs) {
-            if (strategyOptions.get(dataCenter) == null) {
+        for (String datacenter : dcs) {
+            if (strategyOptions.get(datacenter) == null) {
                 logErrorOrThrow("The datacenter for this cassandra cluster is invalid. "
-                        + " failed dc: " + dataCenter + "  strategyOptions: " + strategyOptions,
+                        + " failed dc: " + datacenter + "  strategyOptions: " + strategyOptions,
                         config.ignoreDatacenterConfigurationChecks());
             }
         }
@@ -342,8 +343,8 @@ public final class CassandraVerifier {
 
     private static void checkRfsMatchConfig(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs,
             Map<String, String> strategyOptions) {
-        for (String dataCenter : dcs) {
-            if (Integer.parseInt(strategyOptions.get(dataCenter)) != config.replicationFactor()) {
+        for (String datacenter : dcs) {
+            if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
                         + ") has a replication factor not matching your Atlas Cassandra configuration."
                         + " Change them to match, but be mindful of what steps you'll need to"
