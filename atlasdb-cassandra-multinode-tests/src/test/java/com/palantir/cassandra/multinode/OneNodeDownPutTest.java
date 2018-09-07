@@ -17,7 +17,6 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
@@ -31,73 +30,65 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
-public class OneNodeDownPutTest {
+public class OneNodeDownPutTest extends AbstractDegradedClusterTest {
+    private static final Cell EMPTY_CELL = Cell.create(PtBytes.toBytes("empty"), FIRST_COLUMN);
+    private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);
 
-    private static final byte[] NEW_CONTENTS = PtBytes.toBytes("new_value");
-    private static final long NEW_TIMESTAMP = 7L;
-
-    private static final Value NEW_VALUE = Value.create(NEW_CONTENTS, NEW_TIMESTAMP);
-
-    private static final byte[] ATOMIC_ROW = PtBytes.toBytes("atomicRow");
-    private static final byte[] ATOMIC_COLUMN = PtBytes.toBytes("atomicColumn");
-    private static final Cell ATOMIC_CELL = Cell.create(ATOMIC_ROW, ATOMIC_COLUMN);
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, CONTENTS));
+    }
 
     @Test
     public void canPut() {
-        OneNodeDownTestSuite.kvs.put(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, NEW_CONTENTS), NEW_TIMESTAMP);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1, NEW_VALUE);
+        getTestKvs().put(TEST_TABLE, ImmutableMap.of(CELL_1_1, CONTENTS), TIMESTAMP);
+        assertLatestValueInCell(CELL_1_1, VALUE);
     }
 
     @Test
     public void canPutWithTimestamps() {
-        OneNodeDownTestSuite.kvs.putWithTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_2, NEW_VALUE));
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_2, NEW_VALUE);
+        getTestKvs().putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(CELL_1_2, VALUE));
+        assertLatestValueInCell(CELL_1_2, VALUE);
     }
 
     @Test
     public void canMultiPut() {
-        ImmutableMap<Cell, byte[]> entries = ImmutableMap.of(
-                OneNodeDownTestSuite.CELL_2_1, NEW_CONTENTS,
-                OneNodeDownTestSuite.CELL_2_2, NEW_CONTENTS);
-
-        OneNodeDownTestSuite.kvs.multiPut(ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, entries), NEW_TIMESTAMP);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_1, NEW_VALUE);
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_2_2, NEW_VALUE);
+        Map<Cell, byte[]> entries = ImmutableMap.of(CELL_2_1, CONTENTS, CELL_2_2, CONTENTS);
+        getTestKvs().multiPut(ImmutableMap.of(TEST_TABLE, entries), TIMESTAMP);
+        assertLatestValueInCell(CELL_2_1, VALUE);
+        assertLatestValueInCell(CELL_2_2, VALUE);
     }
 
     @Test
     public void canPutUnlessExists() {
-        OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_4_1, OneNodeDownTestSuite.DEFAULT_CONTENTS));
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_4_1,
-                Value.create(OneNodeDownTestSuite.DEFAULT_CONTENTS, AtlasDbConstants.TRANSACTION_TS));
+        getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(EMPTY_CELL, CONTENTS));
+        assertLatestValueInCell(EMPTY_CELL, Value.create(CONTENTS, AtlasDbConstants.TRANSACTION_TS));
     }
 
     @Test
     public void putUnlessExistsThrowsOnExists() {
-        OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(ATOMIC_CELL, OneNodeDownTestSuite.DEFAULT_CONTENTS));
-
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putUnlessExists(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(ATOMIC_CELL, NEW_CONTENTS)))
+        byte[] newContents = PtBytes.toBytes("new_value");
+        assertThatThrownBy(() -> getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, newContents)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
 
-        Map<Cell, Value> result = OneNodeDownTestSuite.kvs.get(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(ATOMIC_CELL, AtlasDbConstants.TRANSACTION_TS));
-        assertThat(Value.create(NEW_CONTENTS, AtlasDbConstants.TRANSACTION_TS))
-                .isNotEqualTo(result.get(ATOMIC_CELL));
+        Map<Cell, Value> result = getTestKvs()
+                .get(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, AtlasDbConstants.TRANSACTION_TS));
+        assertThat(result.get(NONEMPTY_CELL)).isNotEqualTo(Value.create(newContents, AtlasDbConstants.TRANSACTION_TS));
     }
 
     @Test
     public void canAddGarbageCollectionSentinelValues() {
-        OneNodeDownTestSuite.kvs.addGarbageCollectionSentinelValues(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableSet.of(OneNodeDownTestSuite.CELL_3_1));
-        Map<Cell, Long> latestTimestamp = OneNodeDownTestSuite.kvs.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_3_1, Long.MAX_VALUE));
-        assertEquals(Value.INVALID_VALUE_TIMESTAMP,
-                latestTimestamp.get(OneNodeDownTestSuite.CELL_3_1).longValue());
+        getTestKvs().addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_2_2));
+        Map<Cell, Long> latestTimestamp = getTestKvs()
+                .getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_2_2, Long.MAX_VALUE));
+        assertThat(latestTimestamp.get(CELL_2_2)).isEqualTo(Value.INVALID_VALUE_TIMESTAMP);
+    }
+
+    private void assertLatestValueInCell(Cell cell, Value value) {
+        Map<Cell, Value> result = getTestKvs().get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
+        assertThat(value).isEqualTo(result.get(cell));
     }
 }
