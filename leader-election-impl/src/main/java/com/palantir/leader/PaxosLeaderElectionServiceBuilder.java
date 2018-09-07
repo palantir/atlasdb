@@ -34,6 +34,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private ExecutorService executor;
     private long pingRateMs;
     private long randomWaitBeforeProposingLeadershipMs;
+    private long noQuorumMaxDelayMs = PaxosLeaderElectionService.DEFAULT_NO_QUORUM_MAX_DELAY_MS;
     private long leaderPingResponseWaitMs;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
 
@@ -81,6 +82,11 @@ public class PaxosLeaderElectionServiceBuilder {
 
     public PaxosLeaderElectionServiceBuilder leaderPingResponseWaitMs(long leaderPingResponseWaitMs) {
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
+        return this;
+    }
+
+    public PaxosLeaderElectionServiceBuilder noQuorumMaxDelayMs(long noQuorumMaxDelayMs) {
+        this.noQuorumMaxDelayMs = noQuorumMaxDelayMs;
         return this;
     }
 
