@@ -25,7 +25,10 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses(LessThanQuorumNodeAvailabilityTest.class)
+@Suite.SuiteClasses({
+        LessThanQuorumNodeAvailabilityTest.class,
+        TwoNodeDownTableManipulationTest.class
+    })
 public final class TwoNodeDownTestSuite extends NodesDownTestSetup {
 
     @ClassRule
@@ -36,6 +39,6 @@ public final class TwoNodeDownTestSuite extends NodesDownTestSetup {
     public static void setup() {
         NodesDownTestSetup.initializeKvsAndDegradeCluster(
                 ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
-                        ThreeNodeCassandraCluster.SECOND_CASSANDRA_CONTAINER_NAME));
+                        ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME));
     }
 }

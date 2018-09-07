@@ -34,6 +34,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -69,11 +70,12 @@ class CassandraRequestExceptionHandler {
         RequestExceptionHandlerStrategy strategy = getStrategy();
 
         req.triedOnHost(hostTried);
+        req.addException(ex);
         int numberOfAttempts = req.getNumberOfAttempts();
         int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
-            logAndThrowException(numberOfAttempts, ex);
+            logAndThrowException(numberOfAttempts, ex, req);
         }
 
         if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
@@ -95,7 +97,8 @@ class CassandraRequestExceptionHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex) throws K {
+    private <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex,
+            RetryableCassandraRequest<?, K> req) throws K {
         if (ex instanceof TTransportException
                 && ex.getCause() != null
                 && (ex.getCause().getClass() == SocketException.class)) {
@@ -110,7 +113,8 @@ class CassandraRequestExceptionHandler {
                     SafeArg.of("numTries", numberOfAttempts),
                     SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                     UnsafeArg.of("exceptionMessage", ex.getMessage()));
-            throw (K) ex;
+            req.throwExceptions();
+//            throw (K) ex;
         }
     }
 

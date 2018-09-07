@@ -48,6 +48,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
@@ -87,12 +88,7 @@ public final class CassandraKeyValueServices {
             if (quorumOfNodesAgreesAndOthersUnreachable(config, versions)) {
                 return;
             }
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-            sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
+            sleepTime = sleepWithExponentialBackoff(sleepTime);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
         StringBuilder schemaVersions = new StringBuilder();
@@ -122,6 +118,13 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
+    static void runWithSchemaConsistencyChecks(CassandraKeyValueServiceConfig config, CassandraClient client,
+            String description, FunctionCheckedException<CassandraClient, Void, TException> task) throws TException {
+        waitForSchemaVersions(config, client, "before attempting to modify the schema");
+        task.apply(client);
+        waitForSchemaVersions(config, client, "after modifying the schema to " + description);
+    }
+
     private static boolean quorumOfNodesAgreesAndOthersUnreachable(
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
@@ -142,6 +145,15 @@ public final class CassandraKeyValueServices {
     private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
         return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
                 .map(Entry::getValue).mapToInt(List::size).sum();
+    }
+
+    private static long sleepWithExponentialBackoff(long sleepTime) {
+        try {
+            Thread.sleep(sleepTime);
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+        return  Math.min(sleepTime * 2, MAX_SLEEP_TIME);
     }
 
     private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {

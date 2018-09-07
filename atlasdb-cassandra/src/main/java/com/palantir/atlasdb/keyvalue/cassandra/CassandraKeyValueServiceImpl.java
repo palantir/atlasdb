@@ -1571,6 +1571,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @return a byte array representing the metadata for the table. Array is empty if no table
      * with the given name exists. Consider {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
+     *
+     * @throws
      */
     @Override
     public byte[] getMetadataForTable(TableReference tableRef) {
@@ -1623,6 +1625,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @return a mapping of table names to their respective metadata in form of a byte array.  Consider
      * {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
+     *
+     * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are available.
      */
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
