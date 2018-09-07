@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.paxos.PaxosAcceptor;
@@ -37,6 +38,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private Function<String, ExecutorService> executorServiceFactory;
     private long pingRateMs;
     private long randomWaitBeforeProposingLeadershipMs;
+    private long noQuorumMaxDelayMs = PaxosLeaderElectionService.DEFAULT_NO_QUORUM_MAX_DELAY_MS;
     private long leaderPingResponseWaitMs;
     private PaxosLeaderElectionEventRecorder eventRecorder = PaxosLeaderElectionEventRecorder.NO_OP;
     private Supplier<Boolean> onlyLogOnQuorumFailure = () -> true;
@@ -99,6 +101,11 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    public PaxosLeaderElectionServiceBuilder noQuorumMaxDelayMs(long noQuorumMaxDelayMs) {
+        this.noQuorumMaxDelayMs = noQuorumMaxDelayMs;
+        return this;
+    }
+
     public PaxosLeaderElectionServiceBuilder eventRecorder(PaxosLeaderElectionEventRecorder eventRecorder) {
         this.eventRecorder = eventRecorder;
         return this;
@@ -110,6 +117,8 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionService build() {
+        Preconditions.checkState(randomWaitBeforeProposingLeadershipMs >= 0, "randomWaitBeforeProposingLeadershipMs should be positive; was " + randomWaitBeforeProposingLeadershipMs);
+        Preconditions.checkState(noQuorumMaxDelayMs >= 0, "noQuorumMaxDelayMs should be positive; was " + noQuorumMaxDelayMs);
         return new PaxosLeaderElectionService(
                 proposer,
                 knowledge,
@@ -119,6 +128,7 @@ public class PaxosLeaderElectionServiceBuilder {
                 executorServiceFactory::apply,
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
+                noQuorumMaxDelayMs,
                 leaderPingResponseWaitMs,
                 eventRecorder,
                 onlyLogOnQuorumFailure);

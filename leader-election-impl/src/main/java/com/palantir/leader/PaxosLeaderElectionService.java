@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -70,6 +71,7 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
     private static final double LOG_RATE = 1;
+    private static final int DEFAULT_NO_QUORUM_MAX_DELAY_MS = 2000;
 
     private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
     private final ReentrantLock lock;
@@ -84,6 +86,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final long updatePollingRateInMs;
     final long randomWaitBeforeProposingLeadership;
+    final long noQuorumMaxDelay;
     final long leaderPingResponseWaitMs;
 
     final Map<PingableLeader, ExecutorService> leaderPingExecutors;
@@ -108,6 +111,24 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       long leaderPingResponseWaitMs,
                                       PaxosLeaderElectionEventRecorder eventRecorder,
                                       Supplier<Boolean> onlyLogOnQuorumFailure) {
+        this(proposer, knowledge, potentialLeadersToHosts, acceptors, learners, executor,
+                updatePollingWaitInMs, randomWaitBeforeProposingLeadership,
+                DEFAULT_NO_QUORUM_MAX_DELAY_MS,
+                leaderPingResponseWaitMs, PaxosLeaderElectionEventRecorder.NO_OP, onlyLogOnQuorumFailure);
+    }
+
+    PaxosLeaderElectionService(PaxosProposer proposer,
+            PaxosLearner knowledge,
+            Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            ExecutorService executor,
+            long updatePollingWaitInMs,
+            long randomWaitBeforeProposingLeadership,
+            long noQuorumMaxDelay,
+            long leaderPingResponseWaitMs,
+            PaxosLeaderElectionEventRecorder eventRecorder,
+            Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -118,6 +139,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.knowledgeUpdatingExecutors = createKnowledgeUpdateExecutors(learners, executorServiceFactory);
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
+        this.noQuorumMaxDelay = noQuorumMaxDelay;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
@@ -175,6 +197,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     return currentState.confirmedToken().get();
                 case NO_QUORUM:
                     // If we don't have quorum we should just retry our calls.
+                    long backoffTime = ThreadLocalRandom.current().nextLong(0, noQuorumMaxDelay + 1);
+                    log.debug("Waiting for [{}] ms before rerequesting leadership status", SafeArg.of("waitTimeMs", backoffTime));
+                    Thread.sleep(backoffTime);
                     continue;
                 case NOT_LEADING:
                     proposeLeadershipOrWaitForBackoff(currentState);
@@ -197,7 +222,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return;
         }
 
-        long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+        long backoffTime = ThreadLocalRandom.current().nextLong(0, randomWaitBeforeProposingLeadership + 1);
         log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
