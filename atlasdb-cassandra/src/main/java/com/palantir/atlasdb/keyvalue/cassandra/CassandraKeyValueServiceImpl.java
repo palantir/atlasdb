@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -131,7 +130,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -1122,11 +1120,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
-        clientPool.run(new FunctionCheckedException<CassandraClient, Void, TException>() {
+        clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Void, TException>() {
             @Override
             public Void apply(CassandraClient client) throws TException {
                 for (TableReference tableRef : tablesToTruncate) {
-                    truncateInternal(client, tableRef);
+                    queryRunner.run(client, tableRef, () -> {
+                        client.truncate(internalTableName(tableRef));
+                        return true;
+                    });
                 }
                 return null;
             }
@@ -1136,37 +1137,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return "truncateTables(" + tablesToTruncate.size() + " tables)";
             }
         });
-    }
-
-    private void truncateInternal(CassandraClient client, TableReference tableRef) throws TException {
-        for (int tries = 1; tries <= CassandraConstants.MAX_TRUNCATION_ATTEMPTS; tries++) {
-            boolean successful = true;
-            try {
-                queryRunner.run(client, tableRef, () -> {
-                    client.truncate(internalTableName(tableRef));
-                    return true;
-                });
-            } catch (TException e) {
-                log.error("Cluster was unavailable while we attempted a truncate for table "
-                        + "{}; we will try {} additional time(s).",
-                        UnsafeArg.of("table", tableRef.getQualifiedName()),
-                        SafeArg.of("retries", CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries),
-                        e);
-                if (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries == 0) {
-                    throw e;
-                }
-                successful = false;
-                try {
-                    Thread.sleep(new Random()
-                            .nextInt((1 << (CassandraConstants.MAX_TRUNCATION_ATTEMPTS - tries)) - 1) * 1000);
-                } catch (InterruptedException e1) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            if (successful) {
-                break;
-            }
-        }
     }
 
     /**
@@ -1991,7 +1961,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean doesConfigReplicationFactorMatchWithCluster() {
-        return clientPool.run(client -> {
+        return clientPool.runWithRetry(client -> {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, config);
                 return true;

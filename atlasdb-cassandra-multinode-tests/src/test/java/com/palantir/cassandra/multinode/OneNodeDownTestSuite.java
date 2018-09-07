@@ -15,18 +15,14 @@
  */
 package com.palantir.cassandra.multinode;
 
+import java.util.Arrays;
+
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
-import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockReleasingRule;
-import com.palantir.flake.ShouldRetry;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -37,20 +33,12 @@ import com.palantir.flake.ShouldRetry;
         OneNodeDownTableManipulationTest.class,
         OneNodeDownNodeAvailabilityTest.class
         })
-@ShouldRetry(numAttempts = 3)
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
-            .with(new ThreeNodeCassandraCluster());
-
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-                    NodesDownTestSetup.kvs, CONFIG);
-
     @BeforeClass
-    public static void setup() {
-        NodesDownTestSetup.initializeKvsAndDegradeCluster(
+    public static void setup() throws Exception {
+        initializeKvsAndDegradeCluster(
+                Arrays.asList(OneNodeDownTestSuite.class.getAnnotation(Suite.SuiteClasses.class).value()),
                 ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME));
     }
 }

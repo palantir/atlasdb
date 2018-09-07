@@ -15,13 +15,13 @@
  */
 package com.palantir.cassandra.multinode;
 
+import java.util.Arrays;
+
 import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
@@ -31,13 +31,10 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
     })
 public final class TwoNodeDownTestSuite extends NodesDownTestSetup {
 
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(NodesDownTestSetup.class)
-            .with(new ThreeNodeCassandraCluster());
-
     @BeforeClass
-    public static void setup() {
+    public static void setup() throws Exception {
         NodesDownTestSetup.initializeKvsAndDegradeCluster(
+                Arrays.asList(TwoNodeDownTestSuite.class.getAnnotation(Suite.SuiteClasses.class).value()),
                 ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
                         ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME));
     }
