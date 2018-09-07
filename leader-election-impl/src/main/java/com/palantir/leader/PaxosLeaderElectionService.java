@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -66,6 +67,7 @@ import com.palantir.paxos.PaxosValue;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
+    static final int DEFAULT_NO_QUORUM_MAX_DELAY_MS = 2000;
 
     private final ReentrantLock lock;
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
@@ -79,6 +81,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     final long updatePollingRateInMs;
     final long randomWaitBeforeProposingLeadership;
+    final long noQuorumMaxDelay;
     final long leaderPingResponseWaitMs;
 
     final ExecutorService executor;
@@ -98,8 +101,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs) {
         this(proposer, knowledge, potentialLeadersToHosts, acceptors, learners, executor,
-                updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
-                PaxosLeaderElectionEventRecorder.NO_OP);
+                updatePollingWaitInMs, randomWaitBeforeProposingLeadership,
+                DEFAULT_NO_QUORUM_MAX_DELAY_MS,
+                leaderPingResponseWaitMs, PaxosLeaderElectionEventRecorder.NO_OP);
     }
 
     PaxosLeaderElectionService(PaxosProposer proposer,
@@ -110,6 +114,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             ExecutorService executor,
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
+            long noQuorumMaxDelay,
             long leaderPingResponseWaitMs,
             PaxosLeaderElectionEventRecorder eventRecorder) {
         this.proposer = proposer;
@@ -121,6 +126,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.executor = executor;
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
+        this.noQuorumMaxDelay = noQuorumMaxDelay;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
@@ -141,6 +147,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     return new PaxosLeadershipToken(greatestLearned);
                 } else if (leadingStatus == StillLeadingStatus.NO_QUORUM) {
                     // If we don't have quorum we should just retry our calls.
+                    long backoffTime = ThreadLocalRandom.current().nextLong(0, noQuorumMaxDelay + 1);
+                    log.debug("Waiting for [{}] ms before rerequesting leadership status", SafeArg.of("waitTimeMs", backoffTime));
+                    Thread.sleep(backoffTime);
                     continue;
                 }
             } else {
@@ -156,7 +165,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 continue;
             }
 
-            long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
+            long backoffTime = ThreadLocalRandom.current().nextLong(0, randomWaitBeforeProposingLeadership + 1);
             log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
             Thread.sleep(backoffTime);
 
