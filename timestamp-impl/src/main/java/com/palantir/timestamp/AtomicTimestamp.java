@@ -27,7 +27,7 @@ public class AtomicTimestamp {
     }
 
     public TimestampRange incrementBy(long delta) {
-        long upperBound = value.addAndGet(delta);
+        long upperBound = value.updateAndGet(current -> Math.addExact(current, delta));
         long lowerBound = upperBound - delta + 1L;
         return TimestampRange.createInclusiveRange(lowerBound, upperBound);
     }
@@ -35,5 +35,4 @@ public class AtomicTimestamp {
     public void increaseTo(long target) {
         value.updateAndGet(current -> Math.max(current, target));
     }
-
 }
