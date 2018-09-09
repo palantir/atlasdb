@@ -15,6 +15,7 @@
  */
 package com.palantir.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyLong;
@@ -88,6 +89,12 @@ public class PersistentUpperLimitTest {
 
         upperLimit.increaseToAtLeast(TIMESTAMP - 1000);
         assertThat(upperLimit.get(), is(TIMESTAMP + BUFFER));
+    }
+
+    @Test
+    public void shouldNotIncreaseTheUpperLimitIfWouldOverflow() {
+        assertThatExceptionOfType(ArithmeticException.class)
+                .isThrownBy(() -> upperLimit.increaseToAtLeast(Long.MAX_VALUE - BUFFER + 1));
     }
 
     @Test
