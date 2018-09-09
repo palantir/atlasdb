@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
+           servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly
+           misconfigured and thinks it is booting up for the first time again.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3498>`__)
+
     *    - |fixed|
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
