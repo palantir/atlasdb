@@ -34,6 +34,7 @@ public final class TimeLockConfigMigrator {
                 .timestampBoundPersistence(config.getTsBoundPersisterConfiguration())
                 .paxos(ImmutablePaxosInstallConfiguration.builder()
                         .dataDirectory(paxos.paxosDataDir())
+                        .isNewService(true)
                         .build())
                 .cluster(ImmutableDefaultClusterConfiguration.builder()
                         .cluster(PartialServiceConfiguration.builder()
