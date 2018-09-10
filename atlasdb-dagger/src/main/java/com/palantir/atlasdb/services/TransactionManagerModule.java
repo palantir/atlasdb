@@ -114,7 +114,8 @@ public class TransactionManagerModule {
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
                 true,
-                () -> config.atlasDbRuntimeConfig().transaction().getThresholdForLoggingLargeNumberOfTransactionLookups());
+                () -> config.atlasDbRuntimeConfig().transaction()
+                        .getThresholdForLoggingLargeNumberOfTransactionLookups());
     }
 
 }

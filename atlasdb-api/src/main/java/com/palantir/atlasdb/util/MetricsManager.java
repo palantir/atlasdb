@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.util.crypto.Sha256Hash;
 
 public class MetricsManager {
 
