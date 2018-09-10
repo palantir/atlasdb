@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -58,7 +60,7 @@ public final class CassandraKeyValueServices {
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    public static final String VERSION_UNREACHABLE = "UNREACHABLE";
 
     private CassandraKeyValueServices() {
         // Utility class
@@ -72,7 +74,7 @@ public final class CassandraKeyValueServices {
      * @param tableName table being modified.
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
-    static void waitForSchemaVersions(
+    static String waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
             String tableName)
@@ -85,8 +87,9 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (quorumOfNodesAgreesAndOthersUnreachable(config, versions)) {
-                return;
+            Optional<String> uniqueSchema = uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions);
+            if (uniqueSchema.isPresent()) {
+                return uniqueSchema.get();
             }
             sleepTime = sleepWithExponentialBackoff(sleepTime);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
@@ -125,26 +128,35 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, "after modifying the schema to " + description);
     }
 
-    private static boolean quorumOfNodesAgreesAndOthersUnreachable(
+    private static Optional<String> uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
-            return false;
+        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
+        if (reachableSchemas.size() > 1) {
+            return Optional.empty();
         }
 
         int numberOfServers = config.servers().size();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+        if (numberOfVisibleNodes >= ((numberOfServers / 2) + 1)) {
+            return Optional.of(Iterables.getOnlyElement(reachableSchemas));
+        } else {
+            return Optional.empty();
+        }
     }
 
-    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
-        return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
+    private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
+        return versions.keySet().stream()
+                .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
+                .collect(Collectors.toList());
     }
 
     private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
         return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue).mapToInt(List::size).sum();
+                .map(Entry::getValue)
+                .mapToInt(List::size)
+                .sum();
     }
 
     private static long sleepWithExponentialBackoff(long sleepTime) {

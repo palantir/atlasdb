@@ -21,6 +21,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
@@ -34,7 +35,6 @@ import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -45,6 +45,7 @@ class CassandraRequestExceptionHandler {
     private final Supplier<Integer> maxTriesTotal;
     private final Supplier<Boolean> useConservativeHandler;
     private final Blacklist blacklist;
+    private final Optional<RequestExceptionHandlerStrategy> overrideStrategyForTest;
 
     CassandraRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
@@ -55,6 +56,25 @@ class CassandraRequestExceptionHandler {
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = useConservativeHandler;
         this.blacklist = blacklist;
+        this.overrideStrategyForTest = Optional.empty();
+    }
+
+    private CassandraRequestExceptionHandler(
+            Supplier<Integer> maxTriesSameHost,
+            Supplier<Integer> maxTriesTotal,
+            Blacklist blacklist) {
+        this.maxTriesSameHost = maxTriesSameHost;
+        this.maxTriesTotal = maxTriesTotal;
+        this.useConservativeHandler = () -> true;
+        this.blacklist = blacklist;
+        this.overrideStrategyForTest = Optional.of(NoBackoffForTesting.INSTANCE);
+    }
+
+    static CassandraRequestExceptionHandler withNoBackoffForTest(
+            Supplier<Integer> maxTriesSameHost,
+            Supplier<Integer> maxTriesTotal,
+            Blacklist blacklist) {
+        return new CassandraRequestExceptionHandler(maxTriesSameHost, maxTriesTotal, blacklist);
     }
 
     @SuppressWarnings("unchecked")
@@ -89,6 +109,10 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     RequestExceptionHandlerStrategy getStrategy() {
+        return overrideStrategyForTest.orElse(resolveStrategy());
+    }
+
+    private RequestExceptionHandlerStrategy resolveStrategy() {
         if (useConservativeHandler.get()) {
             return Conservative.INSTANCE;
         } else {
@@ -293,6 +317,15 @@ class CassandraRequestExceptionHandler {
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
             return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
                     || numberOfAttempts >= maxTriesSameHost;
+        }
+    }
+
+    private static class NoBackoffForTesting extends Conservative {
+        private static final RequestExceptionHandlerStrategy INSTANCE = new NoBackoffForTesting();
+
+        @Override
+        public long getBackoffPeriod(int numberOfAttempts) {
+            return 0;
         }
     }
 }

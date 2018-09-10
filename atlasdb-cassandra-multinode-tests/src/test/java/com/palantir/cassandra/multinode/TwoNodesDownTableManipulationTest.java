@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,10 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.apache.thrift.TException;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -33,57 +30,35 @@ import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
-public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
-    private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");
-    private static final TableReference TABLE_TO_DROP_2 = TableReference.createWithEmptyNamespace("table_to_drop_2");
+public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
 
     @Override
     void testSetup(CassandraKeyValueService kvs) {
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TABLE_TO_DROP, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.createTable(TABLE_TO_DROP_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
-    public void canCreateTable() {
+    public void createTableThrowsAndDoesNotChangeCassandraSchema() throws TException {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
-        getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-        assertThat(getTestKvs().getAllTableNames()).contains(tableToCreate);
-        assertKvsReturnsGenericMetadata(tableToCreate);
-        assertCassandraSchemaChanged();
     }
 
     @Test
-    public void canCreateTables() {
-        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table2");
-        getTestKvs().createTables(ImmutableMap.of(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
-
-        assertThat(getTestKvs().getAllTableNames()).contains(tableToCreate);
-        assertKvsReturnsGenericMetadata(tableToCreate);
-        assertCassandraSchemaChanged();
+    public void dropTableThrowsAndDoesNotChangeCassandraSchema() throws TException {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().dropTable(TEST_TABLE));
     }
 
     @Test
-    public void canDropTable() {
-        getTestKvs().dropTable(TABLE_TO_DROP);
-
-        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP);
-        assertKvsReturnsEmptyMetadata(TABLE_TO_DROP);
-        assertCassandraSchemaChanged();
+    public void dropTablesThrowsAndDoesNotChangeCassandraSchema() throws TException {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().dropTables(ImmutableSet.of(TEST_TABLE)));
     }
 
     @Test
-    public void canDropTables() {
-        getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2));
-
-        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP_2);
-        assertKvsReturnsEmptyMetadata(TABLE_TO_DROP_2);
-        assertCassandraSchemaChanged();
-    }
-
-    @Test
-    public void canCleanUpSchemaMutationLockTablesState() throws TException {
+    public void cleanUpSchemaMutationLockTablesStateThrowsAndDoesNotChangeCassandraSchema() throws TException {
         CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
         CassandraClientPool clientPool = getTestKvs().getClientPool();
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -92,19 +67,18 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
         CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
                 queryRunner);
 
-        cleaner.cleanLocksState();
-        assertCassandraSchemaChanged();
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(cleaner::cleanLocksState);
     }
 
     @Test
-    public void truncateTableThrows() {
+    public void truncateTableThrowsAndDoesNotChangeCassandraSchema() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().truncateTable(TEST_TABLE));
 
     }
 
     @Test
-    public void truncateTablesThrows() {
+    public void truncateTablesThrowsAndDoesNotChangeCassandraSchema() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().truncateTables(ImmutableSet.of(TEST_TABLE)));
     }

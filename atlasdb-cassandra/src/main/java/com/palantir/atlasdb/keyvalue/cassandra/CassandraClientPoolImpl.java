@@ -120,13 +120,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
-        return create(metricsManager,
-                config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
-                startupChecks,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE,
+        CassandraRequestExceptionHandler exceptionHandler = CassandraRequestExceptionHandler.withNoBackoffForTest(
+                () -> CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost(),
+                () -> CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnAllHosts(),
                 blacklist);
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+                metricsManager,
+                config,
+                startupChecks,
+                FakeQosClient.INSTANCE,
+                exceptionHandler,
+                blacklist);
+        cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return cassandraClientPool;
     }
 
     public static CassandraClientPool create(MetricsManager metricsManager, CassandraKeyValueServiceConfig config) {
@@ -159,12 +165,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             boolean initializeAsync,
             QosClient qosClient,
             Blacklist blacklist) {
+        CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
+                () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
+                () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
+                () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
+                blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
-                runtimeConfig,
                 startupChecks,
                 qosClient,
+                exceptionHandler,
                 blacklist);
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool;
@@ -173,9 +184,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private CassandraClientPoolImpl(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             StartupChecks startupChecks,
             QosClient qosClient,
+            CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist) {
         this.metrics = new CassandraClientPoolMetrics(metricsManager);
         this.config = config;
@@ -185,11 +196,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 .setNameFormat("CassandraClientPoolRefresh-%d")
                 .build());
         this.blacklist = blacklist;
-        this.exceptionHandler = new CassandraRequestExceptionHandler(
-                () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
-                () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
-                () -> runtimeConfig.get().conservativeRequestExceptionHandler(),
-                blacklist);
+        this.exceptionHandler = exceptionHandler;
         cassandra = new CassandraService(metricsManager, config, blacklist, qosClient);
     }
 
@@ -516,7 +523,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     @VisibleForTesting
-    enum StartupChecks {
+    public enum StartupChecks {
         RUN,
         DO_NOT_RUN
     }

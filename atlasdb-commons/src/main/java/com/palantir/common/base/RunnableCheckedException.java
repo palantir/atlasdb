@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-package com.palantir.cassandra.multinode;
+package com.palantir.common.base;
 
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-
-public class TwoNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
-
-    @Override
-    void testSetup(CassandraKeyValueService kvs) {
-        // noop
-    }
+@FunctionalInterface
+public interface RunnableCheckedException<E extends Exception> {
+    void run() throws E;
 }

@@ -225,8 +225,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService createForTesting(
             CassandraKeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig) {
-        return create(MetricsManagers.createForTests(),
-                config, leaderConfig, CassandraMutationTimestampProviders.legacyModeForTestsOnly());
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+                config,
+                CassandraClientPoolImpl.StartupChecks.RUN,
+                new Blacklist(config));
+        return createOrShutdownClientPool(metricsManager, config, clientPool, leaderConfig,
+                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
+                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
@@ -308,6 +315,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 initializeAsync,
                 qosClient);
+        return createOrShutdownClientPool(metricsManager, config, clientPool, leaderConfig, mutationTimestampProvider, log,
+                initializeAsync);
+    }
+
+    private static CassandraKeyValueService createOrShutdownClientPool(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            CassandraClientPool clientPool,
+            Optional<LeaderConfig> leaderConfig,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            Logger log,
+            boolean initializeAsync) {
         try {
             return create(metricsManager, config, clientPool, leaderConfig,
                     mutationTimestampProvider, log, initializeAsync);

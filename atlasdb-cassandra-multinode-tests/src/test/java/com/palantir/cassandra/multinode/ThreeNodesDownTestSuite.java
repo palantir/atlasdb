@@ -25,17 +25,16 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({
-        LessThanQuorumNodeAvailabilityTest.class,
-        TwoNodeDownTableManipulationTest.class
-    })
-public final class TwoNodeDownTestSuite extends NodesDownTestSetup {
+@Suite.SuiteClasses(LessThanQuorumNodeAvailabilityTest.class)
+public final class ThreeNodesDownTestSuite extends NodesDownTestSetup {
 
     @BeforeClass
     public static void setup() throws Exception {
-        NodesDownTestSetup.initializeKvsAndDegradeCluster(
-                Arrays.asList(TwoNodeDownTestSuite.class.getAnnotation(Suite.SuiteClasses.class).value()),
+        initializeKvsAndDegradeCluster(
+                Arrays.asList(ThreeNodesDownTestSuite.class.getAnnotation(Suite.SuiteClasses.class).value()),
                 ImmutableList.of(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
-                        ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME));
+                        ThreeNodeCassandraCluster.SECOND_CASSANDRA_CONTAINER_NAME,
+                        ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME)
+        );
     }
 }

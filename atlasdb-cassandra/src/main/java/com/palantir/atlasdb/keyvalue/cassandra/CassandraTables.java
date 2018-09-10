@@ -26,6 +26,7 @@ import org.apache.thrift.TException;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTables {
     private final CassandraClientPool clientPool;
@@ -74,7 +75,14 @@ class CassandraTables {
 
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
+        String oldSchema = CassandraKeyValueServices.waitForSchemaVersions(config, client, "Checking schema versions");
         KsDef ks = client.describe_keyspace(keyspace);
+        String newSchema = CassandraKeyValueServices.waitForSchemaVersions(config, client, "Checking schema versions");
+
+        if (!oldSchema.equals(newSchema)) {
+            throw new AtlasDbDependencyException("Cassandra schema has changed during the call to get all table names. "
+                    + "This request must be retried because consistency cannot be guaranteed");
+        }
 
         return ks.getCf_defs().stream()
                 .map(nameGetter)

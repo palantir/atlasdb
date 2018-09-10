@@ -54,11 +54,13 @@ public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
     public void canPutMetadataForTable() {
         getTestKvs().putMetadataForTable(TEST_TABLE_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertKvsReturnsGenericMetadata(TEST_TABLE_2);
+        assertCassandraSchemaChanged();
     }
 
     @Test
     public void canPutMetadataForTables() {
         getTestKvs().putMetadataForTables(ImmutableMap.of(TEST_TABLE_3, AtlasDbConstants.GENERIC_TABLE_METADATA));
         assertKvsReturnsGenericMetadata(TEST_TABLE_3);
+        assertCassandraSchemaChanged();
     }
 }

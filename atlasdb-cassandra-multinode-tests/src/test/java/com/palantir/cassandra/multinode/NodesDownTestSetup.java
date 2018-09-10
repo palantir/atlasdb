@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.connection.DockerPort;
 
 public abstract class NodesDownTestSetup {
-
     private static final int CASSANDRA_THRIFT_PORT = 9160;
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig
             .copyOf(ThreeNodeCassandraCluster.KVS_CONFIG)
