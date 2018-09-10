@@ -63,6 +63,10 @@ develop
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
+    *    - |changed|
+         - Introduces FINISHED as the default for OracleDdlConfig's overflowMigrationState which matches the documentation specification for new clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3500>`__)
+
 ========
 v0.103.0
 ========
