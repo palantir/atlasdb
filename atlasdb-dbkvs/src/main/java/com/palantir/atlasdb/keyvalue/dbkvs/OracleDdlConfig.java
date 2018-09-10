@@ -53,7 +53,10 @@ public abstract class OracleDdlConfig extends DdlConfig {
     @JsonIgnore
     public abstract Optional<Supplier<Long>> overflowIds();
 
-    public abstract OverflowMigrationState overflowMigrationState();
+    @Value.Default
+    public OverflowMigrationState overflowMigrationState() {
+        return OverflowMigrationState.FINISHED;
+    }
 
     @Value.Default
     public boolean enableOracleEnterpriseFeatures() {
