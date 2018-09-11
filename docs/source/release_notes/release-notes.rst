@@ -58,6 +58,10 @@ develop
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
+    *    - |fixed|
+         - Improved threading for MetricsManager's metricsRegistry
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3497>`__)
+
 ========
 v0.103.0
 ========
