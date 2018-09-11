@@ -30,6 +30,8 @@ class Table {
     boolean mutationsEnabled
 
     private static int DEFAULT_JOIN_BATCH_SIZE = 10000;
+    private static final int DEFAULT_RANGE_BATCH_SIZE = 100;
+    private static final String[] DEFAULT_LIST_QUERY_PARAMS = ["start", "end"];
 
     Table(String name, AtlasConsoleServiceWrapper service, boolean mutationsEnabled) {
         this.name = name
@@ -211,9 +213,14 @@ class Table {
      */
     Range getRange(Map rangeInfo = null, TransactionToken token = service.getTransactionToken()) {
         rangeInfo = (rangeInfo == null ? [:] : rangeInfo)
-        def query = [table:name as Object]
+        def query = [table:name as Object, 'batch_size':DEFAULT_RANGE_BATCH_SIZE]
         rangeInfo.each { key, value ->
-            query.put(key as String, convertToListIfNotAlreadyList(value))
+            String keyAsString = (key as String);
+            if (keyAsString in DEFAULT_LIST_QUERY_PARAMS) {
+                query.put(keyAsString, convertToListIfNotAlreadyList(value))
+            } else {
+                query.put(keyAsString, value);
+            }
         }
         return new Range(service, service.getRange(query, token) as Map, token)
     }
