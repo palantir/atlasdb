@@ -18,7 +18,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -53,7 +52,7 @@ public class MetricsManagerTest {
     private final MetricRegistry registry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
     private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry,
-            new HashSet<>(), tableReference -> tableReference.getTablename().equals("safe"));
+            tableReference -> tableReference.getTablename().equals("safe"));
 
     @Test
     public void registersMetricsByName() {

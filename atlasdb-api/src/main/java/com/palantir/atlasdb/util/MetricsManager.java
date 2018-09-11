@@ -31,7 +31,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.SafeArg;
@@ -45,20 +44,16 @@ public class MetricsManager {
     private final MetricRegistry metricRegistry;
     private final TaggedMetricRegistry taggedMetricRegistry;
     private final Set<String> registeredMetrics;
+    private final Set<MetricName> registeredTaggedMetrics;
     private final Predicate<TableReference> isSafeToLog;
 
     public MetricsManager(MetricRegistry metricRegistry,
             TaggedMetricRegistry taggedMetricRegistry,
             Predicate<TableReference> isSafeToLog) {
-        this(metricRegistry, taggedMetricRegistry, new HashSet<>(), isSafeToLog);
-    }
-
-    @VisibleForTesting
-    MetricsManager(MetricRegistry metricRegistry, TaggedMetricRegistry taggedMetricRegistry,
-            Set<String> registeredMetrics, Predicate<TableReference> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.registeredMetrics = registeredMetrics;
+        this.registeredMetrics = new HashSet<>();
+        this.registeredTaggedMetrics = new HashSet<>();
         this.isSafeToLog = isSafeToLog;
     }
 
@@ -92,7 +87,7 @@ public class MetricsManager {
      * If the metric already exists, this will REPLACE it with a new metric.
      * Consider using {@link MetricsManager#registerOrGet} instead.
      */
-    public void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+    public synchronized void registerMetric(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = getTaggedMetricName(clazz, metricName, tag);
         if (taggedMetricRegistry.getMetrics().containsKey(metricToAdd)) {
             log.warn("Replacing the metric [ {} ]. This will happen if you are trying to re-register metrics "
@@ -101,6 +96,7 @@ public class MetricsManager {
             taggedMetricRegistry.remove(metricToAdd);
         }
         taggedMetricRegistry.gauge(metricToAdd, gauge);
+        registeredTaggedMetrics.add(metricToAdd);
     }
 
     /**
@@ -108,11 +104,13 @@ public class MetricsManager {
      *
      * @throws IllegalStateException if a non-gauge metric with the same name already exists.
      */
-    public Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
+    public synchronized Gauge registerOrGet(Class clazz, String metricName, Gauge gauge, Map<String, String> tag) {
         MetricName metricToAdd = getTaggedMetricName(clazz, metricName, tag);
 
         try {
-            return taggedMetricRegistry.gauge(metricToAdd, gauge);
+            Gauge registeredGauge = taggedMetricRegistry.gauge(metricToAdd, gauge);
+            registeredTaggedMetrics.add(metricToAdd);
+            return registeredGauge;
         } catch (IllegalArgumentException ex) {
             log.error("Tried to add a gauge to a metric name {} that has non-gauge metrics associated with it."
                     + " This indicates a product bug.",
@@ -192,12 +190,16 @@ public class MetricsManager {
 
     public synchronized Meter registerOrGetTaggedMeter(Class clazz, String metricName, Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
-        // TODO(tboam): do we need to keep a seprate record of registeredTaggedMetrics so we can clean those up too?
-        return taggedMetricRegistry.meter(name);
+        Meter meter = taggedMetricRegistry.meter(name);
+        registeredTaggedMetrics.add(name);
+        return meter;
     }
 
     public synchronized void deregisterMetrics() {
         registeredMetrics.forEach(metricRegistry::remove);
         registeredMetrics.clear();
+
+        registeredTaggedMetrics.forEach(taggedMetricRegistry::remove);
+        registeredTaggedMetrics.clear();
     }
 }
