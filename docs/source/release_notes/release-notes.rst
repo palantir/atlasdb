@@ -63,6 +63,10 @@ develop
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
+    *    - |changed|
+         - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
+
 ========
 v0.103.0
 ========
