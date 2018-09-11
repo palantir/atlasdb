@@ -17,10 +17,8 @@ package com.palantir.paxos;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +32,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.palantir.common.concurrent.MultiplexingExecutorService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
@@ -75,7 +74,7 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Executor executor,
+            ExecutorService executor,
             long remoteRequestTimeoutInSec) {
         return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
     }
@@ -84,7 +83,24 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Executor executor,
+            ExecutorService executor,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure) {
+        return collectResponses(
+                remotes,
+                request,
+                quorumSize,
+                MultiplexingExecutorService.createForSingleExecutor(remotes, executor),
+                remoteRequestTimeoutInSec,
+                onlyLogOnQuorumFailure,
+                true);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            MultiplexingExecutorService<SERVICE, RESPONSE> executor,
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure) {
         return collectResponses(
@@ -103,7 +119,22 @@ public final class PaxosQuorumChecker {
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectAsManyResponsesAsPossible(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
-            Executor executor,
+            ExecutorService executor,
+            long remoteRequestTimeoutInSec) {
+        return collectResponses(
+                remotes,
+                request,
+                remotes.size(),
+                MultiplexingExecutorService.createForSingleExecutor(remotes, executor),
+                remoteRequestTimeoutInSec,
+                false,
+                false);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectAsManyResponsesAsPossible(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            MultiplexingExecutorService<SERVICE, RESPONSE> executor,
             long remoteRequestTimeoutInSec) {
         return collectResponses(remotes, request, remotes.size(), executor, remoteRequestTimeoutInSec, false, false);
     }
@@ -116,24 +147,21 @@ public final class PaxosQuorumChecker {
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests after termination
-     * @param executor runs the requests
+     * @param multiplexingExecutor runs the requests
      * @return a list of responses
      */
     private static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Executor executor,
+            MultiplexingExecutorService<SERVICE, RESPONSE> multiplexingExecutor,
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure,
             boolean shortcircuitIfQuorumImpossible) {
-        CompletionService<RESPONSE> responseCompletionService = new ExecutorCompletionService<RESPONSE>(executor);
 
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
-        for (final SERVICE remote : remotes) {
-            allFutures.add(responseCompletionService.submit(() -> request.apply(remote)));
-        }
+        allFutures.addAll(multiplexingExecutor.execute(request).values());
 
         List<Throwable> toLog = Lists.newArrayList();
         boolean interrupted = false;
@@ -151,7 +179,7 @@ public final class PaxosQuorumChecker {
                         break;
                     }
 
-                    Future<RESPONSE> responseFuture = responseCompletionService.poll(
+                    Future<RESPONSE> responseFuture = multiplexingExecutor.poll(
                             deadline - System.nanoTime(),
                             TimeUnit.NANOSECONDS);
                     // check if out of responses (no quorum failure)
@@ -185,7 +213,7 @@ public final class PaxosQuorumChecker {
 
             // poll for extra completed futures
             Future<RESPONSE> future;
-            while ((future = responseCompletionService.poll()) != null) {
+            while ((future = multiplexingExecutor.poll()) != null) {
                 try {
                     receivedResponses.add(future.get());
                 } catch (InterruptedException e) {

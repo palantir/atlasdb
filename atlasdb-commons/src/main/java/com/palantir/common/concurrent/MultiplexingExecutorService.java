@@ -16,11 +16,13 @@
 
 package com.palantir.common.concurrent;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -38,9 +40,25 @@ public class MultiplexingExecutorService<T, V> {
     private final Map<T, ExecutorService> executors;
     private final BlockingQueue<Future<V>> taskQueue;
 
-    public MultiplexingExecutorService(Map<T, ExecutorService> executors, BlockingQueue<Future<V>> taskQueue) {
+    private MultiplexingExecutorService(Map<T, ExecutorService> executors, BlockingQueue<Future<V>> taskQueue) {
         this.executors = executors;
         this.taskQueue = taskQueue;
+    }
+
+    public static <T, V> MultiplexingExecutorService<T, V> createForSingleExecutor(
+            Collection<T> remotes,
+            ExecutorService executorService) {
+        Map<T, ExecutorService> executors = remotes.stream().collect(
+                Collectors.toMap(element -> element, element -> executorService));
+        return new MultiplexingExecutorService<>(executors, new LinkedBlockingDeque<>());
+    }
+
+    public static <T, V> MultiplexingExecutorService<T, V> create(
+            Collection<T> remotes,
+            Function<T, ExecutorService> serviceFactory) {
+        Map<T, ExecutorService> executors = remotes.stream().collect(
+                Collectors.toMap(element -> element, serviceFactory));
+        return new MultiplexingExecutorService<>(executors, new LinkedBlockingDeque<>());
     }
 
     public Map<T, Future<V>> execute(Function<T, V> function) {
