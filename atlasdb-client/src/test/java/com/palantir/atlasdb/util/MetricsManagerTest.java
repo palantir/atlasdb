@@ -138,11 +138,11 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void getTableNameTagFor_obfuscatesUnsafeTables() {
+    public void getTableNameTagFor_unsafeTable() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
         assertThat(tag.size()).isEqualTo(1);
         assertThat(tag).containsKey("tableName");
-        assertThat(tag.get("tableName")).isEqualTo("unsafeTable_629e3fc948fb5ca5");
+        assertThat(tag.get("tableName")).isEqualTo("unsafeTable");
     }
 
     private TableReference table(String tableName) {
