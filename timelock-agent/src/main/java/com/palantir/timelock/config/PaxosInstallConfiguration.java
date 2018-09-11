@@ -49,7 +49,7 @@ public interface PaxosInstallConfiguration {
                             + "startup only of each node. \n\nOtherwise, the timelock data directory appears to no "
                             + "longer exist. If you are trying to move the nodes on your timelock cluster or add new "
                             + "nodes, you have likely already made a mistake by this point. This is a non-trivial "
-                            + "operation, please be careful and do not be afraid to seek out help.");
+                            + "operation, please be careful and make sure that you have appropriate approvals.");
         }
 
         Preconditions.checkArgument(dataDirectory().mkdirs() || dataDirectory().isDirectory(),
