@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -48,6 +49,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.MultiplexingExecutorService;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
@@ -486,8 +489,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     }
                 },
                 proposer.getQuorumSize(),
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+                MultiplexingExecutorService.create(learners, unused -> PTExecutors.newThreadPoolExecutor(
+                        1,
+                        10,
+                        5,
+                        TimeUnit.SECONDS,
+                        new LinkedBlockingQueue<>()
+                )),
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
+                false);
 
         // learn the state accumulated from peers
         boolean learned = false;
