@@ -190,14 +190,13 @@
 <td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Now correctly parses the values for <cite>Content-Type</cite> header.
-For example, a request with the header <cite>Content-Type: text/plain;charset=iso-8859-1</cite> is now correctly decoded as plain text, instead of JSON.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3459">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Improved threading for MetricsManager’s metricsRegistry
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3497">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
