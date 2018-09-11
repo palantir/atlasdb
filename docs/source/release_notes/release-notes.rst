@@ -54,11 +54,6 @@ develop
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
-    *    - |fixed|
-         - Now correctly parses the values for `Content-Type` header.
-           For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
-
     *    - |changed|
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
