@@ -1,6 +1,5 @@
 algorithm:
   type: paxos
-  isNewService: true
   paxosDataDir: <TEMP_DATA_DIR>
   sslConfiguration:
     keyStorePath: var/security/keyStore.jks

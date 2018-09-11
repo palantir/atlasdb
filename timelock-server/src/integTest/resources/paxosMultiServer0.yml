@@ -1,6 +1,5 @@
 algorithm:
   type: paxos
-  isNewService: true
   leaderPingResponseWaitMs: 1000
   paxosDataDir: <TEMP_DATA_DIR>
   sslConfiguration:
