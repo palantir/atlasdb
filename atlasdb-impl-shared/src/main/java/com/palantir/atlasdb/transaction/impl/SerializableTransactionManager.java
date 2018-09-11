@@ -25,11 +25,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -192,7 +193,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             Supplier<Boolean> initializationPrerequisite,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
@@ -200,7 +200,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
+            Supplier<TransactionConfig> transactionConfig) {
 
         return create(metricsManager,
                 keyValueService,
@@ -213,7 +213,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 initializationPrerequisite,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 initializeAsync,
@@ -223,7 +222,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
-                thresholdForLoggingLargeNumberOfTransactionLookups);
+                transactionConfig);
     }
 
     public static TransactionManager create(MetricsManager metricsManager,
@@ -237,7 +236,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             Supplier<Boolean> initializationPrerequisite,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             boolean initializeAsync,
@@ -246,7 +244,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
-            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
+            Supplier<TransactionConfig> transactionConfig) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -259,13 +257,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 timestampCache,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 PTExecutors.newSingleThreadExecutor(true),
                 validateLocksOnReads,
-                thresholdForLoggingLargeNumberOfTransactionLookups);
+                transactionConfig);
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
@@ -301,13 +298,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 cleaner,
                 new TimestampCache(metricsManager.getRegistry(), () -> 1000L),
                 false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
                 PTExecutors.newSingleThreadExecutor(true),
                 true,
-                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
+                () -> ImmutableTransactionConfig.builder().build());
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -321,13 +317,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Cleaner cleaner,
             TimestampCache timestampCache,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
+            Supplier<TransactionConfig> transactionConfig) {
         super(
                 metricsManager,
                 keyValueService,
@@ -339,14 +334,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepStrategyManager,
                 cleaner,
                 allowHiddenTableAccess,
-                lockAcquireTimeoutMs,
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 timestampCache,
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                thresholdForLoggingLargeNumberOfTransactionLookups
+                transactionConfig
         );
     }
 
@@ -372,14 +366,13 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
                 validateLocksOnReads,
-                thresholdForLoggingLargeNumberOfTransactionLookups);
+                transactionConfig);
     }
 
     @VisibleForTesting

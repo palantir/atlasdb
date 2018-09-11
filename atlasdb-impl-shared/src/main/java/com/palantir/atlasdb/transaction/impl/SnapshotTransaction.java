@@ -99,6 +99,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
@@ -210,7 +211,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean allowHiddenTableAccess;
     protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
-    protected final long lockAcquireTimeoutMs;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
@@ -219,7 +219,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
-    protected final Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups;
+    protected final Supplier<TransactionConfig> transactionConfig;
 
     protected volatile boolean hasReads;
 
@@ -245,14 +245,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                TransactionReadSentinelBehavior readSentinelBehavior,
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampValidationReadCache,
-                               long lockAcquireTimeoutMs,
                                ExecutorService getRangesExecutor,
                                int defaultGetRangesConcurrency,
                                MultiTableSweepQueueWriter sweepQueue,
                                ExecutorService deleteExecutor,
                                CommitProfileProcessor commitProfileProcessor,
                                boolean validateLocksOnReads,
-                               Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
+                               Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -270,7 +269,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.timestampValidationReadCache = timestampValidationReadCache;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.getRangesExecutor = getRangesExecutor;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueue = sweepQueue;
@@ -279,7 +277,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
-        this.thresholdForLoggingLargeNumberOfTransactionLookups = thresholdForLoggingLargeNumberOfTransactionLookups;
+        this.transactionConfig = transactionConfig;
     }
 
     @Override
@@ -1781,13 +1779,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected LockToken acquireLocksForCommit() {
         Set<LockDescriptor> lockDescriptors = getLocksForWrites();
 
-        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
         LockResponse lockResponse = timelockService.lock(request);
         if (!lockResponse.wasSuccessful()) {
             log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
                             + "First ten required locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
         }
@@ -1856,12 +1854,17 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMs);
+        waitFor(lockDescriptors);
+    }
+
+    private void waitFor(Set<LockDescriptor> lockDescriptors) {
+        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors,
+                transactionConfig.get().getLockAcquireTimeoutMillis());
         WaitForLocksResponse response = timelockService.waitForLocks(request);
         if (!response.wasSuccessful()) {
             log.error("Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
                     SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMs),
+                    SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
         }
@@ -1930,7 +1933,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     SafeArg.of("numTimestamps", gets.size()));
         }
 
-        if (gets.size() > thresholdForLoggingLargeNumberOfTransactionLookups.get()) {
+        if (gets.size() > transactionConfig.get().getThresholdForLoggingLargeNumberOfTransactionLookups()) {
             log.info(
                     "Looking up a large number of transactions ({}) for table {}",
                     SafeArg.of("numberOfTransactionIds", gets.size()),

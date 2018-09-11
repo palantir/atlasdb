@@ -65,6 +65,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -122,14 +123,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                                    TransactionReadSentinelBehavior readSentinelBehavior,
                                    boolean allowHiddenTableAccess,
                                    TimestampCache timestampCache,
-                                   long lockAcquireTimeoutMs,
                                    ExecutorService getRangesExecutor,
                                    int defaultGetRangesConcurrency,
                                    MultiTableSweepQueueWriter sweepQueue,
                                    ExecutorService deleteExecutor,
                                    CommitProfileProcessor commitProfileProcessor,
                                    boolean validateLocksOnReads,
-                                   Supplier<Integer> thresholdForLoggingLargeNumberOfTransactionLookups) {
+                                   Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager,
               keyValueService,
               timelockService,
@@ -146,14 +146,13 @@ public class SerializableTransaction extends SnapshotTransaction {
               readSentinelBehavior,
               allowHiddenTableAccess,
               timestampCache,
-              lockAcquireTimeoutMs,
               getRangesExecutor,
               defaultGetRangesConcurrency,
               sweepQueue,
               deleteExecutor,
               commitProfileProcessor,
               validateLocksOnReads,
-              thresholdForLoggingLargeNumberOfTransactionLookups);
+              transactionConfig);
     }
 
     @Override
@@ -708,14 +707,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                 getReadSentinelBehavior(),
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 deleteExecutor,
                 commitProfileProcessor,
                 validateLocksOnReads,
-                thresholdForLoggingLargeNumberOfTransactionLookups) {
+                transactionConfig) {
             @Override
             protected Map<Long, Long> getCommitTimestamps(TableReference tableRef,
                                                           Iterable<Long> startTimestamps,

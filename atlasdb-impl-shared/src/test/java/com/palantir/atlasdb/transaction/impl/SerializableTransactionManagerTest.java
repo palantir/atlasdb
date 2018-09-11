@@ -40,12 +40,12 @@ import org.junit.Test;
 
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -273,7 +273,6 @@ public class SerializableTransactionManagerTest {
                 mockCleaner,
                 mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess
-                () -> 1L, // lockAcquireTimeout
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 initializeAsync,
@@ -282,7 +281,7 @@ public class SerializableTransactionManagerTest {
                 callBack,
                 executor,
                 true,
-                () -> AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS);
+                () -> ImmutableTransactionConfig.builder().build());
     }
 
     private void nothingInitialized() {
