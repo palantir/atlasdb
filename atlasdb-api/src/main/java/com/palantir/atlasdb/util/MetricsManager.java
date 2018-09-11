@@ -195,6 +195,14 @@ public class MetricsManager {
         return meter;
     }
 
+    public synchronized Histogram registerOrGetTaggedHistogram(Class clazz, String metricName,
+                                                                Map<String, String> tags) {
+        MetricName name = getTaggedMetricName(clazz, metricName, tags);
+        Histogram histogram = taggedMetricRegistry.histogram(name);
+        registeredTaggedMetrics.add(name);
+        return histogram;
+    }
+
     public synchronized void deregisterMetrics() {
         registeredMetrics.forEach(metricRegistry::remove);
         registeredMetrics.clear();

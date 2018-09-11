@@ -1046,7 +1046,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
                         new RuntimeException("This exception and stack trace are provided for debugging purposes."));
             }
-            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ).update(bytes);
+            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef).update(bytes);
         }
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
@@ -1943,6 +1943,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             );
         }
 
+        getHistogram(AtlasDbMetricNames.NUMBER_OF_TRANSACTIONS_READ_FROM_DB, tableRef).update(gets.size());
+
         Map<Long, Long> rawResults = loadCommitTimestamps(gets);
 
         for (Map.Entry<Long, Long> e : rawResults.entrySet()) {
@@ -2110,6 +2112,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     private Histogram getHistogram(String name) {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
+    }
+
+    private Histogram getHistogram(String name, TableReference tableRef) {
+        return metricsManager.registerOrGetTaggedHistogram(
+                SnapshotTransaction.class,
+                name,
+                metricsManager.getTableNameTagFor(tableRef));
     }
 
     private Meter getMeter(String name, TableReference tableRef) {
