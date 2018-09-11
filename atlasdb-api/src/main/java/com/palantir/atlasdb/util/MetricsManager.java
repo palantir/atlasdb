@@ -158,7 +158,7 @@ public class MetricsManager {
         return registerOrGetHistogram(MetricRegistry.name(clazz, metricName));
     }
 
-    private Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
+    private synchronized Histogram registerOrGetHistogram(String fullyQualifiedHistogramName) {
         Histogram histogram = metricRegistry.histogram(fullyQualifiedHistogramName);
         registeredMetrics.add(fullyQualifiedHistogramName);
         return histogram;
@@ -168,7 +168,7 @@ public class MetricsManager {
         return registerOrGetTimer(MetricRegistry.name(clazz, metricName));
     }
 
-    private Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
+    private synchronized Timer registerOrGetTimer(String fullyQualifiedHistogramName) {
         Timer timer = metricRegistry.timer(fullyQualifiedHistogramName);
         registeredMetrics.add(fullyQualifiedHistogramName);
         return timer;
