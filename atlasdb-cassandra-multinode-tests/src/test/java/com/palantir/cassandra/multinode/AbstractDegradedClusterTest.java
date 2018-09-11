@@ -65,6 +65,12 @@ public abstract class AbstractDegradedClusterTest {
         schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
     }
 
+    /**
+     * Used in {@link NodesDownTestSetup#initializeKvsAndDegradeCluster(List, List)} using reflection to perform any
+     * necessary initialization before degrading the cluster.
+     *
+     * @param kvs a dedicated instance of CKVs keyed to a specific namespace to be used with this test only
+     */
     public void initialize(CassandraKeyValueService kvs) {
         testKvs.put(getClass(), kvs);
         testSetup(kvs);
@@ -90,8 +96,8 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(RunnableCheckedException<?> task) {
-            assertThatThrownBy(task::run).isInstanceOf(AtlasDbDependencyException.class);
-            assertCassandraSchemaUnChanged();
+        assertThatThrownBy(task::run).isInstanceOf(AtlasDbDependencyException.class);
+        assertCassandraSchemaUnChanged();
     }
 
     void assertCassandraSchemaChanged() {

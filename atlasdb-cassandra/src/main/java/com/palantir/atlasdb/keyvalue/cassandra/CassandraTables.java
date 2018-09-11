@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -75,10 +76,17 @@ class CassandraTables {
 
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
-        String oldSchema = CassandraKeyValueServices.waitForSchemaVersions(config, client, "Checking schema versions");
-        KsDef ks = client.describe_keyspace(keyspace);
-        String newSchema = CassandraKeyValueServices.waitForSchemaVersions(config, client, "Checking schema versions");
+        Optional<String> oldSchema = CassandraKeyValueServices
+                .getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(config, client);
+        if (!oldSchema.isPresent()) {
+            throw new AtlasDbDependencyException("Cassandra cluster cannot come to agreement on schema versions, or "
+                    + "isn't a quorum of Cassandra nodes up when attempting to get all table names.");
+        }
 
+        KsDef ks = client.describe_keyspace(keyspace);
+
+        Optional<String> newSchema = CassandraKeyValueServices
+                .getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(config, client);
         if (!oldSchema.equals(newSchema)) {
             throw new AtlasDbDependencyException("Cassandra schema has changed during the call to get all table names. "
                     + "This request must be retried because consistency cannot be guaranteed");

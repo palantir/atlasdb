@@ -27,6 +27,7 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         LessThanQuorumNodeAvailabilityTest.class,
+        TwoNodesDownCleanCassLockStateTest.class,
         TwoNodesDownGetTest.class,
         TwoNodesDownMetadataTest.class,
         TwoNodesDownPutTest.class,

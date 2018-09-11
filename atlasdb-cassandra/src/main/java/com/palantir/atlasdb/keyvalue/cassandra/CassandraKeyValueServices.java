@@ -121,11 +121,10 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    static void runWithSchemaConsistencyChecks(CassandraKeyValueServiceConfig config, CassandraClient client,
-            String description, FunctionCheckedException<CassandraClient, Void, TException> task) throws TException {
-        waitForSchemaVersions(config, client, "before attempting to modify the schema");
-        task.apply(client);
-        waitForSchemaVersions(config, client, "after modifying the schema to " + description);
+    static Optional<String> getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client) throws TException {
+        return uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, client.describe_schema_versions());
     }
 
     private static Optional<String> uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(

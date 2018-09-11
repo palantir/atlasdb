@@ -17,18 +17,11 @@ package com.palantir.cassandra.multinode;
 
 import org.apache.thrift.TException;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
-import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
-import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
-import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
 
@@ -55,19 +48,6 @@ public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTe
     public void dropTablesThrowsAndDoesNotChangeCassandraSchema() throws TException {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().dropTables(ImmutableSet.of(TEST_TABLE)));
-    }
-
-    @Test
-    public void cleanUpSchemaMutationLockTablesStateThrowsAndDoesNotChangeCassandraSchema() throws TException {
-        CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
-        CassandraClientPool clientPool = getTestKvs().getClientPool();
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
-        TracingQueryRunner queryRunner = new TracingQueryRunner(LoggerFactory.getLogger(TracingQueryRunner.class),
-                new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
-                queryRunner);
-
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(cleaner::cleanLocksState);
     }
 
     @Test

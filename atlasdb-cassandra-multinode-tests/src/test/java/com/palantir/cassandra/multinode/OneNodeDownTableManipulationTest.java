@@ -83,20 +83,6 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
-    public void canCleanUpSchemaMutationLockTablesState() throws TException {
-        CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
-        CassandraClientPool clientPool = getTestKvs().getClientPool();
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
-        TracingQueryRunner queryRunner = new TracingQueryRunner(LoggerFactory.getLogger(TracingQueryRunner.class),
-                new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
-                queryRunner);
-
-        cleaner.cleanLocksState();
-        assertCassandraSchemaChanged();
-    }
-
-    @Test
     public void truncateTableThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().truncateTable(TEST_TABLE));
