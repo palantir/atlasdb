@@ -27,6 +27,8 @@ import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
