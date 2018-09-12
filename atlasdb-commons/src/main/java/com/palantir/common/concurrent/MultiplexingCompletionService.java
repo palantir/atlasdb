@@ -16,6 +16,7 @@
 
 package com.palantir.common.concurrent;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -25,6 +26,7 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -43,14 +45,27 @@ public class MultiplexingCompletionService<T, V> {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
     }
 
-    // TODO (jkong): Metrics for rejections / usage counts
+    public static <T, V> MultiplexingCompletionService<T, V> createWithSingleExecutor(
+            Collection<T> keys,
+            ExecutorService executor) {
+        return create(ImmutableMap.copyOf(keys.stream().collect(Collectors.toMap(key -> key, unused -> executor))));
+    }
 
-    public Future<V> execute(T key, Callable<V> task) {
+    /**
+     * Submits a task to be run on a specific executor.
+     *
+     * @param key to identify which executor the task should be run on
+     * @param task to be run on the relevant executor
+     * @return future associated with submitting the task to the correct executor
+     *
+     * @throws IllegalStateException if the key provided is not associated with any executor
+     */
+    public Future<V> submit(T key, Callable<V> task) {
         ExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
             throw new IllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
         }
-        return submitAndPrepareForQueueing(targetExecutor, key, task);
+        return submitAndPrepareForQueueing(targetExecutor, task);
     }
 
     public Future<V> poll() {
@@ -61,7 +76,7 @@ public class MultiplexingCompletionService<T, V> {
         return taskQueue.poll(timeout, unit);
     }
 
-    private Future<V> submitAndPrepareForQueueing(ExecutorService delegate, T key, Callable<V> callable) {
+    private Future<V> submitAndPrepareForQueueing(ExecutorService delegate, Callable<V> callable) {
         return delegate.submit(new QueueTask(new FutureTask<>(callable)), null);
     }
 
