@@ -16,6 +16,9 @@
 
 package com.palantir.leader;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.concurrent.GuardedBy;
 
 import com.codahale.metrics.MetricRegistry;
@@ -27,6 +30,7 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
 
     private final String leaderId;
     private final LeadershipEvents events;
+    private final List<LeadershipObserver> leadershipObservers;
 
     @GuardedBy("this") private PaxosValue currentRound = null;
     @GuardedBy("this") private boolean isLeading = false;
@@ -39,6 +43,7 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     PaxosLeadershipEventRecorder(LeadershipEvents events, String leaderUuid) {
         this.events = events;
         this.leaderId = leaderUuid;
+        this.leadershipObservers = new ArrayList<>();
     }
 
     @Override
@@ -76,9 +81,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     private synchronized void recordNewRound(PaxosValue round) {
         if (isLeading) {
             events.lostLeadershipFor(currentRound);
+            leadershipObservers.forEach(LeadershipObserver::lostLeadership);
         }
 
         if (isLeaderFor(round)) {
+            leadershipObservers.forEach(LeadershipObserver::gainedLeadership);
             events.gainedLeadershipFor(round);
         }
 
@@ -90,6 +97,7 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
     public synchronized void recordNotLeading(PaxosValue value) {
         if (isSameRound(value) && isLeading) {
             events.lostLeadershipFor(value);
+            leadershipObservers.forEach(LeadershipObserver::lostLeadership);
             isLeading = false;
         }
     }
@@ -99,6 +107,11 @@ public class PaxosLeadershipEventRecorder implements PaxosKnowledgeEventRecorder
         if (isSameRound(value)) {
             events.noQuorum(value);
         }
+    }
+
+    @Override
+    public synchronized void attachObserver(LeadershipObserver leadershipObserver) {
+        leadershipObservers.add(leadershipObserver);
     }
 
     private synchronized boolean isNewRound(PaxosValue value) {

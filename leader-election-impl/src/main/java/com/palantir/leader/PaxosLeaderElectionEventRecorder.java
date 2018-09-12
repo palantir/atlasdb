@@ -43,6 +43,8 @@ public interface PaxosLeaderElectionEventRecorder {
     /** Called when we successfully contacted the suspected leader, but it reported that it was not the leader. */
     void recordLeaderPingReturnedFalse();
 
+    void attachObserver(LeadershipObserver leadershipObserver);
+
     PaxosLeaderElectionEventRecorder NO_OP = new PaxosLeaderElectionEventRecorder() {
         @Override
         public void recordNotLeading(PaxosValue value) { }
@@ -64,6 +66,9 @@ public interface PaxosLeaderElectionEventRecorder {
 
         @Override
         public void recordLeaderPingReturnedFalse() { }
+
+        @Override
+        public void attachObserver(LeadershipObserver ignored) { }
     };
 
 }
