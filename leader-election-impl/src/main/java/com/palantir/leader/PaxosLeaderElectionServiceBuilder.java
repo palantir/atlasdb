@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.paxos.PaxosAcceptor;
@@ -33,7 +34,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private Map<PingableLeader, HostAndPort> potentialLeadersToHosts;
     private List<PaxosAcceptor> acceptors;
     private List<PaxosLearner> learners;
-    private ExecutorService executor;
+    private Supplier<ExecutorService> executorServiceFactory;
     private long pingRateMs;
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
@@ -70,7 +71,12 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionServiceBuilder executor(ExecutorService executor) {
-        this.executor = executor;
+        this.executorServiceFactory = Suppliers.ofInstance(executor);
+        return this;
+    }
+
+    public PaxosLeaderElectionServiceBuilder executorServiceFactory(Supplier<ExecutorService> factory) {
+        this.executorServiceFactory = factory;
         return this;
     }
 
@@ -107,7 +113,7 @@ public class PaxosLeaderElectionServiceBuilder {
                 potentialLeadersToHosts,
                 acceptors,
                 learners,
-                executor,
+                executorServiceFactory,
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs,

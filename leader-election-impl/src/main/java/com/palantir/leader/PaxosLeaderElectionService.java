@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -121,6 +122,30 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             long leaderPingResponseWaitMs,
             PaxosLeaderElectionEventRecorder eventRecorder,
             Supplier<Boolean> onlyLogOnQuorumFailure) {
+        this(proposer,
+                knowledge,
+                otherPotentialLeadersToHosts,
+                acceptors,
+                learners,
+                Suppliers.ofInstance(executor),
+                updatePollingWaitInMs,
+                randomWaitBeforeProposingLeadership,
+                leaderPingResponseWaitMs,
+                eventRecorder,
+                onlyLogOnQuorumFailure);
+    }
+
+    PaxosLeaderElectionService(PaxosProposer proposer,
+            PaxosLearner knowledge,
+            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            Supplier<ExecutorService> executorServiceSupplier,
+            long updatePollingWaitInMs,
+            long randomWaitBeforeProposingLeadership,
+            long leaderPingResponseWaitMs,
+            PaxosLeaderElectionEventRecorder eventRecorder,
+            Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -128,16 +153,16 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.learners = ImmutableList.copyOf(learners);
         this.leaderPingExecutors = Streams.concat(Stream.of(this), otherPotentialLeadersToHosts.keySet().stream())
-                .collect(Collectors.toMap(service -> service, service -> executor));
+                .collect(Collectors.toMap(service -> service, service -> executorServiceSupplier.get()));
         this.knowledgeUpdatingExecutors = learners.stream()
-                .collect(Collectors.toMap(service -> service, service -> executor));
+                .collect(Collectors.toMap(service -> service, service -> executorServiceSupplier.get()));
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
-                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executor,
+                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executorServiceSupplier.get(),
                         onlyLogOnQuorumFailure));
     }
 

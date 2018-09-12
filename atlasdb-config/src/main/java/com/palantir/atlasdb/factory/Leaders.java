@@ -22,6 +22,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -148,8 +151,14 @@ public final class Leaders {
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
                 leaderUuid, proposerExecutorService));
 
-        InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+        Supplier<ExecutorService> leaderElectionExecutor = () -> new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        1,
+                        100,
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<>(),
+                        new ThreadFactoryBuilder()
                         .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),
@@ -162,7 +171,7 @@ public final class Leaders {
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executor(leaderElectionExecutor)
+                .executorServiceFactory(leaderElectionExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
