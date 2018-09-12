@@ -70,6 +70,7 @@ develop
          - Improved visibility into sources of high DB load.
            We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
 
 ========
 v0.103.0
