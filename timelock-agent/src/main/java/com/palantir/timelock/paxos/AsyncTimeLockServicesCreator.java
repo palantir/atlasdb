@@ -16,8 +16,10 @@
 
 package com.palantir.timelock.paxos;
 
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.JavaSuppliers;
 
@@ -84,6 +87,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
+        leadershipCreator.executeWhenLostLeadership(this::deregisterLeaderMetrics);
+
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
@@ -121,5 +126,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 context -> ImmutableMap.of(
                         "client", client,
                         "isCurrentSuspectedLeader", String.valueOf(leadershipCreator.isCurrentSuspectedLeader())));
+    }
+
+    private void deregisterLeaderMetrics() {
+        TaggedMetricRegistry taggedMetricRegistry = metricsManager.getTaggedRegistry();
+        List<MetricName> leaderMetrics = taggedMetricRegistry.getMetrics().keySet().stream()
+                .filter(metricName -> metricName.safeTags().containsKey("isCurrentSuspectedLeader"))
+                .collect(Collectors.toList());
+
+        leaderMetrics.forEach(m -> taggedMetricRegistry.remove(m));
     }
 }
