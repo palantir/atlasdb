@@ -265,31 +265,31 @@ public final class CassandraVerifier {
     static KsDef checkAndSetReplicationFactor(CassandraClient client, KsDef ksDef,
             CassandraKeyValueServiceConfig config) throws TException {
         KsDef result = ksDef;
-        Set<String> dataCenters;
+        Set<String> datacenters;
         if (Objects.equals(result.getStrategy_class(), CassandraConstants.SIMPLE_STRATEGY)) {
-            dataCenters = getDcForSimpleStrategy(client, result, config);
-            result = setNetworkStrategyIfCheckedTopology(result, config, dataCenters);
+            datacenters = getDcForSimpleStrategy(client, result, config);
+            result = setNetworkStrategyIfCheckedTopology(result, config, datacenters);
         } else {
-            dataCenters = sanityCheckDatacenters(client, config);
+            datacenters = sanityCheckDatacenters(client, config);
         }
 
-        sanityCheckReplicationFactor(result, config, dataCenters);
+        sanityCheckReplicationFactor(result, config, datacenters);
         return result;
     }
 
     private static Set<String> getDcForSimpleStrategy(CassandraClient client, KsDef ksDef,
             CassandraKeyValueServiceConfig config) throws TException {
         checkKsDefRfEqualsOne(ksDef, config);
-        Set<String> dataCenters = sanityCheckDatacenters(client, config);
-        checkOneDatacenter(config, dataCenters);
-        return dataCenters;
+        Set<String> datacenters = sanityCheckDatacenters(client, config);
+        checkOneDatacenter(config, datacenters);
+        return datacenters;
     }
 
     private static KsDef setNetworkStrategyIfCheckedTopology(KsDef ksDef, CassandraKeyValueServiceConfig config,
-            Set<String> dataCenters) {
+            Set<String> datacenters) {
         if (!config.ignoreNodeTopologyChecks()) {
             ksDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
-            ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(dataCenters), "1"));
+            ksDef.setStrategy_options(ImmutableMap.of(Iterables.getOnlyElement(datacenters), "1"));
         }
         return ksDef;
     }
@@ -301,8 +301,8 @@ public final class CassandraVerifier {
         }
     }
 
-    private static void checkOneDatacenter(CassandraKeyValueServiceConfig config, Set<String> dataCenters) {
-        if (dataCenters.size() > 1) {
+    private static void checkOneDatacenter(CassandraKeyValueServiceConfig config, Set<String> datacenters) {
+        if (datacenters.size() > 1) {
             logErrorOrThrow(SIMPLE_PARTITIONING_ERROR_MSG, config.ignoreNodeTopologyChecks());
         }
     }
@@ -321,10 +321,10 @@ public final class CassandraVerifier {
 
     private static void checkRfsSpecified(CassandraKeyValueServiceConfig config, Set<String> dcs,
             Map<String, String> strategyOptions) {
-        for (String dataCenter : dcs) {
-            if (strategyOptions.get(dataCenter) == null) {
+        for (String datacenter : dcs) {
+            if (strategyOptions.get(datacenter) == null) {
                 logErrorOrThrow("The datacenter for this cassandra cluster is invalid. "
-                        + " failed dc: " + dataCenter + "  strategyOptions: " + strategyOptions,
+                        + " failed dc: " + datacenter + "  strategyOptions: " + strategyOptions,
                         config.ignoreDatacenterConfigurationChecks());
             }
         }
@@ -332,8 +332,8 @@ public final class CassandraVerifier {
 
     private static void checkRfsMatchConfig(KsDef ks, CassandraKeyValueServiceConfig config, Set<String> dcs,
             Map<String, String> strategyOptions) {
-        for (String dataCenter : dcs) {
-            if (Integer.parseInt(strategyOptions.get(dataCenter)) != config.replicationFactor()) {
+        for (String datacenter : dcs) {
+            if (Integer.parseInt(strategyOptions.get(datacenter)) != config.replicationFactor()) {
                 throw new UnsupportedOperationException("Your current Cassandra keyspace (" + ks.getName()
                         + ") has a replication factor not matching your Atlas Cassandra configuration."
                         + " Change them to match, but be mindful of what steps you'll need to"

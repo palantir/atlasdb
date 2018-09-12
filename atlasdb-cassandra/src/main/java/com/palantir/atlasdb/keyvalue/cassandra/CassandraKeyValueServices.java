@@ -74,7 +74,7 @@ public final class CassandraKeyValueServices {
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
-    static String waitForSchemaVersions(
+    static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
             String schemaChangeDescription)
@@ -87,9 +87,8 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            Optional<String> uniqueSchema = uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions);
-            if (uniqueSchema.isPresent()) {
-                return uniqueSchema.get();
+            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions).isPresent()) {
+                return;
             }
             sleepTime = sleepWithExponentialBackoff(sleepTime);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());

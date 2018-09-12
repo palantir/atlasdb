@@ -79,8 +79,8 @@ class CassandraTables {
         Optional<String> oldSchema = CassandraKeyValueServices
                 .getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(config, client);
         if (!oldSchema.isPresent()) {
-            throw new AtlasDbDependencyException("Cassandra cluster cannot come to agreement on schema versions, or "
-                    + "isn't a quorum of Cassandra nodes up when attempting to get all table names.");
+            throw new AtlasDbDependencyException("Cassandra cluster cannot come to an agreement on schema versions, or "
+                    + "there are fewer than quorum of reachable nodes when attempting to get all table names.");
         }
 
         KsDef ks = client.describe_keyspace(keyspace);
