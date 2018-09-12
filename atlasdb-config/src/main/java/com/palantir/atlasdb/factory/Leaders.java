@@ -152,7 +152,7 @@ public final class Leaders {
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
                 leaderUuid, proposerExecutorService));
 
-        // TODO (jkong): Make configurable.
+        // TODO (jkong): Make the limits configurable.
         // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
         Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
@@ -166,7 +166,7 @@ public final class Leaders {
                         .setDaemon(true)
                         .build()),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
 
         PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)

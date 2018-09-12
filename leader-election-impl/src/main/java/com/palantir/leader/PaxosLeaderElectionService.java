@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -46,7 +46,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
@@ -134,6 +133,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 onlyLogOnQuorumFailure);
     }
 
+    // Please use the builder instead.
     PaxosLeaderElectionService(PaxosProposer proposer,
             PaxosLearner knowledge,
             Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
@@ -151,12 +151,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.otherPotentialLeadersToHosts = Collections.unmodifiableMap(otherPotentialLeadersToHosts);
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.learners = ImmutableList.copyOf(learners);
-        this.leaderPingExecutors = Streams.concat(Stream.of(this), otherPotentialLeadersToHosts.keySet().stream())
-                .collect(Collectors.toMap(service -> service,
-                        service -> executorServiceFactory.apply("leader-ping")));
-        this.knowledgeUpdatingExecutors = learners.stream()
-                .collect(Collectors.toMap(service -> service,
-                        service -> executorServiceFactory.apply("knowledge-update")));
+        this.leaderPingExecutors = createLeaderPingExecutors(otherPotentialLeadersToHosts, executorServiceFactory);
+        this.knowledgeUpdatingExecutors = createKnowledgeUpdateExecutors(learners, executorServiceFactory);
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
@@ -168,6 +164,31 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         proposer.getQuorumSize(),
                         executorServiceFactory.apply("latest-round-verifier"),
                         onlyLogOnQuorumFailure));
+    }
+
+    private Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
+            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
+            Function<String, ExecutorService> executorServiceFactory) {
+        Map<PingableLeader, ExecutorService> executors = Maps.newHashMap();
+        executors.put(this, executorServiceFactory.apply("leader-ping-0"));
+
+        int index = 1;
+        for (PingableLeader leader : otherPotentialLeadersToHosts.keySet()) {
+            executors.put(leader, executorServiceFactory.apply("leader-ping-" + index));
+            index++;
+        }
+
+        return executors;
+    }
+
+    private Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
+            List<PaxosLearner> learners,
+            Function<String, ExecutorService> executorServiceFactory) {
+        return IntStream.range(0, learners.size())
+                .boxed()
+                .collect(Collectors.toMap(
+                        learners::get,
+                        index -> executorServiceFactory.apply("knowledge-update-" + index)));
     }
 
     @Override
