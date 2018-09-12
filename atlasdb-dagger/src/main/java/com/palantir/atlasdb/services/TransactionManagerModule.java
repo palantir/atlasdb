@@ -22,7 +22,6 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -107,13 +106,13 @@ public class TransactionManagerModule {
                 new TimestampCache(metricsManager.getRegistry(),
                         () -> config.atlasDbRuntimeConfig().getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
-                true);
+                true,
+                () -> config.atlasDbRuntimeConfig().transaction());
     }
 
 }

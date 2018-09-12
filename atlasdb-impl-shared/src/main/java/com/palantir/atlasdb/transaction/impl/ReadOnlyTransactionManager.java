@@ -21,6 +21,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -47,6 +48,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final boolean allowHiddenTableAccess;
     private final int defaultGetRangesConcurrency;
+    private final Supplier<TransactionConfig> transactionConfig;
 
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
@@ -57,7 +59,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
-            TimestampCache timestampCache) {
+            TimestampCache timestampCache,
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -67,6 +70,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.transactionConfig = transactionConfig;
     }
 
     @Override
@@ -200,7 +204,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 MoreExecutors.newDirectExecutorService(),
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                transactionConfig);
         return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
     }

@@ -28,12 +28,12 @@ import java.util.UUID;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -50,13 +50,13 @@ import com.palantir.timestamp.TimestampService;
 public class TransactionManagerTest extends TransactionTestSetup {
 
     @Test
-    public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() throws Exception {
+    public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() {
         txMgr.close();
         txMgr.close();
     }
 
     @Test
-    public void shouldNotRunTaskWithRetryWithClosedTransactionManager() throws Exception {
+    public void shouldNotRunTaskWithRetryWithClosedTransactionManager() {
         txMgr.close();
 
         assertThatThrownBy(() -> txMgr.runTaskWithRetry((TransactionTask<Void, RuntimeException>) txn -> {
@@ -68,7 +68,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldNotRunTaskThrowOnConflictWithClosedTransactionManager() throws Exception {
+    public void shouldNotRunTaskThrowOnConflictWithClosedTransactionManager() {
         txMgr.close();
         assertThatThrownBy(() -> txMgr.runTaskThrowOnConflict((TransactionTask<Void, RuntimeException>) txn -> {
             put(txn, "row1", "col1", "v1");
@@ -79,7 +79,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
     }
 
     @Test
-    public void shouldNotRunTaskReadOnlyWithClosedTransactionManager() throws Exception {
+    public void shouldNotRunTaskReadOnlyWithClosedTransactionManager() {
         txMgr.close();
 
         assertThatThrownBy(() -> txMgr.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {
@@ -162,12 +162,12 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 NoOpCleaner.INSTANCE,
                 TimestampCache.createForTests(),
                 false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                true);
+                true,
+                () -> ImmutableTransactionConfig.builder().build());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
