@@ -49,7 +49,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.MultiplexingExecutorService;
+import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -489,7 +489,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     }
                 },
                 proposer.getQuorumSize(),
-                MultiplexingExecutorService.create(learners, unused -> PTExecutors.newThreadPoolExecutor(
+                MultiplexingCompletionService.create(learners, unused -> PTExecutors.newThreadPoolExecutor(
                         1,
                         10,
                         5,

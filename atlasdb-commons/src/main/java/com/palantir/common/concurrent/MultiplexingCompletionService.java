@@ -37,29 +37,29 @@ import java.util.stream.Collectors;
  * functions of T.
  * @param <T>
  */
-public class MultiplexingExecutorService<T, V> {
+public class MultiplexingCompletionService<T, V> {
     private final Map<T, ExecutorService> executors;
     private final BlockingQueue<Future<V>> taskQueue;
 
-    private MultiplexingExecutorService(Map<T, ExecutorService> executors, BlockingQueue<Future<V>> taskQueue) {
+    private MultiplexingCompletionService(Map<T, ExecutorService> executors, BlockingQueue<Future<V>> taskQueue) {
         this.executors = executors;
         this.taskQueue = taskQueue;
     }
 
-    public static <T, V> MultiplexingExecutorService<T, V> createForSingleExecutor(
+    public static <T, V> MultiplexingCompletionService<T, V> createForSingleExecutor(
             Collection<T> remotes,
             ExecutorService executorService) {
         Map<T, ExecutorService> executors = remotes.stream().collect(
                 Collectors.toMap(element -> element, element -> executorService));
-        return new MultiplexingExecutorService<>(executors, new LinkedBlockingDeque<>());
+        return new MultiplexingCompletionService<>(executors, new LinkedBlockingDeque<>());
     }
 
-    public static <T, V> MultiplexingExecutorService<T, V> create(
+    public static <T, V> MultiplexingCompletionService<T, V> create(
             Collection<T> remotes,
             Function<T, ExecutorService> serviceFactory) {
         Map<T, ExecutorService> executors = remotes.stream().collect(
                 Collectors.toMap(element -> element, serviceFactory));
-        return new MultiplexingExecutorService<>(executors, new LinkedBlockingDeque<>());
+        return new MultiplexingCompletionService<>(executors, new LinkedBlockingDeque<>());
     }
 
     public Map<T, Future<V>> execute(Function<T, V> function) {
