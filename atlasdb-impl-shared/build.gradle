@@ -23,7 +23,6 @@ dependencies {
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.common', name: 'streams'
-  compile group: 'com.palantir.remoting3', name: 'tracing'
   compile (group: 'com.palantir.remoting3', name: 'jersey-servers') {
     exclude module: 'jersey-server'
   }
