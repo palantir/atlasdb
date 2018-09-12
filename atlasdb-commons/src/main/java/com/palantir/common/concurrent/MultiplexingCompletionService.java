@@ -16,7 +16,6 @@
 
 package com.palantir.common.concurrent;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -26,10 +25,21 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 
+/**
+ * A MultiplexingCompletionService is much like a {@link java.util.concurrent.ExecutorCompletionService}, but
+ * supports multiple delegate {@link ExecutorService}s feeding in to a single shared {@link BlockingQueue}.
+ * {@link #poll()} operations will retrieve the results of computations that are done first (regardless of which
+ * actual underlying executor service they may have been scheduled on).
+ *
+ * Maintaining separate executors may see application in improving monitoring and bounding of thread pools that
+ * have several distinct use cases.
+ *
+ * @param <T> key type
+ * @param <V> return type of tasks that are to be submitted
+ */
 public class MultiplexingCompletionService<T, V> {
     private final ImmutableMap<T, ExecutorService> executors;
     private final BlockingQueue<Future<V>> taskQueue;
@@ -43,12 +53,6 @@ public class MultiplexingCompletionService<T, V> {
     public static <T, V> MultiplexingCompletionService<T, V> create(
             Map<T, ExecutorService> executors) {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
-    }
-
-    public static <T, V> MultiplexingCompletionService<T, V> createWithSingleExecutor(
-            Collection<T> keys,
-            ExecutorService executor) {
-        return create(ImmutableMap.copyOf(keys.stream().collect(Collectors.toMap(key -> key, unused -> executor))));
     }
 
     /**
