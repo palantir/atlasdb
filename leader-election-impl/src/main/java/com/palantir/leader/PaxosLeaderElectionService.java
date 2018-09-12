@@ -167,13 +167,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
-            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
+            Map<PingableLeader, HostAndPort> otherLeadersToHosts,
             Function<String, ExecutorService> executorServiceFactory) {
         Map<PingableLeader, ExecutorService> executors = Maps.newHashMap();
         executors.put(this, executorServiceFactory.apply("leader-ping-0"));
 
         int index = 1;
-        for (PingableLeader leader : otherPotentialLeadersToHosts.keySet()) {
+        for (PingableLeader leader : otherLeadersToHosts.keySet()) {
             executors.put(leader, executorServiceFactory.apply("leader-ping-" + index));
             index++;
         }
@@ -182,12 +182,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
-            List<PaxosLearner> learners,
+            List<PaxosLearner> paxosLearners,
             Function<String, ExecutorService> executorServiceFactory) {
-        return IntStream.range(0, learners.size())
+        return IntStream.range(0, paxosLearners.size())
                 .boxed()
                 .collect(Collectors.toMap(
-                        learners::get,
+                        paxosLearners::get,
                         index -> executorServiceFactory.apply("knowledge-update-" + index)));
     }
 
