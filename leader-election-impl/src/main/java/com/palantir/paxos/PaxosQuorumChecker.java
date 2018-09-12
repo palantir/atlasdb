@@ -16,12 +16,15 @@
 package com.palantir.paxos;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +90,13 @@ public final class PaxosQuorumChecker {
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure) {
         return collectResponses(
-                remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, onlyLogOnQuorumFailure, true);
+                remotes,
+                request,
+                quorumSize,
+                mapToSingleExecutorService(remotes, executor),
+                remoteRequestTimeoutInSec,
+                onlyLogOnQuorumFailure,
+                true);
     }
 
     /**
@@ -104,7 +113,20 @@ public final class PaxosQuorumChecker {
             final Function<SERVICE, RESPONSE> request,
             ExecutorService executor,
             long remoteRequestTimeoutInSec) {
-        return collectResponses(remotes, request, remotes.size(), executor, remoteRequestTimeoutInSec, false, false);
+        return collectResponses(
+                remotes,
+                request,
+                remotes.size(),
+                mapToSingleExecutorService(remotes, executor),
+                remoteRequestTimeoutInSec,
+                false,
+                false);
+    }
+
+    private static <SERVICE> Map<SERVICE, ExecutorService> mapToSingleExecutorService(
+            Collection<SERVICE> remotes,
+            ExecutorService executorService) {
+        return remotes.stream().collect(Collectors.toMap(remote -> remote, unused -> executorService));
     }
 
     /**
@@ -115,19 +137,19 @@ public final class PaxosQuorumChecker {
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests after termination
-     * @param executor runs the requests
+     * @param executors run the requests
      * @return a list of responses
      */
     private static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executor,
+            Map<SERVICE, ExecutorService> executors,
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure,
             boolean shortcircuitIfQuorumImpossible) {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
-                MultiplexingCompletionService.createWithSingleExecutor(remotes, executor);
+                MultiplexingCompletionService.create(executors);
 
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
