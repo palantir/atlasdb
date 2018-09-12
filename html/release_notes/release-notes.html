@@ -194,11 +194,15 @@
 <td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Upgrade http-remoting 3.41.1 -&gt; 3.43.0 to make tracing delegate nicely.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3494">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Improved threading for MetricsManager’s metricsRegistry
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3497">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Improved visibility into sources of high DB load.
 We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3488">Pull Request</a>)</td>
