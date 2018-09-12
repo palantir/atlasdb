@@ -22,15 +22,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -46,8 +46,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import com.google.common.net.HostAndPort;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
@@ -82,7 +84,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final long randomWaitBeforeProposingLeadership;
     final long leaderPingResponseWaitMs;
 
-    final ExecutorService executor;
+    final Map<PingableLeader, ExecutorService> leaderPingExecutors;
+    final Map<PaxosLearner, ExecutorService> knowledgeUpdatingExecutors;
 
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
@@ -124,7 +127,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.otherPotentialLeadersToHosts = Collections.unmodifiableMap(otherPotentialLeadersToHosts);
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.learners = ImmutableList.copyOf(learners);
-        this.executor = executor;
+        this.leaderPingExecutors = Streams.concat(Stream.of(this), otherPotentialLeadersToHosts.keySet().stream())
+                .collect(Collectors.toMap(service -> service, service -> executor));
+        this.knowledgeUpdatingExecutors = learners.stream()
+                .collect(Collectors.toMap(service -> service, service -> executor));
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
@@ -194,14 +200,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
         final PingableLeader leader = maybeLeader.get();
 
-        CompletionService<Boolean> pingCompletionService = new ExecutorCompletionService<Boolean>(
-                executor);
+        MultiplexingCompletionService<PingableLeader, Boolean> multiplexingCompletionService
+                = MultiplexingCompletionService.create(leaderPingExecutors);
 
-        // kick off all the requests
-        pingCompletionService.submit(() -> leader.ping());
+        multiplexingCompletionService.submit(leader, leader::ping);
 
         try {
-            Future<Boolean> pingFuture = pingCompletionService.poll(
+            Future<Boolean> pingFuture = multiplexingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
             return getAndRecordLeaderPingResult(pingFuture);
@@ -258,15 +263,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Optional<PingableLeader> getSuspectedLeaderOverNetwork(String uuid) {
-        CompletionService<Entry<String, PingableLeader>> pingService = new ExecutorCompletionService<>(
-                executor);
+        MultiplexingCompletionService<PingableLeader, Entry<String, PingableLeader>> pingService
+                = MultiplexingCompletionService.create(leaderPingExecutors);
 
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
-            allFutures.add(pingService.submit(() -> new AbstractMap.SimpleEntry<>(
-                    potentialLeader.getUUID(),
-                    potentialLeader)));
+            allFutures.add(pingService.submit(potentialLeader,
+                    () -> new AbstractMap.SimpleEntry<>(potentialLeader.getUUID(), potentialLeader)));
         }
 
         // collect responses
@@ -475,7 +479,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
         final long nextToLearnSeq =
                 greatestLearned.map(value -> value.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
-        List<PaxosUpdate> updates = PaxosQuorumChecker.<PaxosLearner, PaxosUpdate>collectQuorumResponses(
+        List<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
                 learners,
                 new Function<PaxosLearner, PaxosUpdate>() {
                     @Override
@@ -486,8 +490,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     }
                 },
                 proposer.getQuorumSize(),
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+                knowledgeUpdatingExecutors,
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
+                false);
 
         // learn the state accumulated from peers
         boolean learned = false;

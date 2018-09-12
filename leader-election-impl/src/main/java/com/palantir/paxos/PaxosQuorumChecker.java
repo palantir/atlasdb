@@ -31,10 +31,12 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Meter;
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -94,6 +96,25 @@ public final class PaxosQuorumChecker {
                 request,
                 quorumSize,
                 mapToSingleExecutorService(remotes, executor),
+                remoteRequestTimeoutInSec,
+                onlyLogOnQuorumFailure,
+                true);
+    }
+
+    public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
+            ImmutableList<SERVICE> remotes,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Map<SERVICE, ExecutorService> executors,
+            long remoteRequestTimeoutInSec,
+            boolean onlyLogOnQuorumFailure) {
+        Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
+                "Each remote should have an executor.");
+        return collectResponses(
+                remotes,
+                request,
+                quorumSize,
+                executors,
                 remoteRequestTimeoutInSec,
                 onlyLogOnQuorumFailure,
                 true);
