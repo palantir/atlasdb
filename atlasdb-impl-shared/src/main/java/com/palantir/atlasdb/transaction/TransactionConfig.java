@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.transaction;
 
 import org.immutables.value.Value;
 
@@ -32,4 +32,8 @@ public abstract class TransactionConfig {
         return AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS;
     }
 
+    @Value.Default
+    public int getThresholdForLoggingLargeNumberOfTransactionLookups() {
+        return AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS;
+    }
 }

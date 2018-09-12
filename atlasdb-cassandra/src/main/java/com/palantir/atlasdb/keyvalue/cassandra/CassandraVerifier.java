@@ -72,21 +72,21 @@ public final class CassandraVerifier {
             throws TException {
         createSimpleRfTestKeyspaceIfNotExists(client);
 
-        Multimap<String, String> dataCenterToRack = HashMultimap.create();
+        Multimap<String, String> datacenterToRack = HashMultimap.create();
         Set<String> hosts = Sets.newHashSet();
         for (TokenRange tokenRange : client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE)) {
             for (EndpointDetails details : tokenRange.getEndpoint_details()) {
-                dataCenterToRack.put(details.datacenter, details.rack);
+                datacenterToRack.put(details.datacenter, details.rack);
                 hosts.add(details.host);
             }
         }
 
-        if (clusterHasExactlyOneDatacenter(dataCenterToRack) && config.replicationFactor() > 1) {
-            checkNodeTopologyIsSet(config, dataCenterToRack);
-            checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, dataCenterToRack);
+        if (clusterHasExactlyOneDatacenter(datacenterToRack) && config.replicationFactor() > 1) {
+            checkNodeTopologyIsSet(config, datacenterToRack);
+            checkMoreRacksThanRfOrFewerHostsThanRf(config, hosts, datacenterToRack);
         }
 
-        return dataCenterToRack.keySet();
+        return datacenterToRack.keySet();
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
@@ -97,12 +97,12 @@ public final class CassandraVerifier {
         }
     }
 
-    private static boolean clusterHasExactlyOneDatacenter(Multimap<String, String> dataCenterToRack) {
-        return dataCenterToRack.keySet().size() == 1;
+    private static boolean clusterHasExactlyOneDatacenter(Multimap<String, String> datacenterToRack) {
+        return datacenterToRack.keySet().size() == 1;
     }
 
-    private static boolean clusterHasExactlyOneRack(Multimap<String, String> dataCenterToRack) {
-        return dataCenterToRack.values().size() == 1;
+    private static boolean clusterHasExactlyOneRack(Multimap<String, String> datacenterToRack) {
+        return datacenterToRack.values().size() == 1;
     }
 
     private static void checkMoreRacksThanRfOrFewerHostsThanRf(CassandraKeyValueServiceConfig config, Set<String> hosts,
@@ -121,9 +121,9 @@ public final class CassandraVerifier {
 
     private static void checkNodeTopologyIsSet(CassandraKeyValueServiceConfig config, Multimap<String, String> dcRack) {
         if (clusterHasExactlyOneRack(dcRack)) {
-            String dataCenter = Iterables.getOnlyElement(dcRack.keySet());
+            String datacenter = Iterables.getOnlyElement(dcRack.keySet());
             String rack = Iterables.getOnlyElement(dcRack.values());
-            if (dataCenter.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)) {
+            if (datacenter.equals(CassandraConstants.DEFAULT_DC) && rack.equals(CassandraConstants.DEFAULT_RACK)) {
                 logErrorOrThrow("The cassandra cluster is not set up to be datacenter and rack aware. Please set up "
                                 + "Cassandra to use NetworkTopology and add corresponding snitch information "
                                 + "before running with a replication factor higher than 1. "

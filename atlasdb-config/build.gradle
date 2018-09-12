@@ -23,7 +23,6 @@ dependencies {
         exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
         exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
     }
-    compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'org.hdrhistogram', name: 'HdrHistogram'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'

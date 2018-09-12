@@ -50,18 +50,32 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |fixed|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, some Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
+
     *    - |fixed|
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
-    *    - |fixed|
-         - Now correctly parses the values for `Content-Type` header.
-           For example, a request with the header `Content-Type: text/plain;charset=iso-8859-1` is now correctly decoded as plain text, instead of JSON.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3459>`__)
-
     *    - |changed|
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+
+    *    - |changed|
+         - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
+
+    *    - |fixed|
+         - Improved threading for MetricsManager's metricsRegistry
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3497>`__)
+
+    *    - |logs| |metrics|
+         - Improved visibility into sources of high DB load.
+           We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
 
 ========
 v0.103.0
@@ -75,12 +89,6 @@ v0.103.0
 
     *    - Type
          - Change
-
-    *    - |improved|
-         - Schema mutations against the Cassandra KVS are now HA.
-           Previously, some Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
-           Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
     *    - |improved|
          - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.

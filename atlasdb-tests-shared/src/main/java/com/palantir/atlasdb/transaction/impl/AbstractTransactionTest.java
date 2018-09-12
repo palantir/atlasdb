@@ -70,6 +70,8 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -90,6 +92,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
+    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
 
     protected boolean supportsReverse() {
         return true;
@@ -121,14 +124,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
                 timestampCache,
-                // never actually used, since timelockService is null
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                true);
+                true,
+                () -> TRANSACTION_CONFIG);
     }
 
     @Test

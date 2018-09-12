@@ -44,6 +44,7 @@ public class CassandraVerifierTest {
     private static final String HOST_4 = "host4";
     private static final String RACK_1 = "test_rack1";
     private static final String RACK_2 = "test_rack2";
+    private static final String RACK_3 = "test_rack3";
 
     private CassandraClient client = mock(CassandraClient.class);
     private CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
@@ -87,7 +88,6 @@ public class CassandraVerifierTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    // This test was failing prior to refactor
     @Test
     public void oneDcFewerRacksThanRfAndMoreHostsThanRfThrows() throws TException {
         setTopology(defaultDcDetails(RACK_1, HOST_1),
@@ -105,7 +105,7 @@ public class CassandraVerifierTest {
         setTopology(defaultDcDetails(RACK_1, HOST_1),
                 defaultDcDetails(RACK_2, HOST_2),
                 defaultDcDetails(RACK_1, HOST_3),
-                defaultDcDetails(RACK_2, HOST_4));
+                defaultDcDetails(RACK_3, HOST_4));
         when(config.replicationFactor()).thenReturn(2);
 
         assertThat(CassandraVerifier.sanityCheckDatacenters(client, config))
@@ -226,7 +226,6 @@ public class CassandraVerifierTest {
 
     }
 
-    // This test was failing prior to the refactor
     @Test
     public void differentRfThanConfigThrows() {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());

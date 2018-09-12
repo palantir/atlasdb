@@ -373,7 +373,6 @@ public abstract class TransactionManagers {
                                 initializer,
                                 lockAndTimestampServices),
                         allowHiddenTableAccess(),
-                        () -> runtimeConfigSupplier.get().transaction().getLockAcquireTimeoutMillis(),
                         config.keyValueService().concurrentGetRangesThreadPoolSize(),
                         config.keyValueService().defaultGetRangesConcurrency(),
                         config.initializeAsync(),
@@ -381,7 +380,8 @@ public abstract class TransactionManagers {
                                 () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
                         callbacks,
-                        validateLocksOnReads()),
+                        validateLocksOnReads(),
+                        () -> runtimeConfigSupplier.get().transaction()),
                 closeables);
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
