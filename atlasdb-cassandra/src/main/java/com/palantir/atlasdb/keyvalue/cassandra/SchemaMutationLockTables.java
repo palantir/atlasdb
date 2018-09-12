@@ -16,11 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
@@ -41,16 +44,23 @@ public class SchemaMutationLockTables {
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
-    private final CassandraTables cassandraTables;
 
     public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
         this.config = config;
-        this.cassandraTables = new CassandraTables(clientPool, config);
     }
 
     public Set<TableReference> getAllLockTables() throws TException {
-        return cassandraTables.getExisting().stream()
+        Set<TableReference> lockTables = new HashSet<>();
+        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
+            lockTables.addAll(clientPool.runWithRetryOnHost(host, this::getAllLockTablesInternal));
+        }
+        return lockTables;
+    }
+
+    private Set<TableReference> getAllLockTablesInternal(CassandraClient client) throws TException {
+        return client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
+                .map(CfDef::getName)
                 .filter(IS_LOCK_TABLE)
                 .map(TableReference::createWithEmptyNamespace)
                 .collect(Collectors.toSet());
@@ -103,7 +113,7 @@ public class SchemaMutationLockTables {
                 client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 
                 CassandraKeyValueServices.waitForSchemaVersions(config, client,
-                        "after creating the lock table " + tableRef.getQualifiedName());
+                        "creating the lock table " + tableRef.getQualifiedName());
                 return null;
             } catch (TException ex) {
                 log.warn("Failed to create table", ex);
