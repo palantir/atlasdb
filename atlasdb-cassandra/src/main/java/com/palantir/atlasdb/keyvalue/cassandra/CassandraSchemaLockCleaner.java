@@ -90,9 +90,9 @@ public final class CassandraSchemaLockCleaner {
      * Removes all but one lock table if multiple lock tables are present. Then releases the schema mutation lock.
      *
      * @throws com.palantir.common.exception.AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are
-     * reachable, or the cluster cannot come to an agreement on schema versions. Note that this method is not atomic: if
-     * quorum is lost during its execution or Cassandra nodes fail to settle on a schema version after the Cassandra
-     * schema is mutated, we may drop the extra lock tables, but fail to release the schema mutation lock.
+     * reachable, or the cluster cannot come to an agreement on schema versions. This method will still drop all but
+     * one lock table on each of the reachable nodes, even if there are fewer than quorum, but the schema mutation
+     * lock will not have been unlocked.
      */
     public void cleanLocksState() throws TException {
         Set<TableReference> tables = lockTables.getAllLockTables();

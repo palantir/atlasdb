@@ -16,7 +16,10 @@
 
 package com.palantir.cassandra.multinode;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.apache.thrift.TException;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
 import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class TwoNodesDownCleanCassLockStateTest extends AbstractDegradedClusterTest {
 
@@ -45,7 +49,7 @@ public class TwoNodesDownCleanCassLockStateTest extends AbstractDegradedClusterT
     }
 
     @Test
-    public void cleanUpSchemaMutationLockTablesStateThrowsAndDoesNotChangeCassandraSchema() throws TException {
+    public void cleanUpSchemaMutationLockTablesStateThrowsButCleansUpExtraTables() throws TException {
         CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
         CassandraClientPool clientPool = getTestKvs().getClientPool();
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
@@ -54,6 +58,8 @@ public class TwoNodesDownCleanCassLockStateTest extends AbstractDegradedClusterT
         CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(config, clientPool, lockTables,
                 queryRunner);
 
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(cleaner::cleanLocksState);
+        assertThatThrownBy(cleaner::cleanLocksState).isInstanceOf(AtlasDbDependencyException.class);
+        // Note this behaviour
+        assertCassandraSchemaChanged();
     }
 }
