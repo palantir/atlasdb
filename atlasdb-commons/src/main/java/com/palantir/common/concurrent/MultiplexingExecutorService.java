@@ -19,6 +19,7 @@ package com.palantir.common.concurrent;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
@@ -64,11 +65,9 @@ public class MultiplexingExecutorService<T, V> {
     public Map<T, Future<V>> execute(Function<T, V> function) {
         return executors.entrySet()
                 .stream()
-                .collect(Collectors.<Map.Entry<T, ExecutorService>, T, Future<V>>toMap(
+                .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> entry.getValue().submit(
-                                new QueueTask(new FutureTask<>(() -> function.apply(entry.getKey()))), null)
-                ));
+                        entry -> submitAndPrepareForQueueing(entry.getValue(), () -> function.apply(entry.getKey()))));
     }
 
     public Future<V> poll() {
@@ -77,6 +76,10 @@ public class MultiplexingExecutorService<T, V> {
 
     public Future<V> poll(long timeout, TimeUnit unit) throws InterruptedException {
         return taskQueue.poll(timeout, unit);
+    }
+
+    private Future<V> submitAndPrepareForQueueing(ExecutorService executor, Callable<V> callable) {
+        return executor.submit(new QueueTask(new FutureTask<>(callable)), null);
     }
 
     private class QueueTask extends FutureTask<V> {
