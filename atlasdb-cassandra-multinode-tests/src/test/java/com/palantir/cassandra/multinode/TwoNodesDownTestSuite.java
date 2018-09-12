@@ -32,7 +32,7 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
         TwoNodesDownMetadataTest.class,
         TwoNodesDownPutTest.class,
         TwoNodesDownTableManipulationTest.class
-})
+        })
 public final class TwoNodesDownTestSuite extends NodesDownTestSetup {
 
     @BeforeClass

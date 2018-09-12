@@ -522,7 +522,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return CassandraUtils.getValidatePartitioner(config);
     }
 
-    @VisibleForTesting
     public enum StartupChecks {
         RUN,
         DO_NOT_RUN

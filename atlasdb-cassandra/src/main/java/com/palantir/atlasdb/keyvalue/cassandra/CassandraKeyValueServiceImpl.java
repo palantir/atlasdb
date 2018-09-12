@@ -257,7 +257,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             CassandraClientPool clientPool) {
-        return create(metricsManager,
+        return createOrShutdownClientPool(metricsManager,
                 config,
                 clientPool,
                 leaderConfig,
@@ -315,8 +315,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 initializeAsync,
                 qosClient);
-        return createOrShutdownClientPool(metricsManager, config, clientPool, leaderConfig, mutationTimestampProvider, log,
-                initializeAsync);
+        return createOrShutdownClientPool(metricsManager, config, clientPool, leaderConfig, mutationTimestampProvider,
+                log, initializeAsync);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
@@ -328,7 +328,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Logger log,
             boolean initializeAsync) {
         try {
-            return create(metricsManager, config, clientPool, leaderConfig,
+            return createAndInitialize(metricsManager, config, clientPool, leaderConfig,
                     mutationTimestampProvider, log, initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
@@ -343,7 +343,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private static CassandraKeyValueService create(
+    private static CassandraKeyValueService createAndInitialize(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
