@@ -207,11 +207,8 @@ public final class CassandraVerifier {
             throws TException {
         try {
             CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
-            client.describe_keyspace(config.getKeyspaceOrThrow());
-            CassandraKeyValueServices.waitForSchemaVersions(
-                    config,
-                    client,
-                    "(checking if schemas diverged on startup)");
+            CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    "while checking if schemas diverged on startup");
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -225,10 +222,8 @@ public final class CassandraVerifier {
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-            CassandraKeyValueServices.waitForSchemaVersions(
-                    config,
-                    client,
-                    "(adding the initial empty keyspace)");
+            CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
             return keyspaceAlreadyExists(host, config);
@@ -251,12 +246,9 @@ public final class CassandraVerifier {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        config,
-                        client,
-                        "(updating the existing keyspace)");
+                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                        "after updating the existing keyspace");
             }
-
             return null;
         });
     }

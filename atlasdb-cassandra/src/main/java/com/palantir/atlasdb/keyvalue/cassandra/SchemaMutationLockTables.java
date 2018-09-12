@@ -102,10 +102,8 @@ public class SchemaMutationLockTables {
             try {
                 client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        config,
-                        client,
-                        tableRef.getQualifiedName());
+                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                        "after creating the lock table " + tableRef.getQualifiedName());
                 return null;
             } catch (TException ex) {
                 log.warn("Failed to create table", ex);

@@ -81,15 +81,10 @@ class CassandraTableDropper {
                                         LoggingArgs.tableRef(table));
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(
-                                config,
-                                client,
-                                "(all tables in a call to dropTables)");
+                        CassandraKeyValueServices.waitForSchemaVersions(config, client, "after dropping the column "
+                                + "family for tables " + tablesToDrop + " in a call to drop tables");
                         return null;
                     });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "Dropping tables requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }

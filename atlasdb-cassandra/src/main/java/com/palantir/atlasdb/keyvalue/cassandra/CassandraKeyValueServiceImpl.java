@@ -1533,10 +1533,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
 
-            CassandraKeyValueServices.waitForSchemaVersions(
-                    config,
-                    client,
-                    "(a call to createTables, filtered down to create: " + tableNamesToTableMetadata.keySet() + ")");
+            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
+                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
             return null;
         });
     }
@@ -1769,10 +1767,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         client.system_update_column_family(cf);
                     }
 
-                    CassandraKeyValueServices.waitForSchemaVersions(
-                            config,
-                            client,
-                            "(all tables in a call to putMetadataForTables)");
+                    CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                            schemaChangeDescriptionForPutMetadataForTables(updatedCfs));
                 }
                 // Done with actual schema mutation, push the metadata
                 put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
@@ -1781,6 +1777,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
         }
+    }
+
+    private String schemaChangeDescriptionForPutMetadataForTables(Collection<CfDef> updatedCfs) {
+        String tables = updatedCfs.stream()
+                .map(CassandraKeyValueServices::tableReferenceFromCfDef)
+                .map(Object::toString)
+                .collect(Collectors.toList())
+                .toString();
+        return String.format("after updating the column family for tables %s in a call to put metadata for tables",
+                tables);
     }
 
     @Override
