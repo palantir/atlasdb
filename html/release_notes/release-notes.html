@@ -198,6 +198,11 @@
 <td>Improved threading for MetricsManager’s metricsRegistry
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3497">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>Improved visibility into sources of high DB load.
+We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3488">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
