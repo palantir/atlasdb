@@ -108,7 +108,7 @@ public abstract class AbstractDegradedClusterTest {
         }
     }
 
-    void assertCassandraSchemaUnChanged() {
+    private void assertCassandraSchemaUnChanged() {
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isEqualTo(schemaAtStart);
         } catch (TException e) {

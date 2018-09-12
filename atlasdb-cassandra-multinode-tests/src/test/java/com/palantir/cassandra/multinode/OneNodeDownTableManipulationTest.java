@@ -17,21 +17,13 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.apache.thrift.TException;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
-import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
-import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
-import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 
 public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
     private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");
@@ -86,7 +78,6 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     public void truncateTableThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().truncateTable(TEST_TABLE));
-
     }
 
     @Test

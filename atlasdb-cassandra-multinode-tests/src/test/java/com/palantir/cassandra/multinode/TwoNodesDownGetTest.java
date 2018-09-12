@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
@@ -57,7 +58,7 @@ public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
         RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
         ClosableIterator<RowResult<Value>> resultIterator = getTestKvs().getRange(TEST_TABLE, range, Long.MAX_VALUE);
 
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(resultIterator::next);
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(resultIterator::hasNext);
     }
 
     @Test

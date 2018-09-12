@@ -38,39 +38,39 @@ public class TwoNodesDownPutTest extends AbstractDegradedClusterTest {
     }
 
     @Test
-    public void putThrowsA() {
+    public void putThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().put(TEST_TABLE, ImmutableMap.of(CELL_1_1, CONTENTS), TIMESTAMP));
     }
 
     @Test
-    public void putWithTimestampsThrowsA() {
+    public void putWithTimestampsThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(CELL_1_2, VALUE)));
     }
 
     @Test
-    public void multiPutThrowsA() {
+    public void multiPutThrows() {
         Map<Cell, byte[]> entries = ImmutableMap.of(CELL_2_1, CONTENTS, CELL_2_2, CONTENTS);
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().multiPut(ImmutableMap.of(TEST_TABLE, entries), TIMESTAMP));
     }
 
     @Test
-    public void putUnlessExistsThrowsA() {
+    public void putUnlessExistsThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(EMPTY_CELL, CONTENTS)));
     }
 
     @Test
-    public void putUnlessExistsThrowsAtlasDbDependencyException() {
+    public void putUnlessExistsThrowsAtlasDbDependencyExceptionOnExists() {
         byte[] newContents = PtBytes.toBytes("new_value");
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().putUnlessExists(TEST_TABLE, ImmutableMap.of(NONEMPTY_CELL, newContents)));
     }
 
     @Test
-    public void addGarbageCollectionSentinelValuesThrowsA() {
+    public void addGarbageCollectionSentinelValuesThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(CELL_2_2)));
     }

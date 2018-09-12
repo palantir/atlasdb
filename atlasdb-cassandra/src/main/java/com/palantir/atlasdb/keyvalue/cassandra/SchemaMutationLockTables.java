@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 
 public class SchemaMutationLockTables {
@@ -44,23 +45,16 @@ public class SchemaMutationLockTables {
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
+    private final CassandraTables cassandraTables;
 
     public SchemaMutationLockTables(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
         this.config = config;
+        this.cassandraTables = new CassandraTables(clientPool, config);
     }
 
     public Set<TableReference> getAllLockTables() throws TException {
-        Set<TableReference> lockTables = new HashSet<>();
-        for (InetSocketAddress host : clientPool.getCurrentPools().keySet()) {
-            lockTables.addAll(clientPool.runWithRetryOnHost(host, this::getAllLockTablesInternal));
-        }
-        return lockTables;
-    }
-
-    private Set<TableReference> getAllLockTablesInternal(CassandraClient client) throws TException {
-        return client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
-                .map(CfDef::getName)
+        return cassandraTables.getExisting().stream()
                 .filter(IS_LOCK_TABLE)
                 .map(TableReference::createWithEmptyNamespace)
                 .collect(Collectors.toSet());
@@ -73,7 +67,7 @@ public class SchemaMutationLockTables {
             log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable.getQualifiedName()));
             createTableWithCustomId(lockTable);
             return lockTable;
-        } catch (InvalidRequestException ire) {
+        } catch (AtlasDbDependencyException e) {
             // This can happen if multiple nodes concurrently attempt to create the locks table
             Set<TableReference> lockTables = getAllLockTables();
             if (lockTables.size() == 1) {

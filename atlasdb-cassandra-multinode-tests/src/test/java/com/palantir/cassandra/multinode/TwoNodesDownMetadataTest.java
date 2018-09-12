@@ -36,7 +36,7 @@ public class TwoNodesDownMetadataTest extends AbstractDegradedClusterTest {
     }
 
     @Test
-    public void getMetadataForAllThrows() {
+    public void getMetadataForTablesThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().getMetadataForTables());
     }
