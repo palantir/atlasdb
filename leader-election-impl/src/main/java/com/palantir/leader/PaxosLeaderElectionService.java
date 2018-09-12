@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -127,7 +126,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 otherPotentialLeadersToHosts,
                 acceptors,
                 learners,
-                Suppliers.ofInstance(executor),
+                unused -> executor,
                 updatePollingWaitInMs,
                 randomWaitBeforeProposingLeadership,
                 leaderPingResponseWaitMs,
@@ -140,7 +139,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners,
-            Supplier<ExecutorService> executorServiceSupplier,
+            Function<String, ExecutorService> executorServiceFactory,
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
             long leaderPingResponseWaitMs,
@@ -153,16 +152,21 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.learners = ImmutableList.copyOf(learners);
         this.leaderPingExecutors = Streams.concat(Stream.of(this), otherPotentialLeadersToHosts.keySet().stream())
-                .collect(Collectors.toMap(service -> service, service -> executorServiceSupplier.get()));
+                .collect(Collectors.toMap(service -> service,
+                        service -> executorServiceFactory.apply("leader-ping")));
         this.knowledgeUpdatingExecutors = learners.stream()
-                .collect(Collectors.toMap(service -> service, service -> executorServiceSupplier.get()));
+                .collect(Collectors.toMap(service -> service,
+                        service -> executorServiceFactory.apply("knowledge-update")));
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
-                new PaxosLatestRoundVerifierImpl(acceptors, proposer.getQuorumSize(), executorServiceSupplier.get(),
+                new PaxosLatestRoundVerifierImpl(
+                        acceptors,
+                        proposer.getQuorumSize(),
+                        executorServiceFactory.apply("latest-round-verifier"),
                         onlyLogOnQuorumFailure));
     }
 

@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -151,7 +152,9 @@ public final class Leaders {
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
                 leaderUuid, proposerExecutorService));
 
-        Supplier<ExecutorService> leaderElectionExecutor = () -> new InstrumentedExecutorService(
+        // TODO (jkong): Make configurable.
+        // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
+        Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         1,
                         100,
@@ -159,7 +162,7 @@ public final class Leaders {
                         TimeUnit.MILLISECONDS,
                         new LinkedBlockingQueue<>(),
                         new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-leaders-election-%d")
+                        .setNameFormat("atlas-leaders-election-" + useCase + "-%d")
                         .setDaemon(true)
                         .build()),
                 metricsManager.getRegistry(),
