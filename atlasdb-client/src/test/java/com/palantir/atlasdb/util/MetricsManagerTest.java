@@ -18,7 +18,6 @@ package com.palantir.atlasdb.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -53,7 +52,7 @@ public class MetricsManagerTest {
     private final MetricRegistry registry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = DefaultTaggedMetricRegistry.getDefault();
     private final MetricsManager metricsManager = new MetricsManager(registry, taggedMetricRegistry,
-            new HashSet<>(), tableReference -> tableReference.getTablename().equals("safe"));
+            tableReference -> tableReference.getTablename().equals("safe"));
 
     @Test
     public void registersMetricsByName() {
@@ -139,11 +138,11 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void getTableNameTagFor_obfuscatesUnsafeTables() {
+    public void getTableNameTagFor_unsafeTable() {
         Map<String, String> tag = metricsManager.getTableNameTagFor(table("unsafe"));
         assertThat(tag.size()).isEqualTo(1);
         assertThat(tag).containsKey("tableName");
-        assertThat(tag.get("tableName")).isEqualTo("unsafeTable_629e3fc948fb5ca5");
+        assertThat(tag.get("tableName")).isEqualTo("unsafeTable");
     }
 
     private TableReference table(String tableName) {

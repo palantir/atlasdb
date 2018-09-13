@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -71,12 +72,12 @@ import com.palantir.timestamp.TimestampService;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
-    protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final ExecutorService deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
+    final Supplier<TransactionConfig> transactionConfig;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -94,13 +95,13 @@ import com.palantir.timestamp.TimestampService;
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
-            boolean validateLocksOnReads) {
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -113,7 +114,6 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
@@ -122,6 +122,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
+        this.transactionConfig = transactionConfig;
     }
 
     @Override
@@ -231,13 +232,13 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads);
+                validateLocksOnReads,
+                transactionConfig);
     }
 
     @Override
@@ -262,13 +263,13 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
                 commitProfileProcessor,
-                validateLocksOnReads);
+                validateLocksOnReads,
+                transactionConfig);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
