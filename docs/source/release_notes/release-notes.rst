@@ -60,6 +60,10 @@ develop
            This change also improves visibility as to which specific communication workflows may be suffering from issues.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
 
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
     *    - |changed|
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
