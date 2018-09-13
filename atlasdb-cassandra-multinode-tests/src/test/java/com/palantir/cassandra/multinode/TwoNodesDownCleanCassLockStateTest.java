@@ -19,7 +19,6 @@ package com.palantir.cassandra.multinode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.apache.thrift.TException;
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
