@@ -656,6 +656,11 @@ v0.91.0
 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3244>`__)
 
+    *    - |improved|
+         - Added ``CachedExecutorServiceFactory``, the default implementation of which may be overridden in order
+           to configure thread pooling more reasonably for downstream applications.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3272>`__)
+
 =======
 v0.90.0
 =======
