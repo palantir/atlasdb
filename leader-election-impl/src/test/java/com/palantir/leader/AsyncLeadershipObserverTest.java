@@ -16,12 +16,12 @@
 
 package com.palantir.leader;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class AsyncLeadershipObserverTest {
 
@@ -29,25 +29,40 @@ public class AsyncLeadershipObserverTest {
     private Runnable followerTask = mock(Runnable.class);
     private LeadershipObserver leadershipObserver;
 
-
     @Before
     public void setUp() {
         leadershipObserver = new AsyncLeadershipObserver();
-        leadershipObserver.executeWhenGainedLeadership(leaderTask);
-        leadershipObserver.executeWhenLostLeadership(followerTask);
     }
 
     @Test
     public void executeLeaderTasksAfterBecomingLeader() {
+        leadershipObserver.executeWhenGainedLeadership(leaderTask);
         gainLeadership();
+
         verify(leaderTask, times(1)).run();
-        verify(followerTask, times(0)).run();
     }
 
     @Test
     public void executeFollowerTasksAfterLosingLeadership() {
+        leadershipObserver.executeWhenLostLeadership(followerTask);
         loseLeadership();
+
         verify(followerTask, times(1)).run();
+    }
+
+    @Test
+    public void doNotRunFollowerTasksAfterBecomingLeader() {
+        leadershipObserver.executeWhenLostLeadership(followerTask);
+        gainLeadership();
+
+        verify(followerTask, times(0)).run();
+    }
+
+    @Test
+    public void doNotRunLeaderTasksAfterLosingLeadership() {
+        leadershipObserver.executeWhenGainedLeadership(leaderTask);
+        loseLeadership();
+
         verify(leaderTask, times(0)).run();
     }
 
