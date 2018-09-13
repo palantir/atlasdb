@@ -28,6 +28,7 @@ import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -124,14 +125,17 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
                 context -> ImmutableMap.of(
-                        "client", client,
-                        "isCurrentSuspectedLeader", String.valueOf(leadershipCreator.isCurrentSuspectedLeader())));
+                        AtlasDbMetricNames.TAG_CLIENT, client,
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(
+                                leadershipCreator.isCurrentSuspectedLeader())));
     }
 
     private void deregisterLeaderMetrics() {
         TaggedMetricRegistry taggedMetricRegistry = metricsManager.getTaggedRegistry();
         List<MetricName> leaderMetrics = taggedMetricRegistry.getMetrics().keySet().stream()
-                .filter(metricName -> metricName.safeTags().containsKey("isCurrentSuspectedLeader"))
+                .filter(metricName ->
+                        metricName.safeTags().getOrDefault(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, "")
+                                .equals(String.valueOf(true)))
                 .collect(Collectors.toList());
 
         leaderMetrics.forEach(m -> taggedMetricRegistry.remove(m));
