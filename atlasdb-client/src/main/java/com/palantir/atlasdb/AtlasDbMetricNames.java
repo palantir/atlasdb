@@ -62,4 +62,7 @@ public final class AtlasDbMetricNames {
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
+
+    public static final String TAG_CURRENT_SUSPECTED_LEADER = "isCurrentSuspectedLeader";
+    public static final String TAG_CLIENT = "client";
 }
