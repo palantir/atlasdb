@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -51,6 +52,7 @@ import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
@@ -361,16 +363,18 @@ public abstract class BasicSQL {
     private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
 
     // TODO (jkong): Should these be lazily initialized?
-    private static final ExecutorService DEFAULT_SELECT_EXECUTOR = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
-    static final ExecutorService DEFAULT_EXECUTE_EXECUTOR = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
+    private static final Supplier<ExecutorService> DEFAULT_SELECT_EXECUTOR =
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
+                    new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+    static final Supplier<ExecutorService> DEFAULT_EXECUTE_EXECUTOR =
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
+                    new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
 
     private ExecutorService selectStatementExecutor;
     private ExecutorService executeStatementExecutor;
 
     public BasicSQL() {
-        this(DEFAULT_SELECT_EXECUTOR, DEFAULT_EXECUTE_EXECUTOR);
+        this(DEFAULT_SELECT_EXECUTOR.get(), DEFAULT_EXECUTE_EXECUTOR.get());
     }
 
     /**

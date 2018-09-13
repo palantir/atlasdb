@@ -210,9 +210,8 @@ public class BasicSQLUtils {
 
     }
 
-    public static
     @Nullable
-    Boolean getNullableBoolean(AgnosticResultRow row, String colName) throws PalantirSqlException {
+    public static Boolean getNullableBoolean(AgnosticResultRow row, String colName) throws PalantirSqlException {
         Long ret = row.getLongObject(colName);
         if (ret == null) {
             return null;
@@ -269,7 +268,7 @@ public class BasicSQLUtils {
             String threadString,
             final @Nullable Connection connection) throws PalantirSqlException {
         return runUninterruptably(
-                BasicSQL.DEFAULT_EXECUTE_EXECUTOR,
+                BasicSQL.DEFAULT_EXECUTE_EXECUTOR.get(),
                 callable,
                 threadString,
                 connection);
