@@ -25,6 +25,7 @@ import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -76,21 +77,14 @@ class CassandraTables {
 
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
-        Optional<String> oldSchema = CassandraKeyValueServices
-                .getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(config, client);
-        if (!oldSchema.isPresent()) {
-            throw new AtlasDbDependencyException("Cassandra cluster cannot come to an agreement on schema versions, or "
-                    + "there are fewer than quorum of reachable nodes when attempting to get all table names.");
+        try {
+            CassandraKeyValueServices
+                    .waitForSchemaVersions(config, client, "before making a call to get all table names.");
+        } catch (IllegalStateException e) {
+            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions", e);
         }
 
         KsDef ks = client.describe_keyspace(keyspace);
-
-        Optional<String> newSchema = CassandraKeyValueServices
-                .getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(config, client);
-        if (!oldSchema.equals(newSchema)) {
-            throw new AtlasDbDependencyException("Cassandra schema has changed during the call to get all table names. "
-                    + "This request must be retried because consistency cannot be guaranteed");
-        }
 
         return ks.getCf_defs().stream()
                 .map(nameGetter)

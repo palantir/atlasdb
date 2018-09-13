@@ -26,13 +26,13 @@ import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        OneNodeDownCleanCassLockStateTest.class,
-        OneNodeDownGetTest.class,
-        OneNodeDownPutTest.class,
-        OneNodeDownMetadataTest.class,
-        OneNodeDownDeleteTest.class,
+//        OneNodeDownCleanCassLockStateTest.class,
+//        OneNodeDownGetTest.class,
+//        OneNodeDownPutTest.class,
+//        OneNodeDownMetadataTest.class,
+//        OneNodeDownDeleteTest.class,
         OneNodeDownTableManipulationTest.class,
-        OneNodeDownNodeAvailabilityTest.class
+//        OneNodeDownNodeAvailabilityTest.class
         })
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 

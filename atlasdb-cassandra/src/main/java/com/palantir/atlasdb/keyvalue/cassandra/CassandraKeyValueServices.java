@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -87,7 +85,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions).isPresent()) {
+            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
                 return;
             }
             sleepTime = sleepWithExponentialBackoff(sleepTime);
@@ -119,28 +117,18 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    static Optional<String> getUniqueSchemaVersionIfQuorumAgreesAndOtherNodesUnreachable(
-            CassandraKeyValueServiceConfig config,
-            CassandraClient client) throws TException {
-        return uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, client.describe_schema_versions());
-    }
-
-    private static Optional<String> uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
+    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
         List<String> reachableSchemas = getDistinctReachableSchemas(versions);
         if (reachableSchemas.size() > 1) {
-            return Optional.empty();
+            return false;
         }
 
         int numberOfServers = config.servers().size();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
-        if (numberOfVisibleNodes >= ((numberOfServers / 2) + 1)) {
-            return Optional.of(Iterables.getOnlyElement(reachableSchemas));
-        } else {
-            return Optional.empty();
-        }
+        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
