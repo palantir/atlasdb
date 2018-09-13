@@ -192,6 +192,32 @@ public class LeadershipEventRecorderTest {
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
     }
 
+    @Test
+    public void notifiesObserverIfGainedLeadership() {
+        LeadershipObserver observer = mock(LeadershipObserver.class);
+
+        recorder.attachObserver(observer);
+        recorder.recordRound(ROUND_1_LEADING);
+
+        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(observer, times(1)).gainedLeadership();
+    }
+
+    @Test
+    public void notifiesObserverIfLostLeadership() {
+        LeadershipObserver observer = mock(LeadershipObserver.class);
+
+        recorder.attachObserver(observer);
+        recorder.recordRound(ROUND_1_LEADING);
+        recorder.recordRound(ROUND_2_NOT_LEADING);
+
+        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(events).lostLeadershipFor(ROUND_1_LEADING);
+
+        verify(observer, times(1)).gainedLeadership();
+        verify(observer, times(1)).lostLeadership();
+    }
+
     private static PaxosValue round(long sequence, boolean leading) {
         return new PaxosValue(leading ? LEADER_ID : "other-leader", sequence, null);
     }
