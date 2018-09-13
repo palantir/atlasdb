@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,7 +27,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTables {
     private final CassandraClientPool clientPool;
@@ -81,7 +79,8 @@ class CassandraTables {
             CassandraKeyValueServices
                     .waitForSchemaVersions(config, client, "before making a call to get all table names.");
         } catch (IllegalStateException e) {
-            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions", e);
+            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions "
+                    + "before making a call to get all table names.", e);
         }
 
         KsDef ks = client.describe_keyspace(keyspace);
