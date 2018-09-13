@@ -44,10 +44,8 @@ public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
 
     @Test
     public void canGetMetadataForAll() {
-        Map<TableReference, byte[]> metadataMap = getTestKvs().getMetadataForTables();
         assertThat(getTestKvs().getMetadataForTables().get(TEST_TABLE))
                 .isEqualTo(AtlasDbConstants.GENERIC_TABLE_METADATA);
-        assertThat(metadataMap.get(TEST_TABLE)).isEqualTo(AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test

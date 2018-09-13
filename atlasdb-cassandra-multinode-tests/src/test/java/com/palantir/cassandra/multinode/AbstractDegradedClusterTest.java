@@ -97,7 +97,7 @@ public abstract class AbstractDegradedClusterTest {
 
     void assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(RunnableCheckedException<?> task) {
         assertThatThrownBy(task::run).isInstanceOf(AtlasDbDependencyException.class);
-        assertCassandraSchemaUnChanged();
+        assertCassandraSchemaUnchanged();
     }
 
     void assertCassandraSchemaChanged() {
@@ -108,7 +108,7 @@ public abstract class AbstractDegradedClusterTest {
         }
     }
 
-    private void assertCassandraSchemaUnChanged() {
+    private void assertCassandraSchemaUnchanged() {
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isEqualTo(schemaAtStart);
         } catch (TException e) {
