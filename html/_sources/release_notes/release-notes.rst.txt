@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3508>`__)
+
+    *    - |fixed|
          - TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3507>`__)
 
