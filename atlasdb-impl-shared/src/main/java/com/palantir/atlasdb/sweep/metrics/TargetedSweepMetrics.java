@@ -142,7 +142,8 @@ public class TargetedSweepMetrics {
                     new AggregatingVersionedMetric<>(lastSweptTsSupplier), tag);
 
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
-                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis), lastSweptTs::getVersionedValue);
+                    sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis), lastSweptTs::getVersionedValue,
+                    recomputeMillis, wallClock);
 
             register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
         }
