@@ -24,7 +24,7 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class AsyncLeadershipObserver implements LeadershipObserver {
 
-    private ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
+    private ExecutorService executorService = PTExecutors.newSingleThreadExecutor(true);
     private List<Runnable> leaderTasks = new ArrayList<>();
     private List<Runnable> followerTasks = new ArrayList<>();
 
