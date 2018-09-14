@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |fixed|
-         - Targeted sweep no longer chokes if the table for which a write it is trying to sweep no longer exists.
+         - Targeted sweep no longer chokes if a table in the queue no longer exists.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3508>`__)
 
     *    - |fixed|
