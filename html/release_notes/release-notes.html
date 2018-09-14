@@ -187,27 +187,31 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3507">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Users may now provide their own executors to instances of <code class="docutils literal notranslate"><span class="pre">BasicSQL</span></code> and to <code class="docutils literal notranslate"><span class="pre">BasicSQLUtils.runUninterruptably</span></code>.
 Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Upgrade http-remoting 3.41.1 -&gt; 3.43.0 to make tracing delegate nicely.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3494">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Improved threading for MetricsManager’s metricsRegistry
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3497">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Improved visibility into sources of high DB load.
 We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3488">Pull Request</a>)
