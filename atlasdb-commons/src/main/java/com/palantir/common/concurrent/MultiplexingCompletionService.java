@@ -81,7 +81,9 @@ public class MultiplexingCompletionService<T, V> {
     }
 
     private Future<V> submitAndPrepareForQueueing(ExecutorService delegate, Callable<V> callable) {
-        return delegate.submit(new QueueTask(new FutureTask<>(callable)), null);
+        FutureTask<V> futureTask = new FutureTask<>(callable);
+        delegate.submit(new QueueTask(futureTask), null);
+        return futureTask;
     }
 
     private class QueueTask extends FutureTask<V> {
@@ -92,6 +94,7 @@ public class MultiplexingCompletionService<T, V> {
             this.runnable = runnable;
         }
 
+        @Override
         protected void done() {
             taskQueue.add(runnable);
         }

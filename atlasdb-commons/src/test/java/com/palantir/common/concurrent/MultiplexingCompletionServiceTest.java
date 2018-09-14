@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -155,6 +156,16 @@ public class MultiplexingCompletionServiceTest {
         boundedService.submit(KEY_2, getSleepCallable(1));
 
         assertThat(boundedService.poll(1, TimeUnit.SECONDS).get()).isEqualTo(1);
+    }
+
+    @Test
+    public void valuesMayBeRetrievedFromFuturesReturned() throws ExecutionException, InterruptedException {
+        MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
+                ImmutableMap.of(KEY_1, createBoundedExecutor(2)));
+        Future<Integer> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
+
+        assertThat(returnedFuture.get()).isEqualTo(1234567);
+        assertThat(boundedService.poll().get()).isEqualTo(1234567);
     }
 
     private Callable<Integer> getSleepCallable(int durationMillis) {
