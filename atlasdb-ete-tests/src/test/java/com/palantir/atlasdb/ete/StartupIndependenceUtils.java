@@ -143,6 +143,7 @@ public final class StartupIndependenceUtils {
         executorService.invokeAll(nodes.stream()
                 .map(cassandraContainer -> Executors.callable(() -> operator.nodeOperation(cassandraContainer)))
                 .collect(Collectors.toList()));
+        executorService.shutdown();
     }
 
     private interface CassandraContainerOperator {
