@@ -73,10 +73,10 @@ public class SweepQueueDeleter {
                 // hack because InMemoryKVS doesn't throw a TableMappingNotFoundException...
                 if (e.getCause() instanceof TableMappingNotFoundException
                         || e.getMessage().endsWith("does not exist")) {
-                    log.debug("Could not resolve full name for table reference {}, "
+                    log.warn("Could not resolve full name for table reference {}, "
                             + "assuming table has been deleted and therefore relevant cells as well.",
                             LoggingArgs.tableRef(entry.getKey()));
-                    log.trace("Stack trace follows:", e);
+                    log.debug("Stack trace follows:", e);
                 } else {
                     throw e;
                 }
