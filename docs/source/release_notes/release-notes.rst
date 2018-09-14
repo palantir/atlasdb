@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Targeted sweep no longer chokes if the table for which a write it is trying to sweep no longer exists.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3508>`__)
+
+    *    - |fixed|
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
