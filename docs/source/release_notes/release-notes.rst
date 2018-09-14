@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3507>`__)
+
+    *    - |fixed|
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
