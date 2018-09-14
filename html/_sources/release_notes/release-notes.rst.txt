@@ -58,6 +58,11 @@ develop
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
+    *    - |improved|
+         - Users may now provide their own executors to instances of ``BasicSQL`` and to ``BasicSQLUtils.runUninterruptably``.
+           Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
     *    - |changed|
          - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
