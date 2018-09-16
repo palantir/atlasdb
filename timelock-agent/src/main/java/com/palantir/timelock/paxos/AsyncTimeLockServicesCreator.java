@@ -16,10 +16,9 @@
 
 package com.palantir.timelock.paxos;
 
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,13 +87,23 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
-        leadershipCreator.executeWhenLostLeadership(this::deregisterLeaderMetrics);
+        leadershipCreator.executeWhenLostLeadership(() ->
+                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
+
+        leadershipCreator.executeWhenGainedLeadership(() ->
+                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)));
 
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
+    }
+
+    private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
+        return metricName -> metricName.safeTags().containsKey(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER) &&
+                metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
+                        .equals(String.valueOf(currentLeader));
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
@@ -128,16 +137,5 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         AtlasDbMetricNames.TAG_CLIENT, client,
                         AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(
                                 leadershipCreator.isCurrentSuspectedLeader())));
-    }
-
-    private void deregisterLeaderMetrics() {
-        TaggedMetricRegistry taggedMetricRegistry = metricsManager.getTaggedRegistry();
-        List<MetricName> leaderMetrics = taggedMetricRegistry.getMetrics().keySet().stream()
-                .filter(metricName ->
-                        metricName.safeTags().getOrDefault(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, "")
-                                .equals(String.valueOf(true)))
-                .collect(Collectors.toList());
-
-        leaderMetrics.forEach(m -> taggedMetricRegistry.remove(m));
     }
 }

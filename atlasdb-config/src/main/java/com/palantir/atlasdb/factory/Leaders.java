@@ -112,11 +112,9 @@ public final class Leaders {
             String userAgent) {
         UUID leaderUuid = UUID.randomUUID();
 
+        AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getRegistry(), leaderUuid.toString());
-
-        AsyncLeadershipObserver leadershipObserver = new AsyncLeadershipObserver();
-        leadershipEventRecorder.attachObserver(leadershipObserver);
+                metricsManager.getRegistry(), leaderUuid.toString(), leadershipObserver);
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PaxosAcceptor.class,

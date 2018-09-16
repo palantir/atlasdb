@@ -21,6 +21,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.util.Optional;
+
 import org.junit.After;
 import org.junit.Test;
 
@@ -32,7 +34,9 @@ public class LeadershipEventRecorderTest {
     private static final String LEADER_ID = "foo";
 
     private final LeadershipEvents events = mock(LeadershipEvents.class);
-    private final PaxosLeadershipEventRecorder recorder = new PaxosLeadershipEventRecorder(events, LEADER_ID);
+    private final LeadershipObserver observer = mock(LeadershipObserver.class);
+    private final PaxosLeadershipEventRecorder recorder =
+            new PaxosLeadershipEventRecorder(events, LEADER_ID, Optional.of(observer));
 
     private static final PaxosValue ROUND_1_LEADING = round(1, true);
     private static final PaxosValue ROUND_2_LEADING = round(2, true);
@@ -194,9 +198,6 @@ public class LeadershipEventRecorderTest {
 
     @Test
     public void notifiesObserverIfGainedLeadership() {
-        LeadershipObserver observer = mock(LeadershipObserver.class);
-
-        recorder.attachObserver(observer);
         recorder.recordRound(ROUND_1_LEADING);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
@@ -205,9 +206,6 @@ public class LeadershipEventRecorderTest {
 
     @Test
     public void notifiesObserverIfLostLeadership() {
-        LeadershipObserver observer = mock(LeadershipObserver.class);
-
-        recorder.attachObserver(observer);
         recorder.recordRound(ROUND_1_LEADING);
         recorder.recordRound(ROUND_2_NOT_LEADING);
 

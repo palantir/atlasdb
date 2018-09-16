@@ -17,24 +17,35 @@
 package com.palantir.leader;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class AsyncLeadershipObserver implements LeadershipObserver {
 
-    private ExecutorService executorService = PTExecutors.newSingleThreadExecutor(true);
-    private List<Runnable> leaderTasks = new ArrayList<>();
-    private List<Runnable> followerTasks = new ArrayList<>();
+    private final ExecutorService executorService;
+    private final List<Runnable> leaderTasks = Collections.synchronizedList(new ArrayList<>());
+    private final List<Runnable> followerTasks = Collections.synchronizedList(new ArrayList<>());
+
+    public static AsyncLeadershipObserver create() {
+        return new AsyncLeadershipObserver(PTExecutors.newSingleThreadExecutor(true));
+    }
+
+    @VisibleForTesting
+    AsyncLeadershipObserver(ExecutorService executorService) {
+        this.executorService = executorService;
+    }
 
     @Override
-    public void gainedLeadership() {
+    public synchronized void gainedLeadership() {
         executorService.execute(this::executeLeaderTasks);
     }
 
     @Override
-    public void lostLeadership() {
+    public synchronized void lostLeadership() {
         executorService.execute(this::executeFollowerTasks);
     }
 

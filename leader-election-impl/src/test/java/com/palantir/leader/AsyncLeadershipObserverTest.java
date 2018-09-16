@@ -17,60 +17,72 @@
 package com.palantir.leader;
 
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 
 public class AsyncLeadershipObserverTest {
 
     private Runnable leaderTask = mock(Runnable.class);
     private Runnable followerTask = mock(Runnable.class);
     private LeadershipObserver leadershipObserver;
+    private DeterministicScheduler executorService = new DeterministicScheduler();
 
     @Before
     public void setUp() {
-        leadershipObserver = new AsyncLeadershipObserver();
+        leadershipObserver = new AsyncLeadershipObserver(executorService);
+    }
+
+    @After
+    public void tearDown() {
+        verifyNoMoreInteractions(leaderTask, followerTask);
     }
 
     @Test
     public void executeLeaderTasksAfterBecomingLeader() {
-        leadershipObserver.executeWhenGainedLeadership(leaderTask);
+        registerFollowerAndLeaderTasks();
         gainLeadership();
 
-        verify(leaderTask, times(1)).run();
+        verify(leaderTask).run();
     }
 
     @Test
     public void executeFollowerTasksAfterLosingLeadership() {
-        leadershipObserver.executeWhenLostLeadership(followerTask);
+        registerFollowerAndLeaderTasks();
         loseLeadership();
 
-        verify(followerTask, times(1)).run();
+        verify(followerTask).run();
     }
 
     @Test
-    public void doNotRunFollowerTasksAfterBecomingLeader() {
-        leadershipObserver.executeWhenLostLeadership(followerTask);
+    public void executesAllSubmittedTasks() {
+        Runnable secondLeaderTask = mock(Runnable.class);
+
+        leadershipObserver.executeWhenGainedLeadership(leaderTask);
+        leadershipObserver.executeWhenGainedLeadership(secondLeaderTask);
         gainLeadership();
 
-        verify(followerTask, times(0)).run();
+        verify(leaderTask).run();
+        verify(secondLeaderTask).run();
     }
 
-    @Test
-    public void doNotRunLeaderTasksAfterLosingLeadership() {
+    private void registerFollowerAndLeaderTasks() {
         leadershipObserver.executeWhenGainedLeadership(leaderTask);
-        loseLeadership();
-
-        verify(leaderTask, times(0)).run();
+        leadershipObserver.executeWhenLostLeadership(followerTask);
     }
 
     private void gainLeadership() {
         leadershipObserver.gainedLeadership();
+        executorService.runUntilIdle();
     }
 
     private void loseLeadership() {
         leadershipObserver.lostLeadership();
+        executorService.runUntilIdle();
     }
 }

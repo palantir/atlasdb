@@ -16,9 +16,11 @@
 package com.palantir.atlasdb.util;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -209,5 +211,13 @@ public class MetricsManager {
 
         registeredTaggedMetrics.forEach(taggedMetricRegistry::remove);
         registeredTaggedMetrics.clear();
+    }
+
+    public synchronized void deregisterTaggedMetrics(Predicate<MetricName> predicate) {
+        List<MetricName> metricsToRemove = taggedMetricRegistry.getMetrics().keySet().stream()
+                .filter(predicate)
+                .collect(Collectors.toList());
+
+        metricsToRemove.forEach(taggedMetricRegistry::remove);
     }
 }
