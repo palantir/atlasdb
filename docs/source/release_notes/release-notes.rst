@@ -86,7 +86,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
 
     *    - |fixed|
-         - Fixed and issue in timelock where followers were publishing metrics with ``isCurrentSuspectedLeader`` tag set to ``true``.
+         - Fixed an issue in timelock where followers were publishing metrics with ``isCurrentSuspectedLeader`` tag set to ``true``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3509>`__)
 
 ========

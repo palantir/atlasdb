@@ -201,7 +201,7 @@ public class LeadershipEventRecorderTest {
         recorder.recordRound(ROUND_1_LEADING);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
-        verify(observer, times(1)).gainedLeadership();
+        verify(observer).gainedLeadership();
     }
 
     @Test
@@ -212,8 +212,8 @@ public class LeadershipEventRecorderTest {
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
         verify(events).lostLeadershipFor(ROUND_1_LEADING);
 
-        verify(observer, times(1)).gainedLeadership();
-        verify(observer, times(1)).lostLeadership();
+        verify(observer).gainedLeadership();
+        verify(observer).lostLeadership();
     }
 
     private static PaxosValue round(long sequence, boolean leading) {

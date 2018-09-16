@@ -47,6 +47,7 @@ public class AsyncLeadershipObserverTest {
     public void executeLeaderTasksAfterBecomingLeader() {
         registerFollowerAndLeaderTasks();
         gainLeadership();
+        waitForTasksToFinish();
 
         verify(leaderTask).run();
     }
@@ -55,17 +56,19 @@ public class AsyncLeadershipObserverTest {
     public void executeFollowerTasksAfterLosingLeadership() {
         registerFollowerAndLeaderTasks();
         loseLeadership();
+        waitForTasksToFinish();
 
         verify(followerTask).run();
     }
 
     @Test
-    public void executesAllSubmittedTasks() {
+    public void executeAllSubmittedTasks() {
         Runnable secondLeaderTask = mock(Runnable.class);
 
         leadershipObserver.executeWhenGainedLeadership(leaderTask);
         leadershipObserver.executeWhenGainedLeadership(secondLeaderTask);
         gainLeadership();
+        waitForTasksToFinish();
 
         verify(leaderTask).run();
         verify(secondLeaderTask).run();
@@ -78,11 +81,13 @@ public class AsyncLeadershipObserverTest {
 
     private void gainLeadership() {
         leadershipObserver.gainedLeadership();
-        executorService.runUntilIdle();
     }
 
     private void loseLeadership() {
         leadershipObserver.lostLeadership();
+    }
+
+    private void waitForTasksToFinish() {
         executorService.runUntilIdle();
     }
 }
