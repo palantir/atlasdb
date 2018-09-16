@@ -16,8 +16,6 @@
 
 package com.palantir.leader;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.concurrent.GuardedBy;

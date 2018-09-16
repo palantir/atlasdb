@@ -101,8 +101,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
-        return metricName -> metricName.safeTags().containsKey(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER) &&
-                metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
+        return metricName -> metricName.safeTags().containsKey(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
+                && metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
                         .equals(String.valueOf(currentLeader));
     }
 
