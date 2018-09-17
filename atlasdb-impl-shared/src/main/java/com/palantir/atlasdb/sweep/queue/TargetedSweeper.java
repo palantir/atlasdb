@@ -255,10 +255,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void logUnlockException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {
             if (maybeLock.isPresent()) {
-                log.warn("Failed to unlock targeted sweep lock for {}.",
+                log.info("Failed to unlock targeted sweep lock for {}.",
                         SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
             } else {
-                log.warn("Failed to unlock targeted sweep lock for sweep strategy {}.",
+                log.info("Failed to unlock targeted sweep lock for sweep strategy {}.",
                         SafeArg.of("sweepStrategy", sweepStrategy), th);
             }
         }
