@@ -156,8 +156,8 @@ public final class Leaders {
         // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
         Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
-                        1,
-                        100,
+                        otherLeaders.size(),
+                        Math.max(otherLeaders.size(), 100),
                         5000,
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<>(),
