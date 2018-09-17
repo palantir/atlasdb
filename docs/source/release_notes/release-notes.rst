@@ -85,6 +85,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
 
+    *    - |fixed|
+         - Targeted sweep threads will no longer die if Timelock unlock calls fail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
+
 ========
 v0.103.0
 ========
