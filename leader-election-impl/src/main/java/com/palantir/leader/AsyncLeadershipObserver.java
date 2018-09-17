@@ -16,9 +16,8 @@
 
 package com.palantir.leader;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -27,8 +26,8 @@ import com.palantir.common.concurrent.PTExecutors;
 public class AsyncLeadershipObserver implements LeadershipObserver {
 
     private final ExecutorService executorService;
-    private final List<Runnable> leaderTasks = Collections.synchronizedList(new ArrayList<>());
-    private final List<Runnable> followerTasks = Collections.synchronizedList(new ArrayList<>());
+    private final List<Runnable> leaderTasks = new CopyOnWriteArrayList<>();
+    private final List<Runnable> followerTasks = new CopyOnWriteArrayList<>();
 
     public static AsyncLeadershipObserver create() {
         return new AsyncLeadershipObserver(PTExecutors.newSingleThreadExecutor(true));
@@ -41,12 +40,12 @@ public class AsyncLeadershipObserver implements LeadershipObserver {
 
     @Override
     public synchronized void gainedLeadership() {
-        executorService.execute(this::executeLeaderTasks);
+        executorService.execute(() -> leaderTasks.forEach(Runnable::run));
     }
 
     @Override
     public synchronized void lostLeadership() {
-        executorService.execute(this::executeFollowerTasks);
+        executorService.execute(() -> followerTasks.forEach(Runnable::run));
     }
 
     @Override
@@ -57,13 +56,5 @@ public class AsyncLeadershipObserver implements LeadershipObserver {
     @Override
     public synchronized void executeWhenLostLeadership(Runnable task) {
         followerTasks.add(task);
-    }
-
-    private void executeFollowerTasks() {
-        followerTasks.forEach(Runnable::run);
-    }
-
-    private void executeLeaderTasks() {
-        leaderTasks.forEach(Runnable::run);
     }
 }

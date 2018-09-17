@@ -16,6 +16,7 @@
 
 package com.palantir.timelock.paxos;
 
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -101,9 +102,10 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
-        return metricName -> metricName.safeTags().containsKey(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
-                && metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER)
-                        .equals(String.valueOf(currentLeader));
+        return metricName ->
+                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
+                        .filter(x -> x.equals(String.valueOf(currentLeader)))
+                        .isPresent();
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
