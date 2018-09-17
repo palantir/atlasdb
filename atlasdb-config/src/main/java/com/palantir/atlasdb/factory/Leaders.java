@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -160,7 +160,7 @@ public final class Leaders {
                         100,
                         5000,
                         TimeUnit.MILLISECONDS,
-                        new LinkedBlockingQueue<>(),
+                        new SynchronousQueue<>(),
                         new ThreadFactoryBuilder()
                         .setNameFormat("atlas-leaders-election-" + useCase + "-%d")
                         .setDaemon(true)
