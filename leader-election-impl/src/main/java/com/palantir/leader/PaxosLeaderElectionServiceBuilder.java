@@ -18,6 +18,7 @@ package com.palantir.leader;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -33,7 +34,7 @@ public class PaxosLeaderElectionServiceBuilder {
     private Map<PingableLeader, HostAndPort> potentialLeadersToHosts;
     private List<PaxosAcceptor> acceptors;
     private List<PaxosLearner> learners;
-    private ExecutorService executor;
+    private Function<String, ExecutorService> executorServiceFactory;
     private long pingRateMs;
     private long randomWaitBeforeProposingLeadershipMs;
     private long leaderPingResponseWaitMs;
@@ -70,7 +71,15 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionServiceBuilder executor(ExecutorService executor) {
-        this.executor = executor;
+        this.executorServiceFactory = unused -> executor;
+        return this;
+    }
+
+    /**
+     * It is expected that the Strings provided to this function are used for instrumentation purposes only.
+     */
+    public PaxosLeaderElectionServiceBuilder executorServiceFactory(Function<String, ExecutorService> factory) {
+        this.executorServiceFactory = factory;
         return this;
     }
 
@@ -107,7 +116,7 @@ public class PaxosLeaderElectionServiceBuilder {
                 potentialLeadersToHosts,
                 acceptors,
                 learners,
-                executor,
+                executorServiceFactory::apply,
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,
                 leaderPingResponseWaitMs,

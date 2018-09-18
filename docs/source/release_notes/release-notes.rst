@@ -62,6 +62,16 @@ develop
          - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
 
+    *    - |improved|
+         - PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
     *    - |changed|
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
