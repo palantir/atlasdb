@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.priority;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +97,12 @@ public class NextTableToSweepProvider {
         List<TableReference> priorityTableRefs = overrideConfig.priorityTablesAsList().stream()
                 .map(TableReference::createFromFullyQualifiedName)
                 .collect(Collectors.toList());
+
+        // If there are multiple priority tables, we don't want to consistently use the same ordering.
+        // It is true that this operation is O(list length) while an O(min(list length, cluster size)) algorithm
+        // exists, but the priority table reference list is expected to be small.
+        Collections.shuffle(priorityTableRefs);
+
         return attemptToChooseTableFromList(priorityTableRefs, "it is on the sweep priority list");
     }
 
