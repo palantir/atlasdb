@@ -30,6 +30,10 @@ public class AsyncLeadershipObserver implements LeadershipObserver {
     private final List<Runnable> followerTasks = new CopyOnWriteArrayList<>();
 
     public static AsyncLeadershipObserver create() {
+        /**
+         * This executor should be kept single threaded to ensure ordered execution of tasks
+         * which is guaranteed by the API contract of {@link LeadershipObserver}
+         */
         return new AsyncLeadershipObserver(PTExecutors.newSingleThreadExecutor(true));
     }
 
