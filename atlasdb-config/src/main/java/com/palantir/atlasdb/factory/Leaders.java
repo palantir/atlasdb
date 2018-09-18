@@ -22,7 +22,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -148,13 +152,21 @@ public final class Leaders {
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
                 leaderUuid, proposerExecutorService));
 
-        InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-leaders-election-%d")
+        // TODO (jkong): Make the limits configurable.
+        // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
+        Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        otherLeaders.size(),
+                        Math.max(otherLeaders.size(), 100),
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<>(),
+                        new ThreadFactoryBuilder()
+                        .setNameFormat("atlas-leaders-election-" + useCase + "-%d")
                         .setDaemon(true)
                         .build()),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
 
         PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
@@ -162,7 +174,7 @@ public final class Leaders {
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executor(leaderElectionExecutor)
+                .executorServiceFactory(leaderElectionExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
