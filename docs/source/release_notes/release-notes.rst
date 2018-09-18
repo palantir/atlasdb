@@ -89,6 +89,11 @@ develop
          - Targeted sweep threads will no longer die if Timelock unlock calls fail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
 
+    *    - |fixed|
+         - Background sweep will now choose between priority tables uniform randomly if there are multiple priority tables.
+           Previously, if multiple priority tables were specified, background sweep would repeatedly pick the same table to be swept, meaning that the other priority tables would all never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
+
 ========
 v0.103.0
 ========
