@@ -198,6 +198,16 @@
 <td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
+Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+This change also improves visibility as to which specific communication workflows may be suffering from issues.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
@@ -220,6 +230,14 @@ Previously users were forced to use a default executor which had an unbounded th
 We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3488">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3504">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed an issue in timelock where followers were publishing metrics with <code class="docutils literal notranslate"><span class="pre">isCurrentSuspectedLeader</span></code> tag set to <code class="docutils literal notranslate"><span class="pre">true</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3509">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Targeted sweep threads will no longer die if Timelock unlock calls fail.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
