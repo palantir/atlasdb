@@ -109,8 +109,8 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void createTable(boolean needsOverflow) {
         String shortTableName = oracleTableNameGetter.generateShortTableName(conns, tableRef);
-        executeIgnoringError(
-                "CREATE TABLE " + shortTableName + " ("
+
+        String createTableSql = "CREATE TABLE " + shortTableName + " ("
                 + "  row_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  col_name   RAW(" + Cell.MAX_NAME_LENGTH + ") NOT NULL,"
                 + "  ts         NUMBER(20) NOT NULL,"
@@ -118,8 +118,17 @@ public final class OracleDdlTable implements DbDdlTable {
                 + (needsOverflow ? "overflow   NUMBER(38), " : "")
                 + "  CONSTRAINT " + PrimaryKeyConstraintNames.get(shortTableName)
                 + " PRIMARY KEY (row_name, col_name, ts) "
-                + ") organization index compress overflow",
-                OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR);
+                + ") organization index compress overflow";
+        try {
+            conns.get().executeUnregisteredQuery(createTableSql);
+        } catch (PalantirSqlException e) {
+            if (!e.getMessage().contains(OracleErrorConstants.ORACLE_ALREADY_EXISTS_ERROR)) {
+                log.error("Error occurred trying to execute the Oracle query {}.", createTableSql, e);
+                throw e;
+            }
+            // So the table already exists; check the metadata table is not in disagreement.
+            new OracleValueStyleChecker(config, conns).checkValueStyle(tableRef, needsOverflow);
+        }
         putTableNameMapping(oracleTableNameGetter.getPrefixedTableName(tableRef), shortTableName);
     }
 
