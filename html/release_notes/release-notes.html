@@ -239,6 +239,11 @@ We log when a query returns a high number of timestamps that need to be looked u
 <td>Targeted sweep threads will no longer die if Timelock unlock calls fail.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Background sweep will now choose between priority tables uniform randomly if there are multiple priority tables.
+Previously, if multiple priority tables were specified, background sweep would repeatedly pick the same table to be swept, meaning that the other priority tables would all never be swept.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
