@@ -48,7 +48,9 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
@@ -114,8 +116,9 @@ public final class Leaders {
             String userAgent) {
         UUID leaderUuid = UUID.randomUUID();
 
+        AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getRegistry(), leaderUuid.toString());
+                metricsManager.getRegistry(), leaderUuid.toString(), leadershipObserver);
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PaxosAcceptor.class,
@@ -194,6 +197,7 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(leaderElectionService)
                 .pingableLeader(pingableLeader)
+                .leadershipObserver(leadershipObserver)
                 .build();
     }
 
@@ -245,6 +249,7 @@ public final class Leaders {
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
+        LeadershipObserver leadershipObserver();
     }
 
     @Value.Immutable

@@ -96,6 +96,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
 
     *    - |fixed|
+         - Fixed an issue in timelock where followers were publishing metrics with ``isCurrentSuspectedLeader`` tag set to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3509>`__)
+
+    *    - |fixed|
          - Targeted sweep threads will no longer die if Timelock unlock calls fail.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
 
