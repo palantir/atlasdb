@@ -87,7 +87,7 @@ public class NextTableToSweepProvider {
 
         List<TableReference> tablesOrderedByPriority = orderTablesByPriority(tablesWithNonZeroPriority);
 
-        Optional<TableToSweep> chosenTable = attemptToChooseTableFromList(tablesOrderedByPriority,
+        Optional<TableToSweep> chosenTable = attemptToChooseTableFromPrioritisedList(tablesOrderedByPriority,
                 "it has a high priority score");
 
         return logDecision(chosenTable, scores, overrideConfig);
@@ -103,10 +103,11 @@ public class NextTableToSweepProvider {
         // exists, but the priority table reference list is expected to be small.
         Collections.shuffle(priorityTableRefs);
 
-        return attemptToChooseTableFromList(priorityTableRefs, "it is on the sweep priority list");
+        return attemptToChooseTableFromPrioritisedList(priorityTableRefs, "it is on the sweep priority list");
     }
 
-    private Optional<TableToSweep> attemptToChooseTableFromList(List<TableReference> priorityTables, String reason) {
+    private Optional<TableToSweep> attemptToChooseTableFromPrioritisedList(
+            List<TableReference> priorityTables, String reason) {
         for (TableReference tableRefToSweep : priorityTables) {
             SingleLockService sweepLockForTable = SingleLockService.createNamedLockServiceForTable(
                     lockService, BackgroundSweepThread.TABLE_LOCK_PREFIX, tableRefToSweep);
