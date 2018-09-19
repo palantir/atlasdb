@@ -40,9 +40,9 @@ public final class CassandraConstants {
     static final String DEFAULT_RACK = "rack1";
     static final String SIMPLE_RF_TEST_KEYSPACE = "__simple_rf_test_keyspace__";
     static final String REPLICATION_FACTOR_OPTION = "replication_factor";
-    // 1 hour; AtlasDB only performs deletes with consistency ALL, so there is no need to ensure repairs
+    // Off; AtlasDB only performs deletes with consistency ALL, so there is no need to ensure repairs
     // complete within gc_grace_seconds.
-    public static final int DEFAULT_GC_GRACE_SECONDS = 60 * 60;
+    public static final int DEFAULT_GC_GRACE_SECONDS = 0;
 
     // this is only used to sanity check reads from a TFramedTransport;
     // writes are sanity checked with server side frame size limits and are user-configurable,
