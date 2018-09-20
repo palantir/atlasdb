@@ -160,9 +160,12 @@ public class MultiplexingCompletionServiceTest {
 
     @Test
     public void valuesMayBeRetrievedFromFuturesReturned() throws ExecutionException, InterruptedException {
+        DeterministicScheduler scheduler = new DeterministicScheduler();
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, createBoundedExecutor(2)));
+                ImmutableMap.of(KEY_1, scheduler));
         Future<Integer> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
+
+        scheduler.runUntilIdle();
 
         assertThat(returnedFuture.get()).isEqualTo(1234567);
         assertThat(boundedService.poll().get()).isEqualTo(1234567);
