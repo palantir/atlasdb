@@ -56,30 +56,27 @@ public class PaxosInstallConfigurationTest {
     public void throwsIfCannotCreatePaxosDirectory() {
         File mockFile = getMockFileWith(false, false);
 
-        assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
+        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
-                .isNewService(true)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+                .isNewService(true));
     }
 
     @Test
-    public void throwsIfConfiguredToBeNewWithExistingDirectory() {
+    public void throwsIfConfiguredToBeNewServiceWithExistingDirectory() {
         File mockFile = getMockFileWith(true, true);
 
-        assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
+        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
-                .isNewService(true)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+                .isNewService(true));
     }
 
     @Test
     public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() {
         File mockFile = getMockFileWith(false, true);
 
-        assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
+        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
-                .isNewService(false)
-                ::build).isInstanceOf(IllegalArgumentException.class);
+                .isNewService(false));
     }
 
     private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
@@ -87,5 +84,9 @@ public class PaxosInstallConfigurationTest {
         when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
         when(mockFile.isDirectory()).thenReturn(isDirectory);
         return mockFile;
+    }
+
+    private void assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.Builder configBuilder) {
+        assertThatThrownBy(configBuilder::build).isInstanceOf(IllegalArgumentException.class);
     }
 }
