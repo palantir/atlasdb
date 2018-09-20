@@ -16,6 +16,7 @@
 
 package com.palantir.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
@@ -42,6 +43,12 @@ public class AtomicTimestampTests {
         TimestampRange range = timestamp.incrementBy(10);
 
         assertThat(range.getUpperBound(), is(INITIAL_TIMESTAMP + 10));
+    }
+
+    @Test
+    public void cannotOverflow() {
+        timestamp.increaseTo(Long.MAX_VALUE);
+        assertThatExceptionOfType(ArithmeticException.class).isThrownBy(() -> timestamp.incrementBy(1));
     }
 
     @Test

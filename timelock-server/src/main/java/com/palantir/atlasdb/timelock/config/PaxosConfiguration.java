@@ -54,6 +54,11 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
         return 5000L;
     }
 
+    @Value.Default
+    public boolean isNewService() {
+        return false;
+    }
+
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(paxosDataDir().exists() || paxosDataDir().mkdirs(),
