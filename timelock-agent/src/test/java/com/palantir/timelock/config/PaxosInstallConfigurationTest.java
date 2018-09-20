@@ -18,8 +18,8 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,43 +30,72 @@ import org.junit.Test;
 public class PaxosInstallConfigurationTest {
     @Test
     public void canCreateWithDefaultValues() {
-        PaxosInstallConfiguration defaultConfiguration = ImmutablePaxosInstallConfiguration.builder().build();
+        PaxosInstallConfiguration defaultConfiguration = ImmutablePaxosInstallConfiguration
+                .builder()
+                .isNewService(false)
+                .build();
+
         assertThat(defaultConfiguration).isNotNull();
     }
 
     @Test
-    public void canCreateDirectoryForPaxosDirectory() {
-        File mockFile = mock(File.class);
-        when(mockFile.mkdirs()).thenReturn(true);
-        when(mockFile.isDirectory()).thenReturn(false);
+    public void canCreateDirectoryForPaxosDirectoryIfNewService() {
+        File mockFile = getMockFileWith(false, true);
+
         ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
+                .isNewService(true)
                 .build();
 
-        //noinspection ResultOfMethodCallIgnored - the file is just a mock
-        verify(mockFile, times(1)).mkdirs();
+        verify(mockFile).mkdirs();
     }
 
     @Test
     public void canUseExistingDirectoryAsPaxosDirectory() {
-        File mockFile = mock(File.class);
-        when(mockFile.mkdirs()).thenReturn(false);
-        when(mockFile.isDirectory()).thenReturn(true);
+        File mockFile = getMockFileWith(true, false);
+
         ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
+                .isNewService(false)
                 .build();
 
-        //noinspection ResultOfMethodCallIgnored - the file is just a mock
-        verify(mockFile, times(1)).isDirectory();
+        verify(mockFile, atLeastOnce()).isDirectory();
     }
 
     @Test
     public void throwsIfCannotCreatePaxosDirectory() {
-        File mockFile = mock(File.class);
-        when(mockFile.mkdirs()).thenReturn(false);
-        when(mockFile.isDirectory()).thenReturn(false);
+        File mockFile = getMockFileWith(false, false);
+
         assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
                 .dataDirectory(mockFile)
+                .isNewService(true)
                 ::build).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void throwsIfConfiguredToBeNewWithExistingDirectory() {
+        File mockFile = getMockFileWith(true, true);
+
+        assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
+                .dataDirectory(mockFile)
+                .isNewService(true)
+                ::build).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void throwsIfConfiguredToBeExistingServiceWithoutDirectory() {
+        File mockFile = getMockFileWith(false, true);
+
+        assertThatThrownBy(ImmutablePaxosInstallConfiguration.builder()
+                .dataDirectory(mockFile)
+                .isNewService(false)
+                ::build).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private File getMockFileWith(boolean isDirectory, boolean canCreateDirectory) {
+        File mockFile = mock(File.class);
+        when(mockFile.mkdirs()).thenReturn(canCreateDirectory);
+        when(mockFile.isDirectory()).thenReturn(isDirectory);
+        return mockFile;
     }
 }
