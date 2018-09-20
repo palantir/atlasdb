@@ -50,27 +50,8 @@ develop
     *    - Type
          - Change
 
-
-
-
-    *    - |fixed|
-         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
-
-
-    *    - |devbreak|
-         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
-
-    *    - |changed|
-         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
-
-
-
-
-
-
+    *    -
+         -
 
 ========
 v0.105.0
@@ -138,6 +119,7 @@ v0.105.0
            when they hit Long.MAX_VALUE; this would only happen due to a bug, but at least now the DB will become read only
            and not corrupt.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3498>`__)
+
 ========
 v0.104.0
 ========
@@ -150,6 +132,18 @@ v0.104.0
 
     *    - Type
          - Change
+
+    *    - |fixed|
+         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
+
+    *    - |changed|
+         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
 
 ========
 v0.103.0
