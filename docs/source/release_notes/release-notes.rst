@@ -120,6 +120,10 @@ v0.105.0
            and not corrupt.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3498>`__)
 
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
+
 ========
 v0.104.0
 ========
@@ -140,10 +144,6 @@ v0.104.0
     *    - |changed|
          - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
-
-    *    - |devbreak|
-         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
 
 ========
 v0.103.0
