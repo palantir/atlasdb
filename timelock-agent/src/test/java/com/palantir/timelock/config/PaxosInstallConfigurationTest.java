@@ -16,7 +16,6 @@
 
 package com.palantir.timelock.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -28,15 +27,6 @@ import java.io.File;
 import org.junit.Test;
 
 public class PaxosInstallConfigurationTest {
-    @Test
-    public void canCreateWithDefaultValues() {
-        PaxosInstallConfiguration defaultConfiguration = ImmutablePaxosInstallConfiguration
-                .builder()
-                .isNewService(false)
-                .build();
-
-        assertThat(defaultConfiguration).isNotNull();
-    }
 
     @Test
     public void canCreateDirectoryForPaxosDirectoryIfNewService() {
