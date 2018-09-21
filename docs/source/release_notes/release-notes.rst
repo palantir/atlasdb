@@ -55,6 +55,11 @@ develop
            and was deleted by a different host while this host was online and sweeping.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
 
+    *    - |fixed|
+         - Targeted sweep now stores much less data in the sweepable cells table due
+           to more efficient encoding.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
 ========
 v0.105.0
 ========
