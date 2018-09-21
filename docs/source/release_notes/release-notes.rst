@@ -50,8 +50,10 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists,
+           and was deleted by a different host while this host was online and sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
 
 ========
 v0.105.0
