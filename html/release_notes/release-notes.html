@@ -191,49 +191,28 @@
 and was deleted by a different host while this host was online and sweeping.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
-servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly
-misconfigured and thinks it is booting up for the first time again. Additionally, timestamps no longer overflow
-when they hit Long.MAX_VALUE; this would only happen due to a bug, but at least now the DB will become read only
-and not corrupt.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3498">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Targeted sweep no longer chokes if a table in the queue no longer exists.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3508">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3507">Pull Request</a>)</td>
+<td>Targeted sweep now stores much less data in the sweepable cells table due
+to more efficient encoding.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-105-0">
+<h2>v0.105.0<a class="headerlink" href="#v0-105-0" title="Permalink to this headline">¶</a></h2>
+<p>20 Sep 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
-Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
-This change also improves visibility as to which specific communication workflows may be suffering from issues.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Users may now provide their own executors to instances of <code class="docutils literal notranslate"><span class="pre">BasicSQL</span></code> and to <code class="docutils literal notranslate"><span class="pre">BasicSQLUtils.runUninterruptably</span></code>.
-Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3nnn">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Upgrade http-remoting 3.41.1 -&gt; 3.43.0 to make tracing delegate nicely.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3494">Pull Request</a>)</td>
-</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Improved threading for MetricsManager’s metricsRegistry
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3497">Pull Request</a>)</td>
@@ -244,18 +223,78 @@ We log when a query returns a high number of timestamps that need to be looked u
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3488">Pull Request</a>)
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3504">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Upgrade http-remoting 3.41.1 -&gt; 3.43.0 to make tracing delegate nicely.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3494">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Users may now provide their own executors to instances of <code class="docutils literal notranslate"><span class="pre">BasicSQL</span></code> and to <code class="docutils literal notranslate"><span class="pre">BasicSQLUtils.runUninterruptably</span></code>.
+Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3487">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3507">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Targeted sweep no longer chokes if a table in the queue no longer exists.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3508">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Targeted sweep threads will no longer die if Timelock unlock calls fail.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
+Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+This change also improves visibility as to which specific communication workflows may be suffering from issues.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3505">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue in timelock where followers were publishing metrics with <code class="docutils literal notranslate"><span class="pre">isCurrentSuspectedLeader</span></code> tag set to <code class="docutils literal notranslate"><span class="pre">true</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3509">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Targeted sweep threads will no longer die if Timelock unlock calls fail.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Background sweep will now choose between priority tables uniform randomly if there are multiple priority tables.
 Previously, if multiple priority tables were specified, background sweep would repeatedly pick the same table to be swept, meaning that the other priority tables would all never be swept.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3510">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3512">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
+servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly
+misconfigured and thinks it is booting up for the first time again. Additionally, timestamps no longer overflow
+when they hit Long.MAX_VALUE; this would only happen due to a bug, but at least now the DB will become read only
+and not corrupt.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3498">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3505">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-104-0">
+<h2>v0.104.0<a class="headerlink" href="#v0-104-0" title="Permalink to this headline">¶</a></h2>
+<p>4 Sep 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3461">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3482">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
