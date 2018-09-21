@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists,
+           and was deleted by a different host while this host was online and sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
     *    - |improved|
          - A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
            servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly

@@ -70,13 +70,14 @@ public class SweepQueueDeleter {
                             }
                         });
             } catch (IllegalArgumentException e) {
-                // hack because InMemoryKVS doesn't throw a TableMappingNotFoundException...
-                if (e.getCause() instanceof TableMappingNotFoundException
-                        || e.getMessage().endsWith("does not exist")) {
-                    log.warn("Could not resolve full name for table reference {}, "
+                // TODO we don't have a centralized error for when a table doesn't exist...
+                if (e.getCause() instanceof TableMappingNotFoundException // exception thrown through TableRemappingKVS
+                        || (e.getMessage().startsWith("table")
+                            && (e.getMessage().endsWith("does not exist") // exception thrown through InMemoryKVS
+                                || e.getMessage().endsWith("not found")))) { // exception thrown through DbKvs
+                    log.warn("Could not find table for table reference {}, "
                             + "assuming table has been deleted and therefore relevant cells as well.",
-                            LoggingArgs.tableRef(entry.getKey()));
-                    log.debug("Stack trace follows:", e);
+                            LoggingArgs.tableRef(entry.getKey()), e);
                 } else {
                     throw e;
                 }
