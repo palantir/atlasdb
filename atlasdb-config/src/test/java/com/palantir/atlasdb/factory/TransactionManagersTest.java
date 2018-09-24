@@ -312,26 +312,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void batchesRequestsIfBatchingEnabled() throws InterruptedException {
-        setUpTimeLockBlockInInstallConfig();
-        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
-
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).timestamp().getFreshTimestamp();
-
-        availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMPS_PATH)));
-    }
-
-    @Test
-    public void doesNotBatchRequestsIfBatchingNotEnabled() {
-        setUpTimeLockBlockInInstallConfig();
-        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(false));
-
-        createLockAndTimestampServicesForConfig(config, runtimeConfig).timelock().getFreshTimestamp();
-
-        availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_TIMESTAMP_PATH)));
-    }
-
-    @Test
     public void runsClosingCallbackOnShutdown() throws Exception {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())

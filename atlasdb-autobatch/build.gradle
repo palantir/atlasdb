@@ -12,13 +12,8 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
-    compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
-    compile project(":timestamp-api")
-    compile project(":timestamp-client")
-    compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+    compile group: 'com.lmax', name: 'disruptor'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
     processor project(":atlasdb-processors")

@@ -64,12 +64,10 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.config.TimestampClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
-import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
@@ -647,6 +645,7 @@ public abstract class TransactionManagers {
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
+                .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .close(timeLockClient::close)
@@ -666,11 +665,8 @@ public abstract class TransactionManagers {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(
                         metricsManager, config, runtimeConfigSupplier, env, lock, time, invalidator, userAgent);
-        return withRequestBatchingTimestampService(
-                metricsManager,
-                () -> runtimeConfigSupplier.get().timestampClient(),
-                withRefreshingLockService(
-                        withBridgingTimelockService(lockAndTimestampServices)));
+        return withMetrics(metricsManager,
+                withRefreshingLockService(withBridgingTimelockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withBridgingTimelockService(
@@ -685,30 +681,24 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
-                .from(lockAndTimestampServices)
+                .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .close(timeLockClient::close)
                 .build();
     }
 
-    private static LockAndTimestampServices withRequestBatchingTimestampService(
+    private static LockAndTimestampServices withMetrics(
             MetricsManager metricsManager,
-            java.util.function.Supplier<TimestampClientConfig> timestampClientConfigSupplier,
             LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockServiceWithBatching = DecoratedTimelockServices
-                .createTimelockServiceWithTimestampBatching(
-                        metricsManager.getRegistry(),
-                        lockAndTimestampServices.timelock(),
-                        timestampClientConfigSupplier);
-
+        TimelockService timelockServiceWithBatching = lockAndTimestampServices.timelock();
         TimelockService instrumentedTimelockService = new InstrumentedTimelockService(
                 timelockServiceWithBatching,
                 metricsManager.getRegistry());
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timestamp(new TimelockTimestampServiceAdapter(timelockServiceWithBatching))
+                .timestamp(new TimelockTimestampServiceAdapter(instrumentedTimelockService))
                 .timelock(instrumentedTimelockService)
                 .build();
     }

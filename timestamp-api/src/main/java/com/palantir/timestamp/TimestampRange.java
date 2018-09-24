@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -76,5 +77,31 @@ public class TimestampRange implements Serializable {
     public long size() {
         // Need to add 1 as both bounds are inclusive
         return upper - lower + 1;
+    }
+
+    @Override
+    public String toString() {
+        return "TimestampRange{"
+                + "lower=" + lower
+                + ", upper=" + upper
+                + '}';
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        TimestampRange that = (TimestampRange) other;
+        return lower == that.lower
+                && upper == that.upper;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lower, upper);
     }
 }

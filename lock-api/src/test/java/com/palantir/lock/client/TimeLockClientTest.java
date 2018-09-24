@@ -48,6 +48,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.timestamp.CloseableTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimeLockClientTest {
@@ -59,9 +60,10 @@ public class TimeLockClientTest {
     private static final ImmutableSet<LockDescriptor> LOCKS = ImmutableSet.of(StringLockDescriptor.of("foo"));
 
     private final LockRefresher refresher = mock(LockRefresher.class);
+    private final CloseableTimestampService timestampService = mock(CloseableTimestampService.class);
     private final TimelockService delegate = mock(TimelockService.class);
     private final TimeLockUnlocker unlocker = mock(TimeLockUnlocker.class);
-    private final TimelockService timelock = spy(new TimeLockClient(delegate, refresher, unlocker));
+    private final TimelockService timelock = spy(new TimeLockClient(delegate, timestampService, refresher, unlocker));
 
     private static final long TIMEOUT = 10_000;
 
@@ -70,6 +72,7 @@ public class TimeLockClientTest {
         when(delegate.isInitialized())
                 .thenReturn(false)
                 .thenReturn(true);
+        when(timestampService.isInitialized()).thenReturn(true);
 
         assertFalse(timelock.isInitialized());
         assertTrue(timelock.isInitialized());
@@ -124,7 +127,7 @@ public class TimeLockClientTest {
     @Test
     public void getTimestampDelegates() {
         long timestamp = 123L;
-        when(delegate.getFreshTimestamp()).thenReturn(timestamp);
+        when(timestampService.getFreshTimestamp()).thenReturn(timestamp);
 
         assertThat(timelock.getFreshTimestamp()).isEqualTo(timestamp);
     }
@@ -133,7 +136,7 @@ public class TimeLockClientTest {
     public void getTimestampsDelegates() {
         int numTimestamps = 5;
         TimestampRange timestamps = TimestampRange.createInclusiveRange(1L, numTimestamps);
-        when(delegate.getFreshTimestamps(numTimestamps)).thenReturn(timestamps);
+        when(timestampService.getFreshTimestamps(numTimestamps)).thenReturn(timestamps);
 
         assertThat(timelock.getFreshTimestamps(numTimestamps)).isEqualTo(timestamps);
     }
@@ -174,16 +177,16 @@ public class TimeLockClientTest {
 
     private void assertDependencyUnavailableIsThrownWhenWeCatch(Throwable cause) {
         Throwable exceptionToThrow = new RuntimeException(cause);
-        when(delegate.getFreshTimestamp()).thenThrow(exceptionToThrow);
+        when(delegate.currentTimeMillis()).thenThrow(exceptionToThrow);
 
-        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(AtlasDbDependencyException.class);
+        assertThatThrownBy(timelock::currentTimeMillis).isInstanceOf(AtlasDbDependencyException.class);
     }
 
     @Test
     public void doesNotThrowDependencyExceptionWhenDelegateFailsForSomeOtherReason() {
-        when(delegate.getFreshTimestamp()).thenThrow(new RuntimeException("something else happened"));
+        when(delegate.currentTimeMillis()).thenThrow(new RuntimeException("something else happened"));
 
-        assertThatThrownBy(timelock::getFreshTimestamp).isInstanceOf(RuntimeException.class)
+        assertThatThrownBy(timelock::currentTimeMillis).isInstanceOf(RuntimeException.class)
             .isNotInstanceOf(AtlasDbDependencyException.class);
     }
 
