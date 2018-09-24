@@ -81,14 +81,14 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     @Before
     public void setup() {
-        TimestampService tsService = new InMemoryTimestampService();
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
         kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
         );
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
         LongSupplier tsSupplier = sweepTimestamp::get;
         PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),

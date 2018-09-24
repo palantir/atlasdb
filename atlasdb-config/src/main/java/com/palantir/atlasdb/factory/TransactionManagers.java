@@ -372,6 +372,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
+                        lockAndTimestampServices.timestampManagement(),
                         lockAndTimestampServices.lock(),
                         transactionService,
                         Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

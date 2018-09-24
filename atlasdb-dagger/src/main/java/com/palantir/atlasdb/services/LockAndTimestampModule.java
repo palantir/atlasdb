@@ -17,11 +17,14 @@ package com.palantir.atlasdb.services;
 
 import javax.inject.Singleton;
 
+import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 import dagger.Module;
@@ -34,13 +37,20 @@ public class LockAndTimestampModule {
     @Singleton
     public TransactionManagers.LockAndTimestampServices provideLockAndTimestampServices(
             MetricsManager metricsManager, ServicesConfig config) {
+        ServiceDiscoveringAtlasSupplier atlasSupplier = config.atlasDbSupplier(metricsManager);
+        com.google.common.base.Supplier<TimestampService> timestampService =
+                Suppliers.memoize(atlasSupplier::getTimestampService);
+        com.google.common.base.Supplier<TimestampManagementService> timestampManagementService =
+                () -> atlasSupplier.getTimestampManagementService(timestampService.get());
+
         return TransactionManagers.createLockAndTimestampServicesForCli(
                 metricsManager,
                 config.atlasDbConfig(),
                 config::atlasDbRuntimeConfig,
                 resource -> { },
                 LockServiceImpl::create,
-                () -> config.atlasDbSupplier(metricsManager).getTimestampService(),
+                timestampService,
+                timestampManagementService,
                 config.atlasDbSupplier(metricsManager).getTimestampStoreInvalidator(),
                 "cli");
     }
