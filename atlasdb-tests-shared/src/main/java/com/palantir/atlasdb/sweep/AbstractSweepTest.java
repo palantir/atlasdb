@@ -53,7 +53,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";

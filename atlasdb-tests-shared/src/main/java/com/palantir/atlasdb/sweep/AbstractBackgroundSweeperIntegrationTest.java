@@ -57,7 +57,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
 

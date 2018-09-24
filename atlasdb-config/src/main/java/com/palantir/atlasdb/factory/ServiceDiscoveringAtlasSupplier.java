@@ -158,8 +158,8 @@ public class ServiceDiscoveringAtlasSupplier {
         return timestampService.get();
     }
 
-    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestampService) {
-        return timestampManagementAdapter.apply(timestampService);
+    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
+        return timestampManagementAdapter.apply(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {

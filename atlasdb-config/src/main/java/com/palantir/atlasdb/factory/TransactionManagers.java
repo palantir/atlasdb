@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -272,6 +271,7 @@ public abstract class TransactionManagers {
         }
     }
 
+    @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
         final AtlasDbConfig config = config();
@@ -342,19 +342,17 @@ public abstract class TransactionManagers {
 
         CleanupFollower follower = CleanupFollower.create(schemas());
 
-        Cleaner cleaner = initializeCloseable(() -> new DefaultCleanerBuilder(
-                        keyValueService,
-                        lockAndTimestampServices.timelock(),
-                        ImmutableList.of(follower),
-                        transactionService)
-                        .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                        .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                        .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                        .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                        .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                        .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
-                        .setInitializeAsync(config.initializeAsync())
-                        .buildCleaner(),
+        Cleaner cleaner = initializeCloseable(() ->
+                        new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
+                                        ImmutableList.of(follower), transactionService)
+                                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
+                                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
+                                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
+                                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
+                                .setPunchIntervalMillis(config.getPunchIntervalMillis())
+                                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
+                                .setInitializeAsync(config.initializeAsync())
+                                .buildCleaner(),
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
@@ -393,6 +391,7 @@ public abstract class TransactionManagers {
                         validateLocksOnReads(),
                         () -> runtimeConfigSupplier.get().transaction()),
                 closeables);
+
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
@@ -740,7 +739,8 @@ public abstract class TransactionManagers {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, timeManagement, userAgent);
+            return createRawLeaderServices(
+                    metricsManager, config.leader().get(), env, lock, time, timeManagement, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -840,7 +840,8 @@ public abstract class TransactionManagers {
         TimestampService localTime = ServiceCreator.createInstrumentedService(metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
                 TimestampService.class);
-        TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(metricsManager.getRegistry(),
+        TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(TimestampManagementService.class,
                         timeManagement,
                         leader),
