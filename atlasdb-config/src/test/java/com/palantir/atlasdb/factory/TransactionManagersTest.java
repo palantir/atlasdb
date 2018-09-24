@@ -561,6 +561,7 @@ public class TransactionManagersTest {
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
+                (ts) -> (TimestampManagementService) ts,
                 invalidator,
                 USER_AGENT);
     }
@@ -587,6 +588,7 @@ public class TransactionManagersTest {
                         environment,
                         LockServiceImpl::create,
                         InMemoryTimestampService::new,
+                        (ts) -> (TimestampManagementService) ts,
                         invalidator,
                         USER_AGENT);
         lockAndTimestamp.timelock().getFreshTimestamp();
@@ -627,6 +629,7 @@ public class TransactionManagersTest {
                 environment,
                 LockServiceImpl::create,
                 InMemoryTimestampService::new,
+                (ts) -> (TimestampManagementService) ts,
                 invalidator,
                 USER_AGENT);
     }

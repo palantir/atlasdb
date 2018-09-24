@@ -727,20 +727,19 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            // TODO(jlach): wire through in creators
             Function<TimestampService, TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, userAgent);
+            return createRawLeaderServices(metricsManager, config.leader().get(), env, lock, time, timeManagement, userAgent);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
             return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
-            return createRawEmbeddedServices(metricsManager, env, lock, time);
+            return createRawEmbeddedServices(metricsManager, env, lock, time, timeManagement);
         }
     }
 
@@ -799,10 +798,14 @@ public abstract class TransactionManagers {
                 .applyDynamic(timelockServerListConfig);
         TimelockService timelockService = new ServiceCreator<>(metricsManager, TimelockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
+        TimestampManagementService timestampManagementService =
+                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
+                        .applyDynamic(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timestampManagement(timestampManagementService)
                 .timelock(timelockService)
                 .build();
     }
@@ -813,6 +816,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
+            Function<TimestampService, TimestampManagementService> timestampManagementAdapter,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
@@ -829,8 +833,14 @@ public abstract class TransactionManagers {
         TimestampService localTime = ServiceCreator.createInstrumentedService(metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(TimestampService.class, time, leader),
                 TimestampService.class);
+        TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(metricsManager.getRegistry(),
+                AwaitingLeadershipProxy.newProxyInstance(TimestampManagementService.class,
+                        () -> timestampManagementAdapter.apply(time.get()),
+                        leader),
+                TimestampManagementService.class);
         env.accept(localLock);
         env.accept(localTime);
+        env.accept(localManagement);
 
         // Create remote services, that may end up calling our own local services.
         ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
@@ -841,6 +851,9 @@ public abstract class TransactionManagers {
                 .apply(serverListConfig);
         TimestampService remoteTime = new ServiceCreator<>(metricsManager, TimestampService.class, userAgent)
                 .apply(serverListConfig);
+        TimestampManagementService remoteManagement =
+                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
+                        .apply(serverListConfig);
 
         if (leaderConfig.leaders().size() == 1) {
             // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
@@ -885,9 +898,12 @@ public abstract class TransactionManagers {
                     LockService.class, localLock, remoteLock, useLocalServicesFuture);
             TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
                     TimestampService.class, localTime, remoteTime, useLocalServicesFuture);
+            TimestampManagementService dynamicManagementService = LocalOrRemoteProxy.newProxyInstance(
+                    TimestampManagementService.class, localManagement, remoteManagement, useLocalServicesFuture);
             return ImmutableLockAndTimestampServices.builder()
                     .lock(dynamicLockService)
                     .timestamp(dynamicTimeService)
+                    .timestampManagement(dynamicManagementService)
                     .timelock(new LegacyTimelockService(dynamicTimeService, dynamicLockService, LOCK_CLIENT))
                     .build();
 
@@ -895,6 +911,7 @@ public abstract class TransactionManagers {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(remoteLock)
                     .timestamp(remoteTime)
+                    .timestampManagement(remoteManagement)
                     .timelock(new LegacyTimelockService(remoteTime, remoteLock, LOCK_CLIENT))
                     .build();
         }
@@ -906,10 +923,14 @@ public abstract class TransactionManagers {
                 .apply(config.lock().get());
         TimestampService timeService = new ServiceCreator<>(metricsManager, TimestampService.class, userAgent)
                 .apply(config.timestamp().get());
+        TimestampManagementService timestampManagementService =
+                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
+                        .apply(config.timestamp().get());
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(timeService)
+                .timestampManagement(timestampManagementService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -918,18 +939,23 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
-            com.google.common.base.Supplier<TimestampService> time) {
+            com.google.common.base.Supplier<TimestampService> time,
+            Function<TimestampService, TimestampManagementService> managementAdapter) {
         LockService lockService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), lock.get(), LockService.class);
         TimestampService timeService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), time.get(), TimestampService.class);
+        TimestampManagementService timestampManagementService = ServiceCreator.createInstrumentedService(
+                metricsManager.getRegistry(), managementAdapter.apply(time.get()), TimestampManagementService.class);
 
         env.accept(lockService);
         env.accept(timeService);
+        env.accept(timestampManagementService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(timeService)
+                .timestampManagement(timestampManagementService)
                 .timelock(new LegacyTimelockService(timeService, lockService, LOCK_CLIENT))
                 .build();
     }
@@ -955,6 +981,7 @@ public abstract class TransactionManagers {
     public interface LockAndTimestampServices {
         LockService lock();
         TimestampService timestamp();
+        TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
 
