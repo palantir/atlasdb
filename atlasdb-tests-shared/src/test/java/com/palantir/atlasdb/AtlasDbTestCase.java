@@ -67,7 +67,7 @@ public class AtlasDbTestCase {
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
-    protected TimestampService timestampService;
+    protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManagerImpl serializableTxManager;
@@ -118,6 +118,7 @@ public class AtlasDbTestCase {
                 metricsManager,
                 keyValueService,
                 timestampService,
+                timestampService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -154,7 +155,7 @@ public class AtlasDbTestCase {
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
         txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
-                timestampService, lockClient, lockService, transactionService, mode);
+                timestampService, timestampService, lockClient, lockService, transactionService, mode);
     }
 
     protected void clearTablesWrittenTo() {

@@ -40,6 +40,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -48,6 +49,25 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private Optional<Long> unreadableTs = Optional.empty();
+
+
+    /**
+     * Utility constructor for when we know we have an InMemoryTimestampService.
+     */
+    public TestTransactionManagerImpl(MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            InMemoryTimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor) {
+        this(metricsManager, keyValueService, timestampService, timestampService,
+                lockClient, lockService, transactionService, conflictDetectionManager,
+                sweepStrategyManager, sweepQueue, deleteExecutor);
+    }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(MetricsManager metricsManager,

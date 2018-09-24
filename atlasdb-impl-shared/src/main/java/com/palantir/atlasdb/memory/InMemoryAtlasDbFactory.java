@@ -200,7 +200,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
                 MetricsManagers.createForTests(),
                 keyValueService,
                 ts,
-                ts,
                 client,
                 lock,
                 transactionService,

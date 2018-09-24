@@ -68,7 +68,7 @@ public class TableTasksTest {
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        TimestampService tsService = new InMemoryTimestampService();
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         TransactionService txService = TransactionServices.createTransactionService(kvs);

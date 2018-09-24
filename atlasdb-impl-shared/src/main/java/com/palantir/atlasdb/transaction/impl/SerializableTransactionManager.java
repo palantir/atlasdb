@@ -46,6 +46,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -276,6 +277,26 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return initializeAsync
                 ? new InitializeCheckingWrapper(transactionManager, initializationPrerequisite, callback, initializer)
                 : transactionManager;
+    }
+
+
+    public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            InMemoryTimestampService timestampService,
+            LockClient lockClient,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueue) {
+        return createForTest(metricsManager, keyValueService, timestampService, timestampService,
+                lockClient, lockService, transactionService, constraintModeSupplier, conflictDetectionManager,
+                sweepStrategyManager, cleaner, concurrentGetRangesThreadPoolSize, defaultGetRangesConcurrency,
+                sweepQueue);
     }
 
     public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
