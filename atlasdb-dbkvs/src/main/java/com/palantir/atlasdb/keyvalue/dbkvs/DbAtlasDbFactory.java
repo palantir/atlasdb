@@ -36,6 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -94,6 +95,15 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
         ConnectionManagerAwareDbKvs dbkvs = (ConnectionManagerAwareDbKvs) rawKvs;
 
         return PersistentTimestampServiceImpl.create(createTimestampBoundStore(timestampTable, dbkvs));
+    }
+
+    @Override
+    public TimestampManagementService getTimestampManagementService(TimestampService timestampService) {
+        Preconditions.checkArgument(timestampService instanceof PersistentTimestampServiceImpl,
+                "TimestampManagementService must be created based on result of createTimestampService call."
+                        + "\nExpected a PersistentTimestampServiceImpl, got %s", timestampService.getClass());
+
+        return (PersistentTimestampServiceImpl) timestampService;
     }
 
     private InDbTimestampBoundStore createTimestampBoundStore(Optional<TableReference> timestampTable,

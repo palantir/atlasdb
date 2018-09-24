@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -44,6 +45,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -58,6 +60,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
+    private final Function<TimestampService, TimestampManagementService> timestampManagementAdapter;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(
@@ -135,6 +138,7 @@ public class ServiceDiscoveringAtlasSupplier {
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
+        timestampManagementAdapter = atlasFactory::getTimestampManagementService;
     }
 
     public KeyValueService getKeyValueService() {
@@ -152,6 +156,10 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
+    }
+
+    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestampService) {
+        return timestampManagementAdapter.apply(timestampService);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {

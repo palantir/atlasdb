@@ -35,6 +35,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -72,6 +73,12 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     public TimestampService createTimestampService(KeyValueService rawKvs, Optional<TableReference> timestampTable,
             boolean initializeAsync) {
         return nextTimestampServices.remove(0);
+    }
+
+    @Override
+    public TimestampManagementService getTimestampManagementService(TimestampService timestampService) {
+        // unused in tests
+        return null;
     }
 
     public static void nextTimestampServiceToReturn(TimestampService... timestampServices) {

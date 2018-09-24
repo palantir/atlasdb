@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -141,6 +142,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -293,7 +295,8 @@ public abstract class TransactionManagers {
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
                 runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
-                atlasFactory::getTimestampService, atlasFactory.getTimestampStoreInvalidator(), userAgent());
+                atlasFactory::getTimestampService, atlasFactory::getTimestampManagementService,
+                atlasFactory.getTimestampStoreInvalidator(), userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
@@ -632,6 +635,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
+            Function<TimestampService, TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
@@ -642,6 +646,7 @@ public abstract class TransactionManagers {
                         env,
                         lock,
                         time,
+                        timeManagement,
                         invalidator,
                         userAgent);
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
@@ -661,11 +666,13 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
+            Function<TimestampService, TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
                 createRawInstrumentedServices(
-                        metricsManager, config, runtimeConfigSupplier, env, lock, time, invalidator, userAgent);
+                        metricsManager, config, runtimeConfigSupplier, env,
+                        lock, time, timeManagement, invalidator, userAgent);
         return withRequestBatchingTimestampService(
                 metricsManager,
                 () -> runtimeConfigSupplier.get().timestampClient(),
@@ -720,6 +727,8 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
+            // TODO(jlach): wire through in creators
+            Function<TimestampService, TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();

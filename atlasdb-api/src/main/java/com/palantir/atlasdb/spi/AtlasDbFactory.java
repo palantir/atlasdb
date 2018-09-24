@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
@@ -88,6 +89,8 @@ public interface AtlasDbFactory {
             KeyValueService rawKvs,
             Optional<TableReference> timestampTable,
             boolean initializeAsync);
+
+    TimestampManagementService getTimestampManagementService(TimestampService timestampService);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
