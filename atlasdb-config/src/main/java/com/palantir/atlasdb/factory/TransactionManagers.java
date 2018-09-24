@@ -293,9 +293,15 @@ public abstract class TransactionManagers {
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
+
+        com.google.common.base.Supplier<TimestampService> timestampSupplier =
+                Suppliers.memoize(atlasFactory::getTimestampService);
+        com.google.common.base.Supplier<TimestampManagementService> managementSupplier =
+                () -> atlasFactory.getTimestampManagementService(timestampSupplier.get());
+
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
                 runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
-                atlasFactory::getTimestampService, atlasFactory::getTimestampManagementService,
+                timestampSupplier, managementSupplier,
                 atlasFactory.getTimestampStoreInvalidator(), userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
@@ -635,7 +641,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            Function<TimestampService, TimestampManagementService> timeManagement,
+            com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
@@ -666,7 +672,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            Function<TimestampService, TimestampManagementService> timeManagement,
+            com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         LockAndTimestampServices lockAndTimestampServices =
@@ -727,7 +733,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            Function<TimestampService, TimestampManagementService> timeManagement,
+            com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
             String userAgent) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
@@ -816,7 +822,7 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            Function<TimestampService, TimestampManagementService> timestampManagementAdapter,
+            com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             String userAgent) {
         // Create local services, that may or may not end up being registered in an Consumer<Object>.
         LeaderRuntimeConfig defaultRuntime = ImmutableLeaderRuntimeConfig.builder().build();
@@ -835,7 +841,7 @@ public abstract class TransactionManagers {
                 TimestampService.class);
         TimestampManagementService localManagement = ServiceCreator.createInstrumentedService(metricsManager.getRegistry(),
                 AwaitingLeadershipProxy.newProxyInstance(TimestampManagementService.class,
-                        () -> timestampManagementAdapter.apply(time.get()),
+                        timeManagement,
                         leader),
                 TimestampManagementService.class);
         env.accept(localLock);
@@ -940,13 +946,13 @@ public abstract class TransactionManagers {
             Consumer<Object> env,
             com.google.common.base.Supplier<LockService> lock,
             com.google.common.base.Supplier<TimestampService> time,
-            Function<TimestampService, TimestampManagementService> managementAdapter) {
+            com.google.common.base.Supplier<TimestampManagementService> timeManagement) {
         LockService lockService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), lock.get(), LockService.class);
         TimestampService timeService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), time.get(), TimestampService.class);
         TimestampManagementService timestampManagementService = ServiceCreator.createInstrumentedService(
-                metricsManager.getRegistry(), managementAdapter.apply(time.get()), TimestampManagementService.class);
+                metricsManager.getRegistry(), timeManagement.get(), TimestampManagementService.class);
 
         env.accept(lockService);
         env.accept(timeService);

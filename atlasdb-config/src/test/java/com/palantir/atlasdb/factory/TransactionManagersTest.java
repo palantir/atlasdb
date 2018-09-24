@@ -554,14 +554,15 @@ public class TransactionManagersTest {
     }
 
     private TransactionManagers.LockAndTimestampServices getLockAndTimestampServices() {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 config,
                 () -> runtimeConfig,
                 environment,
                 LockServiceImpl::create,
-                InMemoryTimestampService::new,
-                (ts) -> (TimestampManagementService) ts,
+                () -> ts,
+                () -> ts,
                 invalidator,
                 USER_AGENT);
     }
@@ -580,6 +581,7 @@ public class TransactionManagersTest {
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         TransactionManagers.LockAndTimestampServices lockAndTimestamp =
                 TransactionManagers.createLockAndTimestampServices(
                         metricsManager,
@@ -587,8 +589,8 @@ public class TransactionManagersTest {
                         () -> runtimeConfig,
                         environment,
                         LockServiceImpl::create,
-                        InMemoryTimestampService::new,
-                        (ts) -> (TimestampManagementService) ts,
+                        () -> ts,
+                        () -> ts,
                         invalidator,
                         USER_AGENT);
         lockAndTimestamp.timelock().getFreshTimestamp();
@@ -622,14 +624,15 @@ public class TransactionManagersTest {
 
     private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
             AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         return TransactionManagers.createLockAndTimestampServices(
                 metricsManager,
                 atlasDbConfig,
                 () -> atlasDbRuntimeConfig,
                 environment,
                 LockServiceImpl::create,
-                InMemoryTimestampService::new,
-                (ts) -> (TimestampManagementService) ts,
+                () -> ts,
+                () -> ts,
                 invalidator,
                 USER_AGENT);
     }
