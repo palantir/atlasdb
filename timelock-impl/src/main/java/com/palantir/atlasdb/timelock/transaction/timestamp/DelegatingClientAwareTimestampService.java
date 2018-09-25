@@ -41,6 +41,9 @@ public class DelegatingClientAwareTimestampService implements ClientAwareTimesta
     @Override
     public long getFreshTimestampForClient(UUID clientIdentifier) {
         TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS);
-        return 0;
+        return TimestampRanges.getTimestampMatchingModulus(
+                timestampRange,
+                allocator.getRelevantModuli(clientIdentifier).iterator().next(),
+                NUM_PARTITIONS);
     }
 }
