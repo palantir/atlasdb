@@ -30,10 +30,12 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -75,6 +77,16 @@ public class AsyncTimelockResource {
     public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
         return StartAtlasDbTransactionResponse.of(
                 timelock.lockImmutableTimestamp(request),
+                timelock.getFreshTimestamp());
+    }
+
+    @POST
+    @Path("start-atlasdb-transaction-predicated")
+    public StartAtlasDbTransactionResponse startAtlasDbTransactionPredicated(
+            StartAtlasDbTransactionRequest request) {
+        // TODO (jkong): Actually do something with the requestor ID
+        return StartAtlasDbTransactionResponse.of(
+                timelock.lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestUuid())),
                 timelock.getFreshTimestamp());
     }
 
