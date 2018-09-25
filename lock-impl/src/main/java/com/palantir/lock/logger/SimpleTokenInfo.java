@@ -17,6 +17,8 @@ package com.palantir.lock.logger;
 
 import java.util.Date;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
@@ -34,6 +36,7 @@ public abstract class SimpleTokenInfo {
                 .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
                 .requestThread(token.getRequestingThread())
                 .createAt(new Date(token.getCreationDateMs()).toString())
+                .versionId(token.getVersionId())
                 .build();
     }
 
@@ -57,4 +60,8 @@ public abstract class SimpleTokenInfo {
 
     @Value.Parameter
     public abstract String getCreateAt();
+
+    @Nullable
+    @Value.Parameter
+    public abstract Long getVersionId();
 }
