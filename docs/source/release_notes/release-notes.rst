@@ -59,6 +59,10 @@ develop
          - Targeted sweep now stores much less data in the sweepable cells table due
            to more efficient encoding.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+    
+    *    - |improved|
+         - Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)           
 
 ========
 v0.105.0
