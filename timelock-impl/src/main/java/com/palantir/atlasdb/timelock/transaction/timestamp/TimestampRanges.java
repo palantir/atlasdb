@@ -36,7 +36,7 @@ public final class TimestampRanges {
      * timestamp with residue 1 modulo 2, this method may return any of 1, 3 and 5.
      *
      * It is expected that the {@link TimestampRange} passed to this method contains at least one timestamp satisfying
-     * the residue/modulus criteria
+     * the residue/modulus criteria.
      *
      * @param range timestamp range to extract a single timestamp from
      * @param residue desired residue class of the timestamp returned
