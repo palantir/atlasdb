@@ -33,29 +33,41 @@ public class TimestampRangesTest {
     @Test
     public void canGetTimestampFromRangeIfItIsTheLowerBound() {
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
-                .isEqualTo(SEVENTY_THREE);
+                .isPresent()
+                .hasValue(SEVENTY_THREE);
     }
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheUpperBound() {
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
-                .isEqualTo(EIGHTY_TWO);
+                .isPresent()
+                .hasValue(EIGHTY_TWO);
     }
 
     @Test
     public void canGetTimestampsFromRangeInTheMiddle() {
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
-                .isEqualTo(77L);
+                .isPresent()
+                .hasValue(77L);
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
-                .isEqualTo(78L);
+                .isPresent()
+                .hasValue(78L);
     }
 
     @Test
     public void canHandleMultipleValidMatches() {
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
-                .isIn(73L, 75L, 77L, 79L, 81L);
+                .isPresent()
+                .satisfies(optionalLong -> {
+                    long value = optionalLong.getAsLong();
+                    assertThat(value).isIn(73L, 75L, 77L, 79L, 81L);
+                });
         assertThat(TimestampRanges.getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .isIn(74L, 76L, 78L, 80L, 82L);
+                .isPresent()
+                .satisfies(optionalLong -> {
+                    long value = optionalLong.getAsLong();
+                    assertThat(value).isIn(74L, 76L, 78L, 80L, 82L);
+                });
     }
 
     @Test
@@ -69,7 +81,6 @@ public class TimestampRangesTest {
     @Test
     public void throwsIfTimestampRangeDoesNotContainAnyValuesMatchingModulus() {
         TimestampRange oneTimestamp = TimestampRange.createInclusiveRange(77, 77);
-        assertThatThrownBy(() -> TimestampRanges.getTimestampMatchingModulus(oneTimestamp, 6, 10))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(TimestampRanges.getTimestampMatchingModulus(oneTimestamp, 6, 10)).isNotPresent();
     }
 }

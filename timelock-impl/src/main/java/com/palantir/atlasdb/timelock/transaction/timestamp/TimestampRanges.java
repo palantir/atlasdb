@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
+import java.util.OptionalLong;
+
 import com.google.common.base.Preconditions;
 import com.palantir.timestamp.TimestampRange;
 
@@ -35,17 +37,15 @@ public final class TimestampRanges {
      * in the provided residue class. For example, if the TimestampRange is from 1 to 5 inclusive and we want a
      * timestamp with residue 1 modulo 2, this method may return any of 1, 3 and 5.
      *
-     * It is expected that the {@link TimestampRange} passed to this method contains at least one timestamp satisfying
-     * the residue/modulus criteria.
+     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
      *
      * @param range timestamp range to extract a single timestamp from
      * @param residue desired residue class of the timestamp returned
      * @param modulus modulus used to partition numbers into residue classes
      * @return a timestamp in the given range in the relevant residue class modulo modulus
-     * @throws IllegalArgumentException if residue >= modulus, or the range doesn't contain any timestamps satisfying
-     *         our condition
+     * @throws IllegalArgumentException if residue >= modulus
      */
-    public static long getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+    public static OptionalLong getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
         Preconditions.checkArgument(residue < modulus,
                 "Residue %s is less than modulus %s - no solutions",
                 residue,
@@ -57,11 +57,8 @@ public final class TimestampRanges {
                 residue - lowerBoundModulus;
         long candidate = lowerBound + shift;
 
-        Preconditions.checkArgument(range.getUpperBound() >= candidate,
-                "The provided timestamp range %s doesn't include any timestamp congruent to %s mod %s",
-                range,
-                residue,
-                modulus);
-        return candidate;
+        return range.getUpperBound() >= candidate
+                ? OptionalLong.of(candidate)
+                : OptionalLong.empty();
     }
 }
