@@ -388,6 +388,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 unstableKvs,
                 timestampService,
+                timestampService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -850,6 +851,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
+                timestampService,
                 timestampService,
                 lockClient,
                 lockService,

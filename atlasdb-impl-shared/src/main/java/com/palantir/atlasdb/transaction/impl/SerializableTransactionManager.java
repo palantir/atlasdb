@@ -279,26 +279,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 : transactionManager;
     }
 
-
-    public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            InMemoryTimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
-            TransactionService transactionService,
-            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            Cleaner cleaner,
-            int concurrentGetRangesThreadPoolSize,
-            int defaultGetRangesConcurrency,
-            MultiTableSweepQueueWriter sweepQueue) {
-        return createForTest(metricsManager, keyValueService, timestampService, timestampService,
-                lockClient, lockService, transactionService, constraintModeSupplier, conflictDetectionManager,
-                sweepStrategyManager, cleaner, concurrentGetRangesThreadPoolSize, defaultGetRangesConcurrency,
-                sweepQueue);
-    }
-
     public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,

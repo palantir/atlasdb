@@ -50,25 +50,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private Optional<Long> unreadableTs = Optional.empty();
 
-
-    /**
-     * Utility constructor for when we know we have an InMemoryTimestampService.
-     */
-    public TestTransactionManagerImpl(MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            InMemoryTimestampService timestampService,
-            LockClient lockClient,
-            LockService lockService,
-            TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor) {
-        this(metricsManager, keyValueService, timestampService, timestampService,
-                lockClient, lockService, transactionService, conflictDetectionManager,
-                sweepStrategyManager, sweepQueue, deleteExecutor);
-    }
-
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,

@@ -79,7 +79,7 @@ public class TableTasksTest {
         metricsManager = MetricsManagers.createForTests();
         TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+                kvs, tsService, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP);
