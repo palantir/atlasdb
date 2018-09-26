@@ -18,6 +18,21 @@ package com.palantir.atlasdb.timelock.transaction.timestamp;
 
 import java.util.UUID;
 
+/**
+ * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client
+ * requirements.
+ */
 public interface ClientAwareTimestampService {
+    /**
+     * Returns a fresh timestamp that is suitable for use by the client with the provided identifier.
+     *
+     * A {@link ClientAwareTimestampService} maintains the same guarantees as a
+     * {@link com.palantir.timestamp.TimestampService} in terms of timestamp freshness; that is,
+     * a request to this method should return a timestamp greater than any timestamp
+     * that may have been observed (for any client identifier) before the request was initiated.
+     *
+     * @param clientIdentifier UUID identifying the client; should be consistent across the client's lifetime
+     * @return a suitable timestamp
+     */
     long getFreshTimestampForClient(UUID clientIdentifier);
 }
