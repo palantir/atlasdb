@@ -52,6 +52,8 @@ develop
 
     *    - |new|
          - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
+           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
+           directly require the TimestampManagementService.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3524>`__)
 
 
