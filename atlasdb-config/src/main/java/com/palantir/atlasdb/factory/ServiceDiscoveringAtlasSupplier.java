@@ -60,7 +60,6 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
     private final Supplier<TimestampService> timestampService;
-    private final Function<TimestampService, TimestampManagementService> timestampManagementAdapter;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(
@@ -138,7 +137,6 @@ public class ServiceDiscoveringAtlasSupplier {
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
-        timestampManagementAdapter = atlasFactory::createTimestampManagementService;
     }
 
     public KeyValueService getKeyValueService() {
@@ -159,7 +157,7 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
-        return timestampManagementAdapter.apply(timestamp);
+        return AtlasDbFactory.createTimestampManagementService(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {

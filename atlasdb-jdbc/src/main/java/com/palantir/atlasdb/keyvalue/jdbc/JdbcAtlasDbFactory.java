@@ -34,9 +34,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
-import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
-import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
@@ -102,13 +100,4 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
         AtlasDbVersion.ensureVersionReported();
         return PersistentTimestampServiceImpl.create(JdbcTimestampBoundStore.create((JdbcKeyValueService) rawKvs));
     }
-
-    @Override
-    public TimestampManagementService createTimestampManagementService(TimestampService timestampService){
-        Preconditions.checkArgument(timestampService instanceof PersistentTimestampService,
-            "TimestampManagementService must be created based on result of createTimestampService call."
-            + "\nExpected a PersistentTimestampServiceImpl, got %s", timestampService.getClass());
-
-        return (PersistentTimestampService) timestampService;
-}
 }

@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -65,7 +64,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -144,15 +142,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
 
         AtlasDbVersion.ensureVersionReported();
         return new InMemoryTimestampService();
-    }
-
-    @Override
-    public TimestampManagementService createTimestampManagementService(TimestampService timestampService) {
-        Preconditions.checkArgument(timestampService instanceof InMemoryTimestampService,
-                "TimestampManagementService must be created based on result of createTimestampService call."
-                        + "\nExpected a PersistentTimestampServiceImpl, got %s", timestampService.getClass());
-
-        return (InMemoryTimestampService) timestampService;
     }
 
     /**

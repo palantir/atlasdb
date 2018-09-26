@@ -75,12 +75,6 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
         return nextTimestampServices.remove(0);
     }
 
-    @Override
-    public TimestampManagementService createTimestampManagementService(TimestampService timestampService) {
-        // unused in tests
-        return null;
-    }
-
     public static void nextTimestampServiceToReturn(TimestampService... timestampServices) {
         nextTimestampServices = Lists.newArrayList(timestampServices);
     }
