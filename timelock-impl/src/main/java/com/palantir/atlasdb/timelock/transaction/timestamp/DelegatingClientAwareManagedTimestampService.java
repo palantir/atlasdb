@@ -22,26 +22,30 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.ModulusAllocator;
+import com.palantir.atlasdb.timelock.transaction.client.SimpleModulusAllocator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
-public class DelegatingClientAwareTimestampService implements ClientAwareTimestampService {
-    private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareTimestampService.class);
+public class DelegatingClientAwareManagedTimestampService implements ClientAwareManagedTimestampService {
+    private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     private static final int NUM_PARTITIONS = 16;
 
     private ModulusAllocator<UUID> allocator;
-    private TimestampService delegate;
+    private ManagedTimestampService delegate;
 
-    private DelegatingClientAwareTimestampService(ModulusAllocator<UUID> allocator, TimestampService delegate) {
+    private DelegatingClientAwareManagedTimestampService(
+            ModulusAllocator<UUID> allocator,
+            ManagedTimestampService delegate) {
         this.allocator = allocator;
         this.delegate = delegate;
     }
 
-    public static ClientAwareTimestampService createDefault(TimestampService delegate) {
-        return new DelegatingClientAwareTimestampService(null, delegate);
+    public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
+        return new DelegatingClientAwareManagedTimestampService(
+                SimpleModulusAllocator.createDefault(NUM_PARTITIONS), delegate);
     }
 
     @Override
@@ -66,5 +70,25 @@ public class DelegatingClientAwareTimestampService implements ClientAwareTimesta
                     SafeArg.of("targetResidue", targetResidue),
                     SafeArg.of("modulus", NUM_PARTITIONS));
         }
+    }
+
+    @Override
+    public long getFreshTimestamp() {
+        return delegate.getFreshTimestamp();
+    }
+
+    @Override
+    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        return delegate.getFreshTimestamps(numTimestampsRequested);
+    }
+
+    @Override
+    public void fastForwardTimestamp(long currentTimestamp) {
+        delegate.fastForwardTimestamp(currentTimestamp);
+    }
+
+    @Override
+    public String ping() {
+        return delegate.ping();
     }
 }

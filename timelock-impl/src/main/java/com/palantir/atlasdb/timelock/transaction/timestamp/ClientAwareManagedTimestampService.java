@@ -18,15 +18,17 @@ package com.palantir.atlasdb.timelock.transaction.timestamp;
 
 import java.util.UUID;
 
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+
 /**
  * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client
  * requirements.
  */
-public interface ClientAwareTimestampService {
+public interface ClientAwareManagedTimestampService extends ManagedTimestampService {
     /**
      * Returns a fresh timestamp that is suitable for use by the client with the provided identifier.
      *
-     * A {@link ClientAwareTimestampService} maintains the same guarantees as a
+     * A {@link ClientAwareManagedTimestampService} maintains the same guarantees as a
      * {@link com.palantir.timestamp.TimestampService} in terms of timestamp freshness; that is,
      * a request to this method should return a timestamp greater than any timestamp
      * that may have been observed (for any client identifier) before the request was initiated.

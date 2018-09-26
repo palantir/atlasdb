@@ -84,10 +84,9 @@ public class AsyncTimelockResource {
     @Path("start-atlasdb-transaction-predicated")
     public StartAtlasDbTransactionResponse startAtlasDbTransactionPredicated(
             StartAtlasDbTransactionRequest request) {
-        // TODO (jkong): Actually do something with the requestor ID
         return StartAtlasDbTransactionResponse.of(
                 timelock.lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestUuid())),
-                timelock.getFreshTimestamp());
+                timelock.getFreshTimestampForClient(request.requestorUuid()));
     }
 
     @POST
