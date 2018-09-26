@@ -104,7 +104,7 @@ public class JdbcAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampManagementService getTimestampManagementService(TimestampService timestampService){
+    public TimestampManagementService createTimestampManagementService(TimestampService timestampService){
         Preconditions.checkArgument(timestampService instanceof PersistentTimestampService,
             "TimestampManagementService must be created based on result of createTimestampService call."
             + "\nExpected a PersistentTimestampServiceImpl, got %s", timestampService.getClass());

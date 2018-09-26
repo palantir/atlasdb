@@ -138,7 +138,7 @@ public class ServiceDiscoveringAtlasSupplier {
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
-        timestampManagementAdapter = atlasFactory::getTimestampManagementService;
+        timestampManagementAdapter = atlasFactory::createTimestampManagementService;
     }
 
     public KeyValueService getKeyValueService() {

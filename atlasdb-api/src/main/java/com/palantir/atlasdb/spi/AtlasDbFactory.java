@@ -90,7 +90,7 @@ public interface AtlasDbFactory {
             Optional<TableReference> timestampTable,
             boolean initializeAsync);
 
-    TimestampManagementService getTimestampManagementService(TimestampService timestampService);
+    TimestampManagementService createTimestampManagementService(TimestampService timestampService);
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {

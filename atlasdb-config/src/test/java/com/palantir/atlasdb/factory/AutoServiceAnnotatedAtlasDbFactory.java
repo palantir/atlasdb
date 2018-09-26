@@ -76,7 +76,7 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampManagementService getTimestampManagementService(TimestampService timestampService) {
+    public TimestampManagementService createTimestampManagementService(TimestampService timestampService) {
         // unused in tests
         return null;
     }
