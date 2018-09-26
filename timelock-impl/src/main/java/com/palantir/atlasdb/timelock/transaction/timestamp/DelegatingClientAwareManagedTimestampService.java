@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.ModulusAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.SimpleModulusAllocator;
@@ -31,12 +32,14 @@ import com.palantir.timestamp.TimestampRange;
 public class DelegatingClientAwareManagedTimestampService implements ClientAwareManagedTimestampService {
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
-    private static final int NUM_PARTITIONS = 16;
+    @VisibleForTesting
+    static final int NUM_PARTITIONS = 16;
 
     private ModulusAllocator<UUID> allocator;
     private ManagedTimestampService delegate;
 
-    private DelegatingClientAwareManagedTimestampService(
+    @VisibleForTesting
+    DelegatingClientAwareManagedTimestampService(
             ModulusAllocator<UUID> allocator,
             ManagedTimestampService delegate) {
         this.allocator = allocator;
