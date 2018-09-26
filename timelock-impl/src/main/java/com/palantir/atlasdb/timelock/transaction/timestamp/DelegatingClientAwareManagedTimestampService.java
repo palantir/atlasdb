@@ -94,4 +94,9 @@ public class DelegatingClientAwareManagedTimestampService implements ClientAware
     public String ping() {
         return delegate.ping();
     }
+
+    @Override
+    public boolean isInitialized() {
+        return delegate.isInitialized();
+    }
 }
