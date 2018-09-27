@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.ete;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -22,6 +23,7 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class ServiceExposureEteTest {
@@ -30,5 +32,19 @@ public class ServiceExposureEteTest {
         TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
 
         assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+    }
+
+    @Test
+    public void shouldExposeATimestampManagementServer() {
+        TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
+        TimestampManagementService timestampManagementClient =
+                EteSetup.createClientToAllNodes(TimestampManagementService.class);
+
+        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
+
+        long newts = timestampClient.getFreshTimestamp() + 10000000;
+        timestampManagementClient.fastForwardTimestamp(newts);
+
+        assertThat(timestampClient.getFreshTimestamp(), is(greaterThan(newts)));
     }
 }
