@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
+@AutoDelegate(typeToExtend = ManagedTimestampService.class)
 public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }
