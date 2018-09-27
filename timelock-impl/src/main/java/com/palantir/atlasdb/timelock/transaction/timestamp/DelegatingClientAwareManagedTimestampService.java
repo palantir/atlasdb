@@ -26,7 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.paxos.AutoDelegate_ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.ModulusAllocator;
-import com.palantir.atlasdb.timelock.transaction.client.NaiveModulusAllocator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 
@@ -46,11 +45,6 @@ public class DelegatingClientAwareManagedTimestampService
             ManagedTimestampService delegate) {
         this.allocator = allocator;
         this.delegate = delegate;
-    }
-
-    public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
-        return new DelegatingClientAwareManagedTimestampService(
-                new NaiveModulusAllocator<>(NUM_PARTITIONS), delegate);
     }
 
     @Override
