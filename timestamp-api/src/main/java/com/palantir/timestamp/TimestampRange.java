@@ -16,9 +16,11 @@
 package com.palantir.timestamp;
 
 import java.io.Serializable;
+import java.util.OptionalLong;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 
 /**
  * A TimestampRange represents an inclusive range of longs.
@@ -76,5 +78,36 @@ public class TimestampRange implements Serializable {
     public long size() {
         // Need to add 1 as both bounds are inclusive
         return upper - lower + 1;
+    }
+
+    /**
+     * Returns a timestamp in the provided timestamp range that has the provided residue class modulo the provided
+     * modulus.
+     *
+     * We do not make any guarantees on which timestamp is provided if multiple timestamps in the range reside
+     * in the provided residue class. For example, if the TimestampRange is from 1 to 5 inclusive and we want a
+     * timestamp with residue 1 modulo 2, this method may return any of 1, 3 and 5.
+     *
+     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
+     *
+     * @param residue desired residue class of the timestamp returned
+     * @param modulus modulus used to partition numbers into residue classes
+     * @return a timestamp in the given range in the relevant residue class modulo modulus
+     * @throws IllegalArgumentException if residue >= modulus
+     */
+    public OptionalLong getTimestampMatchingModulus(int residue, int modulus) {
+        Preconditions.checkArgument(residue < modulus,
+                "Residue %s is less than modulus %s - no solutions",
+                residue,
+                modulus);
+
+        long lowerBoundResidue = lower % modulus;
+        long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
+                residue - lowerBoundResidue;
+        long candidate = lower + shift;
+
+        return upper >= candidate
+                ? OptionalLong.of(candidate)
+                : OptionalLong.empty();
     }
 }
