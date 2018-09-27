@@ -23,8 +23,15 @@ import java.util.stream.IntStream;
 import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+/**
+ * Distributes residues of a given modulus in a balanced fashion (though we don't automatically rebalance between
+ * residues).
+ *
+ * Unmarking residues may not be performant if the number of residues used is large.
+ */
 public class DistributingModulusGenerator {
     private final SortedSet<ReferenceCountedResidue> referenceCounts;
 
@@ -33,10 +40,12 @@ public class DistributingModulusGenerator {
         this.referenceCounts = referenceCounts;
     }
 
-    public static DistributingModulusGenerator create(int maxPermittedModulus) {
+    public static DistributingModulusGenerator create(int modulus) {
         SortedSet<ReferenceCountedResidue> referenceCounts
-                = Sets.newTreeSet(Comparator.comparing(ReferenceCountedResidue::references));
-        IntStream.range(0, maxPermittedModulus)
+                = Sets.newTreeSet(
+                        Comparator.comparing(ReferenceCountedResidue::references)
+                                .thenComparing(ReferenceCountedResidue::residue));
+        IntStream.range(0, modulus)
                 .forEach(value -> referenceCounts.add(ImmutableReferenceCountedResidue.of(0, value)));
         return new DistributingModulusGenerator(referenceCounts);
     }
@@ -54,6 +63,10 @@ public class DistributingModulusGenerator {
         // if we decide we need more performance.
         for (ReferenceCountedResidue referenceCountedResidue : referenceCounts) {
             if (referenceCountedResidue.residue() == residue) {
+                Preconditions.checkState(
+                        referenceCountedResidue.references() > 0,
+                        "Attempted to unmark residue %s when it had no references",
+                        referenceCountedResidue.residue());
                 referenceCounts.remove(referenceCountedResidue);
                 referenceCounts.add(
                         ImmutableReferenceCountedResidue.of(
