@@ -146,7 +146,11 @@ public class DistributingModulusGeneratorTest {
     }
 
     private void thenOperationFails() {
-        assertThat(failure).isPresent();
+        assertThat(failure)
+                .isPresent()
+                .hasValueSatisfying(ex -> assertThat(ex)
+                        .hasMessageContaining("Attempted to unmark residue")
+                        .hasMessageContaining("when it had no references"));
     }
 
     private void thenResponsesSatisfy(Consumer<List<Integer>> assertion) {
