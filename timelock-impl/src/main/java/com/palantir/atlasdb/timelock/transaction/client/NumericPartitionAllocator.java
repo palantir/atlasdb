@@ -19,10 +19,10 @@ package com.palantir.atlasdb.timelock.transaction.client;
 import java.util.List;
 
 /**
- * Given instances of objects, a {@link ModulusAllocator} returns integers that may in some way be related
+ * Given instances of objects, a {@link NumericPartitionAllocator} returns integers that may in some way be related
  * to the objects.
  * @param <T> types of objects an implementation works with
  */
-public interface ModulusAllocator<T> {
+public interface NumericPartitionAllocator<T> {
     List<Integer> getRelevantModuli(T object);
 }

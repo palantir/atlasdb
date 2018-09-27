@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.paxos.AutoDelegate_ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.atlasdb.timelock.transaction.client.ModulusAllocator;
+import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 
@@ -36,12 +36,12 @@ public class DelegatingClientAwareManagedTimestampService
     @VisibleForTesting
     static final int NUM_PARTITIONS = 16;
 
-    private ModulusAllocator<UUID> allocator;
+    private NumericPartitionAllocator<UUID> allocator;
     private ManagedTimestampService delegate;
 
     @VisibleForTesting
     DelegatingClientAwareManagedTimestampService(
-            ModulusAllocator<UUID> allocator,
+            NumericPartitionAllocator<UUID> allocator,
             ManagedTimestampService delegate) {
         this.allocator = allocator;
         this.delegate = delegate;
