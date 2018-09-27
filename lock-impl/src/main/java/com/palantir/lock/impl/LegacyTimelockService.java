@@ -32,10 +32,12 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -106,6 +108,11 @@ public class LegacyTimelockService implements TimelockService {
         LockImmutableTimestampResponse immutableTimestampResponse = lockImmutableTimestamp(request);
         long freshTimestamp = getFreshTimestamp();
         return StartAtlasDbTransactionResponse.of(immutableTimestampResponse, freshTimestamp);
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(StartAtlasDbTransactionRequest request) {
+        return startAtlasDbTransaction(ImmutableIdentifiedTimeLockRequest.of(request.requestId()));
     }
 
     @Override
