@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+package com.palantir.atlasdb.timelock.transaction.client;
 
-@AutoDelegate(typeToExtend = ManagedTimestampService.class)
-public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
+import java.util.List;
+
+/**
+ * Given instances of objects, a {@link ModulusAllocator} returns integers that may in some way be related
+ * to the objects.
+ * @param <T> types of objects an implementation works with
+ */
+public interface ModulusAllocator<T> {
+    List<Integer> getRelevantModuli(T object);
 }
