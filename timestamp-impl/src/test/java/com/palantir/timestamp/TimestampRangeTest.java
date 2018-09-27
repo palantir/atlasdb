@@ -90,13 +90,15 @@ public class TimestampRangeTest {
     @Test
     public void throwsIfResidueExceedsOrEqualsModulus() {
         assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(2, 2))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageMatching("Residue [0-9]+ is less than modulus [0-9]+ - no solutions");
         assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(3, 2))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageMatching("Residue [0-9]+ is less than modulus [0-9]+ - no solutions");
     }
 
     @Test
-    public void throwsIfTimestampRangeDoesNotContainAnyValuesMatchingModulus() {
+    public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus() {
         TimestampRange oneTimestamp = TimestampRange.createInclusiveRange(77, 77);
         assertThat(oneTimestamp.getTimestampMatchingModulus(6, 10)).isNotPresent();
     }
