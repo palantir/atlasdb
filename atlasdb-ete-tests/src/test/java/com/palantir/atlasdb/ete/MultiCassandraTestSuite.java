@@ -30,7 +30,8 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
         TodoEteTest.class,
         ServiceExposureEteTest.class,
         MultiCassandraSingleNodeDownEteTest.class,
-        MultiCassandraDoubleNodeDownEteTest.class
+        MultiCassandraDoubleNodeDownEteTest.class,
+        TimestampManagementEteTest.class
         })
 public class MultiCassandraTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

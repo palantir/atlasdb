@@ -29,7 +29,8 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 @Suite.SuiteClasses({
         TodoEteTest.class,
         ServiceExposureEteTest.class,
-        CassandraTimestampsEteTest.class
+        CassandraTimestampsEteTest.class,
+        TimestampManagementEteTest.class
         })
 public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
