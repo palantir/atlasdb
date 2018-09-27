@@ -33,7 +33,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.atlasdb.timelock.transaction.client.ModulusAllocator;
+import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.timestamp.TimestampRange;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
@@ -51,7 +51,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
             = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1;
     private static final TimestampRange TIMESTAMP_ZERO = TimestampRange.createInclusiveRange(0, 0);
 
-    private ModulusAllocator<UUID> allocator = mock(ModulusAllocator.class);
+    private NumericPartitionAllocator<UUID> allocator = mock(NumericPartitionAllocator.class);
     private ManagedTimestampService timestamps = mock(ManagedTimestampService.class);
     private DelegatingClientAwareManagedTimestampService service = new DelegatingClientAwareManagedTimestampService(
             allocator, timestamps);
