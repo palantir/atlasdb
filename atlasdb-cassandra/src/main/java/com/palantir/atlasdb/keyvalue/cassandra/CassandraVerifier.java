@@ -222,7 +222,7 @@ public final class CassandraVerifier {
             CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
-            log.info("Created keyspace: {}", UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()));
+            log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
             CassandraKeyValueServices.waitForSchemaVersions(config, client,
                     "after adding the initial empty keyspace");
             return true;

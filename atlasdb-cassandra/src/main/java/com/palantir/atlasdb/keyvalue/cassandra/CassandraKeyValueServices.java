@@ -68,14 +68,14 @@ public final class CassandraKeyValueServices {
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
-     * @param schemaChangeDescription description of the schema change that was performed prior to this check.
+     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
-            String schemaChangeDescription)
+            String unsafeSchemaChangeDescription)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -88,7 +88,7 @@ public final class CassandraKeyValueServices {
             if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
                 return;
             }
-            sleepTime = sleepWithExponentialBackoff(sleepTime);
+            sleepTime = sleepAndGetNextBackoffTime(sleepTime);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
         StringBuilder schemaVersions = new StringBuilder();
@@ -111,7 +111,7 @@ public final class CassandraKeyValueServices {
                         + " \nIf nodes are specified in the config file, but do not have a schema version listed"
                         + " above, then they may have never joined the cluster. Verify your configuration is correct"
                         + " and that the nodes specified in the config are up and joined the cluster. %s",
-                schemaChangeDescription,
+                unsafeSchemaChangeDescription,
                 schemaVersions.toString(),
                 configNodes);
         throw new IllegalStateException(errorMessage);
@@ -144,13 +144,14 @@ public final class CassandraKeyValueServices {
                 .sum();
     }
 
-    private static long sleepWithExponentialBackoff(long sleepTime) {
+    private static long sleepAndGetNextBackoffTime(long sleepTime) {
         try {
             Thread.sleep(sleepTime);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw Throwables.throwUncheckedException(e);
         }
-        return  Math.min(sleepTime * 2, MAX_SLEEP_TIME);
+        return Math.min(sleepTime * 2, MAX_SLEEP_TIME);
     }
 
     private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {

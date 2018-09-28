@@ -49,7 +49,7 @@ public class TwoNodesDownCleanCassLockStateTest extends AbstractDegradedClusterT
 
     @Test
     public void cleanUpSchemaMutationLockTablesStateThrowsButCleansUpExtraTables() throws TException {
-        CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
+        CassandraKeyValueServiceConfig config = TwoNodesDownTestSuite.getConfig(getClass());
         CassandraClientPool clientPool = getTestKvs().getClientPool();
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         TracingQueryRunner queryRunner = new TracingQueryRunner(LoggerFactory.getLogger(TracingQueryRunner.class),

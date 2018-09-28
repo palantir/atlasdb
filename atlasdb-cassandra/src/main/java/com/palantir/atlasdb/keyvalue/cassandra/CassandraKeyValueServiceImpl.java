@@ -1711,7 +1711,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         // technically we're racing other nodes from here on, during an update period,
         // but the penalty for not caring is just some superfluous schema mutations and a
-        // fe
+        // few dead rows in the metadata table.
         Map<Cell, Value> existingMetadataAtNewName = get(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 tableRefToNewCell.values().stream()
                         .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));

@@ -103,7 +103,7 @@ class CassandraTableDropper {
         try {
             new CellRangeDeleter(clientPool, wrappingQueryRunner, deleteConsistency, no -> System.currentTimeMillis())
                     .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                            ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), ts), true);
+                            ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), ts), false);
         } catch (AtlasDbDependencyException e) {
             log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up. However,"
                     + "the table has been dropped and the table metadata reflecting this has been successfully "

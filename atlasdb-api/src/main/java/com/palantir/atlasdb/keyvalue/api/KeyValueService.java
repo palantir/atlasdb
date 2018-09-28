@@ -649,8 +649,6 @@ public interface KeyValueService extends AutoCloseable {
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell
-     *
-     * @throws AtlasDbDependencyException if not all Cassandra nodes are reachable.
      */
     @POST
     @Path("get-all-timestamps")
