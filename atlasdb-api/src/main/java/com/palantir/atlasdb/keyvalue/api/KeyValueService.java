@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -41,6 +42,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @Path("/keyvalue")
+@AutoDelegate(typeToExtend = KeyValueService.class)
 public interface KeyValueService extends AutoCloseable {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.

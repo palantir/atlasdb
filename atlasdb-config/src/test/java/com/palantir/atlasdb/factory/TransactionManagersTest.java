@@ -39,11 +39,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import javax.ws.rs.core.Response;
 
@@ -65,6 +65,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -76,6 +77,7 @@ import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -84,6 +86,7 @@ import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
@@ -155,7 +158,6 @@ public class TransactionManagersTest {
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
-    private Supplier<Optional<AtlasDbRuntimeConfig>> configSupplier;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -210,7 +212,6 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
-        configSupplier = () -> Optional.of(runtimeConfig);
     }
 
     @After
@@ -492,6 +493,65 @@ public class TransactionManagersTest {
         });
     }
 
+    @Test
+    public void asyncInitializationEventuallySucceeds() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAsyncAtlasDbConfig())
+                .initializeAsync(true)
+                .build();
+
+        TransactionManager manager = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent("test")
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .addSchemas(GenericTestSchema.getSchema())
+                .build()
+                .serializable();
+
+        assertFalse(manager.isInitialized());
+        assertThatThrownBy(() -> manager.runTaskWithRetry(unused -> null)).isInstanceOf(NotInitializedException.class);
+
+        Awaitility.await().atMost(12, TimeUnit.SECONDS).until(manager::isInitialized);
+
+        performTransaction(manager);
+    }
+
+    @Test
+    public void asyncInitializationIsSynchronousIfKvsIsReady() {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .initializeAsync(true)
+                .build();
+
+        TransactionManager manager = TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent("test")
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .addSchemas(GenericTestSchema.getSchema())
+                .build()
+                .serializable();
+
+        assertTrue(manager.isInitialized());
+
+        performTransaction(manager);
+    }
+
+    private void performTransaction(TransactionManager manager) {
+        RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
+        manager.runTaskWithRetry(tx -> {
+            GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
+            return null;
+        });
+        Map<RangeScanTestTable.RangeScanTestRow, Long> result = manager.runTaskWithRetry(tx ->
+                GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).getColumn1s(ImmutableSet.of(testRow)));
+
+        assertThat(Iterables.getOnlyElement(result.entrySet()).getValue(), is(12345L));
+    }
+
     private void verifyUsingTimeLockByGettingAFreshTimestamp() {
         when(config.namespace()).thenReturn(Optional.of(CLIENT));
         getLockAndTimestampServices().timelock().getFreshTimestamp();
@@ -516,7 +576,7 @@ public class TransactionManagersTest {
             PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
             availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                     .withStatus(200)
-                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
+                    .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes())));
             return null;
         }).when(environment).accept(isA(PingableLeader.class));
         setUpLeaderBlockInConfig();

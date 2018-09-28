@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.memory;
 
 import java.util.Optional;
@@ -23,6 +24,7 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryTimestampService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
@@ -34,11 +36,11 @@ import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoService(AtlasDbFactory.class)
-public class InMemoryAtlasDbFactory implements AtlasDbFactory {
+public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
 
     @Override
     public String getType() {
-        return "memory";
+        return "memory-async";
     }
 
     @Override
@@ -51,11 +53,8 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             LongSupplier unusedLongSupplier,
             boolean initializeAsync,
             QosClient unusedQosClient) {
-        if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
-        }
         AtlasDbVersion.ensureVersionReported();
-        return new InMemoryKeyValueService(false);
+        return InMemoryKeyValueService.create(false, initializeAsync);
     }
 
     @Override
@@ -65,8 +64,9 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         if (initializeAsync) {
-            log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
+            return AsyncInitializeableInMemoryTimestampService.initializeWhenKvsIsReady(rawKvs);
         }
         return new InMemoryTimestampService();
     }
 }
+

@@ -42,8 +42,6 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
-import com.palantir.docker.compose.execution.DockerComposeRunArgument;
-import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -87,23 +85,14 @@ public abstract class EteSetup {
             Duration waitTime,
             Map<String, String> environment) {
         waitDuration = waitTime;
-        return setup(eteClass, composeFile, availableClientNames, environment, true);
-    }
-
-    public static RuleChain setupWithoutWaiting(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Map<String, String> environment) {
-        return setup(eteClass, composeFile, availableClientNames, environment, false);
+        return setup(eteClass, composeFile, availableClientNames, environment);
     }
 
     public static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
-            Map<String, String> environment,
-            boolean waitForServers) {
+            Map<String, String> environment) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
@@ -118,32 +107,11 @@ public abstract class EteSetup {
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
-        if (waitForServers) {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule)
-                    .around(waitForServersToBeReady());
-        } else {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule);
-        }
-    }
-
-
-    static String runCliCommand(String command) throws IOException, InterruptedException {
-        return docker.run(
-                DockerComposeRunOption.options("-T"),
-                "ete-cli",
-                DockerComposeRunArgument.arguments("bash", "-c", command));
-    }
-
-    static void execCliCommandNoTty(String command) throws IOException, InterruptedException {
-        for (String client : availableClients) {
-            execCliCommand(DockerComposeExecOption.options("-T"), client, command);
-        }
+        return RuleChain
+                .outerRule(GRADLE_PREPARE_TASK)
+                .around(docker)
+                .around(dockerProxyRule)
+                .around(waitForServersToBeReady());
     }
 
     public static String execCliCommand(String client, String command) throws IOException, InterruptedException {
@@ -161,13 +129,6 @@ public abstract class EteSetup {
 
     static <T> T createClientToAllNodes(Class<T> clazz) {
         return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
-    }
-
-    static <T> T createClient(Class<T> clazz) {
-        if (availableClients.size() == 1) {
-            return createClientToSingleNode(clazz);
-        }
-        return createClientToAllNodes(clazz);
     }
 
     public static Container getContainer(String containerName) {

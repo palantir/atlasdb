@@ -81,7 +81,7 @@ public class Containers extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    public void before() throws Throwable {
         synchronized (Containers.class) {
             setupShutdownHook();
 

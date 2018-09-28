@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author bdorne
  *
  */
-public class InMemoryTimestampService implements TimestampService, TimestampManagementService {
+public class InMemoryTimestampService implements PersistentTimestampService {
     private final AtomicLong counter = new AtomicLong(0);
 
     @Override
@@ -53,5 +53,10 @@ public class InMemoryTimestampService implements TimestampService, TimestampMana
     @Override
     public String ping() {
         return PING_RESPONSE;
+    }
+
+    @Override
+    public long getUpperLimitTimestampToHandOutInclusive() {
+        throw new UnsupportedOperationException("Not implemented");
     }
 }
