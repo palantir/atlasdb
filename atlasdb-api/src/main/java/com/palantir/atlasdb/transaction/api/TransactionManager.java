@@ -24,6 +24,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 @AutoDelegate(typeToExtend = TransactionManager.class)
@@ -256,6 +257,14 @@ public interface TransactionManager extends AutoCloseable {
      * @return the timestamp service for this transaction manager
      */
     TimestampService getTimestampService();
+
+    /**
+     * The timestamp management service is used by libraries providing additional functionality
+     * around AtlasDB. End-user clients probably should not require it.
+     *
+     * @return the timestamp management service for this transaction manager
+     */
+    TimestampManagementService getTimestampManagementService();
 
     /**
      * Returns the cleaner used by this transaction manager.

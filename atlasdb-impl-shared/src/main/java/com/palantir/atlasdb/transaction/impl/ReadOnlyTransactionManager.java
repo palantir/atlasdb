@@ -37,6 +37,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
@@ -171,6 +172,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
 
     @Override
     public TimestampService getTimestampService() {
+        return null;
+    }
+
+    @Override
+    public TimestampManagementService getTimestampManagementService() {
         return null;
     }
 

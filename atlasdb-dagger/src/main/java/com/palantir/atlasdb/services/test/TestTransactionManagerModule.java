@@ -101,6 +101,7 @@ public class TestTransactionManagerModule {
                 metricsManager,
                 kvs,
                 lts.timelock(),
+                lts.timestampManagement(),
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),

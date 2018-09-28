@@ -112,6 +112,7 @@ public class TestFastForwardTimestampCommand {
             return ImmutableLockAndTimestampServices.builder()
                     .lock(LockServiceImpl.create())
                     .timestamp(timestampService)
+                    .timestampManagement(timestampService)
                     .timelock(new LegacyTimelockService(timestampService, lockService, TransactionManagers.LOCK_CLIENT))
                     .build();
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.ete;
 
 import static org.hamcrest.Matchers.greaterThan;
@@ -23,28 +24,22 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.atlasdb.timestamp.EteTimestampResource;
 
-public class ServiceExposureEteTest {
-    @Test
-    public void shouldExposeATimestampServer() {
-        TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
+public class TimestampManagementEteTest {
 
-        assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
-    }
+    // TODO(jlach): why single node? why not all nodes?
+    // based on TodoEteTest
+    private EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
 
     @Test
-    public void shouldExposeATimestampManagementServer() {
-        TimestampService timestampClient = EteSetup.createClientToAllNodes(TimestampService.class);
-        TimestampManagementService timestampManagementClient =
-                EteSetup.createClientToAllNodes(TimestampManagementService.class);
-
+    public void shouldBeAbleToFetchAndForwardTimestamp() {
         assertThat(timestampClient.getFreshTimestamp(), is(not(nullValue())));
 
         long newts = timestampClient.getFreshTimestamp() + 10000000;
-        timestampManagementClient.fastForwardTimestamp(newts);
+        timestampClient.fastForwardTimestamp(newts);
 
         assertThat(timestampClient.getFreshTimestamp(), is(greaterThan(newts)));
     }
+
 }

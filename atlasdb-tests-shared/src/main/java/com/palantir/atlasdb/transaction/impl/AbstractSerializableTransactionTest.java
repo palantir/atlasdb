@@ -75,6 +75,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timestampService,
+                timestampManagementService,
                 lockClient,
                 lockService,
                 transactionService,
