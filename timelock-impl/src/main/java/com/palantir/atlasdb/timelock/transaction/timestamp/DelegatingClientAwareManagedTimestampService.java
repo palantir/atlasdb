@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.AutoDelegate_ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
@@ -36,7 +37,7 @@ public class DelegatingClientAwareManagedTimestampService
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     @VisibleForTesting
-    static final int NUM_PARTITIONS = 16;
+    static final int NUM_PARTITIONS = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
 
     private NumericPartitionAllocator<UUID> allocator;
     private ManagedTimestampService delegate;

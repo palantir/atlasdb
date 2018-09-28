@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -43,6 +44,8 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -262,5 +265,37 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             metrics.assertContainsHistogram("clock.skew");
             assertThat(metrics.getHistogram("clock.skew").get("count").intValue()).isGreaterThan(0);
         }
+    }
+
+    @Test
+    public void startAtlasDbTransactionGivesUsTimestampsInSequence() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+
+        // Note that we technically cannot guarantee an ordering between the fresh timestamp on response 1 and the
+        // immutable timestamp on response 2. Most of the time, we will have IT on response 2 = IT on response 1
+        // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
+        // enough between the first and second call that the immutable timestamp lock expires, then
+        // IT on response 2 > FT on response 1.
+        List<Long> temporalSequence = ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                firstResponse.freshTimestamp(),
+                secondResponse.freshTimestamp());
+        assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void startAtlasDbTransactionGivesUsStartTimestampsInTheSameResidue() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        assertThat(firstResponse.freshTimestamp() % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS)
+                .isEqualTo(secondResponse.freshTimestamp() % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
+    private StartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return CLUSTER.startIdentifiedAtlasDbTransaction(
+                StartAtlasDbTransactionRequest.createForRequestor(requestorUuid));
     }
 }
