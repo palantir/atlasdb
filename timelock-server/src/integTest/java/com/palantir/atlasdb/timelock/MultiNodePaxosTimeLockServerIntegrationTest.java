@@ -288,14 +288,49 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void startAtlasDbTransactionGivesUsStartTimestampsInTheSameResidue() {
         UUID requestorUuid = UUID.randomUUID();
-        StartAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
-        StartAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
-        assertThat(firstResponse.freshTimestamp() % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS)
-                .isEqualTo(secondResponse.freshTimestamp() % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+        long firstTimestamp = getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid);
+        long secondTimestamp = getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid);
+
+        assertThat(firstTimestamp % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS)
+                .isEqualTo(secondTimestamp % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedWhenMixingStandardTimestampAndIdentifiedTimestampRequests() {
+        UUID requestorUuid = UUID.randomUUID();
+        List<Long> temporalSequence = ImmutableList.of(
+                CLUSTER.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                CLUSTER.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                CLUSTER.getFreshTimestamp());
+
+        assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void distinctClientsStillShareTheSameSequenceOfTimestamps() {
+        UUID requestor1 = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+
+        List<Long> temporalSequence = ImmutableList.of(
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1));
+
+        assertThat(temporalSequence).isSorted();
     }
 
     private StartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return CLUSTER.startIdentifiedAtlasDbTransaction(
                 StartAtlasDbTransactionRequest.createForRequestor(requestorUuid));
+    }
+
+    private long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return startIdentifiedAtlasDbTransaction(requestorUuid).freshTimestamp();
     }
 }
