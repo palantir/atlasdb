@@ -12,6 +12,8 @@ buildscript {
     }
 
     dependencies {
+        classpath 'gradle.plugin.com.palantir:gradle-circle-style:1.1.2'
+        classpath 'gradle.plugin.com.palantir:gradle-circle-style:1.1.2'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.3'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0'
