@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.SecondCassandraContainer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -38,9 +39,9 @@ public class CassandraKeyValueServiceAsyncInitializationTest {
     public void cassandraKvsInitializesAsynchronously() {
         KeyValueService asyncInitializedKvs = CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
-                CassandraContainer.KVS_CONFIG,
+                SecondCassandraContainer.KVS_CONFIG,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
-                CassandraContainer.LEADER_CONFIG,
+                SecondCassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true,
                 FakeQosClient.INSTANCE);
@@ -55,7 +56,7 @@ public class CassandraKeyValueServiceAsyncInitializationTest {
     private void startCassandra() {
         try {
             Containers containers = new Containers(CassandraKeyValueServiceAsyncInitializationTest.class)
-                    .with(new CassandraContainer());
+                    .with(new SecondCassandraContainer());
             containers.before();
         } catch (Throwable th) {
             fail("Could not start docker", th);

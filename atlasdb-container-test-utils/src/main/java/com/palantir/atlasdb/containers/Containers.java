@@ -20,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,7 +34,6 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
@@ -112,11 +112,12 @@ public class Containers extends ExternalResource {
                 .map(dockerComposeFilesToTemporaryCopies::getUnchecked)
                 .collect(Collectors.toSet());
 
-        ImmutableMap.Builder<String, String> environment = ImmutableMap.builder();
-        containersToStart.forEach(c -> environment.putAll(c.getEnvironment()));
+        Map<String, String> environment = containersToStart.stream()
+                .flatMap(container -> container.getEnvironment().entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (fst, snd) -> snd));
 
         DockerMachine machine = DockerMachine.localMachine()
-                .withEnvironment(environment.build())
+                .withEnvironment(environment)
                 .build();
 
         dockerComposeRule = DockerComposeRule.builder()

@@ -29,6 +29,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.config.crypto.KeyFileUtils;
@@ -69,6 +70,7 @@ public class AtlasDbConfigsTest {
         Set<Class<?>> discoveredKvsConfigs = allDiscoveredSubtypes.stream()
                 .filter(KeyValueServiceConfig.class::isAssignableFrom)
                 .collect(Collectors.toSet());
-        assertThat(discoveredKvsConfigs).containsExactlyInAnyOrder(InMemoryAtlasDbConfig.class);
+        assertThat(discoveredKvsConfigs).containsExactlyInAnyOrder(InMemoryAtlasDbConfig.class,
+                InMemoryAsyncAtlasDbConfig.class);
     }
 }
