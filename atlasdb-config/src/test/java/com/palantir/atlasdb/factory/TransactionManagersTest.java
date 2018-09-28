@@ -379,15 +379,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void metricsAreReportedExactlyOnceWhenUsingTimelockServiceWithRequestBatching() {
-        setUpTimeLockBlockInInstallConfig();
-        when(runtimeConfig.timestampClient()).thenReturn(ImmutableTimestampClientConfig.of(true));
-
-        assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                TIMELOCK_SERVICE_CURRENT_TIME_METRIC);
-    }
-
-    @Test
     public void timeLockMigrationReportsReadyIfMigrationDone() {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
