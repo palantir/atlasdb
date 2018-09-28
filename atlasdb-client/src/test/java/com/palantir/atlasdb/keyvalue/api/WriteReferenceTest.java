@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+
 import java.io.IOException;
 
 import org.assertj.core.api.Assertions;
@@ -34,5 +36,19 @@ public class WriteReferenceTest {
 
         byte[] valueAsBytes = writeRef.persistToBytes();
         Assertions.assertThat(WriteReference.BYTES_HYDRATOR.hydrateFromBytes(valueAsBytes)).isEqualTo(writeRef);
+    }
+
+    @Test
+    public void throwsIfDecodingLegacyOnNewValue() {
+        TableReference tableReference = TableReference.createFromFullyQualifiedName("abc.def");
+        Cell cell = Cell.create(new byte[] {0, 0}, new byte[] {1, 1});
+        WriteReference writeRef = ImmutableWriteReference.builder()
+                .tableRef(tableReference)
+                .cell(cell)
+                .isTombstone(false)
+                .build();
+
+        byte[] valueAsBytes = writeRef.persistToBytes();
+        assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> WriteReference.decodeLegacy(valueAsBytes));
     }
 }

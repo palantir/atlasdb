@@ -52,12 +52,14 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;
 
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private TimelockService mockTimelockService = mock(TimelockService.class);
+    private TimestampManagementService mockTimestampManagementService = mock(TimestampManagementService.class);
     private Cleaner mockCleaner = mock(Cleaner.class);
     private AsyncInitializer mockInitializer = mock(AsyncInitializer.class);
     private Callback<TransactionManager> mockCallback = mock(Callback.class);
@@ -265,6 +267,7 @@ public class SerializableTransactionManagerTest {
                 MetricsManagers.createForTests(),
                 mockKvs,
                 mockTimelockService,
+                mockTimestampManagementService,
                 null, // lockService
                 null, // transactionService
                 () -> null, // constraintMode

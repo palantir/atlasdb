@@ -47,21 +47,25 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public final class SweepTestUtils {
     private SweepTestUtils() {}
 
     public static TransactionManager setupTxManager(KeyValueService kvs) {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         return setupTxManager(
                 kvs,
-                new InMemoryTimestampService(),
+                ts,
+                ts,
                 SweepStrategyManagers.createDefault(kvs),
                 TransactionServices.createTransactionService(kvs));
     }
 
     public static TransactionManager setupTxManager(KeyValueService kvs,
             TimestampService tsService,
+            TimestampManagementService tsmService,
             SweepStrategyManager ssm,
             TransactionService txService) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -74,7 +78,8 @@ public final class SweepTestUtils {
         Cleaner cleaner = new NoOpCleaner();
         MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
         TransactionManager txManager = SerializableTransactionManager.createForTest(
-                metricsManager, kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+                metricsManager, kvs, tsService, tsmService, lockClient, lockService, txService,
+                constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 writer);

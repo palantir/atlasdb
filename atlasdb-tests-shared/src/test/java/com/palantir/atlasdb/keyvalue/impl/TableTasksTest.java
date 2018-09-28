@@ -57,7 +57,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class TableTasksTest {
     private MetricsManager metricsManager;
@@ -68,7 +67,7 @@ public class TableTasksTest {
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        TimestampService tsService = new InMemoryTimestampService();
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         TransactionService txService = TransactionServices.createTransactionService(kvs);
@@ -80,7 +79,7 @@ public class TableTasksTest {
         metricsManager = MetricsManagers.createForTests();
         TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+                kvs, tsService, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP);

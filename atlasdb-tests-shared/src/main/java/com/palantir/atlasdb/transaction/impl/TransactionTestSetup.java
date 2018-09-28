@@ -53,6 +53,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 
@@ -69,6 +70,7 @@ public abstract class TransactionTestSetup {
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
     protected TimestampService timestampService;
+    protected TimestampManagementService timestampManagementService;
     protected TransactionService transactionService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
@@ -115,7 +117,10 @@ public abstract class TransactionTestSetup {
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
 
-        timestampService = new InMemoryTimestampService();
+
+        InMemoryTimestampService ts = new InMemoryTimestampService();
+        timestampService = ts;
+        timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
 
         transactionService = TransactionServices.createTransactionService(keyValueService);
@@ -133,7 +138,7 @@ public abstract class TransactionTestSetup {
     protected TransactionManager getManager() {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
-                keyValueService, timestampService, lockClient, lockService,
+                keyValueService, timestampService, timestampManagementService, lockClient, lockService,
                 transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }

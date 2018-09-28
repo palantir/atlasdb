@@ -50,10 +50,26 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
+           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
+           directly require the TimestampManagementService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3524>`__)
+
+
     *    - |fixed|
          - Targeted sweep no longer chokes if a table in the queue no longer exists,
            and was deleted by a different host while this host was online and sweeping.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
+    *    - |fixed|
+         - Targeted sweep now stores much less data in the sweepable cells table due
+           to more efficient encoding.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+    
+    *    - |improved|
+         - Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)           
 
 ========
 v0.105.0

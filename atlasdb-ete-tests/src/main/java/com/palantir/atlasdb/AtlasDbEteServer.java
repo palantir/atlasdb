@@ -51,6 +51,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timestamp.SimpleEteTimestampResource;
 import com.palantir.atlasdb.todo.SimpleTodoResource;
 import com.palantir.atlasdb.todo.TodoClient;
 import com.palantir.atlasdb.todo.TodoSchema;
@@ -110,6 +111,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new CleanupMetadataResourceImpl(
                 txManager,
                 config.getAtlasDbConfig().initializeAsync()));
+        environment.jersey().register(new SimpleEteTimestampResource(txManager));
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config,
