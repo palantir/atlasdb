@@ -50,6 +50,9 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Targeted sweep can handle tables without a namespace.
+
     *    - |new|
          - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
            This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
