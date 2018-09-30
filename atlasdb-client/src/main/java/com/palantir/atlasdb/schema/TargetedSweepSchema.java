@@ -21,8 +21,10 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
-import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.keyvalue.api.StoredWriteReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
+import com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier;
 import com.palantir.atlasdb.table.description.OptionalType;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -53,7 +55,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             dynamicColumns();
                 columnComponent("timestamp_modulus", ValueType.VAR_LONG);
                 columnComponent("write_index", ValueType.VAR_SIGNED_LONG);
-                value(WriteReference.class);
+                value(StoredWriteReference.class);
 
             // we do our own cleanup
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
@@ -88,6 +90,33 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 column("value", "v", ValueType.VAR_LONG);
 
             // we do our own cleanup
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
+
+        schema.addTableDefinition("sweepNameToId", new TableDefinition() {{
+            allSafeForLoggingByDefault();
+            rowName();
+                hashFirstRowComponent();
+                rowComponent("table", ValueType.STRING);
+            columns();
+                column("id", "i", SweepTableIdentifier.class);
+
+            // append-only + all writes are CAS
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
+
+        schema.addTableDefinition("sweepIdToName", new TableDefinition() {{
+            allSafeForLoggingByDefault();
+            rowName();
+                hashFirstRowComponent();
+                rowComponent("singleton", ValueType.STRING);
+            dynamicColumns();
+                columnComponent("tableId", ValueType.VAR_LONG, ValueByteOrder.DESCENDING);
+                value(ValueType.STRING);
+
+            // append-only + all writes are CAS
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
