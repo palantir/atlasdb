@@ -34,6 +34,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampRange;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
@@ -49,6 +50,8 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2);
     private static final long MODULUS_ONE_TIMESTAMP_IN_RANGE
             = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1;
+    private static final TimestampAndPartition PARTITIONED_MODULUS_ONE_TIMESTAMP_IN_RANGE
+            = TimestampAndPartition.of(MODULUS_ONE_TIMESTAMP_IN_RANGE, 1);
     private static final TimestampRange TIMESTAMP_ZERO = TimestampRange.createInclusiveRange(0, 0);
 
     private NumericPartitionAllocator<UUID> allocator = mock(NumericPartitionAllocator.class);
@@ -91,7 +94,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
         when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(MODULUS_TWO);
         when(timestamps.getFreshTimestamps(anyInt())).thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(MODULUS_ONE_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(PARTITIONED_MODULUS_ONE_TIMESTAMP_IN_RANGE);
 
         verify(allocator).getRelevantModuli(UUID_ONE);
         verify(timestamps).getFreshTimestamps(anyInt());
@@ -106,7 +109,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
                 .thenReturn(TIMESTAMP_ZERO)
                 .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(MODULUS_ONE_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(PARTITIONED_MODULUS_ONE_TIMESTAMP_IN_RANGE);
 
         verify(allocator, times(3)).getRelevantModuli(UUID_ONE);
         verify(timestamps, times(3)).getFreshTimestamps(anyInt());
