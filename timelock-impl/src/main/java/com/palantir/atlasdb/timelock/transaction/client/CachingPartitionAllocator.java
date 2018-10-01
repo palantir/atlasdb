@@ -16,32 +16,41 @@
 
 package com.palantir.atlasdb.timelock.transaction.client;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T> {
-    private final LoadingCache<T, Integer> loadingCache;
+    @VisibleForTesting
+    final LoadingCache<T, Integer> loadingCache;
 
     @VisibleForTesting
-    CachingPartitionAllocator(LoadingCache<T, Integer> loadingCache) {
-        this.loadingCache = loadingCache;
+    CachingPartitionAllocator(
+            DistributingModulusGenerator modulusGenerator,
+            Ticker ticker,
+            Duration timeoutAfterAccess) {
+        this.loadingCache = Caffeine.newBuilder()
+                .expireAfterAccess(timeoutAfterAccess)
+                .ticker(ticker)
+                .removalListener(
+                        (T key, Integer value, RemovalCause cause) -> modulusGenerator.unmarkResidue(value))
+                .build(unused -> modulusGenerator.getAndMarkResidue());
     }
 
-    public static <T> NumericPartitionAllocator<T> createDefault(int numModuli) {
+    public static <T> CachingPartitionAllocator<T> createDefault(int numModuli) {
         // TODO (jkong): This should ideally be configurable.
-        DistributingModulusGenerator modulusGenerator = DistributingModulusGenerator.create(numModuli);
+        DistributingModulusGenerator modulusGenerator = new DistributingModulusGenerator(numModuli);
         return new CachingPartitionAllocator<>(
-                Caffeine.newBuilder()
-                        .expireAfterAccess(5, TimeUnit.MINUTES)
-                        .removalListener(
-                                (T key, Integer value, RemovalCause cause) -> modulusGenerator.unmarkResidue(value))
-                        .build(unused -> modulusGenerator.getAndMarkResidue()));
+                modulusGenerator,
+                Ticker.systemTicker(),
+                Duration.of(5, ChronoUnit.MINUTES));
     }
 
     @Override

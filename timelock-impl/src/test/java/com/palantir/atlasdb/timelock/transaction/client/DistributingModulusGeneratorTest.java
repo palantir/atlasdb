@@ -17,143 +17,123 @@
 package com.palantir.atlasdb.timelock.transaction.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 
 public class DistributingModulusGeneratorTest {
     private DistributingModulusGenerator generator;
-    private List<Integer> answers = Lists.newArrayList();
-    private Optional<Exception> failure = Optional.empty();
 
     @Test
     public void doesNotReuseResiduesIfNotNeeded() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(3);
-
-        thenOperationSucceeds();
-        thenResponsesSatisfy(responses -> assertThat(responses).containsExactlyInAnyOrder(0, 1, 2));
+        requestResiduesAndAssertBalanced(3);
     }
 
     @Test
     public void waitsToReuseResiduesIfNeeded() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(6);
-
-        thenOperationSucceeds();
-        thenResponsesSatisfy(responses -> {
-            assertThat(responses).hasSize(6);
-            assertThat(responses.subList(0, 3)).containsExactlyInAnyOrder(0, 1, 2);
-            assertThat(responses.subList(3, 6)).containsExactlyInAnyOrder(0, 1, 2);
-        });
+        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertBalanced(3);
     }
 
     @Test
     public void throwsIfUnmarkingUnmarkedResidue() {
         givenGeneratorHasModulus(3);
 
-        whenResidueIsUnmarked(0);
-
-        thenOperationFails();
+        assertThatThrownBy(() -> unmarkResidue(0)).satisfies(this::failureArisesFromUnmarkingResidues);
     }
 
     @Test
     public void canUnmarkMarkedResidues() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(3);
-        whenResidueIsUnmarked(0);
-        whenResidueIsUnmarked(1);
-        whenResidueIsUnmarked(2);
-
-        thenOperationSucceeds();
+        requestResidues(3);
+        unmarkResidue(0);
+        unmarkResidue(1);
+        unmarkResidue(2);
+        // Not throwing is a success!
     }
 
     @Test
     public void cannotDoubleUnmarkMarkedResidues() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(3);
-        whenResidueIsUnmarked(0);
-        whenResidueIsUnmarked(0);
+        requestResidues(3);
 
-        thenOperationFails();
+        unmarkResidue(0);
+        assertThatThrownBy(() -> unmarkResidue(0)).satisfies(this::failureArisesFromUnmarkingResidues);
     }
 
     @Test
     public void reassignsUnmarkedResiduesIfTheyAreNowLeastReferenced() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(3);
-        whenResidueIsUnmarked(1);
-        whenModuliAreRequested(1);
-
-        thenOperationSucceeds();
-        thenResponsesSatisfy(responses -> {
-            assertThat(responses).hasSize(4);
-            assertThat(responses.subList(0, 3)).containsExactlyInAnyOrder(0, 1, 2);
-            assertThat(responses.get(3)).isEqualTo(1);
-        });
+        requestResiduesAndAssertBalanced(3);
+        unmarkResidue(1);
+        assertThat(requestResidues(1)).containsExactly(1);
     }
 
     @Test
     public void repeatedlyReassignsUnmarkedResidues() {
         givenGeneratorHasModulus(3);
 
-        whenModuliAreRequested(9);
-        whenResidueIsUnmarked(2);
-        whenResidueIsUnmarked(2);
-        whenResidueIsUnmarked(2);
-        whenModuliAreRequested(6);
+        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertBalanced(3);
 
-        thenOperationSucceeds();
-        thenResponsesSatisfy(responses -> {
-            assertThat(responses).hasSize(15);
-            assertThat(responses.get(9)).isEqualTo(2);
-            assertThat(responses.get(10)).isEqualTo(2);
-            assertThat(responses.get(11)).isEqualTo(2);
-            assertThat(responses.subList(12, 15)).containsExactlyInAnyOrder(0, 1, 2);
-        });
+        unmarkResidue(2);
+        unmarkResidue(2);
+        unmarkResidue(2);
+        List<Integer> additionalResponses = requestResidues(6);
+
+        assertThat(additionalResponses.subList(0, 3)).containsExactly(2, 2, 2);
+        assertListBalanced(additionalResponses.subList(3, 6), 3);
     }
 
     private void givenGeneratorHasModulus(int modulus) {
-        generator = DistributingModulusGenerator.create(modulus);
+        generator = new DistributingModulusGenerator(modulus);
     }
 
-    private void whenModuliAreRequested(int times) {
-        IntStream.range(0, times)
-                .forEach(unused -> answers.add(generator.getAndMarkResidue()));
+    private List<Integer> requestResidues(int times) {
+        return IntStream.range(0, times)
+                .map(unused -> generator.getAndMarkResidue())
+                .boxed()
+                .collect(Collectors.toList());
     }
 
-    private void whenResidueIsUnmarked(int residue) {
-        try {
-            generator.unmarkResidue(residue);
-        } catch (Exception e) {
-            failure = Optional.of(e);
+    private void requestResiduesAndAssertBalanced(int times) {
+        assertListBalanced(requestResidues(times), times);
+    }
+
+    /**
+     * Asserts that, starting from the beginning of the list, each full modulus number of elements has the integers
+     * from 0 to (modulus - 1) once each. No guarantees are made on the remainder of the list.
+     */
+    private void assertListBalanced(List<Integer> responses, int modulus) {
+        List<Integer> targets = IntStream.range(0, modulus).boxed().collect(Collectors.toList());
+        for (List<Integer> subList : Iterables.partition(responses, modulus)) {
+            if (subList.size() == modulus) {
+                assertThat(subList).hasSameElementsAs(targets);
+            }
         }
     }
 
-    private void thenOperationSucceeds() {
-        assertThat(failure).isEmpty();
+    private void unmarkResidue(int residue) {
+        generator.unmarkResidue(residue);
     }
 
-    private void thenOperationFails() {
-        assertThat(failure)
-                .isPresent()
-                .hasValueSatisfying(ex -> assertThat(ex)
-                        .hasMessageContaining("Attempted to unmark residue")
-                        .hasMessageContaining("when it had no references"));
-    }
-
-    private void thenResponsesSatisfy(Consumer<List<Integer>> assertion) {
-        assertion.accept(answers);
+    private void failureArisesFromUnmarkingResidues(Throwable th) {
+        assertThat(th)
+                .hasMessageContaining("Attempted to unmark residue")
+                .hasMessageContaining("when it had no references");
     }
 }

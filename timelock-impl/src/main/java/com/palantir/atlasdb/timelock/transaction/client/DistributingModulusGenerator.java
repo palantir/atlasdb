@@ -18,11 +18,11 @@ package com.palantir.atlasdb.timelock.transaction.client;
 
 import java.util.Comparator;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.immutables.value.Value;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
@@ -33,28 +33,22 @@ import com.google.common.collect.Sets;
  * Unmarking residues may not be performant if the number of residues used is large.
  */
 public class DistributingModulusGenerator {
+    private static final Comparator<ReferenceCountedResidue> RESIDUE_COMPARATOR = Comparator.comparing(
+            ReferenceCountedResidue::references)
+            .thenComparing(ReferenceCountedResidue::residue);
+
     private final SortedSet<ReferenceCountedResidue> referenceCounts;
 
-    @VisibleForTesting
-    DistributingModulusGenerator(SortedSet<ReferenceCountedResidue> referenceCounts) {
-        this.referenceCounts = referenceCounts;
-    }
-
-    public static DistributingModulusGenerator create(int modulus) {
-        SortedSet<ReferenceCountedResidue> referenceCounts
-                = Sets.newTreeSet(
-                Comparator.comparing(ReferenceCountedResidue::references)
-                        .thenComparing(ReferenceCountedResidue::residue));
-        IntStream.range(0, modulus)
-                .forEach(value -> referenceCounts.add(ImmutableReferenceCountedResidue.of(0, value)));
-        return new DistributingModulusGenerator(referenceCounts);
+    public DistributingModulusGenerator(int modulus) {
+        this.referenceCounts = IntStream.range(0, modulus)
+                .mapToObj(value -> ImmutableReferenceCountedResidue.of(0, value))
+                .collect(Collectors.toCollection(() -> Sets.newTreeSet(RESIDUE_COMPARATOR)));
     }
 
     public synchronized int getAndMarkResidue() {
         ReferenceCountedResidue leastReferenced = referenceCounts.first();
         referenceCounts.remove(leastReferenced);
-        referenceCounts.add(
-                ImmutableReferenceCountedResidue.of(leastReferenced.references() + 1, leastReferenced.residue()));
+        referenceCounts.add(leastReferenced.mark());
         return leastReferenced.residue();
     }
 
@@ -68,12 +62,11 @@ public class DistributingModulusGenerator {
                         "Attempted to unmark residue %s when it had no references",
                         referenceCountedResidue.residue());
                 referenceCounts.remove(referenceCountedResidue);
-                referenceCounts.add(
-                        ImmutableReferenceCountedResidue.of(
-                                referenceCountedResidue.references() - 1, referenceCountedResidue.residue()));
+                referenceCounts.add(referenceCountedResidue.unmark());
                 return;
             }
         }
+        throw new IllegalStateException("Residue " + residue + " was not found when unmarking!");
     }
 
     @Value.Immutable
@@ -83,5 +76,24 @@ public class DistributingModulusGenerator {
 
         @Value.Parameter
         int residue();
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(references() >= 0, "Reference counts must not be negative");
+        }
+
+        default ReferenceCountedResidue mark() {
+            return ImmutableReferenceCountedResidue.builder()
+                    .from(this)
+                    .references(references() + 1)
+                    .build();
+        }
+
+        default ReferenceCountedResidue unmark() {
+            return ImmutableReferenceCountedResidue.builder()
+                    .from(this)
+                    .references(references() - 1)
+                    .build();
+        }
     }
 }
