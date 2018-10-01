@@ -84,17 +84,17 @@ public final class SweepTableIndices {
             if (identifier.isPresent() && !identifier.get().isPending()) {
                 return identifier.get().identifier();
             }
-            log.info("Assigning table %s an identifier", LoggingArgs.tableRef(table));
+            log.info("Assigning table {} an identifier", LoggingArgs.tableRef(table));
             SweepTableIdentifier afterPendingPut = namesToIds.storeAsPending(table, idToNames.getNextId());
             if (!afterPendingPut.isPending()) {
-                log.info("Assigned table %s to id %s", LoggingArgs.tableRef(table),
+                log.info("Assigned table {} to id {}", LoggingArgs.tableRef(table),
                         SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
             boolean assigmentWasSuccessful = idToNames.storeNewMapping(table, afterPendingPut.identifier());
             if (assigmentWasSuccessful) {
                 namesToIds.moveToComplete(table, afterPendingPut.identifier());
-                log.info("Assigned table %s to id %s", LoggingArgs.tableRef(table),
+                log.info("Assigned table {} to id {}", LoggingArgs.tableRef(table),
                         SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
