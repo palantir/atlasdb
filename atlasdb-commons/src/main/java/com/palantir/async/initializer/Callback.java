@@ -76,6 +76,24 @@ public abstract class Callback<R> {
     }
 
     /**
+     * Try init() once only, performing any necessary cleanup
+     */
+    public boolean runOnceOnly(R resource) {
+        try {
+            lock.lock();
+            if (!shutdownSignal) {
+                init(resource);
+                return true;
+            }
+        } catch (Throwable e) {
+            cleanup(resource, e);
+        } finally {
+            lock.unlock();
+        }
+        return false;
+    }
+
+    /**
      * Send a shutdown signal and block until potential cleanup has finished running.
      */
     public void blockUntilSafeToShutdown() {
