@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
@@ -28,38 +29,44 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
-import com.palantir.atlasdb.containers.SecondCassandraContainer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.docker.compose.connection.Container;
 
 public class CassandraKeyValueServiceAsyncInitializationTest {
+    private final CassandraContainer container = CassandraContainer
+            .secondContainer(CassandraKeyValueServiceAsyncInitializationTest.class);
 
     @Test
-    public void cassandraKvsInitializesAsynchronously() {
+    public void cassandraKvsInitializesAsynchronously() throws IOException, InterruptedException {
         KeyValueService asyncInitializedKvs = CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
-                SecondCassandraContainer.KVS_CONFIG,
+                container.getConfig(),
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
-                SecondCassandraContainer.LEADER_CONFIG,
+                CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true,
                 FakeQosClient.INSTANCE);
 
         assertThat(asyncInitializedKvs.isInitialized()).isFalse();
 
-        startCassandra();
+        Container containerToCleanup = startCassandra();
 
         Awaitility.await().atMost(25, TimeUnit.SECONDS).until(asyncInitializedKvs::isInitialized);
+
+        containerToCleanup.kill();
     }
 
-    private void startCassandra() {
+    private Container startCassandra() {
         try {
             Containers containers = new Containers(CassandraKeyValueServiceAsyncInitializationTest.class)
-                    .with(new SecondCassandraContainer());
+                    .with(container);
             containers.before();
+            return containers.getContainer(container.getServiceName());
         } catch (Throwable th) {
             fail("Could not start docker", th);
+            return null;
         }
     }
 }

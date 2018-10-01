@@ -38,6 +38,8 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraTimestampBackupIntegrationTest.class);
     private static final long INITIAL_VALUE = CassandraTimestampUtils.INITIAL_VALUE;
     private static final long TIMESTAMP_1 = INITIAL_VALUE + 1000;
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;
@@ -45,17 +47,16 @@ public class CassandraTimestampBackupIntegrationTest {
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            CassandraContainer.KVS_CONFIG,
-            CassandraContainer.LEADER_CONFIG);
+            container.getConfig(), CassandraContainer.LEADER_CONFIG);
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CassandraContainer.KVS_CONFIG);
+            container.getConfig());
 
     @Before
     public void setUp() {

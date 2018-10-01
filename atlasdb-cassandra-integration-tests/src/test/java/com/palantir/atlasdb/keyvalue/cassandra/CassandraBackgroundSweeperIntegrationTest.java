@@ -30,9 +30,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraBackgroundSweeperIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraBackgroundSweeperIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
@@ -47,9 +49,9 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+                ? ImmutableCassandraKeyValueServiceConfig.copyOf(container.getConfig())
                     .withTimestampsGetterBatchSize(10)
-                : CassandraContainer.KVS_CONFIG;
+                : container.getConfig();
 
         // Need to ensure that C* timestamps for sentinels and deletes occur after timestamps where values were put
         // (which is true in practice assuming timestamp service is working properly)

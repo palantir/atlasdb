@@ -26,18 +26,21 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 
 public class CassandraConnectionIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraConnectionIntegrationTest.class);
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraConnectionIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
-            .copyOf(CassandraContainer.KVS_CONFIG)
+            .copyOf(container.getConfig())
             .withCredentials(Optional.empty());
 
     @Test
     public void testAuthProvided() {
         CassandraKeyValueServiceImpl.createForTesting(
-                CassandraContainer.KVS_CONFIG,
+                container.getConfig(),
                 CassandraContainer.LEADER_CONFIG).close();
     }
 

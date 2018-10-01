@@ -35,9 +35,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraGetCandidateCellsForSweepingTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -45,7 +47,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     protected KeyValueService createKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                CassandraContainer.KVS_CONFIG,
+                container.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 Mockito.mock(Logger.class));

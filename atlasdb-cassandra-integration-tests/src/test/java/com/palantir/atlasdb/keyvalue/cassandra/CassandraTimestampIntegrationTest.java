@@ -32,17 +32,17 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampIntegrationTest {
+    private static final CassandraContainer container = new CassandraContainer(CassandraTimestampIntegrationTest.class);
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class).with(container);
 
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            CassandraContainer.KVS_CONFIG,
+            container.getConfig(),
             CassandraContainer.LEADER_CONFIG);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CassandraContainer.KVS_CONFIG);
+            container.getConfig());
 
     @Before
     public void setUp() {

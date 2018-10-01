@@ -59,9 +59,10 @@ public class SchemaMutationLockIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
     private static final SchemaMutationLock.Action DO_NOTHING = () -> { };
 
+    private static final CassandraContainer container = new CassandraContainer(SchemaMutationLockIntegrationTest.class);
+
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(SchemaMutationLockIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final Containers CONTAINERS = new Containers(SchemaMutationLockIntegrationTest.class).with(container);
 
     private SchemaMutationLock schemaMutationLock;
     private SchemaMutationLock secondSchemaMutationLock;
@@ -98,7 +99,7 @@ public class SchemaMutationLockIntegrationTest {
     }
 
     private void setUpWithCasSupportSetTo(boolean supportsCas) throws Exception {
-        quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+        quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig.copyOf(container.getConfig())
                 .withSchemaMutationTimeoutMillis(500);
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
@@ -250,7 +251,7 @@ public class SchemaMutationLockIntegrationTest {
 
     private SchemaMutationLock createQuickHeartbeatTimeoutLock() {
         TracingQueryRunner queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
-        return getSchemaMutationLock(true, CassandraContainer.KVS_CONFIG, queryRunner, 2000);
+        return getSchemaMutationLock(true, container.getConfig(), queryRunner, 2000);
     }
 
     private SchemaMutationLock getSchemaMutationLock(boolean supportsCas,

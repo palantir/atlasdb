@@ -28,18 +28,17 @@ import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
-public class CassandraKvsSerializableTransactionTest
-        extends AbstractSerializableTransactionTest {
-
+public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraKvsSerializableTransactionTest.class);
     @ClassRule
     public static final Containers CONTAINERS =
-            new Containers(CassandraKvsSerializableTransactionTest.class)
-                    .with(new CassandraContainer());
+            new Containers(CassandraKvsSerializableTransactionTest.class).with(container);
 
     @Override
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.createForTesting(
-                CassandraContainer.KVS_CONFIG,
+                container.getConfig(),
                 CassandraContainer.LEADER_CONFIG);
     }
 

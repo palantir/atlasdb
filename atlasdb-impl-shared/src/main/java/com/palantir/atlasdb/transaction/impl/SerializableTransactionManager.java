@@ -67,11 +67,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
             this.executorService = initializer;
-            if (isInitializedInternal()) {
-                runCallback();
-            } else {
-                scheduleInitializationCheckAndCallback();
-            }
+            runCallbackIfInitializedOrScheduleForLater();
         }
 
         @Override
@@ -126,16 +122,20 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
         }
 
+        private void runCallbackIfInitializedOrScheduleForLater() {
+            if (isInitializedInternal()) {
+                runCallback();
+            } else {
+                scheduleInitializationCheckAndCallback();
+            }
+        }
+
         private void scheduleInitializationCheckAndCallback() {
             executorService.schedule(() -> {
                 if (status != State.INITIALIZING) {
                     return;
                 }
-                if (isInitializedInternal()) {
-                    runCallback();
-                } else {
-                    scheduleInitializationCheckAndCallback();
-                }
+                runCallbackIfInitializedOrScheduleForLater();
             }, 1_000, TimeUnit.MILLISECONDS);
         }
 

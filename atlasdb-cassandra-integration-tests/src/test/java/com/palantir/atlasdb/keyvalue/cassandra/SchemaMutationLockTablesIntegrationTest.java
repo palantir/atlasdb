@@ -47,9 +47,11 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class SchemaMutationLockTablesIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraTimestampStoreInvalidatorIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(SchemaMutationLockTablesIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -59,7 +61,7 @@ public class SchemaMutationLockTablesIntegrationTest {
 
     @Before
     public void setupKvs() throws TException, InterruptedException {
-        config = ImmutableCassandraKeyValueServiceConfig.copyOf(CassandraContainer.KVS_CONFIG)
+        config = ImmutableCassandraKeyValueServiceConfig.copyOf(container.getConfig())
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager,

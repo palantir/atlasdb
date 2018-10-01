@@ -91,9 +91,11 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraKeyValueServiceIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private final Logger logger = mock(Logger.class);
 
@@ -236,7 +238,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+                .copyOf(container.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
@@ -267,9 +269,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), container.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
@@ -278,7 +278,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         TracingQueryRunner queryRunner = new TracingQueryRunner(
                 LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CassandraContainer.KVS_CONFIG,
+        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(container.getConfig(),
                 ckvs.getClientPool(), lockTables, queryRunner);
 
         cleaner.cleanLocksState();
@@ -297,16 +297,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testCleanCassLocksStateCli() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), container.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
         createExtraLocksTable(lockTables, ckvs);
 
-        new CleanCassLocksStateCommand().runWithConfig(CassandraContainer.KVS_CONFIG);
+        new CleanCassLocksStateCommand().runWithConfig(container.getConfig());
 
         // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
         // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
@@ -476,7 +474,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                     .safeQueryFormat("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
                             + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;")
                     .addArgs(
-                            SafeArg.of("keyspace", CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow()),
+                            SafeArg.of("keyspace", container.getConfig().getKeyspaceOrThrow()),
                             LoggingArgs.internalTableName(tableReference),
                             UnsafeArg.of("row", convertBytesToHexString(cell.getRowName())),
                             UnsafeArg.of("column", convertBytesToHexString(cell.getColumnName())),

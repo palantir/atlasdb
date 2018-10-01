@@ -48,21 +48,23 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraClientPoolIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraClientPoolIntegrationTest.class)
-            .with(new CassandraContainer());
-    private static final int MODIFIED_REPLICATION_FACTOR = CassandraContainer.KVS_CONFIG.replicationFactor() + 1;
+            .with(container);
+    private static final int MODIFIED_REPLICATION_FACTOR = container.getConfig().replicationFactor() + 1;
 
-    private Blacklist blacklist = new Blacklist(CassandraContainer.KVS_CONFIG);
+    private Blacklist blacklist = new Blacklist(container.getConfig());
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-            CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
+            container.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
     private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
             metricsManager,
-            CassandraContainer.KVS_CONFIG,
+            container.getConfig(),
             CassandraContainer.LEADER_CONFIG,
             CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
             clientPool);
@@ -103,8 +105,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
-                        CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, container.getConfig());
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
             }
@@ -118,7 +119,7 @@ public class CassandraClientPoolIntegrationTest {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
-                                CassandraContainer.KVS_CONFIG).withReplicationFactor(
+                                container.getConfig()).withReplicationFactor(
                                 MODIFIED_REPLICATION_FACTOR));
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
@@ -133,15 +134,14 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
-                        CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, container.getConfig());
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
             }
             return false;
         });
-        changeReplicationFactor(CassandraContainer.KVS_CONFIG.replicationFactor());
+        changeReplicationFactor(container.getConfig().replicationFactor());
     }
 
     private void assertReplicationFactorMismatchError(Exception ex) {
@@ -152,8 +152,7 @@ public class CassandraClientPoolIntegrationTest {
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
         clientPool.run((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(
-                    CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
+            KsDef originalKsDef = client.describe_keyspace(container.getConfig().getKeyspaceOrThrow());
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));

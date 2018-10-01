@@ -45,13 +45,13 @@ import com.palantir.flake.ShouldRetry;
 
 @ShouldRetry // There are flakes with the heartbeat service throwing because it was unable to stop beating.
 public class HeartbeatServiceIntegrationTest {
+    private static final CassandraContainer container = new CassandraContainer(HeartbeatServiceIntegrationTest.class);
     private static final Logger log = LoggerFactory.getLogger(HeartbeatServiceIntegrationTest.class);
 
     private static final int heartbeatTimePeriodMillis = 100;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(HeartbeatServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final Containers CONTAINERS = new Containers(HeartbeatServiceIntegrationTest.class).with(container);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -73,7 +73,7 @@ public class HeartbeatServiceIntegrationTest {
     @Before
     public void setUp() throws TException {
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
-        CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
+        CassandraKeyValueServiceConfig config = container.getConfig();
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = CassandraClientPoolImpl.create(metricsManager, config);

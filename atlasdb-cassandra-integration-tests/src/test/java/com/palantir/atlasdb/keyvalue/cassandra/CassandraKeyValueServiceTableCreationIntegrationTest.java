@@ -45,19 +45,16 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraKeyValueServiceTableCreationIntegrationTest.class);
     public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
 
     @ClassRule
     public static final Containers CONTAINERS =
-            new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class)
-                    .with(new CassandraContainer());
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+            new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class).with(container);
 
     protected CassandraKeyValueService kvs;
     protected CassandraKeyValueService slowTimeoutKvs;
@@ -65,14 +62,14 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     @Before
     public void setUp() {
         ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+                .copyOf(container.getConfig())
                 .withSchemaMutationTimeoutMillis(500);
         kvs = CassandraKeyValueServiceImpl.createForTesting(
                 quickTimeoutConfig,
                 CassandraContainer.LEADER_CONFIG);
 
         ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+                .copyOf(container.getConfig())
                 .withSchemaMutationTimeoutMillis(6 * 1000);
         slowTimeoutKvs = CassandraKeyValueServiceImpl.createForTesting(
                 slowTimeoutConfig,

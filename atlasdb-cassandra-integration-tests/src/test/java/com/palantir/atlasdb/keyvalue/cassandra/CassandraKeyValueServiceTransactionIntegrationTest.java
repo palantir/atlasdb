@@ -32,9 +32,11 @@ import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
@@ -52,7 +54,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                CassandraContainer.KVS_CONFIG,
+                container.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
                         () -> {

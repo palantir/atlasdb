@@ -39,20 +39,22 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
+    private static final CassandraContainer container =
+            new CassandraContainer(CassandraTimestampStoreInvalidatorIntegrationTest.class);
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
-            .with(new CassandraContainer());
+            .with(container);
 
     private static final long ONE_MILLION = 1_000_000;
 
     private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            CassandraContainer.KVS_CONFIG,
+            container.getConfig(),
             CassandraContainer.LEADER_CONFIG);
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CassandraContainer.KVS_CONFIG);
+            container.getConfig());
 
     @Before
     public void setUp() {
