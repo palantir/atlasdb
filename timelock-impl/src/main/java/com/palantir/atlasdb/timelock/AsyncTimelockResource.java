@@ -35,8 +35,9 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
@@ -82,8 +83,9 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(StartAtlasDbTransactionRequest request) {
-        return StartAtlasDbTransactionResponse.of(
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return StartIdentifiedAtlasDbTransactionResponse.of(
                 timelock.lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
                 timelock.getFreshTimestampForClient(request.requestorId()));
     }

@@ -27,8 +27,9 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -72,7 +73,8 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(StartAtlasDbTransactionRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
         return executeWithRecord(() -> timelockService.startIdentifiedAtlasDbTransaction(request));
     }
 

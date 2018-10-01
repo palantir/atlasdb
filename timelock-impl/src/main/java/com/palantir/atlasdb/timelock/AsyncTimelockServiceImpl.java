@@ -30,6 +30,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
@@ -61,7 +62,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public long getFreshTimestampForClient(UUID clientIdentifier) {
+    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
         return timestampService.getFreshTimestampForClient(clientIdentifier);
     }
 
