@@ -174,5 +174,5 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
-            client -> client.describe_ring("atlasdb");
+            client -> client.describe_ring(container.getConfig().getKeyspaceOrThrow());
 }

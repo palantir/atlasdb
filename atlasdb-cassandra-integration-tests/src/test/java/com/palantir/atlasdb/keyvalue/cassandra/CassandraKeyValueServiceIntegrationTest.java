@@ -202,7 +202,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace(container.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));

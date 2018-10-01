@@ -93,6 +93,17 @@ public class CassandraContainer extends Container {
                 .isInitialized());
     }
 
+    @Override
+    public boolean equals(Object other) {
+        return other instanceof CassandraContainer
+                && name.equals(((CassandraContainer) other).getServiceName());
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
     public CassandraKeyValueServiceConfig getConfig() {
         return config;
     }
