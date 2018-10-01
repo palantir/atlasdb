@@ -45,11 +45,13 @@ public final class SweepTableIndices {
     private final IdsToNames idToNames;
     private final NamesToIds namesToIds;
     private final LoadingCache<TableReference, Integer> tableIndices;
+    private final LoadingCache<Integer, TableReference> tableRefs;
 
     SweepTableIndices(IdsToNames idsToNames, NamesToIds namesToIds) {
         this.idToNames = idsToNames;
         this.namesToIds = namesToIds;
         this.tableIndices = Caffeine.newBuilder().maximumSize(20_000).build(this::loadUncached);
+        this.tableRefs = Caffeine.newBuilder().maximumSize(20_000).build(this::getTableReferenceUncached);
     }
 
     public SweepTableIndices(KeyValueService kvs) {
@@ -61,6 +63,10 @@ public final class SweepTableIndices {
     }
 
     public TableReference getTableReference(int tableId) {
+        return tableRefs.get(tableId);
+    }
+
+    private TableReference getTableReferenceUncached(int tableId) {
         return idToNames.get(tableId)
                 .orElseThrow(() -> new NoSuchElementException("Id " + tableId + " does not exist"));
     }
