@@ -52,7 +52,7 @@ public class CassandraKeyValueServiceAsyncInitializationTest {
 
         Container containerToCleanup = startCassandra();
 
-        Awaitility.await().atMost(25, TimeUnit.SECONDS).until(asyncInitializedKvs::isInitialized);
+        Awaitility.await().atMost(35, TimeUnit.SECONDS).until(asyncInitializedKvs::isInitialized);
 
         containerToCleanup.kill();
     }

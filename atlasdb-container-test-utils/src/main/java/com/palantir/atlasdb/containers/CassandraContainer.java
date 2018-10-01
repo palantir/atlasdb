@@ -34,6 +34,8 @@ public class CassandraContainer extends Container {
     static final int CASSANDRA_PORT = 9160;
     static final String USERNAME = "cassandra";
     static final String PASSWORD = "cassandra";
+    private static final String CONTAINER_NAME = "cassandra";
+    private static final String SECOND_CONTAINER_NAME = "cassandra2";
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
             .builder()
@@ -47,7 +49,7 @@ public class CassandraContainer extends Container {
     private final String name;
 
     public CassandraContainer() {
-        this("/docker-compose-cassandra.yml", "cassandra");
+        this("/docker-compose-cassandra.yml", CONTAINER_NAME);
     }
 
     private CassandraContainer(String dockerComposeFile, String name) {
@@ -59,6 +61,10 @@ public class CassandraContainer extends Container {
                         .username(USERNAME)
                         .password(PASSWORD)
                         .build())
+                .poolSize(20)
+                .mutationBatchCount(10000)
+                .mutationBatchSizeBytes(10000000)
+                .fetchBatchCount(1000)
                 .replicationFactor(1)
                 .build();
         this.dockerComposeFile = dockerComposeFile;
@@ -66,7 +72,7 @@ public class CassandraContainer extends Container {
     }
 
     public static CassandraContainer secondContainer() {
-        return new CassandraContainer("/docker-compose-cassandra2.yml", "cassandra2");
+        return new CassandraContainer("/docker-compose-cassandra2.yml", SECOND_CONTAINER_NAME);
     }
 
     @Override
