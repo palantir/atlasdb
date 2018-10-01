@@ -47,8 +47,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class SchemaMutationLockTablesIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraTimestampStoreInvalidatorIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(SchemaMutationLockTablesIntegrationTest.class)
             .with(container);

@@ -43,8 +43,8 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraTargetedSweepIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 

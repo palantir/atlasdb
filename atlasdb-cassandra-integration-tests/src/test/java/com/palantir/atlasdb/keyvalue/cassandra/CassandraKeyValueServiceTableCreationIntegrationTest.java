@@ -47,10 +47,9 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraKeyValueServiceTableCreationIntegrationTest.class);
-    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
-    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
+    private static final CassandraContainer container = new CassandraContainer();
+    private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
+    private static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
 
     @ClassRule
     public static final Containers CONTAINERS =

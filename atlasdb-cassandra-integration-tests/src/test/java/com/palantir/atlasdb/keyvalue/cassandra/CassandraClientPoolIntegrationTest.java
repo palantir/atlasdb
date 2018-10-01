@@ -48,8 +48,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraClientPoolIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraClientPoolIntegrationTest.class)
             .with(container);

@@ -38,8 +38,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraTimestampBackupIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
     private static final long INITIAL_VALUE = CassandraTimestampUtils.INITIAL_VALUE;
     private static final long TIMESTAMP_1 = INITIAL_VALUE + 1000;
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;

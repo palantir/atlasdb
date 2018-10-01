@@ -56,10 +56,9 @@ import com.palantir.common.exception.PalantirRuntimeException;
 
 @RunWith(Parameterized.class)
 public class SchemaMutationLockIntegrationTest {
+    private static final CassandraContainer container = new CassandraContainer();
     private static final Logger log = LoggerFactory.getLogger(SchemaMutationLockIntegrationTest.class);
     private static final SchemaMutationLock.Action DO_NOTHING = () -> { };
-
-    private static final CassandraContainer container = new CassandraContainer(SchemaMutationLockIntegrationTest.class);
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(SchemaMutationLockIntegrationTest.class).with(container);

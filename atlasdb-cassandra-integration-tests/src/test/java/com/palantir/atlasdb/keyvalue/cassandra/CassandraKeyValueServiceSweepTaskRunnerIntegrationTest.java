@@ -42,12 +42,11 @@ import com.palantir.flake.ShouldRetry;
 @RunWith(Parameterized.class)
 @ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(
-                CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class)
-            .with(container);
+    public static final Containers CONTAINERS =
+            new Containers(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class).with(container);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 

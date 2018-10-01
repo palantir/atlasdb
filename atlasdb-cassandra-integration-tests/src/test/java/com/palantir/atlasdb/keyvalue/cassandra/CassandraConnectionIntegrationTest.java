@@ -26,8 +26,7 @@ import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.Containers;
 
 public class CassandraConnectionIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraConnectionIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
 
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraConnectionIntegrationTest.class)

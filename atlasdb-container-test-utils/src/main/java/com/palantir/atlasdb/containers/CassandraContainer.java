@@ -18,6 +18,7 @@ package com.palantir.atlasdb.containers;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -45,11 +46,12 @@ public class CassandraContainer extends Container {
     private final String dockerComposeFile;
     private final String name;
 
-    public CassandraContainer(Class<?> callingClass) {
-        this(callingClass.getSimpleName(), "/docker-compose-cassandra.yml", "cassandra");
+    public CassandraContainer() {
+        this("/docker-compose-cassandra.yml", "cassandra");
     }
 
-    private CassandraContainer(String keyspace, String dockerComposeFile, String name) {
+    private CassandraContainer(String dockerComposeFile, String name) {
+        String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(forService(name))
                 .keyspace(keyspace)
@@ -63,8 +65,8 @@ public class CassandraContainer extends Container {
         this.name = name;
     }
 
-    public static CassandraContainer secondContainer(Class<?> callingClass) {
-        return new CassandraContainer(callingClass.getSimpleName(), "/docker-compose-cassandra2.yml", "cassandra2");
+    public static CassandraContainer secondContainer() {
+        return new CassandraContainer("/docker-compose-cassandra2.yml", "cassandra2");
     }
 
     @Override

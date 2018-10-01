@@ -35,8 +35,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.docker.compose.connection.Container;
 
 public class CassandraKeyValueServiceAsyncInitializationTest {
-    private final CassandraContainer container = CassandraContainer
-            .secondContainer(CassandraKeyValueServiceAsyncInitializationTest.class);
+    private final CassandraContainer container = CassandraContainer.secondContainer();
 
     @Test
     public void cassandraKvsInitializesAsynchronously() throws IOException, InterruptedException {

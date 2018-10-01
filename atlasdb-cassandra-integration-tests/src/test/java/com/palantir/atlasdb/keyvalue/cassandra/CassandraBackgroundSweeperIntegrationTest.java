@@ -30,8 +30,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraBackgroundSweeperIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraBackgroundSweeperIntegrationTest.class)
             .with(container);

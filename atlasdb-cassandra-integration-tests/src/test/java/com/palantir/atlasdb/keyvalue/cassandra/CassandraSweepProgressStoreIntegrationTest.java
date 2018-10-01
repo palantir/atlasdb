@@ -24,8 +24,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 
 public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraSweepProgressStoreIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraBackgroundSweeperIntegrationTest.class)
             .with(container);

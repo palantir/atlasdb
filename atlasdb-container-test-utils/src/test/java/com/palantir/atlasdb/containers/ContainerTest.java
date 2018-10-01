@@ -29,7 +29,7 @@ public class ContainerTest {
     @Parameterized.Parameters(name = "With container {0}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(new Object[][] {
-                { new CassandraContainer(ContainerTest.class) },
+                { new CassandraContainer() },
                 { new ThreeNodeCassandraCluster() }
         });
     }

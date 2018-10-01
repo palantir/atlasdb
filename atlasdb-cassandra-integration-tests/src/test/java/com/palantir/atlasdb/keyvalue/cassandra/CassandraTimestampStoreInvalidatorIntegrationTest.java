@@ -39,8 +39,8 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraTimestampStoreInvalidatorIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
             .with(container);

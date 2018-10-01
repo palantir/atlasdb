@@ -91,8 +91,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraKeyValueServiceIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(container);

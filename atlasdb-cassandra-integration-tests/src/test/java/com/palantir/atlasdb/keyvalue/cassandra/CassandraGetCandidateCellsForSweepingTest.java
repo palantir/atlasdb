@@ -35,8 +35,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    private static final CassandraContainer container =
-            new CassandraContainer(CassandraGetCandidateCellsForSweepingTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
+
     @ClassRule
     public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
             .with(container);

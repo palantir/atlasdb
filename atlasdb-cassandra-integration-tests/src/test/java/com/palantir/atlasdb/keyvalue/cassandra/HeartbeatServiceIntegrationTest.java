@@ -45,9 +45,8 @@ import com.palantir.flake.ShouldRetry;
 
 @ShouldRetry // There are flakes with the heartbeat service throwing because it was unable to stop beating.
 public class HeartbeatServiceIntegrationTest {
-    private static final CassandraContainer container = new CassandraContainer(HeartbeatServiceIntegrationTest.class);
+    private static final CassandraContainer container = new CassandraContainer();
     private static final Logger log = LoggerFactory.getLogger(HeartbeatServiceIntegrationTest.class);
-
     private static final int heartbeatTimePeriodMillis = 100;
 
     @ClassRule
