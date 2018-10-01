@@ -19,10 +19,15 @@ package com.palantir.atlasdb.sweep.queue.id;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
 
 /**
  * Creates a dictionary of table references to shorter (integral) identifiers.
@@ -42,6 +47,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
  * <p>
  */
 public final class SweepTableIndices {
+    private static final Logger log = LoggerFactory.getLogger(SweepTableIndices.class);
+
     private final IdsToNames idToNames;
     private final NamesToIds namesToIds;
     private final LoadingCache<TableReference, Integer> tableIndices;
@@ -77,13 +84,18 @@ public final class SweepTableIndices {
             if (identifier.isPresent() && !identifier.get().isPending()) {
                 return identifier.get().identifier();
             }
+            log.info("Assigning table %s an identifier", LoggingArgs.tableRef(table));
             SweepTableIdentifier afterPendingPut = namesToIds.storeAsPending(table, idToNames.getNextId());
             if (!afterPendingPut.isPending()) {
+                log.info("Assigned table %s to id %s", LoggingArgs.tableRef(table),
+                        SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
             boolean assigmentWasSuccessful = idToNames.storeNewMapping(table, afterPendingPut.identifier());
             if (assigmentWasSuccessful) {
                 namesToIds.moveToComplete(table, afterPendingPut.identifier());
+                log.info("Assigned table %s to id %s", LoggingArgs.tableRef(table),
+                        SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
             namesToIds.storeAsPending(table, afterPendingPut.identifier(), idToNames.getNextId());

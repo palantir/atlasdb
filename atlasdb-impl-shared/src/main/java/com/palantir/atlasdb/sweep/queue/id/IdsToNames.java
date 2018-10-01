@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -62,7 +61,7 @@ class IdsToNames {
             byte[] currentValue = Iterables.getOnlyElement(e.getActualValues());
             TableReference currentTableRef =
                     TableReference.createFromFullyQualifiedName(
-                            PtBytes.toString(currentValue, 0, currentValue.length));
+                            SweepIdToNameColumnValue.hydrateValue(currentValue));
             return currentTableRef.equals(table);
         }
     }
