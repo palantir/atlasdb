@@ -144,9 +144,11 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private void assertReplicationFactorMismatchError(Exception ex) {
-        assertThat(ex.getMessage(), is("Your current Cassandra keyspace (atlasdb) has a replication"
-                + " factor not matching your Atlas Cassandra configuration. Change them to match, but be mindful"
-                + " of what steps you'll need to take to correctly repair or cleanup existing data in your cluster."));
+        assertThat(ex.getMessage(), is("Your current Cassandra keyspace ("
+                + container.getConfig().getKeyspaceOrThrow()
+                + ") has a replication factor not matching your Atlas Cassandra configuration. Change them to match, "
+                + "but be mindful of what steps you'll need to take to correctly repair or cleanup existing data in "
+                + "your cluster."));
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
