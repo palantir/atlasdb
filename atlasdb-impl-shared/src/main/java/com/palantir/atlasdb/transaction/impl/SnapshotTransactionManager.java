@@ -56,6 +56,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -65,6 +66,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
+    final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
@@ -88,6 +90,7 @@ import com.palantir.timestamp.TimestampService;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -107,6 +110,7 @@ import com.palantir.timestamp.TimestampService;
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
+        this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
@@ -395,6 +399,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);
+    }
+
+    @Override
+    public TimestampManagementService getTimestampManagementService() {
+        return timestampManagementService;
     }
 
     @Override

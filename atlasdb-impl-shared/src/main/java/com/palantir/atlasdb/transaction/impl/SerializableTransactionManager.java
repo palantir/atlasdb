@@ -46,6 +46,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class SerializableTransactionManager extends SnapshotTransactionManager {
@@ -189,6 +190,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static TransactionManager create(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -209,6 +211,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         return create(metricsManager,
                 keyValueService,
                 timelockService,
+                timestampManagementService,
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -232,6 +235,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static TransactionManager create(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -253,6 +257,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                timestampManagementService,
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -280,6 +285,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public static SerializableTransactionManager createForTest(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
@@ -294,6 +300,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
                 lockService,
                 transactionService,
                 constraintModeSupplier,
@@ -313,6 +320,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     public SerializableTransactionManager(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -331,6 +339,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsManager,
                 keyValueService,
                 timelockService,
+                timestampManagementService,
                 lockService,
                 transactionService,
                 constraintModeSupplier,

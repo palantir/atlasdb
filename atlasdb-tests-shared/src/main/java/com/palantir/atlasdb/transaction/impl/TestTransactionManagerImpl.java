@@ -40,6 +40,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
@@ -52,6 +53,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
@@ -62,6 +64,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -82,6 +85,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
@@ -89,6 +93,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),
