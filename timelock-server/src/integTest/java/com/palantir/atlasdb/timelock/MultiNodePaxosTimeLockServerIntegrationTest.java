@@ -36,7 +36,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -286,13 +285,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void startAtlasDbTransactionGivesUsStartTimestampsInTheSameResidue() {
+    public void startAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
         UUID requestorUuid = UUID.randomUUID();
-        long firstTimestamp = getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid);
-        long secondTimestamp = getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
 
-        assertThat(firstTimestamp % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS)
-                .isEqualTo(secondTimestamp % TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+        assertThat(firstResponse.startTimestampAndPartition().partition())
+                .isEqualTo(secondResponse.startTimestampAndPartition().partition());
     }
 
     @Test
