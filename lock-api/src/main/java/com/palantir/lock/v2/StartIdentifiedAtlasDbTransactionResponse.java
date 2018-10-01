@@ -16,24 +16,23 @@
 
 package com.palantir.lock.v2;
 
-import java.util.UUID;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableStartAtlasDbTransactionRequest.class)
-@JsonDeserialize(as = ImmutableStartAtlasDbTransactionRequest.class)
-public interface StartAtlasDbTransactionRequest {
+@JsonSerialize(as = ImmutableStartIdentifiedAtlasDbTransactionResponse.class)
+@JsonDeserialize(as = ImmutableStartIdentifiedAtlasDbTransactionResponse.class)
+public interface StartIdentifiedAtlasDbTransactionResponse {
     @Value.Parameter
-    UUID requestId();
+    LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    UUID requestorId();
+    TimestampAndPartition startTimestampAndPartition();
 
-    static StartAtlasDbTransactionRequest createForRequestor(UUID requestorUuid) {
-        return ImmutableStartAtlasDbTransactionRequest.of(UUID.randomUUID(), requestorUuid);
+    static StartIdentifiedAtlasDbTransactionResponse of(
+            LockImmutableTimestampResponse immutableTimestamp, TimestampAndPartition timestampAndPartition) {
+        return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(immutableTimestamp, timestampAndPartition);
     }
 }
