@@ -63,7 +63,7 @@ public abstract class WriteReference implements Persistable {
         }
         int offset = 1;
         String tableReferenceString = EncodingUtils.decodeVarString(input, offset);
-        TableReference tableReference = TableReference.createUnsafe(tableReferenceString);
+        TableReference tableReference = TableReference.fromString(tableReferenceString);
         offset += EncodingUtils.sizeOfVarString(tableReferenceString);
         byte[] row = EncodingUtils.decodeSizedBytes(input, offset);
         offset += EncodingUtils.sizeOfSizedBytes(row);
