@@ -60,8 +60,7 @@ class IdsToNames {
         } catch (CheckAndSetException e) {
             byte[] currentValue = Iterables.getOnlyElement(e.getActualValues());
             TableReference currentTableRef =
-                    TableReference.createFromFullyQualifiedName(
-                            SweepIdToNameColumnValue.hydrateValue(currentValue));
+                    TableReference.fromString(SweepIdToNameColumnValue.hydrateValue(currentValue));
             return currentTableRef.equals(table);
         }
     }
@@ -73,7 +72,7 @@ class IdsToNames {
         return Optional.ofNullable(values.get(cell))
                 .map(Value::getContents)
                 .map(SweepIdToNameColumnValue::hydrateValue)
-                .map(TableReference::createFromFullyQualifiedName);
+                .map(TableReference::fromString);
     }
 
     int getNextId() {
