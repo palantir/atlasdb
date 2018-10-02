@@ -50,7 +50,7 @@ develop
     *    - Type
          - Change
 
-    *    - |improved
+    *    - |improved|
          - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead
            of storing them as strings.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
