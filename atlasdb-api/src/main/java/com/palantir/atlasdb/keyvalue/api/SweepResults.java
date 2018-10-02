@@ -29,15 +29,9 @@ import com.palantir.atlasdb.encoding.PtBytes;
 @Value.Immutable
 public abstract class SweepResults {
 
-    @Value.Default
-    public Optional<byte[]> getPreviousStartRow() {
-        return Optional.empty();
-    }
+    public abstract Optional<byte[]> getPreviousStartRow();
 
-    @Value.Default
-    public Optional<byte[]> getNextStartRow() {
-        return Optional.empty();
-    }
+    public abstract Optional<byte[]> getNextStartRow();
 
     /**
      * The approximate number of (cell, timestamp) pairs examined.

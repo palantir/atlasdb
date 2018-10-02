@@ -35,10 +35,7 @@ public abstract class CheckAndSetRequest {
 
     public abstract Cell cell();
 
-    @Value.Default
-    public Optional<byte[]> oldValue() {
-        return Optional.empty();
-    }
+    public abstract Optional<byte[]> oldValue();
 
     public abstract byte[] newValue();
 
