@@ -18,7 +18,6 @@ package com.palantir.leader.proxy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.Validate;
@@ -56,23 +55,14 @@ public final class ToggleableExceptionProxy implements DelegatingInvocationHandl
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if (!isJavaLangObjectMethod(method) && throwException.get()) {
+        if (throwException.get()) {
             throw Throwables.rewrap(exception);
         }
-
         try {
-            if (method.getName().equals("equals")) {
-                // We are trying to check proxy equality, not that of the delegate
-                return proxy == args[0];
-            }
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
             throw e.getCause();
         }
-    }
-
-    private boolean isJavaLangObjectMethod(Method method) {
-        return Arrays.asList(Object.class.getMethods()).contains(method);
     }
 
     @Override
