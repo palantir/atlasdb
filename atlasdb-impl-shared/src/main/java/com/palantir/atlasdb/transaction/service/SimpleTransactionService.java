@@ -82,7 +82,7 @@ public final class SimpleTransactionService implements TransactionService {
                 ImmutableMap.of(key, value));
     }
 
-    private Cell getTransactionCell(long startTimestamp) {
+    private static Cell getTransactionCell(long startTimestamp) {
         return Cell.create(
                 TransactionConstants.getValueForTimestamp(startTimestamp),
                 TransactionConstants.COMMIT_TS_COLUMN);
