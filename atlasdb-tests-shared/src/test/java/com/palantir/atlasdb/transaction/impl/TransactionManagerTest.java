@@ -45,6 +45,7 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
@@ -93,11 +94,13 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Test
     public void shouldNotMakeRemoteCallsInAReadonlyTransactionIfNoWorkIsDone() {
         TimestampService mockTimestampService = mock(TimestampService.class);
+        TimestampManagementService mockTimestampManagementService = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
                 getKeyValueService(),
-                mockTimestampService, LockClient.of("foo"), mockLockService, transactionService,
+                mockTimestampService, mockTimestampManagementService,
+                LockClient.of("foo"), mockLockService, transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 conflictDetectionManager, sweepStrategyManager, NoOpCleaner.INSTANCE,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
@@ -115,6 +118,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         txnManagerWithMocks.runTaskReadOnly(txn -> null);
         verifyNoMoreInteractions(mockLockService);
         verifyNoMoreInteractions(mockTimestampService);
+        verifyNoMoreInteractions(mockTimestampManagementService);
     }
 
     @Test
@@ -150,10 +154,12 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     private TransactionManager setupTransactionManager() {
         TimelockService timelock = mock(TimelockService.class);
+        TimestampManagementService timeManagement = mock(TimestampManagementService.class);
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(metricsManager,
                 keyValueService,
                 timelock,
+                timeManagement,
                 mockLockService,
                 transactionService,
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,

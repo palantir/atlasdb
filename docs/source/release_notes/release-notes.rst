@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
+           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
+           directly require the TimestampManagementService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3524>`__)
+
     *    - |fixed|
          - Targeted sweep no longer chokes if a table in the queue no longer exists,
            and was deleted by a different host while this host was online and sweeping.
@@ -68,6 +74,10 @@ develop
          - Increase maximum allowed rescue dependency version to 4.X.X.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3525>`__)
 
+    *    - |fixed| |devbreak|
+         - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)           
+        
 ========
 v0.105.0
 ========

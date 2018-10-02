@@ -44,6 +44,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -152,6 +153,10 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
+    }
+
+    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
+        return AtlasDbFactory.createTimestampManagementService(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {

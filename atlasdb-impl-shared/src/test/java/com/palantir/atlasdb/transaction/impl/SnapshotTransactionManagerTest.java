@@ -66,11 +66,13 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+            new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
+            timestampService,
             closeableLockService,
             null,
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
@@ -111,11 +113,13 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+                new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
+                ts,
                 mock(LockService.class), // not closeable
                 null,
                 null,

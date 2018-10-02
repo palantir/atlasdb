@@ -164,7 +164,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
-        TimestampService ts = new InMemoryTimestampService();
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
@@ -188,6 +188,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionManager ret = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
+                ts,
                 ts,
                 client,
                 lock,
