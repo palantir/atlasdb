@@ -18,10 +18,10 @@ package com.palantir.atlasdb.sweep.priority;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +37,6 @@ import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -244,14 +243,10 @@ public class NextTableToSweepProviderTest {
     }
 
     private LockRequest requestContaining(String table) {
-        return argThat(new ArgumentMatcher<LockRequest>() {
-            @Override
-            public boolean matches(Object argument) {
-                LockRequest request = (LockRequest) argument;
-                return request != null && request.getLockDescriptors().stream()
-                        .anyMatch(des -> des.getLockIdAsString().contains(table));
-            }
-        });
+        return argThat(
+                argument -> argument != null &&
+                argument.getLockDescriptors().stream()
+                        .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 
     private void whenGettingNextTableToSweep() {

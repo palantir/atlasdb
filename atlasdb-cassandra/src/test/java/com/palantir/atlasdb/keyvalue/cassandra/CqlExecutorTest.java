@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,30 +95,23 @@ public class CqlExecutorTest {
     }
 
     private ArgumentMatcher<ByteBuffer> byteBufferMatcher(String expected) {
-        return new ArgumentMatcher<ByteBuffer>() {
-            @Override
-            public boolean matches(Object argument) {
-                if (!(argument instanceof ByteBuffer)) {
-                    return false;
-                }
-
-                String actualQuery = PtBytes.toString(((ByteBuffer) argument).array());
-                return expected.equals(actualQuery);
+        return argument -> {
+            if (argument == null) {
+                return false;
             }
+
+            String actualQuery = PtBytes.toString(argument.array());
+            return expected.equals(actualQuery);
         };
     }
 
     private ArgumentMatcher<CqlQuery> cqlQueryMatcher(String expected) {
-        return new ArgumentMatcher<CqlQuery>() {
-            @Override
-            public boolean matches(Object argument) {
-                if (!(argument instanceof CqlQuery)) {
-                    return false;
-                }
-
-                String actualQuery = argument.toString();
-                return expected.equals(actualQuery);
+        return argument -> {
+            if (argument == null) {
+                return false;
             }
+
+            return expected.equals(argument.toString());
         };
     }
 

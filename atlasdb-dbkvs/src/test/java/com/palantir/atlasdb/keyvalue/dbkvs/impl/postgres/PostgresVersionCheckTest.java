@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import static org.mockito.Matchers.contains;
+import static org.mockito.ArgumentMatchers.contains;
 
 import org.junit.Rule;
 import org.junit.Test;
