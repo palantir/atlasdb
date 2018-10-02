@@ -30,7 +30,9 @@ public interface StoredWriteReference extends Persistable {
         switch (data[0]) {
             case 0: return visitor.visitTableNameAsStringBinary(data);
             case 1: return visitor.visitTableIdBinary(data);
-            default: return visitor.visitJson(data);
+            case '{': return visitor.visitJson(data);
+            default: throw new IllegalArgumentException(
+                    "Data stored in targeted sweep queue was not recognised as a known data format");
         }
     }
 
