@@ -19,10 +19,14 @@ import java.util.Date;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
 
+@JsonDeserialize(as = ImmutableSimpleTokenInfo.class)
+@JsonSerialize(as = ImmutableSimpleTokenInfo.class)
 @Value.Immutable
 public abstract class SimpleTokenInfo {
     public static SimpleTokenInfo of(HeldLocksToken token, LockMode lockMode) {
