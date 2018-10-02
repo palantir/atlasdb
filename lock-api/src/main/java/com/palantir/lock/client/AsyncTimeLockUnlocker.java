@@ -35,10 +35,6 @@ import com.palantir.logsafe.SafeArg;
  * There is another layer of retrying below us (at the HTTP client level) for external timelock users.
  * Also, in the event we fail to unlock (e.g. because of a connection issue), locks will eventually time-out.
  * Thus not retrying is reasonably safe (as long as we can guarantee that the lock won't otherwise be refreshed).
- *
- * Concurrency: We want to guarantee that a token T that is enqueued is included in some call to unlockOutstanding.
- * If T can pass the compareAndSet, then T itself is scheduled. If T does not, that means there is some other
- * thread that has scheduled the task, but the task has not yet retrieved the current contents of the queue.
  */
 public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockUnlocker.class);

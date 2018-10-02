@@ -59,7 +59,7 @@ public final class DisruptorAutobatcher<T, R>
 
     @Override
     public ListenableFuture<R> apply(T argument) {
-        checkState(!closed, "AsyncTimelockRefresher is already shut down");
+        checkState(!closed, "Autobatcher is already shut down");
         SettableFuture<R> result = SettableFuture.create();
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;

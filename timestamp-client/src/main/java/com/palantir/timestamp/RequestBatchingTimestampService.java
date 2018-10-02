@@ -67,6 +67,7 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        checkArgument(numTimestampsRequested > 0, "Must not request zero or negative timestamps");
         ListenableFuture<TimestampRange> range = batcher.apply(numTimestampsRequested);
         try {
             return range.get();
@@ -95,9 +96,7 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
             long endExclusive = 0;
             for (BatchElement<Integer, TimestampRange> element : batch) {
                 int timestampsRequired = element.argument();
-                if (element.argument() == 0) {
-                    element.result().setException(new IllegalArgumentException("Cannot ask for 0 timestamps"));
-                } else if (element.argument() <= endExclusive - startInclusive) {
+                if (element.argument() <= endExclusive - startInclusive) {
                     element.result().set(createExclusiveRange(startInclusive, startInclusive + timestampsRequired));
                     startInclusive += timestampsRequired;
                     totalTimestamps -= timestampsRequired;
