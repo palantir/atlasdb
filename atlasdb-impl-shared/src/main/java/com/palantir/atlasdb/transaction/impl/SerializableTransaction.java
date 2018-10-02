@@ -262,7 +262,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
         Validate.notNull(maxRow, "maxRow cannot be null");
         ConcurrentMap<RangeRequest, byte[]> rangeEnds =
-                rangeEndByTable.computeIfAbsent(table, $ -> Maps.newConcurrentMap());
+                rangeEndByTable.computeIfAbsent(table, unused -> Maps.newConcurrentMap());
 
         if (maxRow.length == 0) {
             rangeEnds.put(range, maxRow);
@@ -620,7 +620,9 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private static BatchColumnRangeSelection nextLexicographicalRangeEnd(BatchColumnRangeSelection currentRange, byte[] rangeEnd) {
+    private static BatchColumnRangeSelection nextLexicographicalRangeEnd(
+            BatchColumnRangeSelection currentRange,
+            byte[] rangeEnd) {
         if (rangeEnd.length != 0 && !RangeRequests.isTerminalRow(false, rangeEnd)) {
             return BatchColumnRangeSelection.create(
                     currentRange.getStartCol(),
