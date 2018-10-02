@@ -692,6 +692,7 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices) {
         TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
