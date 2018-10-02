@@ -194,6 +194,18 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         assertNoEntryForCellInKvs(TABLE_THOR, TEST_CELL);
     }
 
+    @Test
+    public void sweepThrowsAwayWritesForDroppedTables() {
+        useOneSweepQueueShard();
+        writeInTransactionAndGetStartTimestamp(SINGLE_WRITE);
+        Long startTimestamp = writeInTransactionAndGetStartTimestamp(SINGLE_WRITE);
+
+        keyValueService.dropTable(TABLE_CONS);
+
+        serializableTxManager.setUnreadableTimestamp(startTimestamp + 1);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+    }
+
     private void put(Transaction txn, WriteReference write) {
         if (write.isTombstone()) {
             txn.delete(write.tableRef(), ImmutableSet.of(write.cell()));

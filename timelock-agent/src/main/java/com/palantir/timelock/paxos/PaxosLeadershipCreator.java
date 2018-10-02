@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -48,6 +49,7 @@ public class PaxosLeadershipCreator {
 
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
+    private LeadershipObserver leadershipObserver;
 
     public PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -79,6 +81,7 @@ public class PaxosLeadershipCreator {
                 "leader-election-service");
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
+        leadershipObserver = localPaxosServices.leadershipObserver();
 
         registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
@@ -121,6 +124,14 @@ public class PaxosLeadershipCreator {
 
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
+
+    public void executeWhenGainedLeadership(Runnable task) {
+        leadershipObserver.executeWhenGainedLeadership(task);
+    }
+
+    public void executeWhenLostLeadership(Runnable task) {
+        leadershipObserver.executeWhenLostLeadership(task);
     }
 
     public boolean isCurrentSuspectedLeader() {

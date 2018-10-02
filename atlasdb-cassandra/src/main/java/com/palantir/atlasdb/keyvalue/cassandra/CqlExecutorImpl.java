@@ -176,13 +176,15 @@ public class CqlExecutorImpl implements CqlExecutor {
             int limit) {
         long invertedTimestamp = ~startTimestampExclusive;
         String selQuery = "SELECT column1, column2 FROM %s WHERE key = %s AND (column1, column2) > (%s, %s) LIMIT %s;";
-        CqlQuery query = new CqlQuery(
-                selQuery,
-                quotedTableName(tableRef),
-                key(row),
-                column1(startColumnInclusive),
-                column2(invertedTimestamp),
-                limit(limit));
+        CqlQuery query = CqlQuery.builder()
+                .safeQueryFormat(selQuery)
+                .addArgs(
+                        quotedTableName(tableRef),
+                        key(row),
+                        column1(startColumnInclusive),
+                        column2(invertedTimestamp),
+                        limit(limit))
+                .build();
 
         return executeAndGetCells(query, row,
                 result -> CqlExecutorImpl.getCellFromKeylessRow(result, row));

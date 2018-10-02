@@ -41,8 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting3.tracing.Tracers;
+import com.palantir.tracing.Tracers;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -438,8 +437,8 @@ public final class PTExecutors {
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         Preconditions.checkArgument(corePoolSize >= 0,
-                "Cannot create a ScheduledThreadPoolExecutor with {} threads - thread count must not be negative!",
-                SafeArg.of("corePoolSize", corePoolSize));
+                "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
+                corePoolSize);
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
                 handler) {

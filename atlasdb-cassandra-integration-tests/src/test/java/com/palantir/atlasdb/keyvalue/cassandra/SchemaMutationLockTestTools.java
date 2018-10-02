@@ -50,8 +50,10 @@ public final class SchemaMutationLockTestTools {
 
     public CqlResult truncateLocksTable() throws TException {
         return clientPool.run(client -> {
-            CqlQuery truncateQuery = new CqlQuery("TRUNCATE \"%s\";",
-                    SafeArg.of("lockTable", lockTable.getOnlyTable().getQualifiedName()));
+            CqlQuery truncateQuery = CqlQuery.builder()
+                    .safeQueryFormat("TRUNCATE \"%s\";")
+                    .addArgs(SafeArg.of("lockTable", lockTable.getOnlyTable().getQualifiedName()))
+                    .build();
             return runCqlQuery(truncateQuery, client, ConsistencyLevel.ALL);
         });
     }
@@ -60,11 +62,13 @@ public final class SchemaMutationLockTestTools {
         return clientPool.run(client -> {
             String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
             String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
-            CqlQuery selectCql = new CqlQuery(
-                    "SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;",
-                    SafeArg.of("lockTable", lockTable.getOnlyTable().getQualifiedName()),
-                    SafeArg.of("lockRow", lockRowName),
-                    SafeArg.of("lockColumn", lockColName));
+            CqlQuery selectCql = CqlQuery.builder()
+                    .safeQueryFormat("SELECT \"value\" FROM \"%s\" WHERE key = %s AND column1 = %s AND column2 = -1;")
+                    .addArgs(
+                            SafeArg.of("lockTable", lockTable.getOnlyTable().getQualifiedName()),
+                            SafeArg.of("lockRow", lockRowName),
+                            SafeArg.of("lockColumn", lockColName))
+                    .build();
             return runCqlQuery(selectCql, client, ConsistencyLevel.LOCAL_QUORUM);
         });
     }
@@ -86,12 +90,14 @@ public final class SchemaMutationLockTestTools {
             String lockRowName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_ROW_NAME);
             String lockColName = getHexEncodedBytes(CassandraConstants.GLOBAL_DDL_LOCK_COLUMN_NAME);
             String lockTableName = lockTable.getOnlyTable().getQualifiedName();
-            CqlQuery updateCql = new CqlQuery(
-                    "UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;",
-                    SafeArg.of("lockTable", lockTableName),
-                    SafeArg.of("hexLockValue", hexLockValue),
-                    SafeArg.of("lockRow", lockRowName),
-                    SafeArg.of("lockCol", lockColName));
+            CqlQuery updateCql = CqlQuery.builder()
+                    .safeQueryFormat("UPDATE \"%s\" SET value = %s WHERE key = %s AND column1 = %s AND column2 = -1;")
+                    .addArgs(
+                            SafeArg.of("lockTable", lockTableName),
+                            SafeArg.of("hexLockValue", hexLockValue),
+                            SafeArg.of("lockRow", lockRowName),
+                            SafeArg.of("lockCol", lockColName))
+                    .build();
             return runCqlQuery(updateCql, client, ConsistencyLevel.EACH_QUORUM);
         });
     }

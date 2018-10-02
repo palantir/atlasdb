@@ -44,10 +44,6 @@ public final class PaxosResource {
         this.logDirectory = logDirectory;
     }
 
-    public static PaxosResource create(MetricRegistry metricRegistry) {
-        return create(metricRegistry, PaxosTimeLockConstants.DEFAULT_LOG_DIRECTORY);
-    }
-
     public static PaxosResource create(MetricRegistry metricRegistry, String logDirectory) {
         return new PaxosResource(metricRegistry, logDirectory);
     }

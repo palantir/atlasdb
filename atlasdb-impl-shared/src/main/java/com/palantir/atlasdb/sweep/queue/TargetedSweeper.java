@@ -222,7 +222,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 metrics.registerOccurrenceOf(SweepOutcome.ERROR);
                 logException(th, maybeLock);
             } finally {
-                maybeLock.ifPresent(TargetedSweeperLock::unlock);
+                try {
+                    maybeLock.ifPresent(TargetedSweeperLock::unlock);
+                } catch (Throwable th) {
+                    logUnlockException(th, maybeLock);
+                }
             }
         }
 
@@ -245,6 +249,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
             } else {
                 log.warn("Targeted sweep for sweep strategy {} failed and will be retried later.",
+                        SafeArg.of("sweepStrategy", sweepStrategy), th);
+            }
+        }
+
+        private void logUnlockException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {
+            if (maybeLock.isPresent()) {
+                log.info("Failed to unlock targeted sweep lock for {}.",
+                        SafeArg.of("shardStrategy", maybeLock.get().getShardAndStrategy().toText()), th);
+            } else {
+                log.info("Failed to unlock targeted sweep lock for sweep strategy {}.",
                         SafeArg.of("sweepStrategy", sweepStrategy), th);
             }
         }

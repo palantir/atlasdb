@@ -23,6 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.Validate;
@@ -50,6 +51,14 @@ import com.palantir.util.streams.PTStreams;
  * All the methods deprecated in this class have alternatives in {@link PalantirSqlConnection}
  */
 public abstract class SQL extends BasicSQL {
+    public SQL() {
+        super();
+    }
+
+    public SQL(ExecutorService selectStatementExecutor, ExecutorService executeStatementExecutor) {
+        super(selectStatementExecutor, executeStatementExecutor);
+    }
+
     static final Logger sqlExceptionlog = LoggerFactory.getLogger("sqlException." + SQL.class.getName()); //$NON-NLS-1$
 
     /** key for the sql query to list tables with a given column. */

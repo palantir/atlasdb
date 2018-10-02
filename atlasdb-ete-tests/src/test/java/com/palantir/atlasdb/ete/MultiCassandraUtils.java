@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Throwables;
-import com.jayway.awaitility.Awaitility;
 import com.palantir.docker.compose.connection.Container;
-import com.palantir.docker.compose.connection.DockerPort;
 
 public final class MultiCassandraUtils {
     private static final int CASSANDRA_PORT = 9160;
@@ -51,9 +49,15 @@ public final class MultiCassandraUtils {
     }
 
     private static void waitForCassandraContainer(Container container) {
-        DockerPort containerPort = new DockerPort(container.getContainerName(), CASSANDRA_PORT, CASSANDRA_PORT);
-        Awaitility.await()
+        org.awaitility.Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
-                .until(containerPort::isListeningNow);
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(() -> {
+                    // TODO (jkong): hack
+                    String curlOutput = EteSetup.execCliCommand("ete1",
+                            String.format("bash -c 'curl %s:%s; echo $?; exit 0;'",
+                                    container.getContainerName(), CASSANDRA_PORT));
+                    return curlOutput.contains("52");
+                });
     }
 }

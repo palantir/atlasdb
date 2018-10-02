@@ -16,7 +16,9 @@
 
 package com.palantir.timelock.paxos;
 
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
@@ -41,6 +44,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.JavaSuppliers;
 
@@ -84,11 +88,24 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
                 client);
 
+        leadershipCreator.executeWhenLostLeadership(() ->
+                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(true)));
+
+        leadershipCreator.executeWhenGainedLeadership(() ->
+                metricsManager.deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(false)));
+
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
                 asyncOrLegacyTimelockService,
                 asyncTimelockService);
+    }
+
+    private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {
+        return metricName ->
+                Optional.ofNullable(metricName.safeTags().get(AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER))
+                        .filter(x -> x.equals(String.valueOf(currentLeader)))
+                        .isPresent();
     }
 
     private AsyncTimelockService createRawAsyncTimelockService(
@@ -119,7 +136,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
                 metricRegistry, serviceClass, service, MetricRegistry.name(serviceClass),
                 context -> ImmutableMap.of(
-                        "client", client,
-                        "isCurrentSuspectedLeader", String.valueOf(leadershipCreator.isCurrentSuspectedLeader())));
+                        AtlasDbMetricNames.TAG_CLIENT, client,
+                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER, String.valueOf(
+                                leadershipCreator.isCurrentSuspectedLeader())));
     }
 }

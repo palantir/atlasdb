@@ -47,6 +47,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
@@ -93,7 +94,13 @@ public final class CassandraTimestampUtils {
             builder.append(constructCheckAndSetQuery(columnName, expected, target));
         });
         builder.append("APPLY BATCH;");
-        return new CqlQuery(builder.toString());
+
+        // This looks awkward. However, we know that all expressions in this String pertain to timestamps and known
+        // table references, hence this is actually safe. Doing this quickly owing to priority.
+        // TODO (jkong): Build up a query by passing around legitimate formats and args.
+        return CqlQuery.builder()
+                .safeQueryFormat(builder.toString())
+                .build();
     }
 
     public static boolean isValidTimestampData(byte[] data) {
@@ -101,12 +108,15 @@ public final class CassandraTimestampUtils {
     }
 
     public static CqlQuery constructSelectFromTimestampTableQuery() {
-        return new CqlQuery(String.format(
-                "SELECT %s, %s FROM %s WHERE key=%s;",
-                COLUMN_NAME_COLUMN,
-                VALUE_COLUMN,
-                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                ROW_AND_COLUMN_NAME_HEX_STRING));
+        // Timestamps are safe.
+        return ImmutableCqlQuery.builder()
+                .safeQueryFormat("SELECT %s, %s FROM %s WHERE key=%s;")
+                .addArgs(
+                        SafeArg.of("columnName", COLUMN_NAME_COLUMN),
+                        SafeArg.of("valueColumnName", VALUE_COLUMN),
+                        SafeArg.of("tableRef", wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName())),
+                        SafeArg.of("rowAndColumnValue", ROW_AND_COLUMN_NAME_HEX_STRING))
+                .build();
     }
 
     public static Map<String, byte[]> getValuesFromSelectionResult(CqlResult result) {

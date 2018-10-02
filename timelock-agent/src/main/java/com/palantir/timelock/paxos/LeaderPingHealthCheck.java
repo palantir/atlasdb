@@ -57,7 +57,7 @@ public class LeaderPingHealthCheck {
     }
 
     private int getQuorumSize() {
-        return (leaders.size() + 1) / 2;
+        return PaxosRemotingUtils.getQuorumSize(leaders);
     }
 
     private int getCountPingResults(PingResult value, Map<PingResult, Long> pingResults) {

@@ -49,7 +49,7 @@ public class PersistentUpperLimit {
             return;
         }
 
-        long newLimitWithBuffer = newLimit + BUFFER;
+        long newLimitWithBuffer = Math.addExact(newLimit, BUFFER);
         storeUpperLimit(newLimitWithBuffer);
         currentLimit = newLimitWithBuffer;
     }

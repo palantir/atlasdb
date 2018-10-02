@@ -50,6 +50,167 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists,
+           and was deleted by a different host while this host was online and sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
+    *    - |fixed|
+         - Targeted sweep now stores much less data in the sweepable cells table due
+           to more efficient encoding.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
+========
+v0.105.0
+========
+
+20 Sep 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Improved threading for MetricsManager's metricsRegistry
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3497>`__)
+
+    *    - |logs| |metrics|
+         - Improved visibility into sources of high DB load.
+           We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
+
+    *    - |changed|
+         - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
+
+    *    - |improved|
+         - Users may now provide their own executors to instances of ``BasicSQL`` and to ``BasicSQLUtils.runUninterruptably``.
+           Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3487>`__)
+
+    *    - |fixed|
+         - TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3507>`__)
+
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3508>`__)
+
+    *    - |fixed|
+         - Targeted sweep threads will no longer die if Timelock unlock calls fail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
+
+    *    - |improved|
+         - PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
+
+    *    - |fixed|
+         - Fixed an issue in timelock where followers were publishing metrics with ``isCurrentSuspectedLeader`` tag set to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3509>`__)
+
+    *    - |fixed|
+         - Background sweep will now choose between priority tables uniform randomly if there are multiple priority tables.
+           Previously, if multiple priority tables were specified, background sweep would repeatedly pick the same table to be swept, meaning that the other priority tables would all never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3512>`__)
+
+    *    - |improved|
+         - A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
+           servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly
+           misconfigured and thinks it is booting up for the first time again. Additionally, timestamps no longer overflow
+           when they hit Long.MAX_VALUE; this would only happen due to a bug, but at least now the DB will become read only
+           and not corrupt.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3498>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
+
+========
+v0.104.0
+========
+
+4 Sep 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
+
+    *    - |changed|
+         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+
+========
+v0.103.0
+========
+
+30 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Targeted sweep queue now hard fails if it is unable to read table metadata to determine sweep strategy.
+           Previously, we assumed the strategy was conservative, which could result in sweeping tables that should never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3477>`__)
+
+    *    - |fixed|
+         - Fixed an issue where targeted sweep would fail to increase the number of shards and error out if the default number of shards was ever persisted into the progress table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3473>`__)
+
+    *    - |fixed|
+         - Several exceptions (such as when creating cells with overly long names or executors in illegal configurations) now contain numerical parameters correctly.
+           Previously, the exceptions thrown would erroneously contain ``{}`` values.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3468>`__)
+
+    *    - |fixed|
+         - Cassandra Key Value Service now no longer logs spurious ERROR warning messages when failing to read new-format table metadata.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3478>`__)
+
+    *    - |improved|
+         - Throw more specific CommittedTransactionException when operating on a committed transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3460>`__)
+
+========
+v0.102.0
+========
+
+24 Aug 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - CQL queries are now logged correctly (with safe and unsafe arguments respected).
+           Previously, these versions would log all arguments as part of the format string as it eagerly did the string substitution.
+           AtlasDB versions 0.100.0 through 0.101.0 (inclusive both ends) are affected.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
+    *    - |devbreak| |improved|
+         - CqlQuery is now an abstract class and must now be created through its builder.
+           This makes the intention that the query string provided is safe considerably more explicit.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3469>`__)
+
     *    - |improved|
          - DbKvs now implements its own version of ``deleteAllTimestamps`` instead of using the default AbstractKvs implementation.
            This facilitates better performance of targeted sweep on DbKvs.
@@ -117,7 +278,7 @@ v0.101.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3416>`__)
 
     *    - |new| |devbreak|
-         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``. 
+         - ``TransactionManagers`` has a new builder option named ``validateLocksOnReads()``; set to ``true`` by default. This option is passed to ``TransactionManager``'s constructor, to be used in initialization of ``Transaction``.
            A transaction will validate pre-commit conditions and immutable ts lock after every read operation if underlying table is thoroughly swept (Default behavior). Setting ``validateLocksOnReads`` to ``false`` will stop transaction to do the mentioned validation on read operations; causing validations to take place only at commit time for the sake of reducing number of round-trips to improve overall transaction perf.
            This change will cause a devbreak if you are constructing a ``TransactionManager`` outside of ``TransactionManagers``. This can be resolved by adding an additional boolean parameter to the constructor (``true`` if you would like to keep previous behaviour)
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3414>`__)

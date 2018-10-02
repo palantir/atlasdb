@@ -21,18 +21,21 @@ import java.io.IOException;
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.persist.Persistable;
 
 @JsonDeserialize(as = ImmutableWriteReference.class)
 @JsonSerialize(as = ImmutableWriteReference.class)
 @Value.Immutable
 public abstract class WriteReference implements Persistable {
+    private static final byte[] prefix = { 0 };
+
     @JsonProperty("t")
     public abstract TableReference tableRef();
     @JsonProperty("c")
@@ -54,20 +57,41 @@ public abstract class WriteReference implements Persistable {
             .registerModule(new AfterburnerModule());
 
     public static final Hydrator<WriteReference> BYTES_HYDRATOR = input -> {
+        if (input[0] != prefix[0]) {
+            return decodeLegacy(input);
+        }
+        int offset = 1;
+        String tableReferenceString = EncodingUtils.decodeVarString(input, offset);
+        TableReference tableReference = TableReference.createFromFullyQualifiedName(tableReferenceString);
+        offset += EncodingUtils.sizeOfVarString(tableReferenceString);
+        byte[] row = EncodingUtils.decodeSizedBytes(input, offset);
+        offset += EncodingUtils.sizeOfSizedBytes(row);
+        byte[] column = EncodingUtils.decodeSizedBytes(input, offset);
+        offset += EncodingUtils.sizeOfSizedBytes(column);
+        long isTombstone = EncodingUtils.decodeUnsignedVarLong(input, offset);
+        return ImmutableWriteReference.builder()
+                .tableRef(tableReference)
+                .cell(Cell.create(row, column))
+                .isTombstone(isTombstone == 1)
+                .build();
+    };
+
+    @VisibleForTesting
+    static WriteReference decodeLegacy(byte[] input) {
         try {
             return OBJECT_MAPPER.readValue(input, WriteReference.class);
         } catch (IOException e) {
             throw new RuntimeException("Exception hydrating object.");
         }
-    };
+    }
 
     @Override
     public byte[] persistToBytes() {
-        try {
-            return OBJECT_MAPPER.writeValueAsBytes(this);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Exception processing JSON", e);
-        }
+        byte[] tableReference = EncodingUtils.encodeVarString(tableRef().getQualifiedName());
+        byte[] row = EncodingUtils.encodeSizedBytes(cell().getRowName());
+        byte[] column = EncodingUtils.encodeSizedBytes(cell().getColumnName());
+        byte[] isTombstone = EncodingUtils.encodeUnsignedVarLong(isTombstone() ? 1 : 0);
+        return EncodingUtils.add(prefix, tableReference, row, column, isTombstone);
     }
 
     public static WriteReference tombstone(TableReference tableRef, Cell cell) {

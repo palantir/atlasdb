@@ -245,7 +245,7 @@ public class TargetedSweepMetricsTest {
     @Test
     public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
         metricsManager = MetricsManagers.createForTests();
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000_000);
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
         metrics.updateProgressForShard(CONS_ZERO, 100);
@@ -258,6 +258,9 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
         clockTime += 100;
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+
+        clockTime += 1000; // clock is now 1201
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(1151L);
     }
 
     @Test

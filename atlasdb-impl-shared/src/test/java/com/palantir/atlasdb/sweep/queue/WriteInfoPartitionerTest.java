@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -36,6 +37,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -66,10 +68,19 @@ public class WriteInfoPartitionerTest {
     }
 
     @Test
-    public void getStrategyReturnsConservativeForIllegalMetadata() {
+    public void getStrategyThrowsForIllegalMetadata() {
         when(mockKvs.getMetadataForTable(any())).thenReturn(AtlasDbConstants.EMPTY_TABLE_METADATA);
-        assertThat(partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
-                .isEqualTo(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
+                .isInstanceOf(UncheckedExecutionException.class);
+    }
+
+    @Test
+    public void getStrategyThrowsOnUncheckedException() {
+        RuntimeException cause = new RuntimeException("cause");
+        when(mockKvs.getMetadataForTable(any())).thenThrow(cause);
+        assertThatThrownBy(() -> partitioner.getStrategy(getWriteInfoWithFixedCellHash(getTableRef("a"), 0)))
+                .isInstanceOf(UncheckedExecutionException.class)
+                .hasCause(cause);
     }
 
     @Test
@@ -132,7 +143,7 @@ public class WriteInfoPartitionerTest {
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.partitionWritesByShardStrategyTimestamp(writes);
         assertThat(partitions.keySet())
                 .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), true, 1L));
-        assertThat(partitions.values()).containsExactly(writes);
+        assertThat(Iterables.getOnlyElement(partitions.values())).isEqualTo(writes);
     }
 
     @Test
