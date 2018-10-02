@@ -72,13 +72,13 @@ develop
 
     *    - |fixed| |devbreak|
          - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
-
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)           
+        
 ========
 v0.105.0
 ========
 
 20 Sep 2018
-=======
 
 .. list-table::
     :widths: 5 40
