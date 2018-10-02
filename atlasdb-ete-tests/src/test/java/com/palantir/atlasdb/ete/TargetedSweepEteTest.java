@@ -26,7 +26,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -47,7 +46,6 @@ public class TargetedSweepEteTest {
     @After
     public void cleanupStreamTables() {
         todoClient.truncate();
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     @Test

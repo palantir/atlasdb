@@ -19,12 +19,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
-import java.util.concurrent.TimeUnit;
-
 import org.junit.After;
 import org.junit.Test;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
@@ -38,7 +35,6 @@ public class TodoEteTest {
     @After
     public void cleanupStreamTables() {
         todoClient.truncate();
-        Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
     }
 
     @Test
