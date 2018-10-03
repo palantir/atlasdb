@@ -17,9 +17,12 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -29,9 +32,23 @@ import com.palantir.atlasdb.encoding.PtBytes;
 @Value.Immutable
 public abstract class SweepResults {
 
-    public abstract Optional<byte[]> getPreviousStartRow();
+    @Nullable
+    @JsonProperty("previousStartRow")
+    protected abstract byte[] getPreviousStartRowNullable();
 
-    public abstract Optional<byte[]> getNextStartRow();
+    @Nullable
+    @JsonProperty("nextStartRow")
+    protected abstract byte[] getNextStartRowNullable();
+
+    @JsonIgnore
+    public Optional<byte[]> getPreviousStartRow() {
+        return Optional.ofNullable(getPreviousStartRowNullable());
+    }
+
+    @JsonIgnore
+    public Optional<byte[]> getNextStartRow() {
+        return Optional.ofNullable(getNextStartRowNullable());
+    }
 
     /**
      * The approximate number of (cell, timestamp) pairs examined.
@@ -83,8 +100,8 @@ public abstract class SweepResults {
         return fst.flatMap(row1 -> snd.map(row2 -> PtBytes.BYTES_COMPARATOR.max(row1, row2)));
     }
 
-    public static ImmutableSweepResults.Builder builder() {
-        return ImmutableSweepResults.builder();
+    public static SweepResults.Builder builder() {
+        return new Builder();
     }
 
     public static SweepResults createEmptySweepResultWithMoreToSweep() {
@@ -104,6 +121,16 @@ public abstract class SweepResults {
                 .timeInMillis(0)
                 .timeSweepStarted(System.currentTimeMillis())
                 .build();
+    }
+
+    public static class Builder extends ImmutableSweepResults.Builder {
+        public Builder previousStartRow(Optional<byte[]> previousStartRow) {
+            return this.previousStartRowNullable(previousStartRow.orElse(null));
+        }
+
+        public Builder nextStartRow(Optional<byte[]> startRow) {
+            return this.nextStartRowNullable(startRow.orElse(null));
+        }
     }
 
 }

@@ -244,8 +244,8 @@ public class NextTableToSweepProviderTest {
 
     private LockRequest requestContaining(String table) {
         return argThat(
-                argument -> argument != null &&
-                argument.getLockDescriptors().stream()
+                argument -> argument != null
+                        && argument.getLockDescriptors().stream()
                         .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 

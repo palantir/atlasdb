@@ -45,7 +45,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -350,7 +349,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
             if (!results.getNextStartRow().isPresent()) {
-                return Optional.of(ImmutableSweepResults.builder()
+                return Optional.of(SweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
                         .timeInMillis(1)

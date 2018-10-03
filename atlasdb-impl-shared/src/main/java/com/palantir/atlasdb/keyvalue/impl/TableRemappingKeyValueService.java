@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.ImmutableCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -382,7 +381,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     @Override
     public void checkAndSet(CheckAndSetRequest checkAndSetRequest) {
         try {
-            CheckAndSetRequest request = ImmutableCheckAndSetRequest.builder()
+            CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                     .from(checkAndSetRequest)
                     .table(tableMapper.getMappedTableName(checkAndSetRequest.table()))
                     .build();
