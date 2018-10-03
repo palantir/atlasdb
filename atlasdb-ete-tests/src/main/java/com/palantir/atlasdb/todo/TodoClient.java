@@ -215,7 +215,7 @@ public class TodoClient {
 
     public void truncate() {
         Schemas.truncateTablesAndIndexes(TodoSchema.getSchema(), kvs.get());
-        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs.get());
+        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.schemaWithoutTableIdentifierTables(), kvs.get());
     }
 
     public long addNamespacedTodoWithIdAndReturnTimestamp(long id, String namespace, Todo todo) {

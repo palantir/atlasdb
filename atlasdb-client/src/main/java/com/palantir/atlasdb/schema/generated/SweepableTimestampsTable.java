@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -250,7 +250,7 @@ public final class SweepableTimestampsTable implements
                 return false;
             }
             SweepableTimestampsRow other = (SweepableTimestampsRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(shard, other.shard) && Objects.equal(timestampPartition, other.timestampPartition) && Arrays.equals(sweepConservative, other.sweepConservative);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Objects.equals(timestampPartition, other.timestampPartition) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -345,7 +345,7 @@ public final class SweepableTimestampsTable implements
                 return false;
             }
             SweepableTimestampsColumn other = (SweepableTimestampsColumn) obj;
-            return Objects.equal(timestampModulus, other.timestampModulus);
+            return Objects.equals(timestampModulus, other.timestampModulus);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -534,32 +534,6 @@ public final class SweepableTimestampsTable implements
         for (SweepableTimestampsTrigger trigger : triggers) {
             trigger.putSweepableTimestamps(values);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    public void putUnlessExists(SweepableTimestampsRow rowName, Iterable<SweepableTimestampsColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    public void putUnlessExists(SweepableTimestampsRow rowName, SweepableTimestampsColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<SweepableTimestampsRow, SweepableTimestampsColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    public void putUnlessExists(Multimap<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> rows) {
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumn> toGet = Multimaps.transformValues(rows, SweepableTimestampsColumnValue.getColumnNameFun());
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> existing = get(toGet);
-        Multimap<SweepableTimestampsRow, SweepableTimestampsColumnValue> toPut = HashMultimap.create();
-        for (Entry<SweepableTimestampsRow, ? extends SweepableTimestampsColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     @Override
@@ -786,5 +760,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cN/0e5v/DaWSokHPM4AdJg==";
+    static String __CLASS_HASH = "t7gPykD45L4BzA0609socA==";
 }

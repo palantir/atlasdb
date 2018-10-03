@@ -86,32 +86,32 @@ import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings("all")
-public final class SweepShardProgressTable implements
-        AtlasDbMutablePersistentTable<SweepShardProgressTable.SweepShardProgressRow,
-                                         SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>,
-                                         SweepShardProgressTable.SweepShardProgressRowResult>,
-        AtlasDbNamedMutableTable<SweepShardProgressTable.SweepShardProgressRow,
-                                    SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>,
-                                    SweepShardProgressTable.SweepShardProgressRowResult> {
+public final class SweepNameToIdTable implements
+        AtlasDbMutablePersistentTable<SweepNameToIdTable.SweepNameToIdRow,
+                                         SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>,
+                                         SweepNameToIdTable.SweepNameToIdRowResult>,
+        AtlasDbNamedMutableTable<SweepNameToIdTable.SweepNameToIdRow,
+                                    SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>,
+                                    SweepNameToIdTable.SweepNameToIdRowResult> {
     private final Transaction t;
-    private final List<SweepShardProgressTrigger> triggers;
-    private final static String rawTableName = "sweepProgressPerShard";
+    private final List<SweepNameToIdTrigger> triggers;
+    private final static String rawTableName = "sweepNameToId";
     private final TableReference tableRef;
-    private final static ColumnSelection allColumns = getColumnSelection(SweepShardProgressNamedColumn.values());
+    private final static ColumnSelection allColumns = getColumnSelection(SweepNameToIdNamedColumn.values());
 
-    static SweepShardProgressTable of(Transaction t, Namespace namespace) {
-        return new SweepShardProgressTable(t, namespace, ImmutableList.<SweepShardProgressTrigger>of());
+    static SweepNameToIdTable of(Transaction t, Namespace namespace) {
+        return new SweepNameToIdTable(t, namespace, ImmutableList.<SweepNameToIdTrigger>of());
     }
 
-    static SweepShardProgressTable of(Transaction t, Namespace namespace, SweepShardProgressTrigger trigger, SweepShardProgressTrigger... triggers) {
-        return new SweepShardProgressTable(t, namespace, ImmutableList.<SweepShardProgressTrigger>builder().add(trigger).add(triggers).build());
+    static SweepNameToIdTable of(Transaction t, Namespace namespace, SweepNameToIdTrigger trigger, SweepNameToIdTrigger... triggers) {
+        return new SweepNameToIdTable(t, namespace, ImmutableList.<SweepNameToIdTrigger>builder().add(trigger).add(triggers).build());
     }
 
-    static SweepShardProgressTable of(Transaction t, Namespace namespace, List<SweepShardProgressTrigger> triggers) {
-        return new SweepShardProgressTable(t, namespace, triggers);
+    static SweepNameToIdTable of(Transaction t, Namespace namespace, List<SweepNameToIdTrigger> triggers) {
+        return new SweepNameToIdTable(t, namespace, triggers);
     }
 
-    private SweepShardProgressTable(Transaction t, Namespace namespace, List<SweepShardProgressTrigger> triggers) {
+    private SweepNameToIdTable(Transaction t, Namespace namespace, List<SweepNameToIdTrigger> triggers) {
         this.t = t;
         this.tableRef = TableReference.create(namespace, rawTableName);
         this.triggers = triggers;
@@ -135,51 +135,44 @@ public final class SweepShardProgressTable implements
 
     /**
      * <pre>
-     * SweepShardProgressRow {
+     * SweepNameToIdRow {
      *   {@literal Long hashOfRowComponents};
-     *   {@literal Long shard};
-     *   {@literal byte[] sweepConservative};
+     *   {@literal String table};
      * }
      * </pre>
      */
-    public static final class SweepShardProgressRow implements Persistable, Comparable<SweepShardProgressRow> {
+    public static final class SweepNameToIdRow implements Persistable, Comparable<SweepNameToIdRow> {
         private final long hashOfRowComponents;
-        private final long shard;
-        private final byte[] sweepConservative;
+        private final String table;
 
-        public static SweepShardProgressRow of(long shard, byte[] sweepConservative) {
-            long hashOfRowComponents = computeHashFirstComponents(shard);
-            return new SweepShardProgressRow(hashOfRowComponents, shard, sweepConservative);
+        public static SweepNameToIdRow of(String table) {
+            long hashOfRowComponents = computeHashFirstComponents(table);
+            return new SweepNameToIdRow(hashOfRowComponents, table);
         }
 
-        private SweepShardProgressRow(long hashOfRowComponents, long shard, byte[] sweepConservative) {
+        private SweepNameToIdRow(long hashOfRowComponents, String table) {
             this.hashOfRowComponents = hashOfRowComponents;
-            this.shard = shard;
-            this.sweepConservative = sweepConservative;
+            this.table = table;
         }
 
-        public long getShard() {
-            return shard;
+        public String getTable() {
+            return table;
         }
 
-        public byte[] getSweepConservative() {
-            return sweepConservative;
-        }
-
-        public static Function<SweepShardProgressRow, Long> getShardFun() {
-            return new Function<SweepShardProgressRow, Long>() {
+        public static Function<SweepNameToIdRow, String> getTableFun() {
+            return new Function<SweepNameToIdRow, String>() {
                 @Override
-                public Long apply(SweepShardProgressRow row) {
-                    return row.shard;
+                public String apply(SweepNameToIdRow row) {
+                    return row.table;
                 }
             };
         }
 
-        public static Function<SweepShardProgressRow, byte[]> getSweepConservativeFun() {
-            return new Function<SweepShardProgressRow, byte[]>() {
+        public static Function<String, SweepNameToIdRow> fromTableFun() {
+            return new Function<String, SweepNameToIdRow>() {
                 @Override
-                public byte[] apply(SweepShardProgressRow row) {
-                    return row.sweepConservative;
+                public SweepNameToIdRow apply(String row) {
+                    return SweepNameToIdRow.of(row);
                 }
             };
         }
@@ -187,36 +180,32 @@ public final class SweepShardProgressTable implements
         @Override
         public byte[] persistToBytes() {
             byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
-            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
-            byte[] sweepConservativeBytes = sweepConservative;
-            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, sweepConservativeBytes);
+            byte[] tableBytes = PtBytes.toBytes(table);
+            return EncodingUtils.add(hashOfRowComponentsBytes, tableBytes);
         }
 
-        public static final Hydrator<SweepShardProgressRow> BYTES_HYDRATOR = new Hydrator<SweepShardProgressRow>() {
+        public static final Hydrator<SweepNameToIdRow> BYTES_HYDRATOR = new Hydrator<SweepNameToIdRow>() {
             @Override
-            public SweepShardProgressRow hydrateFromBytes(byte[] __input) {
+            public SweepNameToIdRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long shard = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(shard);
-                byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
+                String table = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
-                return new SweepShardProgressRow(hashOfRowComponents, shard, sweepConservative);
+                return new SweepNameToIdRow(hashOfRowComponents, table);
             }
         };
 
-        public static long computeHashFirstComponents(long shard) {
-            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
-            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes)).asLong();
+        public static long computeHashFirstComponents(String table) {
+            byte[] tableBytes = PtBytes.toBytes(table);
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(tableBytes)).asLong();
         }
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("hashOfRowComponents", hashOfRowComponents)
-                .add("shard", shard)
-                .add("sweepConservative", sweepConservative)
+                .add("table", table)
                 .toString();
         }
 
@@ -231,77 +220,76 @@ public final class SweepShardProgressTable implements
             if (getClass() != obj.getClass()) {
                 return false;
             }
-            SweepShardProgressRow other = (SweepShardProgressRow) obj;
-            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Arrays.equals(sweepConservative, other.sweepConservative);
+            SweepNameToIdRow other = (SweepNameToIdRow) obj;
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(table, other.table);
         }
 
         @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, sweepConservative });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, table });
         }
 
         @Override
-        public int compareTo(SweepShardProgressRow o) {
+        public int compareTo(SweepNameToIdRow o) {
             return ComparisonChain.start()
                 .compare(this.hashOfRowComponents, o.hashOfRowComponents)
-                .compare(this.shard, o.shard)
-                .compare(this.sweepConservative, o.sweepConservative, UnsignedBytes.lexicographicalComparator())
+                .compare(this.table, o.table)
                 .result();
         }
     }
 
-    public interface SweepShardProgressNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
+    public interface SweepNameToIdNamedColumnValue<T> extends NamedColumnValue<T> { /* */ }
 
     /**
      * <pre>
      * Column value description {
-     *   type: Long;
+     *   type: com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier;
      * }
      * </pre>
      */
-    public static final class Value implements SweepShardProgressNamedColumnValue<Long> {
-        private final Long value;
+    public static final class Id implements SweepNameToIdNamedColumnValue<com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> {
+        private final com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier value;
 
-        public static Value of(Long value) {
-            return new Value(value);
+        public static Id of(com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier value) {
+            return new Id(value);
         }
 
-        private Value(Long value) {
+        private Id(com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "value";
+            return "id";
         }
 
         @Override
         public String getShortColumnName() {
-            return "v";
+            return "i";
         }
 
         @Override
-        public Long getValue() {
+        public com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier getValue() {
             return value;
         }
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+            byte[] bytes = value.persistToBytes();
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("v");
+            return PtBytes.toCachedBytes("i");
         }
 
-        public static final Hydrator<Value> BYTES_HYDRATOR = new Hydrator<Value>() {
+        public static final Hydrator<Id> BYTES_HYDRATOR = new Hydrator<Id>() {
             @Override
-            public Value hydrateFromBytes(byte[] bytes) {
+            public Id hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
+                return of(com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier.BYTES_HYDRATOR.hydrateFromBytes(bytes));
             }
         };
 
@@ -313,62 +301,62 @@ public final class SweepShardProgressTable implements
         }
     }
 
-    public interface SweepShardProgressTrigger {
-        public void putSweepShardProgress(Multimap<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> newRows);
+    public interface SweepNameToIdTrigger {
+        public void putSweepNameToId(Multimap<SweepNameToIdRow, ? extends SweepNameToIdNamedColumnValue<?>> newRows);
     }
 
-    public static final class SweepShardProgressRowResult implements TypedRowResult {
+    public static final class SweepNameToIdRowResult implements TypedRowResult {
         private final RowResult<byte[]> row;
 
-        public static SweepShardProgressRowResult of(RowResult<byte[]> row) {
-            return new SweepShardProgressRowResult(row);
+        public static SweepNameToIdRowResult of(RowResult<byte[]> row) {
+            return new SweepNameToIdRowResult(row);
         }
 
-        private SweepShardProgressRowResult(RowResult<byte[]> row) {
+        private SweepNameToIdRowResult(RowResult<byte[]> row) {
             this.row = row;
         }
 
         @Override
-        public SweepShardProgressRow getRowName() {
-            return SweepShardProgressRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
+        public SweepNameToIdRow getRowName() {
+            return SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName());
         }
 
-        public static Function<SweepShardProgressRowResult, SweepShardProgressRow> getRowNameFun() {
-            return new Function<SweepShardProgressRowResult, SweepShardProgressRow>() {
+        public static Function<SweepNameToIdRowResult, SweepNameToIdRow> getRowNameFun() {
+            return new Function<SweepNameToIdRowResult, SweepNameToIdRow>() {
                 @Override
-                public SweepShardProgressRow apply(SweepShardProgressRowResult rowResult) {
+                public SweepNameToIdRow apply(SweepNameToIdRowResult rowResult) {
                     return rowResult.getRowName();
                 }
             };
         }
 
-        public static Function<RowResult<byte[]>, SweepShardProgressRowResult> fromRawRowResultFun() {
-            return new Function<RowResult<byte[]>, SweepShardProgressRowResult>() {
+        public static Function<RowResult<byte[]>, SweepNameToIdRowResult> fromRawRowResultFun() {
+            return new Function<RowResult<byte[]>, SweepNameToIdRowResult>() {
                 @Override
-                public SweepShardProgressRowResult apply(RowResult<byte[]> rowResult) {
-                    return new SweepShardProgressRowResult(rowResult);
+                public SweepNameToIdRowResult apply(RowResult<byte[]> rowResult) {
+                    return new SweepNameToIdRowResult(rowResult);
                 }
             };
         }
 
-        public boolean hasValue() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("v"));
+        public boolean hasId() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("i"));
         }
 
-        public Long getValue() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("v"));
+        public com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier getId() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("i"));
             if (bytes == null) {
                 return null;
             }
-            Value value = Value.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            Id value = Id.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public static Function<SweepShardProgressRowResult, Long> getValueFun() {
-            return new Function<SweepShardProgressRowResult, Long>() {
+        public static Function<SweepNameToIdRowResult, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> getIdFun() {
+            return new Function<SweepNameToIdRowResult, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier>() {
                 @Override
-                public Long apply(SweepShardProgressRowResult rowResult) {
-                    return rowResult.getValue();
+                public com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier apply(SweepNameToIdRowResult rowResult) {
+                    return rowResult.getId();
                 }
             };
         }
@@ -377,144 +365,144 @@ public final class SweepShardProgressTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("Value", getValue())
+                .add("Id", getId())
                 .toString();
         }
     }
 
-    public enum SweepShardProgressNamedColumn {
-        VALUE {
+    public enum SweepNameToIdNamedColumn {
+        ID {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("v");
+                return PtBytes.toCachedBytes("i");
             }
         };
 
         public abstract byte[] getShortName();
 
-        public static Function<SweepShardProgressNamedColumn, byte[]> toShortName() {
-            return new Function<SweepShardProgressNamedColumn, byte[]>() {
+        public static Function<SweepNameToIdNamedColumn, byte[]> toShortName() {
+            return new Function<SweepNameToIdNamedColumn, byte[]>() {
                 @Override
-                public byte[] apply(SweepShardProgressNamedColumn namedColumn) {
+                public byte[] apply(SweepNameToIdNamedColumn namedColumn) {
                     return namedColumn.getShortName();
                 }
             };
         }
     }
 
-    public static ColumnSelection getColumnSelection(Collection<SweepShardProgressNamedColumn> cols) {
-        return ColumnSelection.create(Collections2.transform(cols, SweepShardProgressNamedColumn.toShortName()));
+    public static ColumnSelection getColumnSelection(Collection<SweepNameToIdNamedColumn> cols) {
+        return ColumnSelection.create(Collections2.transform(cols, SweepNameToIdNamedColumn.toShortName()));
     }
 
-    public static ColumnSelection getColumnSelection(SweepShardProgressNamedColumn... cols) {
+    public static ColumnSelection getColumnSelection(SweepNameToIdNamedColumn... cols) {
         return getColumnSelection(Arrays.asList(cols));
     }
 
-    private static final Map<String, Hydrator<? extends SweepShardProgressNamedColumnValue<?>>> shortNameToHydrator =
-            ImmutableMap.<String, Hydrator<? extends SweepShardProgressNamedColumnValue<?>>>builder()
-                .put("v", Value.BYTES_HYDRATOR)
+    private static final Map<String, Hydrator<? extends SweepNameToIdNamedColumnValue<?>>> shortNameToHydrator =
+            ImmutableMap.<String, Hydrator<? extends SweepNameToIdNamedColumnValue<?>>>builder()
+                .put("i", Id.BYTES_HYDRATOR)
                 .build();
 
-    public Map<SweepShardProgressRow, Long> getValues(Collection<SweepShardProgressRow> rows) {
-        Map<Cell, SweepShardProgressRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
-        for (SweepShardProgressRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("v")), row);
+    public Map<SweepNameToIdRow, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> getIds(Collection<SweepNameToIdRow> rows) {
+        Map<Cell, SweepNameToIdRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
+        for (SweepNameToIdRow row : rows) {
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("i")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
-        Map<SweepShardProgressRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SweepNameToIdRow, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Value.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier val = Id.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putValue(SweepShardProgressRow row, Long value) {
-        put(ImmutableMultimap.of(row, Value.of(value)));
+    public void putId(SweepNameToIdRow row, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier value) {
+        put(ImmutableMultimap.of(row, Id.of(value)));
     }
 
-    public void putValue(Map<SweepShardProgressRow, Long> map) {
-        Map<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepShardProgressRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
+    public void putId(Map<SweepNameToIdRow, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> map) {
+        Map<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
+        for (Entry<SweepNameToIdRow, com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier> e : map.entrySet()) {
+            toPut.put(e.getKey(), Id.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
     @Override
-    public void put(Multimap<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> rows) {
+    public void put(Multimap<SweepNameToIdRow, ? extends SweepNameToIdNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
         t.put(tableRef, ColumnValues.toCellValues(rows));
-        for (SweepShardProgressTrigger trigger : triggers) {
-            trigger.putSweepShardProgress(rows);
+        for (SweepNameToIdTrigger trigger : triggers) {
+            trigger.putSweepNameToId(rows);
         }
     }
 
-    public void deleteValue(SweepShardProgressRow row) {
-        deleteValue(ImmutableSet.of(row));
+    public void deleteId(SweepNameToIdRow row) {
+        deleteId(ImmutableSet.of(row));
     }
 
-    public void deleteValue(Iterable<SweepShardProgressRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("v");
+    public void deleteId(Iterable<SweepNameToIdRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("i");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
     @Override
-    public void delete(SweepShardProgressRow row) {
+    public void delete(SweepNameToIdRow row) {
         delete(ImmutableSet.of(row));
     }
 
     @Override
-    public void delete(Iterable<SweepShardProgressRow> rows) {
+    public void delete(Iterable<SweepNameToIdRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size());
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("v")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("i")));
         t.delete(tableRef, cells);
     }
 
-    public Optional<SweepShardProgressRowResult> getRow(SweepShardProgressRow row) {
+    public Optional<SweepNameToIdRowResult> getRow(SweepNameToIdRow row) {
         return getRow(row, allColumns);
     }
 
-    public Optional<SweepShardProgressRowResult> getRow(SweepShardProgressRow row, ColumnSelection columns) {
+    public Optional<SweepNameToIdRowResult> getRow(SweepNameToIdRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return Optional.empty();
         } else {
-            return Optional.of(SweepShardProgressRowResult.of(rowResult));
+            return Optional.of(SweepNameToIdRowResult.of(rowResult));
         }
     }
 
     @Override
-    public List<SweepShardProgressRowResult> getRows(Iterable<SweepShardProgressRow> rows) {
+    public List<SweepNameToIdRowResult> getRows(Iterable<SweepNameToIdRow> rows) {
         return getRows(rows, allColumns);
     }
 
     @Override
-    public List<SweepShardProgressRowResult> getRows(Iterable<SweepShardProgressRow> rows, ColumnSelection columns) {
+    public List<SweepNameToIdRowResult> getRows(Iterable<SweepNameToIdRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
-        List<SweepShardProgressRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
+        List<SweepNameToIdRowResult> rowResults = Lists.newArrayListWithCapacity(results.size());
         for (RowResult<byte[]> row : results.values()) {
-            rowResults.add(SweepShardProgressRowResult.of(row));
+            rowResults.add(SweepNameToIdRowResult.of(row));
         }
         return rowResults;
     }
 
     @Override
-    public List<SweepShardProgressNamedColumnValue<?>> getRowColumns(SweepShardProgressRow row) {
+    public List<SweepNameToIdNamedColumnValue<?>> getRowColumns(SweepNameToIdRow row) {
         return getRowColumns(row, allColumns);
     }
 
     @Override
-    public List<SweepShardProgressNamedColumnValue<?>> getRowColumns(SweepShardProgressRow row, ColumnSelection columns) {
+    public List<SweepNameToIdNamedColumnValue<?>> getRowColumns(SweepNameToIdRow row, ColumnSelection columns) {
         byte[] bytes = row.persistToBytes();
         RowResult<byte[]> rowResult = t.getRows(tableRef, ImmutableSet.of(bytes), columns).get(bytes);
         if (rowResult == null) {
             return ImmutableList.of();
         } else {
-            List<SweepShardProgressNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
+            List<SweepNameToIdNamedColumnValue<?>> ret = Lists.newArrayListWithCapacity(rowResult.getColumns().size());
             for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {
                 ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -523,24 +511,24 @@ public final class SweepShardProgressTable implements
     }
 
     @Override
-    public Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepShardProgressRow> rows) {
+    public Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowsMultimap(Iterable<SweepNameToIdRow> rows) {
         return getRowsMultimapInternal(rows, allColumns);
     }
 
     @Override
-    public Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowsMultimap(Iterable<SweepShardProgressRow> rows, ColumnSelection columns) {
+    public Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowsMultimap(Iterable<SweepNameToIdRow> rows, ColumnSelection columns) {
         return getRowsMultimapInternal(rows, columns);
     }
 
-    private Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepShardProgressRow> rows, ColumnSelection columns) {
+    private Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowsMultimapInternal(Iterable<SweepNameToIdRow> rows, ColumnSelection columns) {
         SortedMap<byte[], RowResult<byte[]>> results = t.getRows(tableRef, Persistables.persistAll(rows), columns);
         return getRowMapFromRowResults(results.values());
     }
 
-    private static Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
-        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> rowMap = HashMultimap.create();
+    private static Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> getRowMapFromRowResults(Collection<RowResult<byte[]>> rowResults) {
+        Multimap<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>> rowMap = HashMultimap.create();
         for (RowResult<byte[]> result : rowResults) {
-            SweepShardProgressRow row = SweepShardProgressRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
+            SweepNameToIdRow row = SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(result.getRowName());
             for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {
                 rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));
             }
@@ -549,12 +537,12 @@ public final class SweepShardProgressTable implements
     }
 
     @Override
-    public Map<SweepShardProgressRow, BatchingVisitable<SweepShardProgressNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepShardProgressRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+    public Map<SweepNameToIdRow, BatchingVisitable<SweepNameToIdNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepNameToIdRow> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRange(tableRef, Persistables.persistAll(rows), columnRangeSelection);
-        Map<SweepShardProgressRow, BatchingVisitable<SweepShardProgressNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        Map<SweepNameToIdRow, BatchingVisitable<SweepNameToIdNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
-            SweepShardProgressRow row = SweepShardProgressRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
-            BatchingVisitable<SweepShardProgressNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
+            SweepNameToIdRow row = SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            BatchingVisitable<SweepNameToIdNamedColumnValue<?>> bv = BatchingVisitables.transform(e.getValue(), result -> {
                 return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
             });
             transformed.put(row, bv);
@@ -563,25 +551,25 @@ public final class SweepShardProgressTable implements
     }
 
     @Override
-    public Iterator<Map.Entry<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepShardProgressRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
+    public Iterator<Map.Entry<SweepNameToIdRow, SweepNameToIdNamedColumnValue<?>>> getRowsColumnRange(Iterable<SweepNameToIdRow> rows, ColumnRangeSelection columnRangeSelection, int batchHint) {
         Iterator<Map.Entry<Cell, byte[]>> results = t.getRowsColumnRange(getTableRef(), Persistables.persistAll(rows), columnRangeSelection, batchHint);
         return Iterators.transform(results, e -> {
-            SweepShardProgressRow row = SweepShardProgressRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
-            SweepShardProgressNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
+            SweepNameToIdRow row = SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());
+            SweepNameToIdNamedColumnValue<?> colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());
             return Maps.immutableEntry(row, colValue);
         });
     }
 
-    public BatchingVisitableView<SweepShardProgressRowResult> getAllRowsUnordered() {
+    public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
 
-    public BatchingVisitableView<SweepShardProgressRowResult> getAllRowsUnordered(ColumnSelection columns) {
+    public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered(ColumnSelection columns) {
         return BatchingVisitables.transform(t.getRange(tableRef, RangeRequest.builder().retainColumns(columns).build()),
-                new Function<RowResult<byte[]>, SweepShardProgressRowResult>() {
+                new Function<RowResult<byte[]>, SweepNameToIdRowResult>() {
             @Override
-            public SweepShardProgressRowResult apply(RowResult<byte[]> input) {
-                return SweepShardProgressRowResult.of(input);
+            public SweepNameToIdRowResult apply(RowResult<byte[]> input) {
+                return SweepNameToIdRowResult.of(input);
             }
         });
     }
@@ -683,5 +671,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "tTaBGffFKZLsQNSbGhRrFQ==";
+    static String __CLASS_HASH = "DfAfxfVhiaGnk6aV2ilbFQ==";
 }
