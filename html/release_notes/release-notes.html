@@ -186,27 +186,32 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead
+of storing them as strings.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">TransactionManager``s</span> <span class="pre">now</span> <span class="pre">expose</span> <span class="pre">a</span> <span class="pre">``TimestampManagementService</span></code>, allowing clients to fast-forward timestamps when necessary.
 This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
 directly require the TimestampManagementService.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3524">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Targeted sweep no longer chokes if a table in the queue no longer exists,
 and was deleted by a different host while this host was online and sweeping.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Targeted sweep now stores much less data in the sweepable cells table due
 to more efficient encoding.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3521">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3536">Pull Request</a>)</td>
 </tr>
