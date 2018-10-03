@@ -8,10 +8,10 @@
  for your changes to take effect in its Checkstyle integration. -->
 <suppressions>
     <!-- Suppress test classes -->
-    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="AvoidStaticImport" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="Javadoc*" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VariableDeclarationUsageDistance" />
     <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="VisibilityModifier" />
+    <suppress files="[/\\]src[/\\].*[Tt]est[/\\](java|groovy)[/\\]" checks="AvoidStaticImport" />
 
     <!-- JavadocStyle enforces existence of package-info.java package-level Javadoc; we consider this a bug. -->
     <suppress files="package-info.java" checks="JavadocStyle" />
@@ -21,17 +21,5 @@
     <suppress files="\.(bdr|eot|gif|gzip|jar|json|otf|png|svg|ttf|woff|zip)$" checks="NewlineAtEndOfFile" />
 
     <!-- Generated code should not be subjected to checkstyle. -->
-    <suppress files="[/\\].*[/\\]generated_src[/\\]" checks="." />
-    <suppress files="[/\\].*[/\\]generated_testSrc[/\\]" checks="." />
-    <suppress files="[/\\].*[/\\]generated[/\\]" checks="." />
-
-    <!-- Certain AtlasDB projects are ignored. -->
-    <suppress files="atlasdb-client/*" checks="." />
-    <suppress files="atlasdb-commons/*" checks="." />
-    <suppress files="atlasdb-console/*" checks="." />
-    <suppress files="atlasdb-jdbc/*" checks="." />
-    <suppress files="atlasdb-jdbc-tests/*" checks="." />
-    <suppress files="cassandra-partitioner/*" checks="." />
-    <suppress files="commons-db/*" checks="." />
-    <suppress files="lock-impl/*" checks="." />
+    <suppress files="[/\\].*[/\\]generated.*[/\\]" checks="." />
 </suppressions>
