@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 
 public class KvsProfilingLogger {
 
-    public static final String SLOW_LOGGER_NAME = "kvs-slow-log";
+    public static final String SLOW_LOGGER_NAME = "kvs-slow-log-2";
 
     public static final Logger slowlogger = LoggerFactory.getLogger(SLOW_LOGGER_NAME);
     private static final Logger log = LoggerFactory.getLogger(KvsProfilingLogger.class);
