@@ -15,10 +15,13 @@
  */
 package com.palantir.lock;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.File;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -70,6 +73,101 @@ public abstract class LockServiceTest {
         lock2 = StringLockDescriptor.of("lock2");
         barrier = new CyclicBarrier(2);
     }
+
+
+    // If a thread holds a lock on lock1 (or lock2, whichever is ordered first), then another thread requests
+    // a lock on lock1 and lock2, causing that thread to be blocked, can a third thread acquire a lock solely on lock2?
+    @Test
+    public void testLockingSemanticsA() throws InterruptedException {
+        LockRequest firstRequest = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
+        LockRefreshToken token = server.lock(LockClient.ANONYMOUS.getClientId(), firstRequest);
+
+        LockRequest secondRequest = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE, lock2, LockMode.WRITE)).build();
+        ExecutorService executor = PTExecutors.newSingleThreadExecutor();
+        CountDownLatch latch = new CountDownLatch(1);
+        Future<?> future = executor.submit(() -> {
+            latch.countDown();
+            try {
+                server.lock(LockClient.ANONYMOUS.getClientId(), secondRequest);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        latch.await();
+        Thread.sleep(5_000);
+
+        LockRequest thirdRequest = LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
+                .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.SECONDS))
+                .build();
+        LockRefreshToken thirdToken = server.lock(LockClient.ANONYMOUS.getClientId(), thirdRequest);
+        System.out.println(thirdToken == null);
+        assertThat(future.isDone()).isFalse();
+
+        server.unlock(thirdToken);
+        server.unlock(token);
+    }
+
+    // Next case: how does lock precedence work, exactly?
+    // Basically, some thread has the oldest claim to a lock, but hasn't been directly blocked on it yet
+    // Some other thread, also blocked, requests it afterwards
+    // Once both threads are solely blocked on it, who gets it once released?
+    @Test
+    public void testLockingSemanticsB() throws InterruptedException {
+        LockRequest firstRequest = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE)).build();
+        LockRefreshToken token = server.lock(LockClient.ANONYMOUS.getClientId(), firstRequest);
+
+        LockRequest secondRequest = LockRequest.builder(ImmutableSortedMap.of(lock1, LockMode.WRITE, lock2, LockMode.WRITE)).build();
+        ExecutorService executor = PTExecutors.newFixedThreadPool(2);
+        CountDownLatch latch1 = new CountDownLatch(1);
+        Future<?> future1 = executor.submit(() -> {
+            latch1.countDown();
+            try {
+                server.lock(LockClient.ANONYMOUS.getClientId(), secondRequest);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        latch1.await();
+        Thread.sleep(2_000);
+
+        LockRequest thirdRequest = LockRequest.builder(ImmutableSortedMap.of(lock2, LockMode.WRITE))
+                .blockForAtMost(SimpleTimeDuration.of(10, TimeUnit.SECONDS))
+                .build();
+        LockRefreshToken thirdToken = server.lock(LockClient.ANONYMOUS.getClientId(), thirdRequest);
+        assertThat(future1.isDone()).isFalse();
+
+        // Both lock1 and lock2 are now blocked
+        // Introduce a new request that's solely blocked on lock2
+
+        CountDownLatch latch2 = new CountDownLatch(1);
+        Future<?> future2 = executor.submit(() -> {
+            latch2.countDown();
+            try {
+                server.lock(LockClient.ANONYMOUS.getClientId(), thirdRequest);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        latch2.await();
+        Thread.sleep(2_000);
+        assertThat(future2.isDone()).isFalse();
+
+        // Release lock1 so that both threads are now waiting for lock2
+        server.unlock(token);
+        Thread.sleep(2_000);
+
+        // Release lock2, then check who got the lock
+        server.unlock(thirdToken);
+        Thread.sleep(2_000);
+
+        if (future1.isDone()) {
+            System.out.println("1");
+        }
+        if (future2.isDone()) {
+            System.out.println("2");
+        }
+    }
+
 
     /** Tests that RemoteLockService api (that internal forwards to LockService api) passes a sanity check. */
     @Test public void testRemoteLockServiceApi() throws InterruptedException {

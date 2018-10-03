@@ -19,12 +19,16 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockGroupBehavior;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.TimeDuration;
 
+@JsonDeserialize(as = ImmutableSimpleLockRequest.class)
+@JsonSerialize(as = ImmutableSimpleLockRequest.class)
 @Value.Immutable
 public abstract class SimpleLockRequest {
 
