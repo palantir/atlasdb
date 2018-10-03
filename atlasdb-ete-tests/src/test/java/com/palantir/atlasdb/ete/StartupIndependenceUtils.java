@@ -43,7 +43,7 @@ public final class StartupIndependenceUtils {
     }
 
     public static void randomizeNamespace() throws IOException, InterruptedException {
-        EteSetup.execCliCommandNoTty("sed -i 's/namespace: .*/namespace: "
+        EteSetup.execCliCommandForAvailableClients("sed -i 's/namespace: .*/namespace: "
                 + UUID.randomUUID().toString().replace("-", "_")
                 + "/' var/conf/atlasdb-ete.yml");
     }
@@ -99,12 +99,12 @@ public final class StartupIndependenceUtils {
     }
 
     private static void stopAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommandNoTty("service/bin/init.sh stop");
+        EteSetup.execCliCommandForAvailableClients("service/bin/init.sh stop");
         assertSatisfiedWithin(120, () -> !serverRunning());
     }
 
     private static void startAtlasServerAndAssertSuccess() throws IOException, InterruptedException {
-        EteSetup.execCliCommandNoTty("service/bin/init.sh start");
+        EteSetup.execCliCommandForAvailableClients("service/bin/init.sh start");
         assertSatisfiedWithin(240, StartupIndependenceUtils::serverRunning);
     }
 

@@ -20,9 +20,10 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
-import com.palantir.docker.compose.execution.DockerComposeRunOption;
+import com.palantir.docker.compose.execution.ImmutableDockerComposeRunOption;
 
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
@@ -98,7 +99,7 @@ public class ThreeNodeCassandraClusterOperations {
     private String runCommandInCliContainer(String... arguments) throws IOException,
             InterruptedException {
         return dockerComposeRule.run(
-                DockerComposeRunOption.options("-T"),
+                ImmutableDockerComposeRunOption.of(ImmutableList.of()),
                 ThreeNodeCassandraCluster.CLI_CONTAINER_NAME,
                 DockerComposeRunArgument.arguments(arguments));
     }
