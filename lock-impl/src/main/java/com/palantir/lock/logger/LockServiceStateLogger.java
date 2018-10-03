@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -40,7 +41,10 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.impl.ClientAwareReadWriteLock;
+import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
 
 public class LockServiceStateLogger {
@@ -50,40 +54,50 @@ public class LockServiceStateLogger {
     static final String LOCKSTATE_FILE_PREFIX = "lockstate-";
     @VisibleForTesting
     static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
+    @VisibleForTesting
+    static final String SYNC_STATE_FILE_PREFIX = "sync-state-";
 
     @VisibleForTesting
     static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
     @VisibleForTesting
     static final String HELD_LOCKS_TITLE = "HeldLocks";
+    @VisibleForTesting
+    static final String SYNC_STATE_TITLE = "SyncState";
 
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
             + "or can't be created. This is a very unlikely scenario."
-            + "Retrigger logging or check if process has permitions on the folder";
+            + "Retrigger logging or check if process has permissions on the folder";
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
     private final long startTimestamp = System.currentTimeMillis();
 
     private final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocks;
     private final Map<LockClient, Set<LockRequest>> outstandingLockRequests;
+    private final Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap;
     private String outputDir;
 
 
-    public LockServiceStateLogger(ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
-            SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap, String outputDir) {
+    public LockServiceStateLogger(
+            ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap,
+            SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap,
+            Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap,
+            String outputDir) {
         this.heldLocks = heldLocksTokenMap;
         this.outstandingLockRequests = Multimaps.asMap(outstandingLockRequestMultimap);
+        this.descriptorToLockMap = descriptorToLockMap;
         this.outputDir = outputDir;
     }
 
     public void logLocks() throws IOException {
         Map<String, Object> generatedOutstandingRequests = generateOutstandingLocksYaml(outstandingLockRequests);
         Map<String, Object> generatedHeldLocks = generateHeldLocks(heldLocks);
+        Map<String, Object> generatedSyncState = generateSyncState(descriptorToLockMap);
 
         Path outputDirPath = Paths.get(outputDir);
         Files.createDirectories(outputDirPath);
 
-        dumpYamlsInNewFiles(generatedOutstandingRequests, generatedHeldLocks);
+        dumpYamlsInNewFiles(generatedOutstandingRequests, generatedHeldLocks, generatedSyncState);
     }
 
     private Map<String, Object> generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
@@ -105,7 +119,7 @@ public class LockServiceStateLogger {
 
         List<SimpleLockRequestsWithSameDescriptor> sortedOutstandingRequests = sortOutstandingRequests(outstandingRequestMap.values());
 
-        return nameObjectForYamlConvertion(OUTSTANDING_LOCK_REQUESTS_TITLE, sortedOutstandingRequests);
+        return nameObjectForYamlConversion(OUTSTANDING_LOCK_REQUESTS_TITLE, sortedOutstandingRequests);
     }
 
     private List<SimpleLockRequestsWithSameDescriptor> sortOutstandingRequests(
@@ -122,10 +136,19 @@ public class LockServiceStateLogger {
         Map<String, Object> mappedLocksToToken = Maps.newHashMap();
         heldLocksTokenMap.values().forEach(locks -> mappedLocksToToken.putAll(getDescriptorToTokenMap(locks.getRealToken())));
 
-        return nameObjectForYamlConvertion(HELD_LOCKS_TITLE, mappedLocksToToken);
+        return nameObjectForYamlConversion(HELD_LOCKS_TITLE, mappedLocksToToken);
     }
 
-    private Map<String, Object> nameObjectForYamlConvertion(String name, Object objectToName) {
+    private Map<String, Object> generateSyncState(Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
+        return nameObjectForYamlConversion(SYNC_STATE_TITLE,
+                descriptorToLockMap.entrySet()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                entry -> lockDescriptorMapper.getDescriptorMapping(entry.getKey()),
+                                entry -> ((LockServerLock) entry.getValue()).toSanitizedString())));
+    }
+
+    private Map<String, Object> nameObjectForYamlConversion(String name, Object objectToName) {
         return ImmutableMap.of(name, objectToName);
     }
 
@@ -150,12 +173,16 @@ public class LockServiceStateLogger {
         return lockToLockInfo;
     }
 
-    private void dumpYamlsInNewFiles(Map<String, Object> generatedOutstandingRequests,
-            Map<String, Object> generatedHeldLocks) throws IOException {
+    private void dumpYamlsInNewFiles(
+            Map<String, Object> generatedOutstandingRequests,
+            Map<String, Object> generatedHeldLocks,
+            Map<String, Object> generatedSyncState) throws IOException {
         File lockStateFile = createNewFile(LOCKSTATE_FILE_PREFIX);
         File descriptorsFile = createNewFile(DESCRIPTORS_FILE_PREFIX);
+        File syncStateFile = createNewFile(SYNC_STATE_FILE_PREFIX);
 
-        dumpYaml(generatedOutstandingRequests, generatedHeldLocks, lockStateFile);
+        dumpYaml(ImmutableList.of(generatedOutstandingRequests, generatedHeldLocks), lockStateFile);
+        dumpYaml(ImmutableList.of(generatedSyncState), syncStateFile);
         dumpDescriptorsYaml(descriptorsFile);
     }
 
@@ -172,11 +199,11 @@ public class LockServiceStateLogger {
         return file;
     }
 
-    private void dumpYaml(Map<String, Object> generatedOutstandingRequests, Map<String, Object> generatedHeldLocks,
-            File file) throws IOException {
+    private void dumpYaml(List<Map<String, Object>> objects, File file) throws IOException {
         try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
-            writer.dumpObject(generatedOutstandingRequests);
-            writer.dumpObject(generatedHeldLocks);
+            for (Map<String, Object> object : objects) {
+                writer.dumpObject(object);
+            }
         }
     }
 
