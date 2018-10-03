@@ -85,6 +85,8 @@ public final class SweepTableIndices {
                 return identifier.get().identifier();
             }
             log.info("Assigning table {} an identifier", LoggingArgs.tableRef(table));
+            // note - the second time through the loop this will fail, since on those iterations we're
+            // doing our updates as CAS (at the bottom) not PUE, but it doubles as a get
             SweepTableIdentifier afterPendingPut = namesToIds.storeAsPending(table, idToNames.getNextId());
             if (!afterPendingPut.isPending()) {
                 log.info("Assigned table {} to id {}", LoggingArgs.tableRef(table),
@@ -98,6 +100,7 @@ public final class SweepTableIndices {
                         SafeArg.of("id", afterPendingPut.identifier()));
                 return afterPendingPut.identifier();
             }
+            // B
             namesToIds.storeAsPending(table, afterPendingPut.identifier(), idToNames.getNextId());
         }
     }

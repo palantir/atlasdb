@@ -49,7 +49,8 @@ public enum TargetedSweepSchema implements AtlasSchema {
 
     /**
      * This is visible for the ETE tests, which must not truncate the table identifier tables or risk cache
-     * inconsistencies.
+     * inconsistencies. Note that it's always safe to just leave mappings around without issues; it's a
+     * dictionary and we only ever access it in O(1) ways.
      */
     public static Schema schemaWithoutTableIdentifierTables() {
         Schema schema = newSchemaObject();
@@ -136,6 +137,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
             hashFirstRowComponent();
             rowComponent("singleton", ValueType.STRING);
             dynamicColumns();
+            // descending lets us select the next table id in O(1) time
             columnComponent("tableId", ValueType.VAR_LONG, ValueByteOrder.DESCENDING);
             value(ValueType.STRING);
 
