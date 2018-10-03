@@ -704,21 +704,22 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Test
     public void testMultipleReadsToSameColumnRangeAcrossRows() {
-        byte[] row1 = PtBytes.toBytes("row1");
-        byte[] row2 = PtBytes.toBytes("row2");
+        byte[] aRow = PtBytes.toBytes("aRow");
+        byte[] aDifferentRow = PtBytes.toBytes("aDifferentRow");
 
         Transaction transaction = startTransaction();
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
-                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row1),
-                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRange.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeDifferentRow =
-                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row2),
-                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRangeDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        BatchColumnRangeSelection sameColumnRangeSelection =
+                BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1);
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(aRow), sameColumnRangeSelection);
+        columnRangeResultForRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(aDifferentRow), sameColumnRangeSelection);
+        columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
         put(transaction, "mutation to ensure", "conflict", "handling");
         transaction.commit();
-
     }
 
     private void writeColumns() {

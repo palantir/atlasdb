@@ -256,7 +256,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getReadsForTable(TableReference table) {
-        return readsByTable.computeIfAbsent(table, $ -> new ConcurrentSkipListMap<>());
+        return readsByTable.computeIfAbsent(table, unused -> new ConcurrentSkipListMap<>());
     }
 
     private void setRangeEnd(TableReference table, RangeRequest range, byte[] maxRow) {
@@ -323,7 +323,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             return;
         }
         getReadsForTable(table).putAll(transformGetsForTesting(result));
-        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, $ -> Sets.newConcurrentHashSet());
+        Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, unused -> Sets.newConcurrentHashSet());
         cellsForTable.addAll(searched);
     }
 
@@ -378,7 +378,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             reads.putAll(transformGetsForTesting(map));
         }
 
-        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, $ -> Sets.newConcurrentHashSet());
+        Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, unused -> Sets.newConcurrentHashSet());
         rowReads.add(new RowRead(rows, cols));
     }
 
