@@ -56,13 +56,14 @@ public abstract class WriteReference implements Persistable {
             .registerModule(new Jdk8Module())
             .registerModule(new AfterburnerModule());
 
+    @SuppressWarnings("deprecated")
     public static final Hydrator<WriteReference> BYTES_HYDRATOR = input -> {
         if (input[0] != prefix[0]) {
             return decodeLegacy(input);
         }
         int offset = 1;
         String tableReferenceString = EncodingUtils.decodeVarString(input, offset);
-        TableReference tableReference = TableReference.createFromFullyQualifiedName(tableReferenceString);
+        TableReference tableReference = TableReference.fromString(tableReferenceString);
         offset += EncodingUtils.sizeOfVarString(tableReferenceString);
         byte[] row = EncodingUtils.decodeSizedBytes(input, offset);
         offset += EncodingUtils.sizeOfSizedBytes(row);
