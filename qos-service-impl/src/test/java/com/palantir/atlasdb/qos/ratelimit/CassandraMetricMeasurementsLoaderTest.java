@@ -18,8 +18,6 @@ package com.palantir.atlasdb.qos.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -67,21 +65,6 @@ public class CassandraMetricMeasurementsLoaderTest {
 
         when(cassandraMetricClient.getMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2, ImmutableMap.of()))
                 .thenReturn(METRIC_VALUE_2);
-    }
-
-    @Test
-    public void metricsLoaderLoadsMetricsEveryFiveSeconds() {
-        scheduledExecutorService.tick(1, TimeUnit.SECONDS);
-        verify(HEALTH_METRIC_SUPPLIER, times(1)).get();
-
-        scheduledExecutorService.tick(4, TimeUnit.SECONDS);
-        verify(HEALTH_METRIC_SUPPLIER, times(2)).get();
-
-        scheduledExecutorService.tick(5, TimeUnit.SECONDS);
-        verify(HEALTH_METRIC_SUPPLIER, times(3)).get();
-
-        scheduledExecutorService.tick(5, TimeUnit.SECONDS);
-        verify(HEALTH_METRIC_SUPPLIER, times(4)).get();
     }
 
     @Test
