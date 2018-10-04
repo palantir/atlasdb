@@ -1034,6 +1034,7 @@ public final class LockServiceImpl
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
+                descriptorToLockMap.asMap(),
                 lockStateLoggerDir);
         lockServiceStateLogger.logLocks();
     }
