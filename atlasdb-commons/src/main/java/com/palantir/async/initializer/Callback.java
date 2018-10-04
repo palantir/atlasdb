@@ -36,7 +36,6 @@ import com.palantir.common.base.Throwables;
  */
 public abstract class Callback<R> {
     private volatile boolean shutdownSignal = false;
-    private Lock lock = new ReentrantLock();
 
     /**
      * The method to be executed. If init() returns, the callback is considered to be successful.
@@ -59,18 +58,15 @@ public abstract class Callback<R> {
      * Keep retrying init(), performing any necessary cleanup, until it succeeds unless cleanup() throws or a shutdown
      * signal has been sent.
      */
-    public void runWithRetry(R resource) {
+    public synchronized void runWithRetry(R resource) {
         while (!shutdownSignal) {
             try {
-                lock.lock();
                 if (!shutdownSignal) {
                     init(resource);
                 }
                 return;
             } catch (Throwable e) {
                 cleanup(resource, e);
-            } finally {
-                lock.unlock();
             }
         }
     }
@@ -78,17 +74,14 @@ public abstract class Callback<R> {
     /**
      * Try init() once only, performing any necessary cleanup
      */
-    public boolean runOnceOnly(R resource) {
+    public synchronized boolean runOnceOnly(R resource) {
         try {
-            lock.lock();
             if (!shutdownSignal) {
                 init(resource);
                 return true;
             }
         } catch (Throwable e) {
             cleanup(resource, e);
-        } finally {
-            lock.unlock();
         }
         return false;
     }
@@ -98,8 +91,9 @@ public abstract class Callback<R> {
      */
     public void blockUntilSafeToShutdown() {
         shutdownSignal = true;
-        lock.lock();
-        lock.unlock();
+        synchronized (this) {
+            // blocking until no thread is in the synchronized blocks anymore
+        }
     }
 
     /**

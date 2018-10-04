@@ -27,10 +27,10 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        TargetedSweepEteTest.class,
+//        TodoEteTest.class,
+//        TargetedSweepEteTest.class,
         CassandraTimestampsEteTest.class,
-        TimestampManagementEteTest.class
+//        TimestampManagementEteTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
