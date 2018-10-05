@@ -523,9 +523,9 @@ file_export_version=3.0
 #
 # Only include exported classpath entries when launching
 #
-# This option, added in eclipse Juno RC3, defaults runtime configurations to only 
-# indude exported entries of subprojects. Though this isn't available pre-Juno RC3, 
-# it shouldn't affect anything, and the option can still be enabled individually 
+# This option, added in eclipse Juno RC3, defaults runtime configurations to only
+# indude exported entries of subprojects. Though this isn't available pre-Juno RC3,
+# it shouldn't affect anything, and the option can still be enabled individually
 # for each run configuration by going to run configurations->classpath->[user entry]->edit
 #
 /instance/org.eclipse.jdt.launching/org.eclipse.jdt.launching.only_include_exported_classpath_entries=true
@@ -534,4 +534,4 @@ file_export_version=3.0
 /instance/org.eclipse.jdt.core/org.eclipse.jdt.core.builder.resourceCopyExclusionFilter=*.launch,.gitkeep
 
 # Automatically add required license header to new Eclipse Classes
-/instance/org.eclipse.jdt.ui/org.eclipse.jdt.ui.text.custom_code_templates=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?><templates><template autoinsert\="false" context\="filecomment_context" deleted\="false" description\="Comment for created Java files" enabled\="true" id\="org.eclipse.jdt.ui.text.codetemplates.filecomment" name\="filecomment">/**\n * \n */</template><template autoinsert\="false" context\="newtype_context" deleted\="false" description\="Newly created files" enabled\="true" id\="org.eclipse.jdt.ui.text.codetemplates.newtype" name\="newtype">/**\n * Copyright 2015 Palantir Technologies\n *\n * Licensed under the BSD-3 License (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n * http\://opensource.org/licenses/BSD-3-Clause\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n${filecomment}\n${package_declaration}\n\n${typecomment}\n${type_declaration}</template></templates>
+/instance/org.eclipse.jdt.ui/org.eclipse.jdt.ui.text.custom_code_templates=<?xml version\="1.0" encoding\="UTF-8" standalone\="no"?><templates><template autoinsert\="false" context\="filecomment_context" deleted\="false" description\="Comment for created Java files" enabled\="true" id\="org.eclipse.jdt.ui.text.codetemplates.filecomment" name\="filecomment">/**\n * \n */</template><template autoinsert\="false" context\="newtype_context" deleted\="false" description\="Newly created files" enabled\="true" id\="org.eclipse.jdt.ui.text.codetemplates.newtype" name\="newtype">/*\n * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.\n *\n * Licensed under the Apache License, Version 2.0 (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n * http\://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n${filecomment}\n${package_declaration}\n\n${typecomment}\n${type_declaration}</template></templates>
