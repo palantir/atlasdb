@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead
+           of storing them as strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
+
     *    - |new|
          - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
            This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
@@ -77,7 +82,11 @@ develop
     *    - |fixed| |devbreak|
          - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)           
-        
+
+    *    - |logs| |changed|
+         - Changed the origin for logs when queries were slow from `kvs-slow-log` to `kvs-slow-log-2`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3549>`__)
+
 ========
 v0.105.0
 ========

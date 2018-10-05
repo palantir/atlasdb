@@ -48,11 +48,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.keyvalue.api.WriteReferencePersister;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsColumnValue;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.CommitTsCache;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.logsafe.SafeArg;
@@ -60,10 +63,15 @@ import com.palantir.logsafe.SafeArg;
 public class SweepableCells extends SweepQueueTable {
     private final Logger log = LoggerFactory.getLogger(SweepableCells.class);
     private final CommitTsCache commitTsCache;
+    private final WriteReferencePersister writeReferencePersister;
 
-    public SweepableCells(KeyValueService kvs, WriteInfoPartitioner partitioner, TargetedSweepMetrics metrics) {
+    public SweepableCells(
+            KeyValueService kvs,
+            WriteInfoPartitioner partitioner,
+            TargetedSweepMetrics metrics) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
         this.commitTsCache = CommitTsCache.create(TransactionServices.createTransactionService(kvs));
+        this.writeReferencePersister = new WriteReferencePersister(new SweepTableIndices(kvs));
     }
 
     @Override
@@ -100,7 +108,7 @@ public class SweepableCells extends SweepQueueTable {
     private Map<Cell, byte[]> addCell(PartitionInfo info, WriteReference writeRef, boolean isDedicatedRow,
             long dedicatedRowNumber, long writeIndex) {
         SweepableCellsTable.SweepableCellsRow row = computeRow(info, isDedicatedRow, dedicatedRowNumber);
-        SweepableCellsTable.SweepableCellsColumnValue colVal = createColVal(info.timestamp(), writeIndex, writeRef);
+        SweepableCellsColumnValue colVal = createColVal(info.timestamp(), writeIndex, writeRef);
         return ImmutableMap.of(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
@@ -132,9 +140,9 @@ public class SweepableCells extends SweepQueueTable {
         return isDedicatedRow ? info.timestamp() : SweepQueueUtils.tsPartitionFine(info.timestamp());
     }
 
-    private SweepableCellsTable.SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
+    private SweepableCellsColumnValue createColVal(long ts, long index, WriteReference writeRef) {
         SweepableCellsTable.SweepableCellsColumn col = SweepableCellsTable.SweepableCellsColumn.of(tsMod(ts), index);
-        return SweepableCellsTable.SweepableCellsColumnValue.of(col, writeRef);
+        return SweepableCellsColumnValue.of(col, writeReferencePersister.persist(writeRef));
     }
 
     private static long tsMod(long timestamp) {
@@ -306,7 +314,9 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     private WriteInfo getWriteInfo(long timestamp, Value value) {
-        return WriteInfo.of(SweepableCellsTable.SweepableCellsColumnValue.hydrateValue(value.getContents()), timestamp);
+        return WriteInfo.of(
+                writeReferencePersister.unpersist(SweepableCellsColumnValue.hydrateValue(value.getContents())),
+                timestamp);
     }
 
     private boolean exhaustedAllColumns(Iterator<Map.Entry<Cell, Value>> resultIterator) {
