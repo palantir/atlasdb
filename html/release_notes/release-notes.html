@@ -215,6 +215,10 @@ to more efficient encoding.
 <td>Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3536">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-changed">CHANGED</span></td>
+<td>Changed the origin for logs when queries were slow from <cite>kvs-slow-log</cite> to <cite>kvs-slow-log-2</cite>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3549">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
