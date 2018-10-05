@@ -74,6 +74,8 @@ public class LockServiceStateLogger {
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
             + "or can't be created. This is a very unlikely scenario. "
             + "Retrigger logging or check if process has permissions on the folder";
+    private static final String WARNING_SYNTHESIZE_ANONYMOUS = "WARNING: For LockClient.ANONYMOUS this method"
+            + " may not return accurate results.";
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
     private final long startTimestamp = System.currentTimeMillis();
@@ -210,7 +212,7 @@ public class LockServiceStateLogger {
 
         dumpYaml(ImmutableList.of(generatedOutstandingRequests, generatedHeldLocks), lockStateFile);
         dumpYaml(ImmutableList.of(generatedSyncState), syncStateFile);
-        dumpYaml(ImmutableList.of(synthesizedRequestState), synthesizedRequestStateFile);
+        dumpYaml(ImmutableList.of(synthesizedRequestState), synthesizedRequestStateFile, WARNING_SYNTHESIZE_ANONYMOUS);
         dumpDescriptorsYaml(descriptorsFile);
     }
 
@@ -229,6 +231,15 @@ public class LockServiceStateLogger {
 
     private void dumpYaml(List<Map<String, Object>> objects, File file) throws IOException {
         try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
+            for (Map<String, Object> object : objects) {
+                writer.dumpObject(object);
+            }
+        }
+    }
+
+    private void dumpYaml(List<Map<String, Object>> objects, File file, String prefix) throws IOException {
+        try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
+            writer.appendComment(prefix);
             for (Map<String, Object> object : objects) {
                 writer.dumpObject(object);
             }
