@@ -19,14 +19,15 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.timestamp.AutoDelegate_PersistentTimestampService;
+import com.palantir.timestamp.AutoDelegate_TimestampService;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.PersistentTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampService;
 
 public final class AsyncInitializeableInMemoryTimestampService extends AsyncInitializer
-        implements AutoDelegate_PersistentTimestampService {
+        implements AutoDelegate_TimestampService, TimestampManagementService {
     private final KeyValueService kvs;
-    private final PersistentTimestampService timestampService = new InMemoryTimestampService();
+    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
 
     private AsyncInitializeableInMemoryTimestampService(KeyValueService kvs) {
         this.kvs = kvs;
@@ -39,14 +40,14 @@ public final class AsyncInitializeableInMemoryTimestampService extends AsyncInit
      * @param kvs KeyValueService that must be ready before the returned TimestampService can be initialized.
      * @return the asynchronously initialized PersistentTimestampService
      */
-    public static PersistentTimestampService initializeWhenKvsIsReady(KeyValueService kvs) {
+    public static AsyncInitializeableInMemoryTimestampService initializeWhenKvsIsReady(KeyValueService kvs) {
         AsyncInitializeableInMemoryTimestampService service = new AsyncInitializeableInMemoryTimestampService(kvs);
         service.initialize(true);
-        return service.isInitialized() ? service.delegate() : service;
+        return service;
     }
 
     @Override
-    public PersistentTimestampService delegate() {
+    public TimestampService delegate() {
         checkInitialized();
         return timestampService;
     }
@@ -64,5 +65,15 @@ public final class AsyncInitializeableInMemoryTimestampService extends AsyncInit
     @Override
     protected int sleepIntervalInMillis() {
         return 1_000;
+    }
+
+    @Override
+    public void fastForwardTimestamp(long currentTimestamp) {
+        throw new UnsupportedOperationException("Not implemented in test class");
+    }
+
+    @Override
+    public String ping() {
+        throw new UnsupportedOperationException("Not implemented in test class");
     }
 }

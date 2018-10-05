@@ -24,8 +24,8 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryTimestampService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -54,7 +54,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
             boolean initializeAsync,
             QosClient unusedQosClient) {
         AtlasDbVersion.ensureVersionReported();
-        return InMemoryKeyValueService.create(false, initializeAsync);
+        return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync);
     }
 
     @Override

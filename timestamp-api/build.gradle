@@ -7,8 +7,6 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
-    compile project(":atlasdb-commons")
-
     processor project(":atlasdb-processors")
 
     testCompile group: 'org.assertj', name: 'assertj-core'

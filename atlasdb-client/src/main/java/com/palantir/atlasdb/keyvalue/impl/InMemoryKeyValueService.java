@@ -35,7 +35,6 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.apache.commons.lang3.ArrayUtils;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -50,9 +49,7 @@ import com.google.common.io.BaseEncoding;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -63,7 +60,6 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -82,57 +78,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 @ThreadSafe
 public class InMemoryKeyValueService extends AbstractKeyValueService {
-    public static class InitializingWrapper extends AsyncInitializer implements AutoDelegate_KeyValueService {
-        private final InMemoryKeyValueService delegate;
-        volatile boolean initializationShouldSucceed;
 
-        private InitializingWrapper(InMemoryKeyValueService delegate, boolean initializationShouldSucceed) {
-            this.delegate = delegate;
-            this.initializationShouldSucceed = initializationShouldSucceed;
-        }
-
-        static KeyValueService createAndStartInit(InMemoryKeyValueService delegate, boolean initializeAsync) {
-            InitializingWrapper wrapper = new InitializingWrapper(delegate, !initializeAsync);
-            wrapper.initialize(initializeAsync);
-            return wrapper.isInitialized() ? wrapper.delegate() : wrapper;
-        }
-
-        @Override
-        public KeyValueService delegate() {
-            checkInitialized();
-            return delegate;
-        }
-
-        @Override
-        protected void tryInitialize() {
-            Preconditions.checkState(initializationShouldSucceed);
-        }
-
-        @Override
-        protected void cleanUpOnInitFailure() {
-            initializationShouldSucceed = true;
-        }
-
-        @Override
-        protected String getInitializingClassName() {
-            return "InMemoryKeyValueService";
-        }
-
-        @Override
-        public boolean supportsCheckAndSet() {
-            return true;
-        }
-
-        @Override
-        protected int sleepIntervalInMillis() {
-            return 1_000;
-        }
-
-        @Override
-        public boolean shouldTriggerCompactions() {
-            return false;
-        }
-    }
 
     private final ConcurrentMap<TableReference, Table> tables = Maps.newConcurrentMap();
     private final ConcurrentMap<TableReference, byte[]> tableMetadata = Maps.newConcurrentMap();
@@ -145,15 +91,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     public InMemoryKeyValueService(boolean createTablesAutomatically, ExecutorService executor) {
         super(executor);
         this.createTablesAutomatically = createTablesAutomatically;
-    }
-
-    /**
-     * Creates an InMemoryKvs that can be asynchronously initialized. If initializeAsync is true, the returned Kvs will
-     * initially be uninitialized, and will only succeed at the second attempt at initialization.
-     */
-    public static KeyValueService create(boolean createTablesAutomatically, boolean initializeAsync) {
-        InMemoryKeyValueService kvs = new InMemoryKeyValueService(createTablesAutomatically);
-        return InitializingWrapper.createAndStartInit(kvs, initializeAsync);
     }
 
     @Override

@@ -27,18 +27,18 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.exception.NotInitializedException;
 
-public class InMemoryKeyValueServiceTest {
+public class AsyncInitializeableInMemoryKvsTest {
 
     @Test
     public void createSyncInitializationTest() {
-        KeyValueService kvs = InMemoryKeyValueService.create(true, false);
+        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(false);
         assertThat(kvs.isInitialized()).isTrue();
         assertThat(kvs.getAllTableNames()).isEmpty();
     }
 
     @Test
     public void createAsyncInitializationTest() {
-        KeyValueService kvs = InMemoryKeyValueService.create(true, true);
+        KeyValueService kvs = AsyncInitializeableInMemoryKvs.createAndStartInit(true);
         assertThat(kvs.isInitialized()).isFalse();
         assertThatThrownBy(kvs::getAllTableNames)
                 .isInstanceOf(NotInitializedException.class);

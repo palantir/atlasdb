@@ -22,8 +22,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
+import com.palantir.processors.AutoDelegate;
 
 @Path("/timestamp")
+@AutoDelegate(typeToExtend = TimestampService.class)
 public interface TimestampService {
     /**
      * Used for TimestampServices that can be initialized asynchronously; other TimestampServices can keep the default
