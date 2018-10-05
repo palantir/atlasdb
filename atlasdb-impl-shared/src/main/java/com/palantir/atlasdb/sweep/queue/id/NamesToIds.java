@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.Collections;
 import java.util.Optional;
 
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -51,7 +50,7 @@ class NamesToIds {
             kvs.checkAndSet(cas);
             return newValue;
         } catch (CheckAndSetException e) {
-            return SweepTableIdentifier.BYTES_HYDRATOR.hydrateFromBytes(Iterables.getOnlyElement(e.getActualValues()));
+            return currentMapping(table).get();
         }
     }
 
@@ -81,8 +80,7 @@ class NamesToIds {
         try {
             kvs.checkAndSet(request);
         } catch (CheckAndSetException e) {
-            SweepTableIdentifier actual = SweepTableIdentifier.BYTES_HYDRATOR.hydrateFromBytes(
-                    Iterables.getOnlyElement(e.getActualValues()));
+            SweepTableIdentifier actual = currentMapping(table).get();
             checkState(newValue.equals(actual), "Unexpectedly we state changed from pending(id) to "
                     + "not(identified(id)) after identifying id as the correct value");
         }
