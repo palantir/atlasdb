@@ -16,17 +16,11 @@
 package com.palantir.cassandra.multinode;
 
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class LessThanQuorumNodeAvailabilityTest extends AbstractNodeAvailabilityTest {
 
     @Override
     protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
         return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return NodesDownTestSetup.kvs;
     }
 }

@@ -21,24 +21,27 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
-public class OneNodeDownDeleteTest {
-    private static final String REQUIRES_ALL_CASSANDRA_NODES = "requires ALL Cassandra nodes to be up and available.";
+public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
+
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
 
     @Test
     public void deletingThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.delete(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMultimap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP)))
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
+        assertThatThrownBy(() -> getTestKvs().delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, TIMESTAMP)))
+                .isInstanceOf(AtlasDbDependencyException.class);
     }
 
     @Test
     public void deleteAllTimestampsThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.deleteAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_TIMESTAMP), false))
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
+        assertThatThrownBy(() -> getTestKvs().deleteAllTimestamps(TEST_TABLE,
+                ImmutableMap.of(CELL_1_1, TIMESTAMP), false))
+                .isInstanceOf(AtlasDbDependencyException.class);
     }
 }

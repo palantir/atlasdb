@@ -23,75 +23,66 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraSchemaLockCleaner;
 import com.palantir.atlasdb.keyvalue.cassandra.SchemaMutationLockTables;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
-public class OneNodeDownTableManipulationTest {
-    private static final TableReference NEW_TABLE = TableReference.createWithEmptyNamespace("new_table");
-    private static final TableReference NEW_TABLE2 = TableReference.createWithEmptyNamespace("new_table2");
+public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
+    private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");
+    private static final TableReference TABLE_TO_DROP_2 = TableReference.createWithEmptyNamespace("table_to_drop_2");
+
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(TABLE_TO_DROP, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(TABLE_TO_DROP_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
 
     @Test
     public void canCreateTable() {
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE);
-        OneNodeDownTestSuite.kvs.createTable(NEW_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
+        getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        // This documents and verifies the current behaviour, creating the table in spite of the exception
-        // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE);
+        assertThat(getTestKvs().getAllTableNames()).contains(tableToCreate);
     }
 
     @Test
     public void canCreateTables() {
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(NEW_TABLE2);
-        OneNodeDownTestSuite.kvs.createTables(ImmutableMap.of(NEW_TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA));
+        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table2");
+        getTestKvs().createTables(ImmutableMap.of(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-        // This documents and verifies the current behaviour, creating the table in spite of the exception
-        // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(NEW_TABLE2);
+        assertThat(getTestKvs().getAllTableNames()).contains(tableToCreate);
     }
 
     @Test
     public void dropTableThrows() {
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTable(OneNodeDownTestSuite.TEST_TABLE_TO_DROP))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(UncheckedExecutionException.class);
+        assertThatThrownBy(() -> getTestKvs().dropTable(TABLE_TO_DROP))
+                .isInstanceOf(AtlasDbDependencyException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP);
+        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP);
     }
 
     @Test
     public void dropTablesThrows() {
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames()).contains(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.dropTables(
-                ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2)))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(UncheckedExecutionException.class);
+        assertThatThrownBy(() -> getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2)))
+                .isInstanceOf(AtlasDbDependencyException.class);
         // This documents and verifies the current behaviour, dropping the table in spite of the exception
         // Seems to be inconsistent with the API
-        assertThat(OneNodeDownTestSuite.kvs.getAllTableNames())
-                .doesNotContain(OneNodeDownTestSuite.TEST_TABLE_TO_DROP_2);
-    }
-
-    @Test
-    public void canCompactInternally() {
-        OneNodeDownTestSuite.kvs.compactInternally(OneNodeDownTestSuite.TEST_TABLE);
+        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP_2);
     }
 
     @Test
     public void canCleanUpSchemaMutationLockTablesState() throws Exception {
-        ImmutableCassandraKeyValueServiceConfig config = OneNodeDownTestSuite.CONFIG;
-        CassandraClientPool clientPool = OneNodeDownTestSuite.kvs.getClientPool();
+        CassandraKeyValueServiceConfig config = OneNodeDownTestSuite.getConfig(getClass());
+        CassandraClientPool clientPool = getTestKvs().getClientPool();
         SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
         TracingQueryRunner queryRunner = new TracingQueryRunner(LoggerFactory.getLogger(TracingQueryRunner.class),
                 new TracingPrefsConfig());
@@ -103,16 +94,14 @@ public class OneNodeDownTableManipulationTest {
 
     @Test
     public void truncateTableThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTable(OneNodeDownTestSuite.TEST_TABLE))
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
+        assertThatThrownBy(() -> getTestKvs().truncateTable(TEST_TABLE))
+                .isInstanceOf(AtlasDbDependencyException.class);
+
     }
 
     @Test
     public void truncateTablesThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.truncateTables(
-                ImmutableSet.of(OneNodeDownTestSuite.TEST_TABLE)))
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessage("Truncating tables requires all Cassandra nodes to be up and available.");
+        assertThatThrownBy(() -> getTestKvs().truncateTables(ImmutableSet.of(TEST_TABLE)))
+                .isInstanceOf(AtlasDbDependencyException.class);
     }
 }
