@@ -92,4 +92,9 @@ public interface KnownClientLock {
      *         anonymous or if this is a read lock instead of a write lock.
      */
     void unlockAndFreeze();
+
+    /**
+     * Returns true if and only if the lock is believed to be held by this lock client.
+     */
+    boolean isHeld();
 }

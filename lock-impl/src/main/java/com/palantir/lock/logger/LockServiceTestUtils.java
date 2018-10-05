@@ -35,13 +35,13 @@ public class LockServiceTestUtils {
     public static final String TEST_LOG_STATE_DIR = "log-state";
 
     public static void cleanUpLogStateDir() throws IOException {
-        File rootDir = new File(TEST_LOG_STATE_DIR);
-        if (rootDir.isDirectory()) {
-            for (File file : rootDir.listFiles()) {
-                file.delete();
-            }
-        }
-        rootDir.delete();
+//        File rootDir = new File(TEST_LOG_STATE_DIR);
+//        if (rootDir.isDirectory()) {
+//            for (File file : rootDir.listFiles()) {
+//                file.delete();
+//            }
+//        }
+//        rootDir.delete();
     }
 
     static List<File> logStateDirFiles() {
