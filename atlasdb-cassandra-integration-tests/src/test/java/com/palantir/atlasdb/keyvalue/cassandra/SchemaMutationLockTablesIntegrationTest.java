@@ -40,18 +40,15 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class SchemaMutationLockTablesIntegrationTest {
-    private static final CassandraContainer container = new CassandraContainer();
-
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(SchemaMutationLockTablesIntegrationTest.class)
-            .with(container);
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            SchemaMutationLockTablesIntegrationTest.class);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -61,7 +58,7 @@ public class SchemaMutationLockTablesIntegrationTest {
 
     @Before
     public void setupKvs() throws TException, InterruptedException {
-        config = ImmutableCassandraKeyValueServiceConfig.copyOf(container.getConfig())
+        config = ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
                 .withKeyspace(UUID.randomUUID().toString().replace('-', '_')); // Hyphens not allowed in C* schema
         clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager,

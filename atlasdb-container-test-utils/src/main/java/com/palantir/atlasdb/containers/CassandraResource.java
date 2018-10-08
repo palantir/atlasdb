@@ -19,13 +19,13 @@ package com.palantir.atlasdb.containers;
 import org.junit.rules.ExternalResource;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 
 public class CassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Containers containers;
-    private KeyValueService kvs = null;
+    private CassandraKeyValueService kvs = null;
 
     public CassandraResource(Class<?> classToSaveLogsFor) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
@@ -43,7 +43,7 @@ public class CassandraResource extends ExternalResource {
         }
     }
 
-    public synchronized KeyValueService getDefaultKvs() {
+    public synchronized CassandraKeyValueService getDefaultKvs() {
         if (kvs == null) {
             kvs = CassandraKeyValueServiceImpl
                     .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);

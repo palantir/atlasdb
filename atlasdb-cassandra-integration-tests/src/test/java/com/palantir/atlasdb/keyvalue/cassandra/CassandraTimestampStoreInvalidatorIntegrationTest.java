@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -31,41 +30,32 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
-    private static final CassandraContainer container = new CassandraContainer();
-
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
-            .with(container);
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraTimestampStoreInvalidatorIntegrationTest.class);
 
     private static final long ONE_MILLION = 1_000_000;
 
-    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            container.getConfig(),
-            CassandraContainer.LEADER_CONFIG);
+    private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
+
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            container.getConfig());
+            CASSANDRA.getConfig());
 
     @Before
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
-    }
-
-    @After
-    public void close() {
-        kv.close();
     }
 
     @Test

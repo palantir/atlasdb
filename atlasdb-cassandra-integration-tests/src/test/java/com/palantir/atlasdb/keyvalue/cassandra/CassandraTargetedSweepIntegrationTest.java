@@ -28,10 +28,7 @@ import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;

@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -29,9 +28,7 @@ import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.flake.ShouldRetry;
@@ -48,7 +45,7 @@ public class CassandraTimestampBackupIntegrationTest {
     public static final CassandraResource CASSANDRA = new CassandraResource(
             CassandraTimestampIntegrationTest.class);
 
-    private final CassandraKeyValueService kv = (CassandraKeyValueService) CASSANDRA.getDefaultKvs();
+    private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
