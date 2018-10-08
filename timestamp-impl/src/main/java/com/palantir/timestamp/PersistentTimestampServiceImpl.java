@@ -30,7 +30,7 @@ import com.palantir.logsafe.SafeArg;
 public class PersistentTimestampServiceImpl implements PersistentTimestampService {
     private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_PersistentTimestampService {
         @Override
-        public PersistentTimestampServiceImpl delegate() {
+        public PersistentTimestampService delegate() {
             checkInitialized();
             return PersistentTimestampServiceImpl.this;
         }
