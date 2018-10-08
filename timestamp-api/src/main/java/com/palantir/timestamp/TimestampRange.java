@@ -21,6 +21,7 @@ import java.util.OptionalLong;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.math.LongMath;
 
 /**
  * A TimestampRange represents an inclusive range of longs.
@@ -93,15 +94,17 @@ public class TimestampRange implements Serializable {
      * @param residue desired residue class of the timestamp returned
      * @param modulus modulus used to partition numbers into residue classes
      * @return a timestamp in the given range in the relevant residue class modulo modulus
-     * @throws IllegalArgumentException if residue >= modulus
+     * @throws IllegalArgumentException if modulus <= 0
+     * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
     public OptionalLong getTimestampMatchingModulus(int residue, int modulus) {
-        Preconditions.checkArgument(residue < modulus,
-                "Residue %s is less than modulus %s - no solutions",
+        Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
+        Preconditions.checkArgument(Math.abs(residue) < modulus,
+                "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
                 residue,
                 modulus);
 
-        long lowerBoundResidue = lower % modulus;
+        long lowerBoundResidue = LongMath.mod(lower, modulus);
         long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
                 residue - lowerBoundResidue;
         long candidate = lower + shift;
