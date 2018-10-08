@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
@@ -103,6 +104,7 @@ public class LockServiceStateLoggerTest {
         LockServiceStateLogger logger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
+                ImmutableMap.of(),
                 LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
         logger.logLocks();
     }

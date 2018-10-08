@@ -997,6 +997,7 @@ import com.palantir.util.JMXUtils;
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
+                descriptorToLockMap.asMap(),
                 lockStateLoggerDir);
         lockServiceStateLogger.logLocks();
     }
