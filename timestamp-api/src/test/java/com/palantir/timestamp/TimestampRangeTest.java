@@ -88,13 +88,40 @@ public class TimestampRangeTest {
     }
 
     @Test
-    public void throwsIfResidueExceedsOrEqualsModulus() {
+    public void canHandleNegativeResidues() {
+        assertThat(SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(-7, 10))
+                .isPresent()
+                .hasValue(SEVENTY_THREE);
+        assertThat(SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(-5, 10))
+                .isPresent()
+                .hasValue(75);
+    }
+
+    @Test
+    public void throwsIfModulusIsNegative() {
+        assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(3, -8))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Modulus should be positive, but found -8.");
+        assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(4, -2))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Modulus should be positive, but found -2.");
+    }
+
+    @Test
+    public void throwsIfModulusIsZero() {
+        assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(0, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Modulus should be positive, but found 0.");
+    }
+
+    @Test
+    public void throwsIfResidueEqualsOrExceedsModulus() {
         assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(2, 2))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageMatching("Residue [0-9]+ is less than modulus [0-9]+ - no solutions");
-        assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(3, 2))
+                .hasMessage("Absolute value of residue 2 equals or exceeds modulus 2 - no solutions");
+        assertThatThrownBy(() -> SEVENTY_THREE_TO_EIGHTY_TWO.getTimestampMatchingModulus(-3, 2))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageMatching("Residue [0-9]+ is less than modulus [0-9]+ - no solutions");
+                .hasMessageMatching("Absolute value of residue -3 equals or exceeds modulus 2 - no solutions");
     }
 
     @Test
