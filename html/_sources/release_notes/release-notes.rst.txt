@@ -75,6 +75,10 @@ develop
          - Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)           
 
+    *    - |improved|
+         - Increase maximum allowed rescue dependency version to 4.X.X.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3525>`__)
+
     *    - |fixed| |devbreak|
          - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)           
