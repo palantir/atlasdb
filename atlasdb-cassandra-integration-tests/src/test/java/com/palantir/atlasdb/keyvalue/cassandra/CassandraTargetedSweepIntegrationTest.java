@@ -30,6 +30,7 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -43,18 +44,16 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
-    private static final CassandraContainer container = new CassandraContainer();
-
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
     @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraTargetedSweepIntegrationTest.class).with(container);
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraTargetedSweepIntegrationTest.class);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService(), container.getConfig());
+            getKeyValueService(), CASSANDRA.getConfig());
 
     @Before
     public void setup() {
@@ -67,8 +66,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        CassandraKeyValueServiceConfig config = container.getConfig();
-        return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
+        return CASSANDRA.getDefaultKvs();
     }
 
     @Override

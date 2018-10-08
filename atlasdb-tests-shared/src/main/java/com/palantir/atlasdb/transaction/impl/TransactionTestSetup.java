@@ -86,7 +86,6 @@ public abstract class TransactionTestSetup {
     public void setUp() throws Exception {
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
-
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
@@ -132,7 +131,6 @@ public abstract class TransactionTestSetup {
     @After
     public void tearDown() {
         lockService.close();
-        keyValueService.close();
     }
 
     protected TransactionManager getManager() {

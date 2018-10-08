@@ -30,6 +30,7 @@ import org.junit.runners.Parameterized;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -42,17 +43,15 @@ import com.palantir.flake.ShouldRetry;
 @RunWith(Parameterized.class)
 @ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
-    private static final CassandraContainer container = new CassandraContainer();
-
     @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class).with(container);
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService(), container.getConfig());
+            getKeyValueService(), CASSANDRA.getConfig());
 
     @Parameterized.Parameter
     public boolean useColumnBatchSize;
@@ -65,9 +64,9 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     @Override
     protected KeyValueService getKeyValueService() {
         CassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? ImmutableCassandraKeyValueServiceConfig.copyOf(container.getConfig())
+                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
                         .withTimestampsGetterBatchSize(10)
-                : container.getConfig();
+                : CASSANDRA.getConfig();
 
         // Timestamp of 1,000,000 is done to ensure that tombstones are written at a Cassandra timestamp that is
         // greater than the Atlas timestamp for any values written during the test.

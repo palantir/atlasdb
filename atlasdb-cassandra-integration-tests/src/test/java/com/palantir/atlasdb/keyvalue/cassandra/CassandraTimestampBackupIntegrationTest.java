@@ -30,6 +30,7 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraContainer;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -38,34 +39,27 @@ import com.palantir.timestamp.TimestampBoundStore;
 
 @ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {
-    private static final CassandraContainer container = new CassandraContainer();
     private static final long INITIAL_VALUE = CassandraTimestampUtils.INITIAL_VALUE;
     private static final long TIMESTAMP_1 = INITIAL_VALUE + 1000;
     private static final long TIMESTAMP_2 = TIMESTAMP_1 + 1000;
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampIntegrationTest.class)
-            .with(container);
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraTimestampIntegrationTest.class);
 
-    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            container.getConfig(), CassandraContainer.LEADER_CONFIG);
+    private final CassandraKeyValueService kv = (CassandraKeyValueService) CASSANDRA.getDefaultKvs();
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            container.getConfig());
+            CASSANDRA.getConfig());
 
     @Before
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         backupRunner.ensureTimestampTableExists();
-    }
-
-    @After
-    public void close() {
-        kv.close();
     }
 
     @Test

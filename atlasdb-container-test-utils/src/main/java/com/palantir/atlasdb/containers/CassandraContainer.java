@@ -35,7 +35,7 @@ public class CassandraContainer extends Container {
     static final String USERNAME = "cassandra";
     static final String PASSWORD = "cassandra";
     private static final String CONTAINER_NAME = "cassandra";
-    private static final String SECOND_CONTAINER_NAME = "cassandra2";
+    private static final String THROWAWAY_CONTAINER_NAME = "cassandra2";
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
             .builder()
@@ -71,8 +71,8 @@ public class CassandraContainer extends Container {
         this.name = name;
     }
 
-    public static CassandraContainer secondContainer() {
-        return new CassandraContainer("/docker-compose-cassandra2.yml", SECOND_CONTAINER_NAME);
+    public static CassandraContainer throwawayContainer() {
+        return new CassandraContainer("/docker-compose-cassandra2.yml", THROWAWAY_CONTAINER_NAME);
     }
 
     @Override
@@ -108,7 +108,7 @@ public class CassandraContainer extends Container {
         return config;
     }
 
-    public String getServiceName() {
+    String getServiceName() {
         return name;
     }
 
