@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -63,7 +64,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
+        return CassandraKeyValueServiceImpl
+                .createForTesting(CASSANDRA.getConfig(), CassandraContainer.LEADER_CONFIG);
     }
 
     @Override
