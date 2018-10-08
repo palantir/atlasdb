@@ -58,10 +58,7 @@ class IdsToNames {
             kvs.checkAndSet(request);
             return true;
         } catch (CheckAndSetException e) {
-            byte[] currentValue = Iterables.getOnlyElement(e.getActualValues());
-            TableReference currentTableRef =
-                    TableReference.fromString(SweepIdToNameColumnValue.hydrateValue(currentValue));
-            return currentTableRef.equals(table);
+            return get(id).get().equals(table);
         }
     }
 
