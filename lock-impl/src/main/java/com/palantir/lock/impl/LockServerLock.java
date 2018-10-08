@@ -66,6 +66,12 @@ public class LockServerLock implements ClientAwareReadWriteLock {
                 .toString();
     }
 
+    public String toSanitizedString() {
+        return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("sync", sync)
+                .toString();
+    }
+
     static IllegalMonitorStateException throwIllegalMonitorStateException(String message) {
         IllegalMonitorStateException ex = new IllegalMonitorStateException(message);
         log.error("Illegal monitor state exception: {}", message, ex);
