@@ -86,6 +86,7 @@ dependencies {
   compile group: 'com.squareup', name:'javapoet', version: '1.9.0'
   compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
+  compile group: 'com.palantir.common', name: 'streams'
 
   processor group: 'org.immutables', name: 'value'
 
