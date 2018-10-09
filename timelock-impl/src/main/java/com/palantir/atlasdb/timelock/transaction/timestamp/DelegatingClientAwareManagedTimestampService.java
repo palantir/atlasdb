@@ -28,6 +28,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampRanges;
 
 public class DelegatingClientAwareManagedTimestampService
         implements AutoDelegate_ManagedTimestampService, ClientAwareManagedTimestampService {

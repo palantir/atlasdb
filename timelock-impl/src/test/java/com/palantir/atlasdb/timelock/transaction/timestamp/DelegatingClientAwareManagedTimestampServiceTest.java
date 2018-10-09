@@ -38,23 +38,26 @@ import com.palantir.timestamp.TimestampRange;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
 public class DelegatingClientAwareManagedTimestampServiceTest {
-    private static final List<Integer> MODULUS_ONE = ImmutableList.of(1);
-    private static final List<Integer> MODULUS_TWO = ImmutableList.of(2);
+    private static final List<Integer> RESIDUE_ONE = ImmutableList.of(1);
+    private static final List<Integer> RESIDUE_TWO = ImmutableList.of(2);
 
     private static final UUID UUID_ONE = UUID.randomUUID();
     private static final UUID UUID_TWO = UUID.randomUUID();
 
     private static final TimestampRange TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS,
-            DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2);
-    private static final long MODULUS_ONE_TIMESTAMP_IN_RANGE
+            DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 3);
+    private static final long RESIDUE_ONE_TIMESTAMP_IN_RANGE
             = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1;
-    private static final TimestampRange TIMESTAMP_ZERO = TimestampRange.createInclusiveRange(0, 0);
+    private static final long RESIDUE_TWO_TIMESTAMP_IN_RANGE
+            = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2;
 
-    private NumericPartitionAllocator<UUID> allocator = mock(NumericPartitionAllocator.class);
-    private ManagedTimestampService timestamps = mock(ManagedTimestampService.class);
-    private DelegatingClientAwareManagedTimestampService service = new DelegatingClientAwareManagedTimestampService(
-            allocator, timestamps);
+    private static final TimestampRange TIMESTAMP_SEVEN = TimestampRange.createInclusiveRange(7, 7);
+
+    private final NumericPartitionAllocator<UUID> allocator = mock(NumericPartitionAllocator.class);
+    private final ManagedTimestampService timestamps = mock(ManagedTimestampService.class);
+    private final DelegatingClientAwareManagedTimestampService service
+            = new DelegatingClientAwareManagedTimestampService(allocator, timestamps);
 
     @After
     public void verifyNoFurtherInteractions() {
@@ -87,11 +90,11 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
 
     @Test
     public void delegatesRequestToAllocator() {
-        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(MODULUS_ONE);
-        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(MODULUS_TWO);
+        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
+        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(RESIDUE_TWO);
         when(timestamps.getFreshTimestamps(anyInt())).thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(MODULUS_ONE_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(RESIDUE_ONE_TIMESTAMP_IN_RANGE);
 
         verify(allocator).getRelevantModuli(UUID_ONE);
         verify(timestamps).getFreshTimestamps(anyInt());
@@ -99,16 +102,16 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
 
     @Test
     public void makesRequestsAgainIfTimestampRangeDoesNotIncludeCorrectModuli() {
-        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(MODULUS_ONE);
-        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(MODULUS_TWO);
+        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
+        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(RESIDUE_TWO);
         when(timestamps.getFreshTimestamps(anyInt()))
-                .thenReturn(TIMESTAMP_ZERO)
-                .thenReturn(TIMESTAMP_ZERO)
+                .thenReturn(TIMESTAMP_SEVEN)
+                .thenReturn(TIMESTAMP_SEVEN)
                 .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampForClient(UUID_ONE)).isEqualTo(MODULUS_ONE_TIMESTAMP_IN_RANGE);
+        assertThat(service.getFreshTimestampForClient(UUID_TWO)).isEqualTo(RESIDUE_TWO_TIMESTAMP_IN_RANGE);
 
-        verify(allocator, times(3)).getRelevantModuli(UUID_ONE);
+        verify(allocator, times(3)).getRelevantModuli(UUID_TWO);
         verify(timestamps, times(3)).getFreshTimestamps(anyInt());
 
     }
