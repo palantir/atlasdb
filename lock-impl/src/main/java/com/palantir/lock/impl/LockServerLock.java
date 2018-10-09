@@ -146,6 +146,11 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         }
 
         @Override
+        public boolean isHeld() {
+            return sync.holdsReadLock(clientIndex);
+        }
+
+        @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                     .add("mode", getMode())
@@ -220,6 +225,11 @@ public class LockServerLock implements ClientAwareReadWriteLock {
         @Override
         public void unlockAndFreeze() {
             sync.unlockAndFreeze(clientIndex);
+        }
+
+        @Override
+        public boolean isHeld() {
+            return sync.safeHoldsWriteLock(clientIndex);
         }
 
         @Override

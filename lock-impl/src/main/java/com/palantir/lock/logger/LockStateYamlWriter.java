@@ -69,6 +69,7 @@ class LockStateYamlWriter implements Closeable {
         Representer representer = new LockDescriptorAwareRepresenter();
         representer.addClassTag(ImmutableSimpleTokenInfo.class, Tag.MAP);
         representer.addClassTag(ImmutableSimpleLockRequest.class, Tag.MAP);
+        representer.addClassTag(ImmutableSanitizedLockRequestProgress.class, Tag.MAP);
         representer.addClassTag(SimpleLockRequestsWithSameDescriptor.class, Tag.MAP);
         representer.addClassTag(LockDescriptor.class, Tag.MAP);
         return representer;
