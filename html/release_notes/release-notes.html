@@ -187,24 +187,48 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead
-of storing them as strings.
+<td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">TransactionManager``s</span> <span class="pre">now</span> <span class="pre">expose</span> <span class="pre">a</span> <span class="pre">``TimestampManagementService</span></code>, allowing clients to fast-forward timestamps when necessary.
-This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
-directly require the TimestampManagementService.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3524">Pull Request</a>)</td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The legacy lock service’s lock state logger now logs additional information about the lock service’s internal synchronization state.
+This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Targeted sweep no longer chokes if a table in the queue no longer exists,
-and was deleted by a different host while this host was online and sweeping.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-106-0">
+<h2>v0.106.0<a class="headerlink" href="#v0-106-0" title="Permalink to this headline">¶</a></h2>
+<p>2 Oct 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService.
+It will be re-merged after fixing those issues.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3536">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Targeted sweep now stores much less data in the sweepable cells table due
-to more efficient encoding.
+<td>Targeted sweep now stores much less data in the sweepable cells table due to more efficient encoding.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">TransactionManager``s</span> <span class="pre">now</span> <span class="pre">expose</span> <span class="pre">a</span> <span class="pre">``TimestampManagementService</span></code>, allowing clients to fast-forward timestamps when necessary.
+This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should directly require the TimestampManagementService.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3524">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Targeted sweep no longer chokes if a table in the queue no longer exists, and was deleted by a different host while this host was online and sweeping.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3516">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
@@ -215,11 +239,7 @@ to more efficient encoding.
 <td>Increase maximum allowed rescue dependency version to 4.X.X.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3525">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService. It will be re-merged after fixing those issues.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3536">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span> <span class="changetype changetype-changed">CHANGED</span></td>
 <td>Changed the origin for logs when queries were slow from <cite>kvs-slow-log</cite> to <cite>kvs-slow-log-2</cite>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3549">Pull Request</a>)</td>
 </tr>
