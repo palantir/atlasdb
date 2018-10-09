@@ -133,6 +133,10 @@ public class LockServiceStateLoggerTest {
         assertEquals("Unexpected number of lock sync state files", files.stream()
                 .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNC_STATE_FILE_PREFIX))
                 .count(), 1);
+
+        assertEquals("Unexpected number of synthesized request state files", files.stream()
+                .filter(file -> file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
+                .count(), 1);
     }
 
     @Test
@@ -189,12 +193,25 @@ public class LockServiceStateLoggerTest {
 
         assertThat(syncStateFile).isPresent();
         assertSyncStateStructureCorrect(syncStateFile.get());
-        assertDescriptorsNotPresentInSyncFile(syncStateFile.get());
+        assertDescriptorsNotPresentInFile(syncStateFile.get());
     }
 
-    private void assertDescriptorsNotPresentInSyncFile(File syncStateFile) {
+    @Test
+    public void testSynthesizedRequestState() throws Exception {
+        List<File> files = LockServiceTestUtils.logStateDirFiles();
+
+        Optional<File> synthesizedRequestStateFile = files.stream().filter(
+                file -> file.getName().startsWith(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_FILE_PREFIX))
+                .findFirst();
+
+        assertThat(synthesizedRequestStateFile).isPresent();
+        assertSynthesizedRequestStateStructureCorrect(synthesizedRequestStateFile.get());
+        assertDescriptorsNotPresentInFile(synthesizedRequestStateFile.get());
+    }
+
+    private void assertDescriptorsNotPresentInFile(File logFile) {
         try {
-            List<String> contents = Files.readAllLines(syncStateFile.toPath());
+            List<String> contents = Files.readAllLines(logFile.toPath());
             String result = Strings.join(contents).with("\n");
             assertThat(result).doesNotContain(DESCRIPTOR_1.getLockIdAsString());
             assertThat(result).doesNotContain(DESCRIPTOR_2.getLockIdAsString());
@@ -212,6 +229,23 @@ public class LockServiceStateLoggerTest {
             if (map.containsKey(LockServiceStateLogger.SYNC_STATE_TITLE)) {
                 Object mapObj = map.get(LockServiceStateLogger.SYNC_STATE_TITLE);
                 assertTrue("Sync state is not a map", mapObj instanceof Map);
+
+                assertEquals(getSyncStateDescriptors().size(), ((Map) mapObj).size());
+            } else {
+                throw new IllegalStateException("Map found in YAML document without an expected key");
+            }
+        }
+    }
+
+    private void assertSynthesizedRequestStateStructureCorrect(File file) throws FileNotFoundException {
+        Iterable<Object> synthesizedRequestState = new Yaml().loadAll(new FileInputStream(file));
+
+        for (Object ymlMap : synthesizedRequestState) {
+            assertTrue("Request state contains unrecognizable object", ymlMap instanceof Map);
+            Map map = (Map) ymlMap;
+            if (map.containsKey(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE)) {
+                Object mapObj = map.get(LockServiceStateLogger.SYNTHESIZED_REQUEST_STATE_TITLE);
+                assertTrue("Request state is not a map", mapObj instanceof Map);
 
                 assertEquals(getSyncStateDescriptors().size(), ((Map) mapObj).size());
             } else {
