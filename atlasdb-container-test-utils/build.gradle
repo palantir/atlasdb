@@ -6,6 +6,7 @@ apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 dependencies {
     compile project(':atlasdb-api')
     compile project(':atlasdb-cassandra')
+    compile project(':atlasdb-tests-shared')
     compile project(":flake-rule")
 
     compile group: 'com.google.guava', name: 'guava'
@@ -14,6 +15,7 @@ dependencies {
     compile group: 'org.awaitility', name: 'awaitility'
 
     processor group: 'org.immutables', name: 'value'
+
 
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
     testCompile group: 'org.assertj', name: 'assertj-core'

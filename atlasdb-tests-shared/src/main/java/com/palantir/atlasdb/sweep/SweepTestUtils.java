@@ -22,14 +22,19 @@ import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.table.description.TableDefinition;
+import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -96,7 +101,7 @@ public final class SweepTestUtils {
         }
     }
 
-    private static void setupTables(KeyValueService kvs) {
+    static void setupTables(KeyValueService kvs) {
         tearDownTables(kvs);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
@@ -106,10 +111,8 @@ public final class SweepTestUtils {
         Awaitility.await()
                 .timeout(Duration.FIVE_MINUTES)
                 .until(() -> {
-                    kvs.getAllTableNames().forEach(kvs::dropTable);
+                    kvs.getAllTableNames().forEach(kvs::truncateTable);
                     return true;
                 });
-        TransactionTables.deleteTables(kvs);
-        Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 }

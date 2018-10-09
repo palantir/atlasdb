@@ -91,20 +91,23 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
+    private static final Logger logger = mock(Logger.class);
+    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
+    private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
+
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceIntegrationTest.class);
-
-    private final Logger logger = mock(Logger.class);
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+            CassandraKeyValueServiceIntegrationTest.class, () -> CassandraKeyValueServiceImpl.create(
+            MetricsManagers.createForTests(),
+            getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
+            CassandraContainer.LEADER_CONFIG,
+            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+            logger));
 
     private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
 
-    private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
-
-    private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
 
     private byte[] tableMetadata = new TableDefinition() {
         {
@@ -135,7 +138,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
+        return CASSANDRA.getDefaultKvs();
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
@@ -156,7 +159,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Override
     @Ignore
     public void testGetAllTableNames() {
-        //
+        // this test class creates a number of tables
     }
 
     @Test
@@ -234,7 +237,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         FOUR_DAYS_IN_SECONDS), clusterSideCf));
     }
 
-    private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
+    private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);

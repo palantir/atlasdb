@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -35,51 +36,47 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 
-@RunWith(Parameterized.class)
 @ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class);
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class,
+            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
             getKeyValueService(), CASSANDRA.getConfig());
 
-    @Parameterized.Parameter
-    public boolean useColumnBatchSize;
-
-    @Parameterized.Parameters(name = "Use column batch size parameter = {0}")
-    public static Iterable<?> parameters() {
-        return Arrays.asList(true, false);
-    }
-
     @Override
     protected KeyValueService getKeyValueService() {
-        CassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
-                        .withTimestampsGetterBatchSize(10)
-                : CASSANDRA.getConfig();
+        return CASSANDRA.getDefaultKvs();
+    }
 
-        // Timestamp of 1,000,000 is done to ensure that tombstones are written at a Cassandra timestamp that is
-        // greater than the Atlas timestamp for any values written during the test.
+    private static KeyValueService createKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
-                metricsManager,
-                config,
+                MetricsManagers.createForTests(),
+                CASSANDRA.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        CASSANDRA.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return CASSANDRA.getRegisteredTransactionManager();
+    }
+
     @Test
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
-        Assume.assumeTrue("should_not_oom test will always fail if column batch size is not set!", useColumnBatchSize);
-
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
         long numInsertions = 100;
@@ -88,19 +85,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         long sweepTimestamp = numInsertions + 1;
         SweepResults results = completeSweep(sweepTimestamp).get();
         Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
-    }
-
-    @Test
-    public void should_return_values_for_multiple_columns_when_sweeping() {
-        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-
-        for (int ts = 10; ts <= 150; ts += 10) {
-            put("row", "col1", "value", ts);
-            put("row", "col2", "value", ts + 5);
-        }
-
-        SweepResults results = completeSweep(350).get();
-        Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
     private void insertMultipleValues(long numInsertions) {

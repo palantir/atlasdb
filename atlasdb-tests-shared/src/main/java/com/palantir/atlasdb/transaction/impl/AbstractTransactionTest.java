@@ -712,7 +712,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertNull(pair);
     }
@@ -724,7 +724,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 2L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 2L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -737,7 +737,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v0", pair.getLhSide());
@@ -762,7 +762,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -775,7 +775,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
@@ -787,8 +787,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 3L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 3L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());

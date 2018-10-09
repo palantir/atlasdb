@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.Optional;
+
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -24,6 +26,7 @@ import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.flake.FlakeRetryingRule;
@@ -50,7 +53,11 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
+        return CASSANDRA.getRegisteredKvs().orElseGet(this::createAndRegisterKeyValueService);
+    }
+
+    private KeyValueService createAndRegisterKeyValueService() {
+        KeyValueService kvs = CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 CASSANDRA.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
@@ -61,6 +68,18 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                             }
                             return timestampService.getFreshTimestamp();
                         }));
+        CASSANDRA.registerKvs(kvs);
+        return kvs;
+    }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        CASSANDRA.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return CASSANDRA.getRegisteredTransactionManager();
     }
 
     @Override

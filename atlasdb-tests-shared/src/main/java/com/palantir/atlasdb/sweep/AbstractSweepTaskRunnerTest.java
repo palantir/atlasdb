@@ -291,7 +291,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
 
-    @Test(timeout = 50000)
+    @Test()
     public void testSweepHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
@@ -299,6 +299,19 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
         Assert.assertEquals(1_000 - 1, results.get().getStaleValuesDeleted());
+    }
+
+    @Test
+    public void should_return_values_for_multiple_columns_when_sweeping() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        for (int ts = 10; ts <= 150; ts += 10) {
+            put("row", "col1", "value", ts);
+            put("row", "col2", "value", ts + 5);
+        }
+
+        SweepResults results = completeSweep(350).get();
+        Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
     @SuppressWarnings("unchecked")

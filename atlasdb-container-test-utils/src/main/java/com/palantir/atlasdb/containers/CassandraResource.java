@@ -16,19 +16,32 @@
 
 package com.palantir.atlasdb.containers;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.junit.rules.ExternalResource;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = new CassandraContainer();
+    private final CloseableResourceManager closeableResourceManager;
     private final Containers containers;
-    private CassandraKeyValueService kvs = null;
 
     public CassandraResource(Class<?> classToSaveLogsFor) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
+        closeableResourceManager = new CloseableResourceManager(() -> CassandraKeyValueServiceImpl
+                .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG));
+    }
+
+    public CassandraResource(Class<?> classToSaveLogsFor, Supplier<KeyValueService> supplier) {
+        containers = new Containers(classToSaveLogsFor).with(containerInstance);
+        closeableResourceManager = new CloseableResourceManager(supplier);
     }
 
     @Override
@@ -38,17 +51,27 @@ public class CassandraResource extends ExternalResource {
 
     @Override
     public void after() {
-        if (kvs != null) {
-            kvs.close();
-        }
+        closeableResourceManager.after();
     }
 
-    public synchronized CassandraKeyValueService getDefaultKvs() {
-        if (kvs == null) {
-            kvs = CassandraKeyValueServiceImpl
-                    .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);
-        }
-        return kvs;
+    public CassandraKeyValueService getDefaultKvs() {
+        return (CassandraKeyValueService) closeableResourceManager.getKvs();
+    }
+
+    public void registerKvs(KeyValueService kvs) {
+        closeableResourceManager.registerKvs(kvs);
+    }
+
+    public Optional<KeyValueService> getRegisteredKvs() {
+        return closeableResourceManager.getRegisteredKvs();
+    }
+
+    public void registerTransactionManager(TransactionManager manager) {
+        closeableResourceManager.registerTransactionManager(manager);
+    }
+
+    public Optional<TransactionManager> getRegisteredTransactionManager() {
+        return closeableResourceManager.getRegisteredTransactionManager();
     }
 
     public CassandraKeyValueServiceConfig getConfig() {

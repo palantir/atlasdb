@@ -22,29 +22,38 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    private ExecutorService exec;
+    private static final ExecutorService exec = PTExecutors.newCachedThreadPool();
 
-    @Override
-    @After
-    public void close() {
-        super.close();
-        exec.shutdown();
-    }
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
+            new InMemoryKeyValueService(false, exec));
 
     @Override
     protected KeyValueService getKeyValueService() {
-        exec = PTExecutors.newCachedThreadPool();
-        return new InMemoryKeyValueService(false, exec);
+        return KVS.getKvs();
+    }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        KVS.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return KVS.getRegisteredTransactionManager();
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.

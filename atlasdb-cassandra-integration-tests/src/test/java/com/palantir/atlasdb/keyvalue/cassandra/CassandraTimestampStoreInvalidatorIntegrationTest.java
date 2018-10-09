@@ -53,9 +53,9 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     @Before
     public void setUp() {
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @Test

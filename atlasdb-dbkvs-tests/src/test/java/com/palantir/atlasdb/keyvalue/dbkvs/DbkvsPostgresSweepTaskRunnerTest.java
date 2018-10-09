@@ -15,13 +15,33 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
+import java.util.Optional;
+
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class DbkvsPostgresSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
+            ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig()));
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
+        return KVS.getKvs();
+    }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        KVS.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return KVS.getRegisteredTransactionManager();
     }
 }

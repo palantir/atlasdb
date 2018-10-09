@@ -120,7 +120,7 @@ public abstract class AbstractKeyValueServiceTest {
     protected static final Cell TEST_CELL = Cell.create(row0, column0);
     protected static final long TEST_TIMESTAMP = 1000000L;
 
-    protected static KeyValueService keyValueService = null;
+    protected KeyValueService keyValueService;
 
     protected boolean reverseRangesSupported() {
         return true;
@@ -132,9 +132,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        if (keyValueService == null) {
-            keyValueService = getKeyValueService();
-        }
+        keyValueService = getKeyValueService();
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
@@ -144,14 +142,6 @@ public abstract class AbstractKeyValueServiceTest {
             keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
         } catch (Exception e) {
             // this is fine
-        }
-    }
-
-    @AfterClass
-    public static void tearDownKvs() {
-        if (keyValueService != null) {
-            keyValueService.close();
-            keyValueService = null;
         }
     }
 

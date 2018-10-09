@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,13 +35,17 @@ import com.palantir.remoting2.tracing.SpanType;
 import com.palantir.remoting2.tracing.Tracer;
 
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
+            TracingKeyValueService.create(new InMemoryKeyValueService(false)));
+
     private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
 
     private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return TracingKeyValueService.create(new InMemoryKeyValueService(false));
+        return KVS.getKvs();
     }
 
     @Override

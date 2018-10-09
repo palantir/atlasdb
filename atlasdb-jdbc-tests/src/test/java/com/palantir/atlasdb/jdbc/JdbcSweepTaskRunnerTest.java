@@ -15,12 +15,37 @@
  */
 package com.palantir.atlasdb.jdbc;
 
+import java.util.Optional;
+
+import org.junit.After;
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class JdbcSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(JdbcTests::createEmptyKvs);
+
+    @After
+    public void dropTestTable() {
+        getKeyValueService().dropTable(TABLE_NAME);
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return JdbcTests.createEmptyKvs();
+        return KVS.getKvs();
+    }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        KVS.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return KVS.getRegisteredTransactionManager();
     }
 }

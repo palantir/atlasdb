@@ -15,12 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(false));
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false);
+        return KVS.getKvs();
     }
 }

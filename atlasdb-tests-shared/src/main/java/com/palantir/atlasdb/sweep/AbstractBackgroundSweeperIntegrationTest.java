@@ -61,23 +61,23 @@ import com.palantir.timestamp.InMemoryTimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
 
-    protected static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
+    static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
     protected TransactionManager txManager;
-    protected final AtomicLong sweepTimestamp = new AtomicLong();
+    final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweepThread backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
             .maxCellTsPairsToExamine(1000)
             .build();
-    protected TransactionService txService;
-    protected SpecificTableSweeper specificTableSweeper;
-    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    private TransactionService txService;
+    SpecificTableSweeper specificTableSweeper;
+    AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     @Before
     public void setup() {
@@ -123,8 +123,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     @After
-    public void closeKvs() {
-        kvs.close();
+    public void closeTm() {
+        txManager.close();
     }
 
     @Test
@@ -154,7 +154,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected abstract KeyValueService getKeyValueService();
 
-    protected void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
+    void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
         try (ClosableIterator<RowResult<Set<Long>>> iter =
                 kvs.getRangeOfTimestamps(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             int numCells = 0;
@@ -184,7 +184,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         );
     }
 
-    protected void putManyCells(TableReference tableRef, long startTs, long commitTs) {
+    void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
         for (int i = 0; i < 50; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),

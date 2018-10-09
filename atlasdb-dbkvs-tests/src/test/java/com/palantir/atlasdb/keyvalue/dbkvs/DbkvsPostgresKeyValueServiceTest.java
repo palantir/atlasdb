@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -24,19 +26,30 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
+            ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig()));
+
     private static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     private static final String TEST_LONG_TABLE_NAME =
             "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";
     private static final int TWO_UNDERSCORES = 2;
 
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        super.tearDown();
+        keyValueService.getAllTableNames().stream()
+                .filter(table -> !table.getQualifiedName().equals("_metadata"))
+                .forEach(keyValueService::dropTable);
+    }
+
     @Override
     protected KeyValueService getKeyValueService() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        kvs.getAllTableNames().stream().filter(table -> !table.getQualifiedName().equals("_metadata")).forEach(
-                kvs::dropTable);
-        return kvs;
+        return KVS.getKvs();
     }
 
     @Test(expected = RuntimeException.class)

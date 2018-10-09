@@ -28,7 +28,6 @@ import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -39,15 +38,16 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
-    private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
-    private TargetedSweeper sweepQueue;
-
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
             CassandraTargetedSweepIntegrationTest.class);
+
+    private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
+    private TargetedSweeper sweepQueue;
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
@@ -64,8 +64,17 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl
-                .createForTesting(CASSANDRA.getConfig(), CassandraContainer.LEADER_CONFIG);
+        return CASSANDRA.getDefaultKvs();
+    }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        CASSANDRA.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return CASSANDRA.getRegisteredTransactionManager();
     }
 
     @Override

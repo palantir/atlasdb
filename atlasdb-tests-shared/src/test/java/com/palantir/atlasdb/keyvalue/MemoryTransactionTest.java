@@ -15,15 +15,35 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
+import java.util.Optional;
+
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(
+            false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false))));
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
+        return KVS.createKvs();
     }
+
+    @Override
+    protected void registerTransactionManager(TransactionManager transactionManager) {
+        KVS.registerTransactionManager(transactionManager);
+    }
+
+    @Override
+    protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        return KVS.getRegisteredTransactionManager();
+    }
+
 }

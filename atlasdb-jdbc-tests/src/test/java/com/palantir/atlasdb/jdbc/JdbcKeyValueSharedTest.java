@@ -16,15 +16,20 @@
 package com.palantir.atlasdb.jdbc;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(JdbcTests::createEmptyKvs);
+
     @Override
     protected KeyValueService getKeyValueService() {
-        return JdbcTests.createEmptyKvs();
+        return KVS.getKvs();
     }
 
     @Override

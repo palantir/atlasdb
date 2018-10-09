@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +40,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -82,31 +80,34 @@ public abstract class AbstractSweepTest {
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;
 
-    /**
-     * Called once before each test.
-     *
-     * @return the KVS used for testing
-     */
     protected abstract KeyValueService getKeyValueService();
+
+    protected abstract void registerTransactionManager(TransactionManager transactionManager);
+
+    protected abstract Optional<TransactionManager> getRegisteredTransactionManager();
 
     @Before
     public void setup() {
-        InMemoryTimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD);
+        kvs = getKeyValueService();
         ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
+        txManager = getManager();
+        SweepTestUtils.setupTables(kvs);
         persistentLockManager = new PersistentLockManager(
                 MetricsManagers.createForTests(),
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
     }
 
-    @After
-    public void close() {
-        kvs.close();
+    TransactionManager getManager() {
+        return getRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+    }
+
+    private TransactionManager createAndRegisterManager() {
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
+        TransactionManager manager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
+        registerTransactionManager(manager);
+        return manager;
     }
 
     @Test(timeout = 50000)

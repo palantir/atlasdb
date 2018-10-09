@@ -62,6 +62,7 @@ public class UninitializedCassandraResource extends ExternalResource {
             return;
         }
         try {
+            kvs.close();
             containers.getContainer(containerInstance.getServiceName()).kill();
         } catch (IOException | InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);

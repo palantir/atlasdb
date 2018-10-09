@@ -69,7 +69,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     @Override
-    protected TransactionManager getManager() {
+    protected TransactionManager createManager() {
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),

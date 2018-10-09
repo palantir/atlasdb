@@ -118,6 +118,18 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(CASSANDRA.getConfig().replicationFactor());
     }
 
+    @Test
+    public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
+        blacklist.addAll(clientPool.getCurrentPools().keySet());
+        try {
+            clientPool.run(describeRing);
+        } catch (Exception e) {
+            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
+        }
+
+        blacklist.removeAll();
+    }
+
     private void assertReplicationFactorMismatchError(Exception ex) {
         assertThat(ex.getMessage(), is("Your current Cassandra keyspace ("
                 + CASSANDRA.getConfig().getKeyspaceOrThrow()
@@ -136,18 +148,6 @@ public class CassandraClientPoolIntegrationTest {
             client.system_update_keyspace(modifiedKsDef);
             return null;
         });
-    }
-
-    @Test
-    public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        blacklist.addAll(clientPool.getCurrentPools().keySet());
-        try {
-            clientPool.run(describeRing);
-        } catch (Exception e) {
-            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
-        }
-
-        blacklist.removeAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
