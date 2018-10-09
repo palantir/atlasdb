@@ -17,7 +17,12 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * A request to be supplied to KeyValueService.checkAndSet.
@@ -35,23 +40,33 @@ public abstract class CheckAndSetRequest {
 
     public abstract Cell cell();
 
-    @Value.Default
+    @Nullable
+    @JsonProperty("oldValue")
+    protected abstract byte[] oldValueNullable();
+
+    @JsonIgnore
     public Optional<byte[]> oldValue() {
-        return Optional.empty();
+        return Optional.ofNullable(oldValueNullable());
     }
 
     public abstract byte[] newValue();
 
     public static CheckAndSetRequest newCell(TableReference table, Cell row, byte[] newValue) {
-        return ImmutableCheckAndSetRequest.builder().table(table).cell(row).newValue(newValue).build();
+        return new Builder().table(table).cell(row).newValue(newValue).build();
     }
 
     public static CheckAndSetRequest singleCell(TableReference table, Cell cell, byte[] oldValue, byte[] newValue) {
-        return ImmutableCheckAndSetRequest.builder()
+        return new Builder()
                 .table(table)
                 .cell(cell)
                 .oldValue(Optional.of(oldValue))
                 .newValue(newValue)
                 .build();
+    }
+
+    public static class Builder extends ImmutableCheckAndSetRequest.Builder {
+        public Builder oldValue(Optional<byte[]> oldValue) {
+            return this.oldValueNullable(oldValue.orElse(null));
+        }
     }
 }

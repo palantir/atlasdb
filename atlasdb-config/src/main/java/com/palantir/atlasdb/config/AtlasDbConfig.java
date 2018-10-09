@@ -39,8 +39,6 @@ public abstract class AtlasDbConfig {
     @VisibleForTesting
     static final String UNSPECIFIED_NAMESPACE = "unspecified";
 
-    private String namespace;
-
     public abstract KeyValueServiceConfig keyValueService();
 
     public abstract Optional<LeaderConfig> leader();
@@ -359,10 +357,7 @@ public abstract class AtlasDbConfig {
     @Value.Derived
     @JsonIgnore
     public String getNamespaceString() {
-        if (namespace == null) {
-            namespace = checkNamespaceConfigAndGetNamespace();
-        }
-        return namespace;
+        return checkNamespaceConfigAndGetNamespace();
     }
 
     private boolean areTimeAndLockConfigsAbsent() {

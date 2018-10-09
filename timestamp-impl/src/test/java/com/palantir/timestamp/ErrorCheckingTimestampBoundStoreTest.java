@@ -16,7 +16,7 @@
 package com.palantir.timestamp;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;

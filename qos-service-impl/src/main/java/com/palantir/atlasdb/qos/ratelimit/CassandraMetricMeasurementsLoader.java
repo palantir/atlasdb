@@ -54,16 +54,16 @@ public class CassandraMetricMeasurementsLoader {
     }
 
     private void loadCassandraMetrics() {
-        cassandraHealthMetricMeasurements = this.cassandraHealthMetrics.get().stream().map(metric ->
-                ImmutableCassandraHealthMetricMeasurement.builder()
-                        .currentValue(this.cassandraMetricClient.getMetric(
-                                metric.type(),
-                                metric.name(),
-                                metric.attribute(),
-                                metric.additionalParams()))
-                        .lowerLimit(metric.lowerLimit())
-                        .upperLimit(metric.upperLimit())
-                        .build())
+        cassandraHealthMetricMeasurements = this.cassandraHealthMetrics.get().stream()
+                .map(metric -> {
+                    Object metricFromClient = cassandraMetricClient
+                            .getMetric(metric.type(), metric.name(), metric.attribute(), metric.additionalParams());
+                    return ImmutableCassandraHealthMetricMeasurement.builder()
+                            .currentValue(metricFromClient)
+                            .lowerLimit(metric.lowerLimit())
+                            .upperLimit(metric.upperLimit())
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 

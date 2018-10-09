@@ -84,10 +84,7 @@ public abstract class AtlasDbRuntimeConfig {
         return QosClientConfig.DEFAULT;
     }
 
-    @Value.Default
-    public Optional<KeyValueServiceRuntimeConfig> keyValueService() {
-        return Optional.empty();
-    }
+    public abstract Optional<KeyValueServiceRuntimeConfig> keyValueService();
 
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.

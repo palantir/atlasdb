@@ -42,8 +42,6 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
-import com.palantir.docker.compose.execution.DockerComposeRunArgument;
-import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -132,27 +130,17 @@ public abstract class EteSetup {
         }
     }
 
-
-    static String runCliCommand(String command) throws IOException, InterruptedException {
-        return docker.run(
-                DockerComposeRunOption.options("-T"),
-                "ete-cli",
-                DockerComposeRunArgument.arguments("bash", "-c", command));
-    }
-
-    static void execCliCommandNoTty(String command) throws IOException, InterruptedException {
+    static void execCliCommandForAvailableClients(String command) throws IOException, InterruptedException {
         for (String client : availableClients) {
-            execCliCommand(DockerComposeExecOption.options("-T"), client, command);
+            execCliCommand(client, command);
         }
     }
 
     public static String execCliCommand(String client, String command) throws IOException, InterruptedException {
-        return execCliCommand(DockerComposeExecOption.noOptions(), client, command);
-    }
-
-    private static String execCliCommand(DockerComposeExecOption execOption, String client, String command)
-            throws IOException, InterruptedException {
-        return docker.exec(execOption, client, DockerComposeExecArgument.arguments("bash", "-c", command));
+        return docker.exec(
+                DockerComposeExecOption.noOptions(),
+                client,
+                DockerComposeExecArgument.arguments("bash", "-c", command));
     }
 
     static <T> T createClientToSingleNode(Class<T> clazz) {
