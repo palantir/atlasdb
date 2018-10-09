@@ -15,7 +15,7 @@ buildscript {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.3'
         classpath 'org.jfrog.buildinfo:build-info-extractor-gradle:4.7.5'
         classpath 'gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.13.0'
-        classpath 'com.palantir.baseline:gradle-baseline-java:0.30.0'
+        classpath 'com.palantir.baseline:gradle-baseline-java:0.33.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:2.11.0'
         classpath 'com.netflix.nebula:nebula-dependency-recommender:5.2.0'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
@@ -44,7 +44,7 @@ apply plugin: 'com.palantir.baseline-circleci'
 dependencies {
     // Adds a dependency on the Baseline configuration files. Typically use
     // the same version as the plugin itself.
-    baseline "com.palantir.baseline:gradle-baseline-java-config:0.30.0@zip"
+    baseline 'com.palantir.baseline:gradle-baseline-java-config:0.33.0@zip'
 }
 
 apply from: 'gradle/versions.gradle'
