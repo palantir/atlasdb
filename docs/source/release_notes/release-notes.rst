@@ -58,7 +58,7 @@ develop
          - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
            This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
 
 ========
