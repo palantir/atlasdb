@@ -46,7 +46,11 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         return clientIndex < 0;
     }
 
-    private boolean holdsWriteLock(int clientIndex) {
+    synchronized boolean safeHoldsWriteLock(int clientIndex) {
+        return getState() > 0 && clientIndex == writeLockHolder && !isAnonymous(clientIndex);
+    }
+
+    private synchronized boolean holdsWriteLock(int clientIndex) {
         Preconditions.checkState(getState() > 0);
         return clientIndex == writeLockHolder && !isAnonymous(clientIndex);
     }
@@ -245,7 +249,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         return readLockHolders != null && !readLockHolders.isEmpty();
     }
 
-    private boolean holdsReadLock(int clientIndex) {
+    synchronized boolean holdsReadLock(int clientIndex) {
         return !isAnonymous(clientIndex) && readLockHolders != null && readLockHolders.get(clientIndex) > 0;
     }
 

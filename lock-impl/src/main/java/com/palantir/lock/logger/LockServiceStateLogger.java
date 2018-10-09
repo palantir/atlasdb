@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.lock.HeldLocksToken;
@@ -45,6 +46,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.impl.ClientAwareReadWriteLock;
 import com.palantir.lock.impl.LockServerLock;
 import com.palantir.lock.impl.LockServiceImpl;
+import com.palantir.lock.impl.LockServiceStateDebugger;
 
 public class LockServiceStateLogger {
     private static Logger log = LoggerFactory.getLogger(LockServiceStateLogger.class);
@@ -55,6 +57,8 @@ public class LockServiceStateLogger {
     static final String DESCRIPTORS_FILE_PREFIX = "descriptors-";
     @VisibleForTesting
     static final String SYNC_STATE_FILE_PREFIX = "sync-state-";
+    @VisibleForTesting
+    static final String SYNTHESIZED_REQUEST_STATE_FILE_PREFIX = "synthesized-requests-";
 
     @VisibleForTesting
     static final String OUTSTANDING_LOCK_REQUESTS_TITLE = "OutstandingLockRequests";
@@ -62,11 +66,15 @@ public class LockServiceStateLogger {
     static final String HELD_LOCKS_TITLE = "HeldLocks";
     @VisibleForTesting
     static final String SYNC_STATE_TITLE = "SyncState";
+    @VisibleForTesting
+    static final String SYNTHESIZED_REQUEST_STATE_TITLE = "SynthesizedLockRequestState";
 
     private static final String WARNING_LOCK_DESCRIPTORS = "WARNING: Lock descriptors may contain sensitive information";
     private static final String FILE_NOT_CREATED_LOG_ERROR = "Destination file [{}] either already exists"
-            + "or can't be created. This is a very unlikely scenario."
+            + "or can't be created. This is a very unlikely scenario. "
             + "Retrigger logging or check if process has permissions on the folder";
+    private static final String WARNING_SYNTHESIZE_ANONYMOUS = "WARNING: For LockClient.ANONYMOUS this method"
+            + " may not return accurate results.";
 
     private final LockDescriptorMapper lockDescriptorMapper = new LockDescriptorMapper();
     private final long startTimestamp = System.currentTimeMillis();
@@ -92,11 +100,30 @@ public class LockServiceStateLogger {
         Map<String, Object> generatedOutstandingRequests = generateOutstandingLocksYaml(outstandingLockRequests);
         Map<String, Object> generatedHeldLocks = generateHeldLocks(heldLocks);
         Map<String, Object> generatedSyncState = generateSyncState(descriptorToLockMap);
+        Map<String, Object> synthesizedRequestState
+                = synthesizeRequestState(outstandingLockRequests, descriptorToLockMap);
 
         Path outputDirPath = Paths.get(outputDir);
         Files.createDirectories(outputDirPath);
 
-        dumpYamlsInNewFiles(generatedOutstandingRequests, generatedHeldLocks, generatedSyncState);
+        dumpYamlsInNewFiles(
+                generatedOutstandingRequests, generatedHeldLocks, generatedSyncState, synthesizedRequestState);
+    }
+
+    private Map<String, Object> synthesizeRequestState(
+            Map<LockClient, Set<LockRequest>> outstandingLockRequests,
+            Map<LockDescriptor, ClientAwareReadWriteLock> descriptorToLockMap) {
+        LockServiceStateDebugger debugger = new LockServiceStateDebugger(outstandingLockRequests, descriptorToLockMap);
+        Multimap<LockClient, LockServiceStateDebugger.LockRequestProgress> progressMultimap
+                = debugger.getSuspectedLockProgress();
+
+        return nameObjectForYamlConversion(SYNTHESIZED_REQUEST_STATE_TITLE, progressMultimap.asMap().entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().toString(),
+                        entry -> entry.getValue().stream().map(
+                                lockRequestProgress -> SanitizedLockRequestProgress.create(
+                                        lockRequestProgress, lockDescriptorMapper, entry.getKey().toString()))
+                                .collect(Collectors.toList()))));
     }
 
     private Map<String, Object> generateOutstandingLocksYaml(Map<LockClient, Set<LockRequest>> outstandingLockRequestsMap) {
@@ -176,13 +203,16 @@ public class LockServiceStateLogger {
     private void dumpYamlsInNewFiles(
             Map<String, Object> generatedOutstandingRequests,
             Map<String, Object> generatedHeldLocks,
-            Map<String, Object> generatedSyncState) throws IOException {
+            Map<String, Object> generatedSyncState,
+            Map<String, Object> synthesizedRequestState) throws IOException {
         File lockStateFile = createNewFile(LOCKSTATE_FILE_PREFIX);
         File descriptorsFile = createNewFile(DESCRIPTORS_FILE_PREFIX);
         File syncStateFile = createNewFile(SYNC_STATE_FILE_PREFIX);
+        File synthesizedRequestStateFile = createNewFile(SYNTHESIZED_REQUEST_STATE_FILE_PREFIX);
 
         dumpYaml(ImmutableList.of(generatedOutstandingRequests, generatedHeldLocks), lockStateFile);
         dumpYaml(ImmutableList.of(generatedSyncState), syncStateFile);
+        dumpYaml(ImmutableList.of(synthesizedRequestState), synthesizedRequestStateFile, WARNING_SYNTHESIZE_ANONYMOUS);
         dumpDescriptorsYaml(descriptorsFile);
     }
 
@@ -201,6 +231,15 @@ public class LockServiceStateLogger {
 
     private void dumpYaml(List<Map<String, Object>> objects, File file) throws IOException {
         try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
+            for (Map<String, Object> object : objects) {
+                writer.dumpObject(object);
+            }
+        }
+    }
+
+    private void dumpYaml(List<Map<String, Object>> objects, File file, String prefix) throws IOException {
+        try (LockStateYamlWriter writer = LockStateYamlWriter.create(file)) {
+            writer.appendComment(prefix);
             for (Map<String, Object> object : objects) {
                 writer.dumpObject(object);
             }
