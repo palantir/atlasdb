@@ -24,7 +24,7 @@ import com.google.common.math.LongMath;
 /**
  * Utilities for manipulating {@link TimestampRange} objects.
  */
-public class TimestampRanges {
+final class TimestampRanges {
     private TimestampRanges() {
         // utility
     }
@@ -45,7 +45,7 @@ public class TimestampRanges {
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
-    public static OptionalLong getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+    static OptionalLong getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
         Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
         Preconditions.checkArgument(Math.abs(residue) < modulus,
                 "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
