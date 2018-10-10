@@ -52,8 +52,8 @@ develop
 
     *    - |improved| |fixed|
          - Schema mutations against the Cassandra KVS are now HA.
-           Previously, some Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
-           Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
+           Previously, Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, all reachable nodes must agree and at least a quorum of nodes must be reachable, instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
     *    - |improved|
