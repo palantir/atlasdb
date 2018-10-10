@@ -65,8 +65,8 @@ public class CorroboratingTimestampService implements TimestampService {
         lowerBound = Math.max(freshTimestamp, lowerBound);
     }
 
-    private AssertionError clocksWentBackwards(long lowerBound, long freshTimestamp) {
+    private AssertionError clocksWentBackwards(long timestampLowerBound, long freshTimestamp) {
         String errorMessage = "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
-        return new AssertionError(String.format(errorMessage, lowerBound, freshTimestamp));
+        return new AssertionError(String.format(errorMessage, timestampLowerBound, freshTimestamp));
     }
 }
