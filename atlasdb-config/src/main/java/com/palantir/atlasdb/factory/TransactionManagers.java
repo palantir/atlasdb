@@ -117,6 +117,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -141,6 +142,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
+import com.palantir.timestamp.CorroboratingTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -669,8 +671,23 @@ public abstract class TransactionManagers {
         return withRequestBatchingTimestampService(
                 metricsManager,
                 () -> runtimeConfigSupplier.get().timestampClient(),
+                withCorroboratingTimestampService(
                 withRefreshingLockService(
-                        withBridgingTimelockService(lockAndTimestampServices)));
+                        withBridgingTimelockService(lockAndTimestampServices))));
+    }
+
+    private static LockAndTimestampServices withCorroboratingTimestampService(
+            LockAndTimestampServices lockAndTimestampServices) {
+        CorroboratingTimestampService corroboratingTimestampService = new CorroboratingTimestampService(
+                lockAndTimestampServices.timestamp());
+        TimelockService timelockService = new TimestampDecoratingTimelockService(
+                lockAndTimestampServices.timelock(), corroboratingTimestampService);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timelockService)
+                .timestamp(corroboratingTimestampService)
+                .build();
     }
 
     private static LockAndTimestampServices withBridgingTimelockService(

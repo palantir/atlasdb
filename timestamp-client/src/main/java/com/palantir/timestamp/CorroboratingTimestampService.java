@@ -16,13 +16,16 @@
 
 package com.palantir.timestamp;
 
-public class CorroboratingTimelockService implements TimestampService {
+import javax.annotation.concurrent.ThreadSafe;
+
+@ThreadSafe
+public class CorroboratingTimestampService implements TimestampService {
 
     private final TimestampService delegate;
     private volatile long lowerBound = -1L;
 
-    public CorroboratingTimelockService(TimestampService timestampService) {
-        this.delegate = timestampService;
+    public CorroboratingTimestampService(TimestampService delegate) {
+        this.delegate = delegate;
     }
 
     @Override
@@ -32,29 +35,30 @@ public class CorroboratingTimelockService implements TimestampService {
 
     @Override
     public long getFreshTimestamp() {
+        long snapshot = lowerBound;
         long freshTimestamp = delegate.getFreshTimestamp();
+
+        if (freshTimestamp <= snapshot) {
+            throw new IllegalStateException("timestamps went back in time");
+        }
         updateLowerBound(freshTimestamp);
         return freshTimestamp;
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        long snapshot = lowerBound;
         TimestampRange timestampRange = delegate.getFreshTimestamps(numTimestampsRequested);
-        updateLowerBound(timestampRange);
+
+
+        if (timestampRange.getLowerBound() <= snapshot) {
+            throw new IllegalStateException("timestamps went back in time");
+        }
+        updateLowerBound(timestampRange.getUpperBound());
         return timestampRange;
     }
 
     private synchronized void updateLowerBound(long freshTimestamp) {
-        if (freshTimestamp <= lowerBound) {
-            throw new IllegalStateException("timestamps went back in time");
-        }
-        lowerBound = freshTimestamp;
-    }
-
-    private synchronized void updateLowerBound(TimestampRange timestampRange) {
-        if (timestampRange.getLowerBound() <= lowerBound) {
-            throw new IllegalStateException("timestamps went back in time");
-        }
-        lowerBound = timestampRange.getUpperBound();
+        lowerBound = Math.max(freshTimestamp, lowerBound);
     }
 }
