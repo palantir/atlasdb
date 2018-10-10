@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,21 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.qos.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.ConnectException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import javax.management.InstanceNotFoundException;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
@@ -52,24 +46,18 @@ public class CassandraMetricMeasurementsLoaderTest {
     private static final String METRIC_NAME_2 = "metricName2";
     private static final String METRIC_ATTRIBUTE_1 = "metricAttribute1";
     private static final String METRIC_ATTRIBUTE_2 = "metricAttribute2";
+    private static final Supplier<List<HealthMetric>> HEALTH_METRIC_SUPPLIER = () -> ImmutableList.of(
+            getCassandraMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1),
+            getCassandraMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2));
 
-    private DeterministicScheduler scheduledExecutorService;
-    private Supplier<List<HealthMetric>> healthMetricSupplier;
-    private MetricsService cassandraMetricClient;
+    private final DeterministicScheduler scheduledExecutorService = new DeterministicScheduler();
+    private final MetricsService cassandraMetricClient = mock(MetricsService.class);
     private CassandraMetricMeasurementsLoader cassandraMetricMeasurementsLoader;
 
     @Before
     public void setup() {
-        healthMetricSupplier = mock(Supplier.class);
-        cassandraMetricClient = mock(MetricsService.class);
-        scheduledExecutorService = new DeterministicScheduler();
-
         cassandraMetricMeasurementsLoader = new CassandraMetricMeasurementsLoader(
-                healthMetricSupplier, cassandraMetricClient, scheduledExecutorService);
-
-        when(healthMetricSupplier.get()).thenReturn(ImmutableList.of(
-                getCassandraMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1),
-                getCassandraMetric(METRIC_TYPE_2, METRIC_NAME_2, METRIC_ATTRIBUTE_2)));
+                HEALTH_METRIC_SUPPLIER, cassandraMetricClient, scheduledExecutorService);
 
         when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
                 .thenReturn(METRIC_VALUE_1);
@@ -79,22 +67,7 @@ public class CassandraMetricMeasurementsLoaderTest {
     }
 
     @Test
-    public void metricsLoaderLoadsMetricsEveryFiveSeconds() throws Exception {
-        scheduledExecutorService.tick(1, TimeUnit.SECONDS);
-        verify(healthMetricSupplier, times(1)).get();
-
-        scheduledExecutorService.tick(4, TimeUnit.SECONDS);
-        verify(healthMetricSupplier, times(2)).get();
-
-        scheduledExecutorService.tick(5, TimeUnit.SECONDS);
-        verify(healthMetricSupplier, times(3)).get();
-
-        scheduledExecutorService.tick(5, TimeUnit.SECONDS);
-        verify(healthMetricSupplier, times(4)).get();
-    }
-
-    @Test
-    public void canReturnTheCassandraMetricsFromTheCassandraMetricService() throws Exception {
+    public void canReturnTheCassandraMetricsFromTheCassandraMetricService() {
         scheduledExecutorService.tick(3, TimeUnit.SECONDS);
 
         List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
@@ -108,29 +81,16 @@ public class CassandraMetricMeasurementsLoaderTest {
     }
 
     @Test
-    public void canHandleNonExistingMetric() throws Exception {
-        assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(InstanceNotFoundException.class);
-    }
-
-    @Test
-    public void canhandleFailureGettingMetric() throws Exception {
-        assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(ConnectException.class);
-    }
-
-    private void assertThatMetricsReturnedAreEmptyIfCassandraMetricsServiceThrows(Class clazz) {
+    public void canHandleFailureWhenFetchingMetric() {
         when(cassandraMetricClient.getMetric(METRIC_TYPE_1, METRIC_NAME_1, METRIC_ATTRIBUTE_1, ImmutableMap.of()))
-                .thenThrow(clazz);
+                .thenThrow(new RuntimeException("something went wrong"));
 
-        scheduledExecutorService.tick(3, TimeUnit.SECONDS);
+        scheduledExecutorService.tick(10, TimeUnit.SECONDS);
 
-        List<CassandraHealthMetricMeasurement> cassandraHealthMetricMeasurements =
-                cassandraMetricMeasurementsLoader.getCassandraHealthMetricMeasurements();
-
-        assertThat(ImmutableList.of()).isEqualTo(cassandraHealthMetricMeasurements);
+        assertThat(cassandraMetricMeasurementsLoader.getCassandraHealthMetricMeasurements()).isEmpty();
     }
 
-    private HealthMetric getCassandraMetric(String metricType, String metricName,
-            String metricAttribute) {
+    private static HealthMetric getCassandraMetric(String metricType, String metricName, String metricAttribute) {
         return ImmutableHealthMetric.builder()
                 .type(metricType)
                 .name(metricName)
@@ -141,7 +101,7 @@ public class CassandraMetricMeasurementsLoaderTest {
                 .build();
     }
 
-    private CassandraHealthMetricMeasurement getCassandraMetricMeasurement(Double currentValue) {
+    private static CassandraHealthMetricMeasurement getCassandraMetricMeasurement(Double currentValue) {
         return ImmutableCassandraHealthMetricMeasurement.builder()
                 .currentValue(currentValue)
                 .lowerLimit(LOWER_LIMIT)

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.sweep;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.Optional;
 
@@ -27,7 +27,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.sweep.priority.ImmutableSweepPriorityOverrideConfig;
 import com.palantir.atlasdb.sweep.priority.ImmutableUpdateSweepPriority;
@@ -40,7 +39,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     public void testWritePriorityAfterCompleteFreshRun() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -73,7 +72,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(10L)
                 .startTimeInMillis(20L)
                 .build());
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(9999L)
@@ -98,7 +97,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
 
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -122,7 +121,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 eq(progressAfterFirstIteration));
         setProgress(progressAfterFirstIteration);
 
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(3)
                 .cellTsPairsExamined(11)
                 .minSweptTimestamp(4567L)
@@ -150,7 +149,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
 
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -176,7 +175,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
 
         // Between iterations 1 and 2, OTHER_TABLE gets added to the priority list.
         setNoProgress(OTHER_TABLE);
-        setupTaskRunner(OTHER_TABLE, ImmutableSweepResults.builder()
+        setupTaskRunner(OTHER_TABLE, SweepResults.builder()
                 .staleValuesDeleted(3)
                 .cellTsPairsExamined(11)
                 .minSweptTimestamp(4567L)
@@ -208,7 +207,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     public void testWriteProgressAfterIncompleteRunUsesSystemTimeForStart() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -253,7 +252,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .timeInMillis(10L)
                 .startTimeInMillis(20L)
                 .build());
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -290,7 +289,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                 .startTimeInMillis(20L)
                 .build());
         setNoProgress(OTHER_TABLE);
-        setupTaskRunner(OTHER_TABLE, ImmutableSweepResults.builder()
+        setupTaskRunner(OTHER_TABLE, SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -320,7 +319,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
     public void testPutZeroWriteCountAfterFreshIncompleteRun() {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
-        setupTaskRunner(ImmutableSweepResults.builder()
+        setupTaskRunner(SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -342,7 +341,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
         setNoProgress();
         setNextTableToSweep(TABLE_REF);
 
-        SweepResults intermediateResults = ImmutableSweepResults.builder()
+        SweepResults intermediateResults = SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)
@@ -379,7 +378,7 @@ public class BackgroundSweeperFastTest extends SweeperTestSetup {
                         .startTimeInMillis(20L)
                         .build());
 
-        SweepResults intermediateResults = ImmutableSweepResults.builder()
+        SweepResults intermediateResults = SweepResults.builder()
                 .staleValuesDeleted(2)
                 .cellTsPairsExamined(10)
                 .minSweptTimestamp(12345L)

@@ -50,26 +50,59 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
+
+    *    - |improved|
+         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
+           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
+
+
+========
+v0.106.0
+========
+
+2 Oct 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |devbreak|
+         - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService.
+           It will be re-merged after fixing those issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)
+
+    *    - |fixed|
+         - Targeted sweep now stores much less data in the sweepable cells table due to more efficient encoding.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
     *    - |new|
          - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
-           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should
-           directly require the TimestampManagementService.
+           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should directly require the TimestampManagementService.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3524>`__)
 
-
     *    - |fixed|
-         - Targeted sweep no longer chokes if a table in the queue no longer exists,
-           and was deleted by a different host while this host was online and sweeping.
+         - Targeted sweep no longer chokes if a table in the queue no longer exists, and was deleted by a different host while this host was online and sweeping.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
 
-    *    - |fixed|
-         - Targeted sweep now stores much less data in the sweepable cells table due
-           to more efficient encoding.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
-    
     *    - |improved|
          - Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)           
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)
+
+    *    - |improved|
+         - Increase maximum allowed rescue dependency version to 4.X.X.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3525>`__)
+
+    *    - |logs| |changed|
+         - Changed the origin for logs when queries were slow from `kvs-slow-log` to `kvs-slow-log-2`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3549>`__)
 
 ========
 v0.105.0
