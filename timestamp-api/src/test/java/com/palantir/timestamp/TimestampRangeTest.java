@@ -15,21 +15,19 @@
  */
 package com.palantir.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public class TimestampRangeTest {
     @Test
     public void shouldHaveASizeOf1WhenCreatedWithTheSameUpperAndLowerBounds() {
-        assertThat(TimestampRange.createInclusiveRange(10, 10).size(), is(1L));
+        assertThat(TimestampRange.createInclusiveRange(10, 10).size()).isEqualTo(1L);
     }
 
     @Test
     public void shouldHaveASizeThatInludesBothEndpoints() {
-        assertThat(TimestampRange.createInclusiveRange(10, 12).size(), is(3L));
+        assertThat(TimestampRange.createInclusiveRange(10, 12).size()).isEqualTo(3L);
     }
 
     @Test
@@ -39,6 +37,6 @@ public class TimestampRangeTest {
         TimestampRange lowerUpper = TimestampRange.createInclusiveRange(lower, upper);
         TimestampRange upperLower = TimestampRange.createInclusiveRange(upper, lower);
 
-        assertThat(lowerUpper.size(), is(equalTo(upperLower.size())));
+        assertThat(lowerUpper.size()).isEqualTo(upperLower.size());
     }
 }
