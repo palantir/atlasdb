@@ -18,6 +18,9 @@ package com.palantir.timestamp;
 
 import javax.annotation.concurrent.ThreadSafe;
 
+/**
+ * A timestamp service decorator for introducing runtime validity checks on received timestamps.
+ */
 @ThreadSafe
 public class CorroboratingTimestampService implements TimestampService {
 
@@ -39,7 +42,7 @@ public class CorroboratingTimestampService implements TimestampService {
         long freshTimestamp = delegate.getFreshTimestamp();
 
         if (freshTimestamp <= snapshot) {
-            throw new IllegalStateException("timestamps went back in time");
+            throw clocksWentBackwards(snapshot, freshTimestamp);
         }
         updateLowerBound(freshTimestamp);
         return freshTimestamp;
@@ -52,7 +55,7 @@ public class CorroboratingTimestampService implements TimestampService {
 
 
         if (timestampRange.getLowerBound() <= snapshot) {
-            throw new IllegalStateException("timestamps went back in time");
+            throw clocksWentBackwards(snapshot, timestampRange.getLowerBound());
         }
         updateLowerBound(timestampRange.getUpperBound());
         return timestampRange;
@@ -60,5 +63,10 @@ public class CorroboratingTimestampService implements TimestampService {
 
     private synchronized void updateLowerBound(long freshTimestamp) {
         lowerBound = Math.max(freshTimestamp, lowerBound);
+    }
+
+    private AssertionError clocksWentBackwards(long lowerBound, long freshTimestamp) {
+        String errorMessage = "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
+        return new AssertionError(String.format(errorMessage, lowerBound, freshTimestamp));
     }
 }
