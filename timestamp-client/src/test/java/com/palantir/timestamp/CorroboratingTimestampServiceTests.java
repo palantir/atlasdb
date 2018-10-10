@@ -18,20 +18,10 @@ package com.palantir.timestamp;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.palantir.timestamp.utils.ShufflingTimestampService;
 
 public class CorroboratingTimestampServiceTests {
 
@@ -59,24 +49,6 @@ public class CorroboratingTimestampServiceTests {
 
         assertThatThrownBy(() -> corroboratingTimestampService.getFreshTimestamps(10))
                 .isInstanceOf(AssertionError.class);
-    }
-
-    @Test
-    public void shufflingTimestampService() throws InterruptedException, ExecutionException{
-        GoBackInTimeTimestampService rawService = new GoBackInTimeTimestampService();
-        TimestampService shufflingService = new ShufflingTimestampService(rawService);
-        TimestampService timestampService = new CorroboratingTimestampService(shufflingService);
-
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
-        CompletionService<Long> completionService = new ExecutorCompletionService<>(executorService);
-        List<Future<Long>> timestamps = new ArrayList<>();
-        for (int i=0; i<6; i++) {
-            timestamps.add(completionService.submit(() -> timestampService.getFreshTimestamp()));
-        }
-
-        for (int i=0; i<6; i++) {
-            System.out.println(completionService.take().get());
-        }
     }
 
     private void getIndividualTimestamps(int numberOfTimestamps) {
