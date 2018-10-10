@@ -15,10 +15,9 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static java.util.stream.Collectors.toSet;
-
 import java.util.Collection;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,10 +85,11 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
         Set<TableReference> allDeprecatedTables = schemas.stream()
                 .map(Schema::getDeprecatedTables)
                 .flatMap(Collection::stream)
-                .collect(toSet());
+                .collect(Collectors.toSet());
 
         try {
             keyValueService.dropTables(allDeprecatedTables);
+            log.info("Successfully dropped deprecated tables on startup.");
         } catch (InsufficientConsistencyException e) {
             log.info("Could not drop deprecated tables due to insufficient consistency from the underlying "
                     + "KeyValueService.");
