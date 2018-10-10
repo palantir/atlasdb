@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;
 
 /**
@@ -114,6 +115,10 @@ public abstract class Callback<R> {
 
         public CallChain(List<Callback<T>> callbacks) {
             this.callbacks = callbacks;
+        }
+
+        public CallChain(Callback<T>... callbacks) {
+            this(ImmutableList.copyOf(callbacks));
         }
 
         @Override

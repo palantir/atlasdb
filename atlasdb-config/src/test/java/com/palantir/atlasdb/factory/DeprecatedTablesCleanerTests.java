@@ -29,24 +29,22 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransactionManagersInitializerTests {
+public class DeprecatedTablesCleanerTests {
 
+    @Mock private TransactionManager transactionManager;
     @Mock private KeyValueService keyValueService;
-    @Mock private SchemaMetadataService schemaMetadataService;
 
     @Before
     public void setUp() {
-        when(keyValueService.getMetadataForTables()).thenReturn(ImmutableMap.of());
+        when(transactionManager.getKeyValueService()).thenReturn(keyValueService);
     }
 
     @Test
@@ -54,7 +52,7 @@ public class TransactionManagersInitializerTests {
         Schema schema1 = schemaWithNamespaceAndDeprecatedTables("namespace", "aTable");
         Schema schema2 = schemaWithNamespaceAndDeprecatedTables("anotherNamespace", "anotherTable");
 
-        initializer(schema1, schema2).tryInitialize();
+        cleaner(schema1, schema2).runWithRetry(transactionManager);
 
         Set<TableReference> expectedDeprecatedTables = ImmutableSet.of(
                 TableReference.create(schema1.getNamespace(), "aTable"),
@@ -67,10 +65,10 @@ public class TransactionManagersInitializerTests {
     public void doesNotThrowIfWeCannotDropTables() {
         Schema schema = schemaWithNamespaceAndDeprecatedTables("namespace", "deprecated");
         TableReference deprecatedTableReference = TableReference.create(schema.getNamespace(), "deprecated");
-        doThrow(new InsufficientConsistencyException("not enough nodes..."))
+        doThrow(new RuntimeException("failed for some reason"))
                 .when(keyValueService).dropTables(ImmutableSet.of(deprecatedTableReference));
 
-        assertThatCode(() -> initializer(schema).tryInitialize()).doesNotThrowAnyException();
+        assertThatCode(() -> cleaner(schema).runWithRetry(transactionManager)).doesNotThrowAnyException();
     }
 
     private static Schema schemaWithNamespaceAndDeprecatedTables(String namespace, String... deprecatedTables) {
@@ -79,7 +77,8 @@ public class TransactionManagersInitializerTests {
         return schema;
     }
 
-    private TransactionManagersInitializer initializer(Schema... schemas) {
-        return new TransactionManagersInitializer(keyValueService, ImmutableSet.copyOf(schemas), schemaMetadataService);
+    private DeprecatedTablesCleaner cleaner(Schema... schemas) {
+        return new DeprecatedTablesCleaner(ImmutableSet.copyOf(schemas));
     }
+
 }
