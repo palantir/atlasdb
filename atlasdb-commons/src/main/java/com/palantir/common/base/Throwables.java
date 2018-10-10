@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
@@ -87,9 +86,7 @@ public final class Throwables {
      * new PalantirRuntimeException(ex)
      */
     public static AtlasDbDependencyException unwrapAndThrowAtlasDbDependencyException(Throwable ex) {
-        if (ex instanceof ExecutionException
-                || ex instanceof InvocationTargetException
-                || ex instanceof UncheckedExecutionException) {
+        if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
             throw createAtlasDbDependencyException(ex.getCause());
         }
         throw createAtlasDbDependencyException(ex);
