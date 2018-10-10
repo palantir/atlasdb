@@ -49,7 +49,7 @@ public class CorroboratingTimestampServiceTests {
         getIndividualTimestamps(20);
         goBackInTimeFor(10);
 
-        assertThatThrownBy(corroboratingTimestampService::getFreshTimestamp).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(corroboratingTimestampService::getFreshTimestamp).isInstanceOf(AssertionError.class);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class CorroboratingTimestampServiceTests {
         goBackInTimeFor(10);
 
         assertThatThrownBy(() -> corroboratingTimestampService.getFreshTimestamps(10))
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(AssertionError.class);
     }
 
     @Test
