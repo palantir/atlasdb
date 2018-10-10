@@ -53,7 +53,6 @@ public class CorroboratingTimestampService implements TimestampService {
         long snapshot = lowerBound;
         TimestampRange timestampRange = delegate.getFreshTimestamps(numTimestampsRequested);
 
-
         if (timestampRange.getLowerBound() <= snapshot) {
             throw clocksWentBackwards(snapshot, timestampRange.getLowerBound());
         }
