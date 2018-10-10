@@ -365,10 +365,11 @@ public abstract class TransactionManagers {
                         Suppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier::get)),
                 closeables);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
-                asyncInitializationCallback()));
+                new DeprecatedTablesCleaner(schemas()),
+                asyncInitializationCallback());
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(

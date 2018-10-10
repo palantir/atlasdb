@@ -15,18 +15,11 @@
  */
 package com.palantir.atlasdb.factory;
 
-import java.util.Collection;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.table.description.Schema;
@@ -35,8 +28,6 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.common.annotation.Idempotent;
 
 public final class TransactionManagersInitializer extends AsyncInitializer {
-
-    private static final Logger log = LoggerFactory.getLogger(TransactionManagersInitializer.class);
 
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
@@ -69,7 +60,6 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
         TransactionTables.createTables(keyValueService);
 
         createTablesAndIndexes();
-        deleteDeprecatedTablesAndIndexes();
         populateLoggingContext();
     }
 
@@ -77,22 +67,6 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
         for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, keyValueService);
             schemaMetadataService.putSchemaMetadata(schema.getName(), schema.getSchemaMetadata());
-        }
-    }
-
-    private void deleteDeprecatedTablesAndIndexes() {
-        schemas.forEach(Schema::validate);
-        Set<TableReference> allDeprecatedTables = schemas.stream()
-                .map(Schema::getDeprecatedTables)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-
-        try {
-            keyValueService.dropTables(allDeprecatedTables);
-            log.info("Successfully dropped deprecated tables on startup.");
-        } catch (InsufficientConsistencyException e) {
-            log.info("Could not drop deprecated tables due to insufficient consistency from the underlying "
-                    + "KeyValueService.");
         }
     }
 
