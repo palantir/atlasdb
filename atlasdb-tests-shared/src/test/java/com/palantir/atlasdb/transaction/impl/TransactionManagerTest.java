@@ -33,7 +33,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -41,7 +40,6 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -53,11 +51,11 @@ import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(false,
-            PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true))));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     @Override
     protected KeyValueService getKeyValueService() {
+        // create new kvs every time because some tests close it
         return KVS.createKvs();
     }
 
@@ -68,6 +66,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
+        // force creation of new transaction manager every time because some tests close it
         return Optional.empty();
     }
 

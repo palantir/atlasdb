@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(false));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     @Override
     protected KeyValueService getKeyValueService() {

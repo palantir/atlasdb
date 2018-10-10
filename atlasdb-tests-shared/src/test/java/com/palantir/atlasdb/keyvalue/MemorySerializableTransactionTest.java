@@ -21,15 +21,12 @@ import org.junit.ClassRule;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(
-            false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false))));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     @Override
     protected KeyValueService getKeyValueService() {

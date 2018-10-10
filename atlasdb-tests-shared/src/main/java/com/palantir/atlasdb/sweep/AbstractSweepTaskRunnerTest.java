@@ -291,7 +291,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
 
-    @Test()
+    @Test(timeout = 50000)
     public void testSweepHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 

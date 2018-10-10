@@ -44,6 +44,10 @@ public class CloseableResourceManager extends ExternalResource {
         this.getKvsSupplier = Suppliers.memoize(createKvsSupplier::get);
     }
 
+    public static CloseableResourceManager inMemory() {
+        return new CloseableResourceManager(() -> new InMemoryKeyValueService(false));
+    }
+
     public KeyValueService getKvs() {
         return getKvsSupplier.get();
     }

@@ -19,12 +19,10 @@ import org.junit.ClassRule;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
 public class SweepProgressStoreTest extends AbstractSweepProgressStoreTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
-            new InMemoryKeyValueService(false));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     @Override
     protected KeyValueService getKeyValueService() {

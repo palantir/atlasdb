@@ -16,11 +16,9 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -28,18 +26,13 @@ import org.junit.Test;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    private static final ExecutorService exec = PTExecutors.newCachedThreadPool();
-
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
-            new InMemoryKeyValueService(false, exec));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     @Override
     protected KeyValueService getKeyValueService() {

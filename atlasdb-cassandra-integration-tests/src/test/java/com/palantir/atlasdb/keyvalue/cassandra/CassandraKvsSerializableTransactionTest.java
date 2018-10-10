@@ -42,7 +42,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-       CASSANDRA.registerTransactionManager(transactionManager);
+        CASSANDRA.registerTransactionManager(transactionManager);
     }
 
     @Override
