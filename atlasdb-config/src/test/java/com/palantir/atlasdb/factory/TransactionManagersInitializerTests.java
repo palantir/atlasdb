@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,10 +27,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -58,6 +61,16 @@ public class TransactionManagersInitializerTests {
                 TableReference.create(schema2.getNamespace(), "anotherTable"));
 
         verify(keyValueService).dropTables(expectedDeprecatedTables);
+    }
+
+    @Test
+    public void doesNotThrowIfWeCannotDropTables() {
+        Schema schema = schemaWithNamespaceAndDeprecatedTables("namespace", "deprecated");
+        TableReference deprecatedTableReference = TableReference.create(schema.getNamespace(), "deprecated");
+        doThrow(new InsufficientConsistencyException("not enough nodes..."))
+                .when(keyValueService).dropTables(ImmutableSet.of(deprecatedTableReference));
+
+        assertThatCode(() -> initializer(schema).tryInitialize()).doesNotThrowAnyException();
     }
 
     private static Schema schemaWithNamespaceAndDeprecatedTables(String namespace, String... deprecatedTables) {

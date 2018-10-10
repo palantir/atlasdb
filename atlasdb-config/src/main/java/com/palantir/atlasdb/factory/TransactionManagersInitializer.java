@@ -20,8 +20,12 @@ import static java.util.stream.Collectors.toSet;
 import java.util.Collection;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -32,6 +36,9 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.common.annotation.Idempotent;
 
 public final class TransactionManagersInitializer extends AsyncInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(TransactionManagersInitializer.class);
+
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
     private SchemaMetadataService schemaMetadataService;
@@ -75,12 +82,18 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     }
 
     private void deleteDeprecatedTablesAndIndexes() {
+        schemas.forEach(Schema::validate);
         Set<TableReference> allDeprecatedTables = schemas.stream()
                 .map(Schema::getDeprecatedTables)
                 .flatMap(Collection::stream)
                 .collect(toSet());
 
-        keyValueService.dropTables(allDeprecatedTables);
+        try {
+            keyValueService.dropTables(allDeprecatedTables);
+        } catch (InsufficientConsistencyException e) {
+            log.info("Could not drop deprecated tables due to insufficient consistency from the underlying "
+                    + "KeyValueService.");
+        }
     }
 
     private void populateLoggingContext() {
