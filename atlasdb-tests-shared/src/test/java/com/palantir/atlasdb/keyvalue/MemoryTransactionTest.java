@@ -30,17 +30,17 @@ public class MemoryTransactionTest extends AbstractTransactionTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return KVS.createKvs();
+        return KVS.getKvs();
     }
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTransactionManager(transactionManager);
+        KVS.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getRegisteredTransactionManager();
+        return KVS.getLastRegisteredTm();
     }
 
 }

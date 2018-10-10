@@ -41,12 +41,12 @@ public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTransactionManager(transactionManager);
+        KVS.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getRegisteredTransactionManager();
+        return KVS.getLastRegisteredTm();
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.

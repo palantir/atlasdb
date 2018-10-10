@@ -60,12 +60,12 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTransactionManager(transactionManager);
+        CASSANDRA.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getRegisteredTransactionManager();
+        return CASSANDRA.getLastRegisteredTm();
     }
 
     @Test

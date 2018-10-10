@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CloseableResourceManager extends ExternalResource {
-    private final Supplier<KeyValueService> createKvsSupplier;
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
@@ -36,12 +35,11 @@ public class CloseableResourceManager extends ExternalResource {
     private TransactionManager transactionManager = null;
 
     public CloseableResourceManager(Supplier<KeyValueService> kvsSupplier) {
-        this.createKvsSupplier = () -> {
+        this.getKvsSupplier = Suppliers.memoize(() -> {
             KeyValueService kvs = kvsSupplier.get();
             registerCloseable(kvs);
             return kvs;
-        };
-        this.getKvsSupplier = Suppliers.memoize(createKvsSupplier::get);
+        });
     }
 
     public static CloseableResourceManager inMemory() {
@@ -52,25 +50,21 @@ public class CloseableResourceManager extends ExternalResource {
         return getKvsSupplier.get();
     }
 
-    public KeyValueService createKvs() {
-        return createKvsSupplier.get();
-    }
-
     public void registerKvs(KeyValueService kvs) {
         keyValueService = kvs;
         registerCloseable(kvs);
     }
 
-    public Optional<KeyValueService> getRegisteredKvs() {
+    public Optional<KeyValueService> getLastRegisteredKvs() {
         return Optional.ofNullable(keyValueService);
     }
 
-    public void registerTransactionManager(TransactionManager manager) {
+    public void registerTm(TransactionManager manager) {
         transactionManager = manager;
         registerCloseable(manager);
     }
 
-    public Optional<TransactionManager> getRegisteredTransactionManager() {
+    public Optional<TransactionManager> getLastRegisteredTm() {
         return Optional.ofNullable(transactionManager);
     }
 

@@ -98,7 +98,7 @@ public final class DbkvsPostgresTestSuite {
         return () -> {
             ConnectionManagerAwareDbKvs kvs = null;
             try {
-                kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
+                kvs = createKvs();
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception ex) {
                 if (ex.getMessage().contains("The connection attempt failed.")
@@ -113,5 +113,9 @@ public final class DbkvsPostgresTestSuite {
                 }
             }
         };
+    }
+
+    public static ConnectionManagerAwareDbKvs createKvs() {
+        return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
 }

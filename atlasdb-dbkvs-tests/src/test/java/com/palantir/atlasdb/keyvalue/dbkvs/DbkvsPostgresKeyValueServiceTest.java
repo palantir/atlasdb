@@ -24,14 +24,12 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() ->
-            ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig()));
+    public static final CloseableResourceManager KVS = new CloseableResourceManager(DbkvsPostgresTestSuite::createKvs);
 
     private static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     private static final String TEST_LONG_TABLE_NAME =

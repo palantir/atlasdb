@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.util.concurrent.MoreExecutors;
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+    @ClassRule
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
+
     @Override
-    protected KeyValueService createKeyValueService() {
-        return new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
+    protected KeyValueService getKeyValueService() {
+        return KVS.getKvs();
     }
 }

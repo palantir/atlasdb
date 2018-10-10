@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,23 +46,13 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "get_candidate_cells_for_sweeping.test_table");
 
-    private static KeyValueService kvs = null;
+    private KeyValueService kvs;
 
     @Before
     public void setUp() {
-        if (kvs == null) {
-            kvs = createKeyValueService();
-        }
+        kvs = getKeyValueService();
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
-    }
-
-    @AfterClass
-    public static void closeKvs() {
-        if (kvs != null) {
-            kvs.close();
-            kvs = null;
-        }
     }
 
     @Test
@@ -285,5 +274,5 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         return Ints.toByteArray(rowNum);
     }
 
-    protected abstract KeyValueService createKeyValueService();
+    protected abstract KeyValueService getKeyValueService();
 }

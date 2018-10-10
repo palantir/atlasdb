@@ -15,47 +15,29 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
-
 import org.junit.ClassRule;
-import org.junit.runners.Parameterized;
 
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
-import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraBackgroundSweeperIntegrationTest.class);
-
-    @Parameterized.Parameter
-    public boolean useColumnBatchSize;
-
-    @Parameterized.Parameters(name = "Use column batch size parameter = {0}")
-    public static Iterable<?> parameters() {
-        return Arrays.asList(true, false);
-    }
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+            CassandraBackgroundSweeperIntegrationTest.class,
+            CassandraBackgroundSweeperIntegrationTest::createKeyValueService);
 
     @Override
     protected KeyValueService getKeyValueService() {
-        CassandraKeyValueServiceConfig config = useColumnBatchSize
-                ? ImmutableCassandraKeyValueServiceConfig.copyOf(CASSANDRA.getConfig())
-                    .withTimestampsGetterBatchSize(10)
-                : CASSANDRA.getConfig();
+        return CASSANDRA.getDefaultKvs();
+    }
 
-        // Need to ensure that C* timestamps for sentinels and deletes occur after timestamps where values were put
-        // (which is true in practice assuming timestamp service is working properly)
+    private static KeyValueService createKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
-                metricsManager,
-                config,
+                MetricsManagers.createForTests(),
+                CASSANDRA.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }

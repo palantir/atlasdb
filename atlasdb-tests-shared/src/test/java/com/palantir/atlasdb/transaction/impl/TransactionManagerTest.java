@@ -34,6 +34,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -56,12 +57,14 @@ public class TransactionManagerTest extends TransactionTestSetup {
     @Override
     protected KeyValueService getKeyValueService() {
         // create new kvs every time because some tests close it
-        return KVS.createKvs();
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        KVS.registerKvs(kvs);
+        return kvs;
     }
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTransactionManager(transactionManager);
+        KVS.registerTm(transactionManager);
     }
 
     @Override

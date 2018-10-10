@@ -40,7 +40,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -52,7 +51,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -62,8 +60,7 @@ import com.palantir.lock.v2.LockResponse;
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(() -> new InMemoryKeyValueService(
-            false, PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false))));
+    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
 
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
     private static final String ROW = "row";
@@ -75,17 +72,17 @@ public class CommitLockTest extends TransactionTestSetup {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return KVS.createKvs();
+        return KVS.getKvs();
     }
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-
+        KVS.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return null;
+        return KVS.getLastRegisteredTm();
     }
 
     @Theory
@@ -202,7 +199,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 () -> TRANSACTION_CONFIG) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, input -> input.clone());
+                return Maps.transformValues(map, byte[]::clone);
             }
         };
     }

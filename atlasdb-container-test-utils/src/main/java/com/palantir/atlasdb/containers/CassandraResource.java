@@ -30,8 +30,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = new CassandraContainer();
-    private final CloseableResourceManager closeableResourceManager;
     private final Containers containers;
+    private final CloseableResourceManager closeableResourceManager;
 
     public CassandraResource(Class<?> classToSaveLogsFor) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
@@ -54,6 +54,9 @@ public class CassandraResource extends ExternalResource {
         closeableResourceManager.after();
     }
 
+    /**
+     * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the constructor.
+     * */
     public CassandraKeyValueService getDefaultKvs() {
         return (CassandraKeyValueService) closeableResourceManager.getKvs();
     }
@@ -62,16 +65,16 @@ public class CassandraResource extends ExternalResource {
         closeableResourceManager.registerKvs(kvs);
     }
 
-    public Optional<KeyValueService> getRegisteredKvs() {
-        return closeableResourceManager.getRegisteredKvs();
+    public Optional<KeyValueService> getLastRegisteredKvs() {
+        return closeableResourceManager.getLastRegisteredKvs();
     }
 
-    public void registerTransactionManager(TransactionManager manager) {
-        closeableResourceManager.registerTransactionManager(manager);
+    public void registerTm(TransactionManager manager) {
+        closeableResourceManager.registerTm(manager);
     }
 
-    public Optional<TransactionManager> getRegisteredTransactionManager() {
-        return closeableResourceManager.getRegisteredTransactionManager();
+    public Optional<TransactionManager> getLastRegisteredTm() {
+        return closeableResourceManager.getLastRegisteredTm();
     }
 
     public CassandraKeyValueServiceConfig getConfig() {

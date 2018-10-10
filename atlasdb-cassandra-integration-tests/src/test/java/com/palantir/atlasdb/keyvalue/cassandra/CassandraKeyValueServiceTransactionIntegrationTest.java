@@ -53,7 +53,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getRegisteredKvs().orElseGet(this::createAndRegisterKeyValueService);
+        return CASSANDRA.getLastRegisteredKvs().orElseGet(this::createAndRegisterKeyValueService);
     }
 
     private KeyValueService createAndRegisterKeyValueService() {
@@ -74,12 +74,12 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTransactionManager(transactionManager);
+        CASSANDRA.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getRegisteredTransactionManager();
+        return CASSANDRA.getLastRegisteredTm();
     }
 
     @Override

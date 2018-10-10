@@ -34,7 +34,7 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
             CassandraKeyValueServiceIntegrationTest.class);
 
     @Override
-    protected KeyValueService createKeyValueService() {
+    protected KeyValueService getKeyValueService() {
         return CASSANDRA.getDefaultKvs();
     }
 

@@ -69,12 +69,12 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTransactionManager(transactionManager);
+        CASSANDRA.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getRegisteredTransactionManager();
+        return CASSANDRA.getLastRegisteredTm();
     }
 
     @Override

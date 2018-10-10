@@ -35,12 +35,12 @@ public class JdbcTransactionTest extends AbstractTransactionTest {
 
     @Override
     protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTransactionManager(transactionManager);
+        KVS.registerTm(transactionManager);
     }
 
     @Override
     protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getRegisteredTransactionManager();
+        return KVS.getLastRegisteredTm();
     }
 
     @Override
