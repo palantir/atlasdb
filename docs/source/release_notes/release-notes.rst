@@ -56,17 +56,72 @@ develop
            Now, only a quorum of nodes must agree, if the remaining nodes are unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
+    *    - |improved|
+         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
+
+    *    - |improved|
+         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
+           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
+
+
+========
+v0.106.0
+========
+
+2 Oct 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed| |devbreak|
+         - Reverted the PR #3505, which was modifying PaxosLeaderElectionService to utilise distinct bounded thread pools, as this PR uncovered some resiliency issues with PaxosLeaderElectionService.
+           It will be re-merged after fixing those issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3536>`__)
+
     *    - |fixed|
-         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
+         - Targeted sweep now stores much less data in the sweepable cells table due to more efficient encoding.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
 
-    *    - |changed|
-         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
+    *    - |new|
+         - ``TransactionManager``s now expose a ``TimestampManagementService``, allowing clients to fast-forward timestamps when necessary.
+           This functionality is intended for libraries that extend AtlasDB functionality; it is unlikely that users should directly require the TimestampManagementService.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3524>`__)
 
-    *    - |changed|
-         - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists, and was deleted by a different host while this host was online and sweeping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3516>`__)
+
+    *    - |improved|
+         - Add versionId to SimpleTokenInfo to improve logging for troubleshooting.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3521>`__)
+
+    *    - |improved|
+         - Increase maximum allowed rescue dependency version to 4.X.X.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3525>`__)
+
+    *    - |logs| |changed|
+         - Changed the origin for logs when queries were slow from `kvs-slow-log` to `kvs-slow-log-2`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3549>`__)
+
+========
+v0.105.0
+========
+
+20 Sep 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Improved threading for MetricsManager's metricsRegistry
@@ -76,6 +131,76 @@ develop
          - Improved visibility into sources of high DB load.
            We log when a query returns a high number of timestamps that need to be looked up in the database, and tag some additional metrics with the tablename we were querying.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3488>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3504>`__)
+
+    *    - |changed|
+         - Upgrade http-remoting 3.41.1 -> 3.43.0 to make tracing delegate nicely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3494>`__)
+
+    *    - |improved|
+         - Users may now provide their own executors to instances of ``BasicSQL`` and to ``BasicSQLUtils.runUninterruptably``.
+           Previously users were forced to use a default executor which had an unbounded thread-pool and fixed keep-alive timeouts.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3487>`__)
+
+    *    - |fixed|
+         - TargetedSweepMetrics#millisSinceLastSweptTs updates periodically, even if targeted sweep is failing to successfully run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3507>`__)
+
+    *    - |fixed|
+         - Targeted sweep no longer chokes if a table in the queue no longer exists.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3508>`__)
+
+    *    - |fixed|
+         - Targeted sweep threads will no longer die if Timelock unlock calls fail.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3510>`__)
+
+    *    - |improved|
+         - PaxosLeaderElectionService now utilises distinct bounded thread pools for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
+
+    *    - |fixed|
+         - Fixed an issue in timelock where followers were publishing metrics with ``isCurrentSuspectedLeader`` tag set to ``true``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3509>`__)
+
+    *    - |fixed|
+         - Background sweep will now choose between priority tables uniform randomly if there are multiple priority tables.
+           Previously, if multiple priority tables were specified, background sweep would repeatedly pick the same table to be swept, meaning that the other priority tables would all never be swept.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3512>`__)
+
+    *    - |improved|
+         - A few timelock ops edge cases have been removed. Timelock users must now indicate whether they are booting their
+           servers for the first time or subsequent times, to avoid the situation where a timelock node becomes newly
+           misconfigured and thinks it is booting up for the first time again. Additionally, timestamps no longer overflow
+           when they hit Long.MAX_VALUE; this would only happen due to a bug, but at least now the DB will become read only
+           and not corrupt.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3498>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3505>`__)
+
+========
+v0.104.0
+========
+
+4 Sep 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The Jepsen tests no longer assume that users have installed Python or DateUtil, and will install these itself if needed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3461>`__)
+
+    *    - |changed|
+         - Bumps com.palantir.remoting3 dependency to 3.41.1 from 3.22.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3482>`__)
 
 ========
 v0.103.0

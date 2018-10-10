@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doAnswer;
@@ -916,13 +915,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // minimum: as in the example above, but we have extra threads
         // threads + ... + threads * (shards / threads) + shards * (threads * sweepers - shards)
         verify(stickyLockService, atLeast(shards * (shards / threads + 1) / 2 + shards * (threads * sweepers - shards)))
-                .lock(any(LockRequest.class));
+                .lock(captor.capture());
         // maximum: one would think that it is
         // shards + shards - 1 + ... + shards - (sweepers - 1) + shards * (threads * sweepers - shards)
         // but actually the logic is much more complicated since threads from the same sweeper can loop back and hit a
         // race condition with each other, so we go with the more conservative upper bound
-        verify(stickyLockService, atMost(threads * sweepers * shards)).lock(captor.capture());
-
+        verify(stickyLockService, atMost(threads * sweepers * shards)).lock(any());
         Set<String> requestedLockIds = captor.getAllValues().stream()
                 .map(LockRequest::getLockDescriptors)
                 .map(Iterables::getOnlyElement)
@@ -1088,13 +1086,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
      * Creates a mock of a LockService that only gives out a lock once per unique request and never releases it, even
      * if unlock is called. The returned tokens are monotonically increasing in the tokenId.
      */
-    private TimelockService createStickyLockService() throws InterruptedException {
+    private TimelockService createStickyLockService() {
         AtomicLong lockToken = new AtomicLong(0);
-
         Set<LockDescriptor> requestedLocks = new ConcurrentHashSet<>();
         TimelockService stickyLockService = mock(TimelockService.class);
-        doAnswer((invocation) -> {
-            LockRequest request = (LockRequest) invocation.getArguments()[0];
+        doAnswer(invocation -> {
+            LockRequest request = invocation.getArgument(0);
             if (requestedLocks.add(Iterables.getOnlyElement(request.getLockDescriptors()))) {
                 return (LockResponse) () -> Optional.of(LockToken.of(new UUID(lockToken.getAndIncrement(), 0L)));
             } else {

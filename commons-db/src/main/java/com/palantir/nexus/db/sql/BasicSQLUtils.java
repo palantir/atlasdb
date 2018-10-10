@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import javax.annotation.Nullable;
@@ -45,7 +46,6 @@ public class BasicSQLUtils {
      * Returns count of fields in a field list.  Used for optimizing and
      * normalizing CRUD code.
      *
-     * @param fieldList
      * @return count of comma-delimited fields.
      */
     public static final int countFields(String fieldList) {
@@ -58,23 +58,24 @@ public class BasicSQLUtils {
 
     // convert ints to longs, to ensure that we do not overflow our bind variables.
     // private, so that clients can only pass in values that we know will not overflow
-    public static String internalLimitQuery(String query, long maxRows, long offset, List<Object> varbinds, DBType dbType) {
+    public static String internalLimitQuery(String query, long maxRows, long offset, List<Object> varbinds,
+            DBType dbType) {
         // our strategy is to create a subselect around the user-provided
         // query that limits on rows returned and offsets.  this isn't the
         // most efficient operation in most dbs, but it works...
         if (dbType == DBType.ORACLE) {
             if (offset == 0) { // limit only
                 final String limitQuery = String.format(SQLConstants.SQL_ORACLE_LIMIT_QUERY, query);
-                varbinds.add(maxRows+1);
+                varbinds.add(maxRows + 1);
                 return limitQuery;
-            } else {		// limit & offset (paging)
+            } else {        // limit & offset (paging)
                 final String limitOffsetQuery = String.format(SQLConstants.SQL_ORACLE_LIMIT_OFFSET_QUERY, query);
-                varbinds.add(maxRows+offset+1);
-                varbinds.add(offset+1);
+                varbinds.add(maxRows + offset + 1);
+                varbinds.add(offset + 1);
                 return limitOffsetQuery;
             }
         } else if (dbType == DBType.POSTGRESQL) {
-            if(maxRows > 0) {
+            if (maxRows > 0) {
                 final String limitOffsetQuery = String.format(SQL_POSTGRES_LIMIT_OFFSET_QUERY, query);
                 varbinds.add(maxRows);
                 varbinds.add(offset);
@@ -93,15 +94,13 @@ public class BasicSQLUtils {
      * POSTGRES limit and offset query syntax.
      */
     private static final String SQL_POSTGRES_LIMIT_OFFSET_QUERY =
-        " %s  LIMIT ? OFFSET ?"; //$NON-NLS-1$
+            " %s  LIMIT ? OFFSET ?"; //$NON-NLS-1$
 
     /**
      * Alters the varbinds to work with limitQuery.  To use this, you must have created your
      * query with a limitQueryNoOffset call.  This decoupling of the query creating and the varbinds
      * allows for the registration of limit queries.
-     * @param maxRows
-     * @param offset
-     * @param varbinds
+     *
      * @see SQL#formatLimitQuery(String)
      */
     public static void addVarbindsForLimitQuery(int maxRows, long offset, List<Object> varbinds, DBType dbType) {
@@ -112,8 +111,7 @@ public class BasicSQLUtils {
      * Alters the varbinds to work with limitQuery.  To use this, you must have created your
      * query with a limitQueryNoOffset call.  This decoupling of the query creating and the varbinds
      * allows for the registration of limit queries.
-     * @param maxRows
-     * @param varbinds
+     *
      * @see SQL#formatLimitQuery(String)
      */
     public static void addVarbindsForLimitQuery(int maxRows, List<Object> varbinds, DBType dbType) {
@@ -125,14 +123,13 @@ public class BasicSQLUtils {
      * the given offset.  This is effective when trying to page through
      * a set of results.  This method does not alter the query directly,
      * it simply wraps it in sub-selects.
-     *
+     * <p>
      * Note: you cannot alter the query or varbinds after calling this method.
      *
      * @param query - query to limit
      * @param maxRows - maximum number of results to provide
      * @param offset - 0-based offset to return results from
      * @param varbinds - the variable bindings for the given query
-     * @return
      */
     public static String limitQuery(String query, int maxRows, int offset, List<Object> varbinds, DBType dbType) {
         return internalLimitQuery(query, maxRows, offset, varbinds, dbType);
@@ -141,14 +138,12 @@ public class BasicSQLUtils {
     /**
      * Limits the given query to the given number of maximum rows.  This method
      * does not alter the query directly, it simply wraps it in sub-selects.
-     *
+     * <p>
      * Note: you cannot alter the query or varbinds after calling this method.
      *
      * @param query - query to limit
      * @param maxRows - maximum number of results to provide
      * @param varbinds - the variable bindings for the given query
-     *
-     * @return
      */
     public static String limitQuery(String query, int maxRows, List<Object> varbinds, DBType dbType) {
         return limitQuery(query, maxRows, 0, varbinds, dbType);
@@ -159,12 +154,11 @@ public class BasicSQLUtils {
      * To use this, you will have to pass your varbinds through a limitQuery call.
      * query with a limitQuery call.  This decoupling of the query creating and the varbinds
      * allows for the registration of limit queries.
-     *
+     * <p>
      * This method has NoOffset in the name because it creates a limit query that
      * does not have an offset value.  The presence of an offset could change the
      * resulting String.
      *
-     * @param varbinds
      * @see addVarbindsForLimitQuery
      */
     public static String formatLimitQuery(String query, BasicSQL.OffsetInclusion offset, DBType dbType) {
@@ -175,13 +169,14 @@ public class BasicSQLUtils {
         } else {
             fakeOffset = 0;
         }
-       return internalLimitQuery(query, 1, fakeOffset, new ArrayList<Object>(), dbType);
+        return internalLimitQuery(query, 1, fakeOffset, new ArrayList<Object>(), dbType);
     }
 
     /**
      * Gives you a single sequence increment text as appropriate for the
      * db you're using (e.g. "sequence.nextval as label" or "next value for sequence as label"
      * It will not have spaces around it!
+     *
      * @param sequenceName Name of a valid sequence in your database
      * @param label Name assigned to the "column" in the result set
      */
@@ -190,7 +185,7 @@ public class BasicSQLUtils {
         if (type == DBType.POSTGRESQL) {
             sql = String.format(POSTGRESQL_SINGLE_ID_COLUMN, sequenceName);
         } else {
-            sql = String.format(ORACLE_SINGLE_ID_COLUMN, new Object [] {sequenceName});
+            sql = String.format(ORACLE_SINGLE_ID_COLUMN, new Object[] {sequenceName});
         }
         if (label != null) {
             sql += " AS " + label; //$NON-NLS-1$
@@ -205,7 +200,7 @@ public class BasicSQLUtils {
     public static String qualifyFields(String fieldList, String tableName) {
         String fields[] = fieldList.split("\\s*,\\s*"); //$NON-NLS-1$
         StringBuilder out = new StringBuilder();
-        for (int i = 0 ; i < fields.length; i ++) {
+        for (int i = 0; i < fields.length; i++) {
             out.append(tableName).append(".").append(fields[i]); //$NON-NLS-1$
             if (i < fields.length - 1) {
                 out.append(","); //$NON-NLS-1$
@@ -215,7 +210,8 @@ public class BasicSQLUtils {
 
     }
 
-    public static @Nullable Boolean getNullableBoolean(AgnosticResultRow row, String colName) throws PalantirSqlException {
+    @Nullable
+    public static Boolean getNullableBoolean(AgnosticResultRow row, String colName) throws PalantirSqlException {
         Long ret = row.getLongObject(colName);
         if (ret == null) {
             return null;
@@ -233,18 +229,18 @@ public class BasicSQLUtils {
         }
         return true;
     }
+
     public static final String COMMON_SYSTEM_FIELDS = "deleted, created_by, time_created, last_modified"; //$NON-NLS-1$
 
     /**
      * Builds update compatible field list from comma delimited field names
      *
      * @param fieldList - in form of "field1, field2,..."
-     * @return
      */
     public static String generateUpdateString(String fieldList) {
         String fields[] = fieldList.split("\\s*,\\s*"); //$NON-NLS-1$
         StringBuilder out = new StringBuilder();
-        for (int i = 0 ; i < fields.length; i ++) {
+        for (int i = 0; i < fields.length; i++) {
             out.append(fields[i]).append(" = ?"); //$NON-NLS-1$
             if (i < fields.length - 1) {
                 out.append(","); //$NON-NLS-1$
@@ -267,12 +263,25 @@ public class BasicSQLUtils {
      * essentially declaring that the child thread now owns
      * this connection.
      */
-    public static <T> T runUninterruptably(final Callable<T> callable, String threadString,
-                                           final @Nullable Connection connection) throws PalantirSqlException {
-        Future<T> future = BasicSQL.executeService.submit(ThreadNamingCallable.wrapWithThreadName(
+    public static <T> T runUninterruptably(
+            final Callable<T> callable,
+            String threadString,
+            final @Nullable Connection connection) throws PalantirSqlException {
+        return runUninterruptably(
+                BasicSQL.DEFAULT_EXECUTE_EXECUTOR.get(),
+                callable,
+                threadString,
+                connection);
+    }
+
+    public static <T> T runUninterruptably(
+            ExecutorService executorService,
+            final Callable<T> callable,
+            String threadString,
+            final @Nullable Connection connection) throws PalantirSqlException {
+        Future<T> future = executorService.submit(ThreadNamingCallable.wrapWithThreadName(
                 ThreadConfinedProxy.threadLendingCallable(connection,
                         () -> {
-
                             if(Thread.currentThread().isInterrupted()) {
                                 cancelLogger.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
                                 //we want to clear the interrupted status here -

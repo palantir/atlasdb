@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -245,7 +244,7 @@ public class TargetedSweepMetricsTest {
     @Test
     public void millisSinceLastSweptDoesNotUpdateWithoutWaiting() {
         metricsManager = MetricsManagers.createForTests();
-        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000_000);
+        metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000);
 
         metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
         metrics.updateProgressForShard(CONS_ZERO, 100);
@@ -258,6 +257,9 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
         clockTime += 100;
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(50L);
+
+        clockTime += 1000; // clock is now 1201
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(1151L);
     }
 
     @Test
