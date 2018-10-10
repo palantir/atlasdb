@@ -1,3 +1,4 @@
+rootProject.name = 'atlasdb'
 include ":atlasdb-api"
 include ":atlasdb-cassandra"
 include ":atlasdb-cassandra-integration-tests"

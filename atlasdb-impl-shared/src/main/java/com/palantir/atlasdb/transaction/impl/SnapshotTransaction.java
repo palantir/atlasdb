@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,7 +54,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Collections2;
@@ -209,7 +208,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private volatile long commitTsForScrubbing = TransactionConstants.FAILED_COMMIT_TS;
     protected final boolean allowHiddenTableAccess;
-    protected final Stopwatch transactionTimer = Stopwatch.createStarted();
     protected final TimestampCache timestampValidationReadCache;
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
@@ -292,10 +290,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     @Override
     public TransactionReadSentinelBehavior getReadSentinelBehavior() {
         return readSentinelBehavior;
-    }
-
-    public Stopwatch getTrasactionTimer() {
-        return transactionTimer;
     }
 
     protected void checkGetPreconditions(TableReference tableRef) {
@@ -939,15 +933,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
-        if (writes == null) {
-            writes = new ConcurrentSkipListMap<Cell, byte[]>();
-            ConcurrentNavigableMap<Cell, byte[]> previous = writesByTable.putIfAbsent(tableRef, writes);
-            if (previous != null) {
-                writes = previous;
-            }
-        }
-        return writes;
+        return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
     }
 
     /**
@@ -1460,14 +1446,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean hasWrites() {
-        boolean hasWrites = false;
-        for (SortedMap<?, ?> map : writesByTable.values()) {
-            if (!map.isEmpty()) {
-                hasWrites = true;
-                break;
-            }
-        }
-        return hasWrites;
+        return writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
