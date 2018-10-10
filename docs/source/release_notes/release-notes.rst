@@ -60,6 +60,10 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |new|
+         - Old deprecated tables can now be added to a schema to be cleaned up on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
+
 
 ========
 v0.106.0
