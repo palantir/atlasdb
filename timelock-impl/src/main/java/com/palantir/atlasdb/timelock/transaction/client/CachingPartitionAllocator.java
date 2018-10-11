@@ -30,8 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 
 public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T> {
-    @VisibleForTesting
-    final LoadingCache<T, Integer> loadingCache;
+    private final LoadingCache<T, Integer> loadingCache;
 
     @VisibleForTesting
     CachingPartitionAllocator(
