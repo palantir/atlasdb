@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.transaction.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -25,8 +26,6 @@ import java.util.stream.IntStream;
 
 import org.junit.Test;
 
-import com.google.common.collect.Iterables;
-
 public class DistributingModulusGeneratorTest {
     private DistributingModulusGenerator generator;
 
@@ -34,29 +33,29 @@ public class DistributingModulusGeneratorTest {
     public void doesNotReuseResiduesIfNotNeeded() {
         setupGeneratorWithModulus(3);
 
-        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertEachUsedOnce(3);
     }
 
     @Test
     public void waitsToReuseResiduesIfNeeded() {
         setupGeneratorWithModulus(3);
 
-        requestResiduesAndAssertBalanced(3);
-        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertEachUsedOnce(3);
+        requestResiduesAndAssertEachUsedOnce(3);
     }
 
     @Test
     public void canUseDifferentNumberOfModuli() {
         setupGeneratorWithModulus(7);
 
-        requestResiduesAndAssertBalanced(7);
+        requestResiduesAndAssertEachUsedOnce(7);
     }
 
     @Test
     public void canUseResidueOne() {
         setupGeneratorWithModulus(1);
 
-        IntStream.range(0, 50).forEach(unused -> requestResiduesAndAssertBalanced(1));
+        IntStream.range(0, 50).forEach(unused -> requestResiduesAndAssertEachUsedOnce(1));
     }
 
     @Test
@@ -73,7 +72,8 @@ public class DistributingModulusGeneratorTest {
     public void throwsIfUnmarkingUnmarkedResidue() {
         setupGeneratorWithModulus(3);
 
-        assertThatThrownBy(() -> unmarkResidue(0)).satisfies(this::failureArisesFromUnmarkingResidues);
+        assertThatThrownBy(() -> unmarkResidue(0))
+                .satisfies(DistributingModulusGeneratorTest::failureArisesFromUnmarkingResidues);
     }
 
     @Test
@@ -81,10 +81,14 @@ public class DistributingModulusGeneratorTest {
         setupGeneratorWithModulus(3);
 
         requestResidues(3);
-        unmarkResidue(0);
-        unmarkResidue(1);
-        unmarkResidue(2);
-        // Not throwing is a success!
+
+        assertThatCode(() -> {
+            unmarkResidue(0);
+            unmarkResidue(1);
+            unmarkResidue(2);
+        })
+                .as("unmarking all three residues does not throw")
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -94,14 +98,15 @@ public class DistributingModulusGeneratorTest {
         requestResidues(3);
 
         unmarkResidue(0);
-        assertThatThrownBy(() -> unmarkResidue(0)).satisfies(this::failureArisesFromUnmarkingResidues);
+        assertThatThrownBy(() -> unmarkResidue(0))
+                .satisfies(DistributingModulusGeneratorTest::failureArisesFromUnmarkingResidues);
     }
 
     @Test
     public void reassignsUnmarkedResiduesIfTheyAreNowLeastReferenced() {
         setupGeneratorWithModulus(3);
 
-        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertEachUsedOnce(3);
         unmarkResidue(1);
         assertThat(requestResidues(1)).containsExactly(1);
     }
@@ -110,9 +115,9 @@ public class DistributingModulusGeneratorTest {
     public void repeatedlyReassignsUnmarkedResidues() {
         setupGeneratorWithModulus(3);
 
-        requestResiduesAndAssertBalanced(3);
-        requestResiduesAndAssertBalanced(3);
-        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertEachUsedOnce(3);
+        requestResiduesAndAssertEachUsedOnce(3);
+        requestResiduesAndAssertEachUsedOnce(3);
 
         unmarkResidue(2);
         unmarkResidue(2);
@@ -121,7 +126,7 @@ public class DistributingModulusGeneratorTest {
         List<Integer> additionalResponses = requestResidues(3);
         assertThat(additionalResponses).containsExactly(2, 2, 2);
 
-        requestResiduesAndAssertBalanced(3);
+        requestResiduesAndAssertEachUsedOnce(3);
     }
 
     private void setupGeneratorWithModulus(int modulus) {
@@ -135,28 +140,17 @@ public class DistributingModulusGeneratorTest {
                 .collect(Collectors.toList());
     }
 
-    private void requestResiduesAndAssertBalanced(int times) {
-        assertListBalanced(requestResidues(times), times);
-    }
-
-    /**
-     * Asserts that, starting from the beginning of the list, each full modulus number of elements has the integers
-     * from 0 to (modulus - 1) once each. No guarantees are made on the remainder of the list.
-     */
-    private void assertListBalanced(List<Integer> responses, int modulus) {
-        List<Integer> targets = IntStream.range(0, modulus).boxed().collect(Collectors.toList());
-        for (List<Integer> subList : Iterables.partition(responses, modulus)) {
-            if (subList.size() == modulus) {
-                assertThat(subList).hasSameElementsAs(targets);
-            }
-        }
+    private void requestResiduesAndAssertEachUsedOnce(int times) {
+        List<Integer> responses = requestResidues(times);
+        assertThat(responses).containsExactlyInAnyOrderElementsOf(
+                IntStream.range(0, times).boxed().collect(Collectors.toList()));
     }
 
     private void unmarkResidue(int residue) {
         generator.unmarkResidue(residue);
     }
 
-    private void failureArisesFromUnmarkingResidues(Throwable th) {
+    private static void failureArisesFromUnmarkingResidues(Throwable th) {
         assertThat(th)
                 .hasMessageContaining("Attempted to unmark residue")
                 .hasMessageContaining("when it had no references");

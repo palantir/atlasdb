@@ -67,10 +67,9 @@ public class CachingPartitionAllocatorTest {
         List<Integer> firstResponse = allocator.getRelevantModuli(KEY);
 
         time.addAndGet(5_000_000L);
-        allocator.loadingCache.cleanUp();
-        scheduler.runUntilIdle();
 
         allocator.getRelevantModuli(KEY);
+        scheduler.runUntilIdle();
         verify(generator, times(2)).getAndMarkResidue();
         verify(generator, times(1)).unmarkResidue(Iterables.getOnlyElement(firstResponse));
         verifyNoMoreInteractions(generator);
