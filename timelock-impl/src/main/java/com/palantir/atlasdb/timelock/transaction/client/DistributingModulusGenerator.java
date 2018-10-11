@@ -33,16 +33,13 @@ import com.google.common.collect.Sets;
  * Unmarking residues may not be performant if the number of residues used is large.
  */
 public class DistributingModulusGenerator {
-    private static final Comparator<ReferenceCountedResidue> RESIDUE_COMPARATOR = Comparator.comparing(
-            ReferenceCountedResidue::references)
-            .thenComparing(ReferenceCountedResidue::residue);
-
     private final SortedSet<ReferenceCountedResidue> referenceCounts;
 
     public DistributingModulusGenerator(int modulus) {
+        Preconditions.checkArgument(modulus > 0, "Modulus must be positive");
         this.referenceCounts = IntStream.range(0, modulus)
                 .mapToObj(value -> ImmutableReferenceCountedResidue.of(0, value))
-                .collect(Collectors.toCollection(() -> Sets.newTreeSet(RESIDUE_COMPARATOR)));
+                .collect(Collectors.toCollection(() -> Sets.newTreeSet(ReferenceCountedResidue.RESIDUE_COMPARATOR)));
     }
 
     public synchronized int getAndMarkResidue() {
@@ -54,7 +51,7 @@ public class DistributingModulusGenerator {
 
     public synchronized void unmarkResidue(int residue) {
         // There are usually only 16 elements, so this O(n) algo probably will do, but we can pair this with a HashMap
-        // if we decide we need more performance.
+        // and/or make ReferenceCountedResidue modifiable if we decide to use higher moduli in the future.
         for (ReferenceCountedResidue referenceCountedResidue : referenceCounts) {
             if (referenceCountedResidue.residue() == residue) {
                 Preconditions.checkState(
@@ -71,6 +68,10 @@ public class DistributingModulusGenerator {
 
     @Value.Immutable
     interface ReferenceCountedResidue {
+        Comparator<ReferenceCountedResidue> RESIDUE_COMPARATOR = Comparator.comparing(
+                ReferenceCountedResidue::references)
+                .thenComparing(ReferenceCountedResidue::residue);
+
         @Value.Parameter
         int references();
 

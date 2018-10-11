@@ -54,7 +54,7 @@ public class CachingPartitionAllocatorTest {
         List<Integer> secondResponse = allocator.getRelevantModuli(KEY);
         List<Integer> thirdResponse = allocator.getRelevantModuli(KEY);
 
-        verify(generator).getAndMarkResidue(); // only once
+        verify(generator, times(1)).getAndMarkResidue();
         verifyNoMoreInteractions(generator);
 
         assertThat(firstResponse).isEqualTo(secondResponse).isEqualTo(thirdResponse);
