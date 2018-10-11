@@ -186,11 +186,17 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">KeyValueServicePuncherStore``s</span> <span class="pre">``getMillisForTimestamp</span></code> method now does a much more efficient <code class="docutils literal notranslate"><span class="pre">_punch</span></code> table lookup.
+This affects the performance of calculating the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> metric for targeted sweep.
+Also, the above mentioned metric will now consistently report falling behind if no new entries are being punhed into the punch table.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3570">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The legacy lock service’s lock state logger now logs additional information about the lock service’s internal synchronization state.
 This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
