@@ -149,7 +149,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         long timestampExclusive = timestamp + 1;
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .retainColumns(ImmutableList.of(COLUMN))
+                .batchHint(1000)
+                .build();
 
         try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
                 timestampExclusive)) {

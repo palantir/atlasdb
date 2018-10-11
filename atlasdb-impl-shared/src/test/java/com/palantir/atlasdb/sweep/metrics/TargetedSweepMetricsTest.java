@@ -74,7 +74,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void canUpdateConservativeMetrics() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 10, 10);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 10);
         metrics.updateEntriesRead(CONS_ZERO, 21);
         metrics.updateNumberOfTombstones(CONS_ZERO, 1);
         metrics.updateAbortedWritesDeleted(CONS_ZERO, 2);
@@ -97,7 +97,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void canUpdateThoroughMetrics() {
-        metrics.updateEnqueuedWrites(THOR_ZERO, 11, 10);
+        metrics.updateEnqueuedWrites(THOR_ZERO, 11);
         metrics.updateEntriesRead(THOR_ZERO, 30);
         metrics.updateNumberOfTombstones(THOR_ZERO, 2);
         metrics.updateAbortedWritesDeleted(THOR_ZERO, 3);
@@ -120,9 +120,9 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void enqueuedWritesAccumulatesOverShards() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 1);
-        metrics.updateEnqueuedWrites(CONS_ONE, 3, 3);
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 5);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
+        metrics.updateEnqueuedWrites(CONS_ONE, 3);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
 
         assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(5);
     }
@@ -168,7 +168,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void lastSweptGetsMinAcrossShards() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 2000);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 100);
         metrics.updateProgressForShard(CONS_ONE, 1);
         metrics.updateProgressForShard(CONS_TWO, 1000);
@@ -183,7 +183,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void millisSinceLastSweptUpdatesAsClockUpdatesAfterWaiting() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 100);
         puncherStore.put(0, 50);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 50);
@@ -200,7 +200,7 @@ public class TargetedSweepMetricsTest {
         TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
                 .createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
 
-        metrics.updateEnqueuedWrites(CONS_ZERO, 10, 10);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 10);
         metrics.updateEntriesRead(CONS_ZERO, 21);
         metrics.updateNumberOfTombstones(CONS_ZERO, 1);
         metrics.updateAbortedWritesDeleted(CONS_ZERO, 2);
@@ -212,7 +212,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
 
-        secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5, 10);
+        secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         secondMetrics.updateEntriesRead(CONS_ZERO, 5);
         secondMetrics.updateNumberOfTombstones(CONS_ZERO, 5);
         secondMetrics.updateAbortedWritesDeleted(CONS_ZERO, 5);
@@ -230,7 +230,7 @@ public class TargetedSweepMetricsTest {
         TargetedSweepMetrics secondMetrics = TargetedSweepMetrics
                 .createWithClock(metricsManager, kvs, () -> clockTime, RECOMPUTE_MILLIS);
 
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         secondMetrics.updateProgressForShard(CONS_ZERO, 100);
 
         puncherStore.put(0, 50);
@@ -246,7 +246,7 @@ public class TargetedSweepMetricsTest {
         metricsManager = MetricsManagers.createForTests();
         metrics = TargetedSweepMetrics.createWithClock(metricsManager, kvs, () -> clockTime, 1_000);
 
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 100);
         puncherStore.put(0, 50);
 
@@ -264,7 +264,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void millisSinceLastSweptReadsPuncherAgainAfterWaiting() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 10);
         puncherStore.put(0, 5);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 5);
@@ -275,7 +275,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void millisSinceLastSweptDoesNotRangeScanForGivenTimestampIfSweepTsTooFarInThePast() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 10);
 
         // there was a greater timestamp than sweep progress punched more than a week ago
@@ -290,7 +290,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void lastSweptGoesDownIfNewInformationBecomesAvailable() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 9);
         waitForProgressToRecompute();
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(9L);
@@ -306,7 +306,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void lastSweptIncreasesWhenSmallestShardIncreases() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 2000);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 10);
         metrics.updateProgressForShard(CONS_ONE, 1);
         metrics.updateProgressForShard(CONS_TWO, 1000);
@@ -323,7 +323,7 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void lastSweptDoesNotGetConfusedWhenMultipleShardsHaveSameValue() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 10);
         metrics.updateProgressForShard(CONS_ONE, 10);
         metrics.updateProgressForShard(CONS_TWO, 10);
@@ -347,9 +347,9 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void enqueuedWritesDoesNotClashAcrossStrategies() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 1);
-        metrics.updateEnqueuedWrites(THOR_ZERO, 10, 5);
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 10);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
+        metrics.updateEnqueuedWrites(THOR_ZERO, 10);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
 
         assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(2);
         assertThat(metricsManager).hasEnqueuedWritesThoroughEqualTo(10);
@@ -391,8 +391,8 @@ public class TargetedSweepMetricsTest {
 
     @Test
     public void lastSweptDoesNotClashAcrossStrategies() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 1, 200);
-        metrics.updateEnqueuedWrites(THOR_ZERO, 1, 200);
+        metrics.updateEnqueuedWrites(CONS_ZERO, 1);
+        metrics.updateEnqueuedWrites(THOR_ZERO, 1);
         metrics.updateProgressForShard(CONS_ZERO, 1);
         metrics.updateProgressForShard(THOR_ZERO, 50);
         waitForProgressToRecompute();
@@ -414,18 +414,6 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(5);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 5);
         assertThat(metricsManager).hasMillisSinceLastSweptThoroughEqualTo(clockTime - 5);
-    }
-
-    @Test
-    public void millisSinceLastSweptIsZeroWhenEverythingIsSwept() {
-        metrics.updateEnqueuedWrites(CONS_ZERO, 10, 100);
-        metrics.updateProgressForShard(CONS_ZERO, 99);
-        puncherStore.put(1, 1);
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(clockTime - 1);
-
-        metrics.updateProgressForShard(CONS_ZERO, 100);
-        waitForProgressToRecompute();
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(0L);
     }
 
     private static void waitForProgressToRecompute() {
