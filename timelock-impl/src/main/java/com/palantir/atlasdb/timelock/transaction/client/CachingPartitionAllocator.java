@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.transaction.client;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -34,10 +36,12 @@ public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T
     @VisibleForTesting
     CachingPartitionAllocator(
             DistributingModulusGenerator modulusGenerator,
+            Executor executor,
             Ticker ticker,
             Duration timeoutAfterAccess) {
         this.loadingCache = Caffeine.newBuilder()
                 .expireAfterAccess(timeoutAfterAccess)
+                .executor(executor)
                 .ticker(ticker)
                 .removalListener(
                         (T key, Integer value, RemovalCause cause) -> modulusGenerator.unmarkResidue(value))
@@ -49,6 +53,7 @@ public class CachingPartitionAllocator<T> implements NumericPartitionAllocator<T
         DistributingModulusGenerator modulusGenerator = new DistributingModulusGenerator(numModuli);
         return new CachingPartitionAllocator<>(
                 modulusGenerator,
+                ForkJoinPool.commonPool(),
                 Ticker.systemTicker(),
                 Duration.of(5, ChronoUnit.MINUTES));
     }

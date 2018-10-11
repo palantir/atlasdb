@@ -28,6 +28,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -37,11 +38,12 @@ import com.google.common.collect.Iterables;
 public class CachingPartitionAllocatorTest {
     private static final String KEY = "foo";
 
+    private final DeterministicScheduler scheduler = new DeterministicScheduler();
     private final AtomicLong time = new AtomicLong();
     private final Ticker ticker = time::get;
     private final DistributingModulusGenerator generator = mock(DistributingModulusGenerator.class);
     private final CachingPartitionAllocator<String> allocator = new CachingPartitionAllocator<>(
-            generator, ticker, Duration.of(5, ChronoUnit.NANOS));
+            generator, scheduler, ticker, Duration.of(5, ChronoUnit.NANOS));
 
     @Before
     public void setUp() {
@@ -66,6 +68,7 @@ public class CachingPartitionAllocatorTest {
 
         time.addAndGet(5_000_000L);
         allocator.loadingCache.cleanUp();
+        scheduler.runUntilIdle();
 
         allocator.getRelevantModuli(KEY);
         verify(generator, times(2)).getAndMarkResidue();
