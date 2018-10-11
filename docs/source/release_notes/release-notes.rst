@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - ``KeyValueServicePuncherStore``s ``getMillisForTimestamp`` method now does a much more efficient ``_punch`` table lookup.
+           This affects the performance of calculating the ``millisSinceLastSweptTs`` metric for targeted sweep.
+           Also, the above mentioned metric will now consistently report falling behind if no new entries are being punhed into the punch table.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3570>`__)
+
     *    - |improved|
          - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)

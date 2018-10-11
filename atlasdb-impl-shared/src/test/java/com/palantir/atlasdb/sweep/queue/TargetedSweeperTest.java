@@ -173,8 +173,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         setTimelockTime(5_000L);
         punchTimeAtTimestamp(2_000, LOW_TS);
-        // all entries were swept
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(0L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5_000L - 2_000L);
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
     }
 
