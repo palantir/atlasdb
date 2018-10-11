@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.MapMaker;
 import com.google.common.collect.Maps;
@@ -52,6 +51,8 @@ public class LockServiceStateLoggerTest {
 
     private final SetMultimap<LockClient, LockRequest> outstandingLockRequestMultimap =
             Multimaps.synchronizedSetMultimap(HashMultimap.<LockClient, LockRequest>create());
+
+    private final Map<LockDescriptor, ClientAwareReadWriteLock> syncStateMap = Maps.newHashMap();
 
     @Before
     public void setUp() throws Exception {
@@ -85,6 +86,11 @@ public class LockServiceStateLoggerTest {
         locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-3"), new LockClientIndices()), LockMode.WRITE);
         locks2.put(new LockServerLock(StringLockDescriptor.of("logger-lock-4"), new LockClientIndices()), LockMode.READ);
         heldLocksTokenMap.putIfAbsent(token2, LockServiceImpl.HeldLocks.of(token2, LockCollections.of(locks2)));
+
+        LockServerLock lock1 = new LockServerLock(descriptor1, new LockClientIndices());
+        syncStateMap.put(descriptor1, lock1);
+        LockServerLock lock2 = new LockServerLock(descriptor2, new LockClientIndices());
+        syncStateMap.put(descriptor2, lock2);
     }
 
     private HeldLocksToken getFakeHeldLocksToken(String clientName, String requestingThread, BigInteger tokenId) {
@@ -104,7 +110,7 @@ public class LockServiceStateLoggerTest {
         LockServiceStateLogger logger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
-                ImmutableMap.of(),
+                syncStateMap,
                 LockServiceLoggerTestUtils.TEST_LOG_STATE_DIR);
         logger.logLocks();
     }

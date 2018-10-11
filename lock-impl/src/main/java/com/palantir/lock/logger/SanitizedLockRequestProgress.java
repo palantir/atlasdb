@@ -51,7 +51,6 @@ public interface SanitizedLockRequestProgress {
                                 .map(descriptor -> SimpleLockRequest.of(
                                         progress.getRequest(),
                                         descriptorMapper.getDescriptorMapping(descriptor.getKey()),
-                                        descriptor.getValue(),
                                         clientId))
                         .collect(Collectors.toList()))
                 .build();
