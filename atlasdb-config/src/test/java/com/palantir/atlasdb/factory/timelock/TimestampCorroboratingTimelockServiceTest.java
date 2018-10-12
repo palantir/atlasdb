@@ -33,46 +33,62 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 
-/**
- * A timelock service decorator for introducing runtime validity checks on received timestamps.
- */
 public class TimestampCorroboratingTimelockServiceTest {
+    private static final IdentifiedTimeLockRequest IDENTIFIED_TIME_LOCK_REQUEST = IdentifiedTimeLockRequest.create();
+
     private TimelockService timelockService;
-    private TimelockService corroboratingTimelockService;
     private GoBackInTimeTimestampService goBackInTimeTimestampService;
 
     @Before
     public void setUp() {
         goBackInTimeTimestampService = new GoBackInTimeTimestampService();
-        timelockService = getMockTimelockService(goBackInTimeTimestampService);
-        corroboratingTimelockService = TimestampCorroboratingTimelockService.create(timelockService);
+        timelockService = TimestampCorroboratingTimelockService.create(
+                getMockTimelockService(goBackInTimeTimestampService));
     }
 
     @Test
-    public void getFreshTimestampShouldFailIfGoesBackInTime() {
+    public void getFreshTimestampShouldFail() {
         getIndividualTimestamps(20);
         goBackInTimeFor(10);
 
-        assertThatThrownBy(corroboratingTimelockService::getFreshTimestamp).isInstanceOf(AssertionError.class);
+        assertThatThrownBy(timelockService::getFreshTimestamp)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(generateClocksWentBackwardsMessage(20, 11));
     }
 
     @Test
-    public void getFreshTimestampsShouldFailIfGoesBackInTime() {
+    public void getFreshTimestampsShouldFail() {
         getBatchedTimestamps(20);
         goBackInTimeFor(10);
 
-        assertThatThrownBy(() -> corroboratingTimelockService.getFreshTimestamps(10))
-                .isInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> timelockService.getFreshTimestamps(10))
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(generateClocksWentBackwardsMessage(20, 11));
+    }
+
+    @Test
+    public void startAtlasDbTransactionShouldFail() {
+        timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
+        goBackInTimeFor(1);
+
+        assertThatThrownBy(() -> timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST))
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(generateClocksWentBackwardsMessage(1, 1));
+    }
+
+    private static String generateClocksWentBackwardsMessage(long lowerBound, long freshTimestamp) {
+        return String.format(TimestampCorroboratingTimelockService.CLOCKS_WENT_BACKWARDS_MESSAGE,
+                lowerBound, freshTimestamp);
     }
 
     private void getIndividualTimestamps(int numberOfTimestamps) {
         for (int i = 0; i < numberOfTimestamps; i++) {
-            corroboratingTimelockService.getFreshTimestamp();
+            timelockService.getFreshTimestamp();
         }
     }
 
     private void getBatchedTimestamps(int numberOfTimestamps) {
-        corroboratingTimelockService.getFreshTimestamps(numberOfTimestamps);
+        timelockService.getFreshTimestamps(numberOfTimestamps);
     }
 
     private void goBackInTimeFor(int numberOfTimestamps) {
@@ -109,12 +125,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         private final AtomicLong counter = new AtomicLong(0);
 
         public void goBackInTime(long time) {
-            counter.getAndUpdate(x -> {
-                if (x < time) {
-                    return 0;
-                }
-                return x - time;
-            });
+            counter.getAndUpdate(x -> Math.max(0, x - time));
         }
 
         @Override

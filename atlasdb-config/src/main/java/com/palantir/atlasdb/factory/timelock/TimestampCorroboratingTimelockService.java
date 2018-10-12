@@ -25,12 +25,15 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampRange;
 
+/**
+ * A timelock service decorator for introducing runtime validity checks on received timestamps.
+ */
 public class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService {
-    private static final String CLOCKS_WENT_BACKWARDS_MESSAGE =
+    static final String CLOCKS_WENT_BACKWARDS_MESSAGE =
             "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
 
     private final TimelockService delegate;
-    private volatile long lowerBound = -1L;
+    private volatile long lowerBound = Long.MIN_VALUE;
 
     private TimestampCorroboratingTimelockService(TimelockService delegate) {
         this.delegate = delegate;
@@ -47,10 +50,10 @@ public class TimestampCorroboratingTimelockService implements AutoDelegate_Timel
 
     @Override
     public long getFreshTimestamp() {
-        long snapshot = lowerBound;
+        long localLowerBound = lowerBound;
         long freshTimestamp = delegate.getFreshTimestamp();
 
-        checkTimestamp(snapshot, freshTimestamp);
+        checkTimestamp(localLowerBound, freshTimestamp);
         updateLowerBound(freshTimestamp);
         return freshTimestamp;
     }
@@ -58,8 +61,8 @@ public class TimestampCorroboratingTimelockService implements AutoDelegate_Timel
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return checkAndUpdate(() -> delegate.getFreshTimestamps(numTimestampsRequested),
-                TimestampRange::getUpperBound,
-                TimestampRange::getLowerBound);
+                TimestampRange::getLowerBound,
+                TimestampRange::getUpperBound);
     }
 
     @Override
@@ -70,12 +73,12 @@ public class TimestampCorroboratingTimelockService implements AutoDelegate_Timel
     }
 
     private <T> T checkAndUpdate(Supplier<T> timestampContainerSupplier,
-            ToLongFunction<T> upperBoundExtractor,
-            ToLongFunction<T> lowerBoundExtractor) {
-        long snapshot = lowerBound;
+            ToLongFunction<T> lowerBoundExtractor,
+            ToLongFunction<T> upperBoundExtractor) {
+        long threadLocalLowerBound = lowerBound;
         T timestampContainer = timestampContainerSupplier.get();
 
-        checkTimestamp(snapshot, lowerBoundExtractor.applyAsLong(timestampContainer));
+        checkTimestamp(threadLocalLowerBound, lowerBoundExtractor.applyAsLong(timestampContainer));
         updateLowerBound(upperBoundExtractor.applyAsLong(timestampContainer));
         return timestampContainer;
     }
