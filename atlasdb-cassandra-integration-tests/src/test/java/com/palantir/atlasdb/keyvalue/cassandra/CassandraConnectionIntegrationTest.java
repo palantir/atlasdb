@@ -22,7 +22,6 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 
 public class CassandraConnectionIntegrationTest {
@@ -42,6 +41,6 @@ public class CassandraConnectionIntegrationTest {
     public void testAuthMissing() {
         CassandraKeyValueServiceImpl.createForTesting(
                 NO_CREDS_CKVS_CONFIG,
-                CassandraContainer.LEADER_CONFIG).close();
+                CassandraResource.LEADER_CONFIG).close();
     }
 }

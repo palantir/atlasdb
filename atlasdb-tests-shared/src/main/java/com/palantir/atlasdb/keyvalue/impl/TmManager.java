@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
  *
  * Licensed under the BSD-3 License (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue;
 
-import org.junit.ClassRule;
+package com.palantir.atlasdb.keyvalue.impl;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import java.util.Optional;
 
-public class MemoryTransactionTest extends AbstractTransactionTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-    public MemoryTransactionTest() {
-        super(TRM, TRM);
-    }
+public interface TmManager {
+    void registerTm(TransactionManager manager);
+    Optional<TransactionManager> getLastRegisteredTm();
 }

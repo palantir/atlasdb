@@ -29,10 +29,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 
 public abstract class AbstractSweepProgressStoreTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");
+
+    private final KvsManager kvsManager;
 
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
@@ -60,9 +63,13 @@ public abstract class AbstractSweepProgressStoreTest {
     private KeyValueService kvs;
     private SweepProgressStore progressStore;
 
+    protected AbstractSweepProgressStoreTest(KvsManager kvsManager) {
+        this.kvsManager = kvsManager;
+    }
+
     @Before
     public void setup() {
-        kvs = getKeyValueService();
+        kvs = kvsManager.getDefaultKvs();
         progressStore = SweepProgressStoreImpl.create(kvs, false);
     }
 
@@ -70,8 +77,6 @@ public abstract class AbstractSweepProgressStoreTest {
     public void clearKvs() {
         kvs.truncateTable(AtlasDbConstants.SWEEP_PROGRESS_TABLE);
     }
-
-    protected abstract KeyValueService getKeyValueService();
 
     @Test
     public void testLoadEmpty() {

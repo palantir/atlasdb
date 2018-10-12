@@ -18,16 +18,14 @@ package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.ClassRule;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 
 public class DbKvsSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
+    public DbKvsSweepProgressStoreIntegrationTest() {
+        super(TRM);
     }
 }

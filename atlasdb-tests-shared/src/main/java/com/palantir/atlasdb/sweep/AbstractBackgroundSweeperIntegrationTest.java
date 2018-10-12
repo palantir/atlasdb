@@ -60,12 +60,12 @@ import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
-
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
+
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     final AtomicLong sweepTimestamp = new AtomicLong();

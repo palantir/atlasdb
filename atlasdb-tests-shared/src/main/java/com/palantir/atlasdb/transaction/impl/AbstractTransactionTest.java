@@ -65,6 +65,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -93,6 +95,10 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+
+    public AbstractTransactionTest(KvsManager kvsManager, TmManager tmManager) {
+        super(kvsManager, tmManager);
+    }
 
     protected boolean supportsReverse() {
         return true;

@@ -23,30 +23,17 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getLastRegisteredTm();
+    public InMemorySweepTaskRunnerTest() {
+        super(TRM, TRM);
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.

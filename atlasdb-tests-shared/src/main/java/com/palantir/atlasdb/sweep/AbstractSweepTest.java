@@ -40,6 +40,8 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -74,21 +76,23 @@ public abstract class AbstractSweepTest {
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
 
+    private final KvsManager kvsManager;
+    private final TmManager tmManager;
+
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;
 
-    protected abstract KeyValueService getKeyValueService();
-
-    protected abstract void registerTransactionManager(TransactionManager transactionManager);
-
-    protected abstract Optional<TransactionManager> getRegisteredTransactionManager();
+    protected AbstractSweepTest(KvsManager kvsManager, TmManager tmManager) {
+        this.kvsManager = kvsManager;
+        this.tmManager = tmManager;
+    }
 
     @Before
     public void setup() {
-        kvs = getKeyValueService();
+        kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = getManager();
@@ -99,14 +103,14 @@ public abstract class AbstractSweepTest {
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
     }
 
-    TransactionManager getManager() {
-        return getRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+    protected TransactionManager getManager() {
+        return tmManager.getLastRegisteredTm().orElseGet(this::createAndRegisterManager);
     }
 
-    private TransactionManager createAndRegisterManager() {
+    protected TransactionManager createAndRegisterManager() {
         InMemoryTimestampService tsService = new InMemoryTimestampService();
         TransactionManager manager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
-        registerTransactionManager(manager);
+        tmManager.registerTm(manager);
         return manager;
     }
 
@@ -527,5 +531,4 @@ public abstract class AbstractSweepTest {
                 }.toTableMetadata().persistToBytes()
         );
     }
-
 }

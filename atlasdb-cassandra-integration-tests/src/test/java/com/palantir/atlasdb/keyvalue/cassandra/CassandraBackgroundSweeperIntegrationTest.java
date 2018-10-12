@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import org.junit.ClassRule;
 
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
@@ -38,7 +37,7 @@ public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroun
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraContainer.LEADER_CONFIG,
+                CassandraResource.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 }

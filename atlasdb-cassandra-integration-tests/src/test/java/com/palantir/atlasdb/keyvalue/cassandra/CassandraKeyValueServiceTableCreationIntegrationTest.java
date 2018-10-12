@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -179,6 +178,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
                 .withSchemaMutationTimeoutMillis(millis);
         return CassandraKeyValueServiceImpl.createForTesting(
                 config,
-                CassandraContainer.LEADER_CONFIG);
+                CassandraResource.LEADER_CONFIG);
     }
 }

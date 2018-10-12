@@ -15,18 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Optional;
-
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.flake.FlakeRetryingRule;
@@ -46,6 +42,10 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
+    public CassandraKeyValueServiceTransactionIntegrationTest() {
+        super(CASSANDRA, CASSANDRA);
+    }
+
     @Before
     public void advanceTimestamp() {
         ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
@@ -60,7 +60,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         KeyValueService kvs = CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 CASSANDRA.getConfig(),
-                CassandraContainer.LEADER_CONFIG,
+                CassandraResource.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
                         () -> {
                             if (timestampService == null) {
@@ -70,16 +70,6 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                         }));
         CASSANDRA.registerKvs(kvs);
         return kvs;
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getLastRegisteredTm();
     }
 
     @Override

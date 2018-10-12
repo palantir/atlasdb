@@ -17,17 +17,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
 
-import java.util.Optional;
-
 import org.junit.ClassRule;
 
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
@@ -35,19 +31,8 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
     public static final CassandraResource CASSANDRA = new CassandraResource(
             CassandraKvsSerializableTransactionTest.class);
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getLastRegisteredTm();
+    public CassandraKvsSerializableTransactionTest() {
+        super(CASSANDRA, CASSANDRA);
     }
 
     @Override

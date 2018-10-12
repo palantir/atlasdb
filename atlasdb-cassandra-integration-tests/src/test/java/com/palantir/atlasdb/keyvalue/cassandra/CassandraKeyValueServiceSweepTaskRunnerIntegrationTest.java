@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Optional;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -24,13 +22,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.ShouldRetry;
 
@@ -43,29 +39,10 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService(), CASSANDRA.getConfig());
+            kvs, CASSANDRA.getConfig());
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
-    }
-
-    private static KeyValueService createKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
-                MetricsManagers.createForTests(),
-                CASSANDRA.getConfig(),
-                CassandraContainer.LEADER_CONFIG,
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getLastRegisteredTm();
+    public CassandraKeyValueServiceSweepTaskRunnerIntegrationTest() {
+        super(CASSANDRA, CASSANDRA);
     }
 
     @Test
@@ -78,6 +55,14 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         long sweepTimestamp = numInsertions + 1;
         SweepResults results = completeSweep(sweepTimestamp).get();
         Assert.assertEquals(numInsertions - 1, results.getStaleValuesDeleted());
+    }
+
+    private static KeyValueService createKeyValueService() {
+        return CassandraKeyValueServiceImpl.create(
+                MetricsManagers.createForTests(),
+                CASSANDRA.getConfig(),
+                CassandraResource.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
     private void insertMultipleValues(long numInsertions) {

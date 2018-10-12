@@ -15,33 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import java.util.Optional;
-
 import org.junit.ClassRule;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class DbkvsPostgresSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(DbkvsPostgresTestSuite::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
 
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
+    public DbkvsPostgresSerializableTransactionTest() {
+        super(TRM, TRM);
     }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getLastRegisteredTm();
-    }
-
 }

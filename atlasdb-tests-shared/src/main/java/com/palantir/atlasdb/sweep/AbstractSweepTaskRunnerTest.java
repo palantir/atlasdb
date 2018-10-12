@@ -48,6 +48,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.util.Pair;
@@ -58,6 +60,10 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     protected SweepTaskRunner sweepRunner;
     protected LongSupplier tsSupplier;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
+
+    public AbstractSweepTaskRunnerTest(KvsManager kvsManager, TmManager tmManager) {
+        super(kvsManager, tmManager);
+    }
 
     @Before
     public void setup() {

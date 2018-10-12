@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
@@ -33,9 +32,8 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
     public static final CassandraResource CASSANDRA = new CassandraResource(
             CassandraKeyValueServiceIntegrationTest.class);
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
+    public CassandraGetCandidateCellsForSweepingTest() {
+        super(CASSANDRA);
     }
 
     @Test
@@ -59,5 +57,4 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
                         .isLatestValueEmpty(false)
                         .build());
     }
-
 }

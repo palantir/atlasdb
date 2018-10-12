@@ -27,14 +27,14 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class CloseableResourceManager extends ExternalResource {
+public class TestResourceManager extends ExternalResource implements KvsManager, TmManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
     private KeyValueService keyValueService = null;
     private TransactionManager transactionManager = null;
 
-    public CloseableResourceManager(Supplier<KeyValueService> kvsSupplier) {
+    public TestResourceManager(Supplier<KeyValueService> kvsSupplier) {
         this.getKvsSupplier = Suppliers.memoize(() -> {
             KeyValueService kvs = kvsSupplier.get();
             registerCloseable(kvs);
@@ -42,28 +42,33 @@ public class CloseableResourceManager extends ExternalResource {
         });
     }
 
-    public static CloseableResourceManager inMemory() {
-        return new CloseableResourceManager(() -> new InMemoryKeyValueService(false));
+    public static TestResourceManager inMemory() {
+        return new TestResourceManager(() -> new InMemoryKeyValueService(false));
     }
 
-    public KeyValueService getKvs() {
+    @Override
+    public KeyValueService getDefaultKvs() {
         return getKvsSupplier.get();
     }
 
+    @Override
     public void registerKvs(KeyValueService kvs) {
         keyValueService = kvs;
         registerCloseable(kvs);
     }
 
+    @Override
     public Optional<KeyValueService> getLastRegisteredKvs() {
         return Optional.ofNullable(keyValueService);
     }
 
+    @Override
     public void registerTm(TransactionManager manager) {
         transactionManager = manager;
         registerCloseable(manager);
     }
 
+    @Override
     public Optional<TransactionManager> getLastRegisteredTm() {
         return Optional.ofNullable(transactionManager);
     }

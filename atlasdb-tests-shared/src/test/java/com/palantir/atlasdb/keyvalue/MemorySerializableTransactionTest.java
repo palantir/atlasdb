@@ -15,32 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import java.util.Optional;
-
 import org.junit.ClassRule;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class MemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
+    public MemorySerializableTransactionTest() {
+        super(TRM, TRM);
     }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getLastRegisteredTm();
-    }
-
 }

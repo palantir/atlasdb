@@ -23,7 +23,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.ClassRule;
@@ -33,8 +32,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -52,25 +51,24 @@ import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule
-    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+
+    public TransactionManagerTest() {
+        super(TRM, TRM);
+    }
 
     @Override
     protected KeyValueService getKeyValueService() {
         // create new kvs every time because some tests close it
         KeyValueService kvs = new InMemoryKeyValueService(false);
-        KVS.registerKvs(kvs);
+        TRM.registerKvs(kvs);
         return kvs;
     }
 
     @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        // force creation of new transaction manager every time because some tests close it
-        return Optional.empty();
+    protected TransactionManager getManager() {
+        // create new transaction manager every time because some tests close it
+        return createAndRegisterManager();
     }
 
     @Test
@@ -198,7 +196,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.startAtlasDbTransaction(any())).thenReturn(
                 StartAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
-        registerTransactionManager(txnManagerWithMocks);
+        TRM.registerTm(txnManagerWithMocks);
         return txnManagerWithMocks;
     }
 }

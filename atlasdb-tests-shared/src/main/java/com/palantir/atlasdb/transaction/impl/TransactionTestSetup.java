@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
-import java.util.Optional;
 
 import org.junit.Before;
 
@@ -34,6 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -62,6 +63,9 @@ public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table_thorough");
 
+    private final KvsManager kvsManager;
+    private final TmManager tmManager;
+
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
     protected TimelockService timelockService;
@@ -78,6 +82,11 @@ public abstract class TransactionTestSetup {
     protected final TimestampCache timestampCache = new TimestampCache(
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+
+    protected TransactionTestSetup(KvsManager kvsManager, TmManager tmManager) {
+        this.kvsManager = kvsManager;
+        this.tmManager = tmManager;
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -126,13 +135,17 @@ public abstract class TransactionTestSetup {
         txMgr = getManager();
     }
 
-    TransactionManager getManager() {
-        return getRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+    protected KeyValueService getKeyValueService() {
+        return kvsManager.getDefaultKvs();
     }
 
-    private TransactionManager createAndRegisterManager() {
+    protected TransactionManager getManager() {
+        return tmManager.getLastRegisteredTm().orElseGet(this::createAndRegisterManager);
+    }
+
+    TransactionManager createAndRegisterManager() {
         TransactionManager manager = createManager();
-        registerTransactionManager(manager);
+        tmManager.registerTm(manager);
         return manager;
     }
 
@@ -208,10 +221,4 @@ public abstract class TransactionTestSetup {
     Cell createCell(String rowName, String columnName) {
         return Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
     }
-
-    protected abstract KeyValueService getKeyValueService();
-
-    protected abstract void registerTransactionManager(TransactionManager transactionManager);
-
-    protected abstract Optional<TransactionManager> getRegisteredTransactionManager();
 }

@@ -21,15 +21,15 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     @ClassRule
-    public static final CloseableResourceManager KVS = new CloseableResourceManager(JdbcTests::createEmptyKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(JdbcTests::createEmptyKvs);
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
+    public JdbcKeyValueSharedTest() {
+        super(TRM);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
     @Override
     @Test
     public void clusterAvailabilityStatusShouldBeAllAvailable() {
-        assertThatThrownBy(() -> getKeyValueService().getClusterAvailabilityStatus()).isInstanceOf(
-                UnsupportedOperationException.class);
+        assertThatThrownBy(() -> TRM.getDefaultKvs().getClusterAvailabilityStatus())
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 }

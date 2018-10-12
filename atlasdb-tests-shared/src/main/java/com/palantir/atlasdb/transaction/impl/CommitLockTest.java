@@ -37,9 +37,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -47,7 +46,6 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -60,7 +58,7 @@ import com.palantir.lock.v2.LockResponse;
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
     @ClassRule
-    public static final CloseableResourceManager KVS = CloseableResourceManager.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
     private static final String ROW = "row";
@@ -70,19 +68,8 @@ public class CommitLockTest extends TransactionTestSetup {
     @DataPoints
     public static ConflictHandler[] conflictHandlers = ConflictHandler.values();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return KVS.getKvs();
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        KVS.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return KVS.getLastRegisteredTm();
+    public CommitLockTest() {
+        super(TRM, TRM);
     }
 
     @Theory

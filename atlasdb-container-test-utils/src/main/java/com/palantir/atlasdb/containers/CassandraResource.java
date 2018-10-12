@@ -22,26 +22,30 @@ import java.util.function.Supplier;
 import org.junit.rules.ExternalResource;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-import com.palantir.atlasdb.keyvalue.impl.CloseableResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class CassandraResource extends ExternalResource {
+public class CassandraResource extends ExternalResource implements KvsManager, TmManager {
+    public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Containers containers;
-    private final CloseableResourceManager closeableResourceManager;
+    private final TestResourceManager testResourceManager;
 
     public CassandraResource(Class<?> classToSaveLogsFor) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
-        closeableResourceManager = new CloseableResourceManager(() -> CassandraKeyValueServiceImpl
+        testResourceManager = new TestResourceManager(() -> CassandraKeyValueServiceImpl
                 .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG));
     }
 
     public CassandraResource(Class<?> classToSaveLogsFor, Supplier<KeyValueService> supplier) {
         containers = new Containers(classToSaveLogsFor).with(containerInstance);
-        closeableResourceManager = new CloseableResourceManager(supplier);
+        testResourceManager = new TestResourceManager(supplier);
     }
 
     @Override
@@ -51,30 +55,35 @@ public class CassandraResource extends ExternalResource {
 
     @Override
     public void after() {
-        closeableResourceManager.after();
+        testResourceManager.after();
     }
 
     /**
      * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the constructor.
      * */
+    @Override
     public CassandraKeyValueService getDefaultKvs() {
-        return (CassandraKeyValueService) closeableResourceManager.getKvs();
+        return (CassandraKeyValueService) testResourceManager.getDefaultKvs();
     }
 
+    @Override
     public void registerKvs(KeyValueService kvs) {
-        closeableResourceManager.registerKvs(kvs);
+        testResourceManager.registerKvs(kvs);
     }
 
+    @Override
     public Optional<KeyValueService> getLastRegisteredKvs() {
-        return closeableResourceManager.getLastRegisteredKvs();
+        return testResourceManager.getLastRegisteredKvs();
     }
 
+    @Override
     public void registerTm(TransactionManager manager) {
-        closeableResourceManager.registerTm(manager);
+        testResourceManager.registerTm(manager);
     }
 
+    @Override
     public Optional<TransactionManager> getLastRegisteredTm() {
-        return closeableResourceManager.getLastRegisteredTm();
+        return testResourceManager.getLastRegisteredTm();
     }
 
     public CassandraKeyValueServiceConfig getConfig() {

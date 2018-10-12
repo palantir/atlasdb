@@ -30,7 +30,6 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.AbstractSweepTest;
@@ -38,7 +37,6 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
@@ -51,7 +49,11 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService(), CASSANDRA.getConfig());
+            kvs, CASSANDRA.getConfig());
+
+    public CassandraTargetedSweepIntegrationTest() {
+        super(CASSANDRA, CASSANDRA);
+    }
 
     @Before
     public void setup() {
@@ -60,21 +62,6 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
         sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
         sweepQueue.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
-    }
-
-    @Override
-    protected void registerTransactionManager(TransactionManager transactionManager) {
-        CASSANDRA.registerTm(transactionManager);
-    }
-
-    @Override
-    protected Optional<TransactionManager> getRegisteredTransactionManager() {
-        return CASSANDRA.getLastRegisteredTm();
     }
 
     @Override
