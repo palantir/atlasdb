@@ -13,24 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.timestamp;
+
+package com.palantir.atlasdb.factory.timelock;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Before;
 import org.junit.Test;
 
-public class CorroboratingTimestampServiceTests {
+import com.palantir.lock.v2.AutoDelegate_TimelockService;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
+import com.palantir.timestamp.TimestampRange;
+import com.palantir.timestamp.TimestampService;
 
-    private GoBackInTimeTimestampService rawService;
-    private TimestampService corroboratingTimestampService;
+/**
+ * A timelock service decorator for introducing runtime validity checks on received timestamps.
+ */
+public class TimestampCorroboratingTimelockServiceTest {
+    private TimelockService timelockService;
+    private TimelockService corroboratingTimelockService;
+    private GoBackInTimeTimestampService goBackInTimeTimestampService;
 
     @Before
-    public void before() {
-        rawService = new GoBackInTimeTimestampService();
-        corroboratingTimestampService = new CorroboratingTimestampService(rawService);
+    public void setUp() {
+        goBackInTimeTimestampService = new GoBackInTimeTimestampService();
+        timelockService = getMockTimelockService(goBackInTimeTimestampService);
+        corroboratingTimelockService = TimestampCorroboratingTimelockService.create(timelockService);
     }
 
     @Test
@@ -38,7 +53,7 @@ public class CorroboratingTimestampServiceTests {
         getIndividualTimestamps(20);
         goBackInTimeFor(10);
 
-        assertThatThrownBy(corroboratingTimestampService::getFreshTimestamp).isInstanceOf(AssertionError.class);
+        assertThatThrownBy(corroboratingTimelockService::getFreshTimestamp).isInstanceOf(AssertionError.class);
     }
 
     @Test
@@ -46,22 +61,48 @@ public class CorroboratingTimestampServiceTests {
         getBatchedTimestamps(20);
         goBackInTimeFor(10);
 
-        assertThatThrownBy(() -> corroboratingTimestampService.getFreshTimestamps(10))
+        assertThatThrownBy(() -> corroboratingTimelockService.getFreshTimestamps(10))
                 .isInstanceOf(AssertionError.class);
     }
 
     private void getIndividualTimestamps(int numberOfTimestamps) {
         for (int i = 0; i < numberOfTimestamps; i++) {
-            corroboratingTimestampService.getFreshTimestamp();
+            corroboratingTimelockService.getFreshTimestamp();
         }
     }
 
     private void getBatchedTimestamps(int numberOfTimestamps) {
-        corroboratingTimestampService.getFreshTimestamps(numberOfTimestamps);
+        corroboratingTimelockService.getFreshTimestamps(numberOfTimestamps);
     }
 
     private void goBackInTimeFor(int numberOfTimestamps) {
-        rawService.goBackInTime(numberOfTimestamps);
+        goBackInTimeTimestampService.goBackInTime(numberOfTimestamps);
+    }
+
+    private TimelockService getMockTimelockService(TimestampService timestampService) {
+        TimelockService timelockService = mock(TimelockService.class);
+        return new AutoDelegate_TimelockService() {
+            @Override
+            public TimelockService delegate() {
+                return timelockService;
+            }
+
+            @Override
+            public long getFreshTimestamp() {
+                return timestampService.getFreshTimestamp();
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps(int numTimestampRequested) {
+                return timestampService.getFreshTimestamps(numTimestampRequested);
+            }
+
+            @Override
+            public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+                return StartAtlasDbTransactionResponse.of(mock(LockImmutableTimestampResponse.class),
+                        timestampService.getFreshTimestamp());
+            }
+        };
     }
 
     static class GoBackInTimeTimestampService implements TimestampService, TimestampManagementService {
@@ -104,4 +145,5 @@ public class CorroboratingTimestampServiceTests {
             return PING_RESPONSE;
         }
     }
+
 }

@@ -69,6 +69,7 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
+import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -117,7 +118,6 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.impl.TimestampDecoratingTimelockService;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -142,7 +142,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting.api.config.service.ServiceConfiguration;
 import com.palantir.remoting3.clients.ClientConfigurations;
 import com.palantir.remoting3.jaxrs.JaxRsClient;
-import com.palantir.timestamp.CorroboratingTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -691,10 +690,9 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
             LockAndTimestampServices lockAndTimestampServices) {
-        CorroboratingTimestampService corroboratingTimestampService = new CorroboratingTimestampService(
-                lockAndTimestampServices.timestamp());
-        TimelockService timelockService = new TimestampDecoratingTimelockService(
-                lockAndTimestampServices.timelock(), corroboratingTimestampService);
+        TimelockService timelockService = TimestampCorroboratingTimelockService
+                .create(lockAndTimestampServices.timelock());
+        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)

@@ -15,5 +15,4 @@ dependencies {
   testCompile group: 'com.palantir.remoting2', name: 'tracing'
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'
-  testCompile group: 'org.assertj', name: 'assertj-core'
 }
