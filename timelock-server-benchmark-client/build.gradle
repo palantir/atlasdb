@@ -1,5 +1,4 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
-apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"

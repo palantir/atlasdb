@@ -20,6 +20,7 @@ buildscript {
         classpath 'com.netflix.nebula:nebula-dependency-recommender:5.2.0'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:5.1.4'
         classpath 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0'
+        classpath 'gradle.plugin.org.inferred:gradle-processors:1.2.12'
     }
 }
 
@@ -27,7 +28,6 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '2.0.0'
     id 'com.palantir.configuration-resolver' version '0.2.0'
     id 'com.palantir.git-version' version '0.5.2'
-    id 'org.inferred.processors' version '1.2.12'
     id 'org.unbroken-dome.test-sets' version '1.4.2'
     id 'com.google.protobuf' version '0.8.3'
 }
@@ -83,6 +83,7 @@ allprojects {
 
 subprojects {
     apply plugin: 'com.palantir.configuration-resolver'
+    apply plugin: 'org.inferred.processors'
     task allDeps(type: DependencyReportTask) {}
 }
 

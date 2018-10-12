@@ -1,6 +1,5 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
-apply plugin: 'org.inferred.processors'
 
 dependencies {
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'

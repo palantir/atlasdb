@@ -10,7 +10,6 @@ buildscript {
     }
 }
 
-apply plugin: 'org.inferred.processors'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
 

@@ -1,5 +1,4 @@
 apply from: "../gradle/publish-jars.gradle"
-apply plugin: 'org.inferred.processors'
 
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 

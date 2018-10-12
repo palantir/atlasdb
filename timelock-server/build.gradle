@@ -1,4 +1,3 @@
-apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
 apply from: "../gradle/publish-jars.gradle"
