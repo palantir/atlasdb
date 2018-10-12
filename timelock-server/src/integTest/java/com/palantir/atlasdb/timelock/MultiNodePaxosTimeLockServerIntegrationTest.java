@@ -267,7 +267,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void startAtlasDbTransactionGivesUsTimestampsInSequence() {
+    public void startIdentifiedAtlasDbTransactionGivesUsTimestampsInSequence() {
         UUID requestorUuid = UUID.randomUUID();
         StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
         StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
@@ -285,7 +285,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void startAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
+    public void startIdentifiedAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
         UUID requestorUuid = UUID.randomUUID();
         StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
         StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
