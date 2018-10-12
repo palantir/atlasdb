@@ -57,7 +57,7 @@ public class AsyncInitializerTest {
         }
 
         @Override
-        ScheduledExecutorService getExecutorService() {
+        ScheduledExecutorService createExecutorService() {
             deterministicScheduler = new DeterministicSchedulerShutdownAware();
             return deterministicScheduler;
         }
@@ -151,8 +151,7 @@ public class AsyncInitializerTest {
     public void canCancelInitializationAndCleanupIfInitialized() throws InterruptedException {
         AlwaysFailingInitializer successfulInitializer = new AlwaysFailingInitializer() {
             @Override
-            public boolean isInitialized() {
-                return true;
+            public void tryInitialize() {
             }
         };
         Runnable cleanupTask = mock(Runnable.class);
