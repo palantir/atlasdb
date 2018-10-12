@@ -8,7 +8,7 @@ dependencies {
   compile project(':atlasdb-service')
   compile group: 'com.google.dagger', name: 'dagger'
 
-  annotationProcessor(group: 'com.google.dagger', name: 'dagger-compiler') {
+  annotationProcessor(group: 'com.google.dagger', name: 'dagger-compiler')
   annotationProcessor group: 'org.immutables', name: 'value'
 
   shadow project(':atlasdb-service')
