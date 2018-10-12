@@ -19,7 +19,7 @@ dependencies {
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'net.jcip', name: 'jcip-annotations'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
 
     testCompile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml'
     testCompile group: 'org.assertj', name: 'assertj-core'

@@ -10,7 +10,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
 
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
 
   testCompile group: 'com.palantir.remoting2', name: 'tracing'
   testCompile group: 'junit', name: 'junit'

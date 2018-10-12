@@ -22,7 +22,7 @@ dependencies {
 
     compile (group: 'com.palantir.remoting3', name: 'jersey-servers')
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
 
     runtime project(":atlasdb-jdbc")
     runtime project(":atlasdb-hikari")

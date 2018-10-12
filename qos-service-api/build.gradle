@@ -18,6 +18,6 @@ dependencies {
         exclude (module:'jsr305')
     }
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
 
 }
