@@ -32,7 +32,7 @@ dependencies {
 
   compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
   annotationProcessor group: 'org.immutables', name: 'value'
-  annotationProcessor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
+  annotationProcessor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13')
 }
 
 distZip {
