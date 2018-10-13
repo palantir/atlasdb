@@ -13,13 +13,13 @@ function checkDocsBuild {
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
-CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-test-utils:check')
+CONTAINER_2=(':atlasdb-ete-tests:check')
 
 CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check')
 
 CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check')
 
 CONTAINER_6=(':atlasdb-perf:postgresBenchmarkTest')
 
