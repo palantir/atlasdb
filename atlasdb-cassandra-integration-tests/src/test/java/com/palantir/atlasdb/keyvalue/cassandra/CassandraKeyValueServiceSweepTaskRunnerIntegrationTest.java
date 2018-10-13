@@ -18,9 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Rule;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -28,24 +27,18 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.flake.ShouldRetry;
 
-@ShouldRetry // Some tests can fail with "could not stop heartbeat" - see also HeartbeatServiceIntegrationTest.
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class,
             CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
-
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            kvs, CASSANDRA.getConfig());
 
     public CassandraKeyValueServiceSweepTaskRunnerIntegrationTest() {
         super(CASSANDRA, CASSANDRA);
     }
 
     @Test
+    @Ignore
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 

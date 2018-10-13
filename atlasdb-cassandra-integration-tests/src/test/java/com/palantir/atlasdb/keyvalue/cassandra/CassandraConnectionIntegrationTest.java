@@ -26,7 +26,7 @@ import com.palantir.atlasdb.containers.CassandraResource;
 
 public class CassandraConnectionIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraConnectionIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
             .copyOf(CASSANDRA.getConfig())

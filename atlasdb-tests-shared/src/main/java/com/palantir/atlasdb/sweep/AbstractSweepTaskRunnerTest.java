@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
-import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -39,19 +38,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.util.Pair;
 
 public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
@@ -297,12 +300,20 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
 
-    @Test(timeout = 50000)
+    @Test
     public void testSweepHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        IntStream.rangeClosed(1, 1_000)
-                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        Multimap<Cell, Value> commits = HashMultimap.create();
+        for (int i = 1; i <= 1_000; i++) {
+            putUncommitted("row", RandomStringUtils.random(10), i);
+            Cell tsCell = Cell.create(
+                    TransactionConstants.getValueForTimestamp(i),
+                    TransactionConstants.COMMIT_TS_COLUMN);
+            commits.put(tsCell, Value.create(TransactionConstants.getValueForTimestamp(i), 0));
+        }
+        kvs.putWithTimestamps(TransactionConstants.TRANSACTION_TABLE, commits);
+
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
         Assert.assertEquals(1_000 - 1, results.get().getStaleValuesDeleted());
     }

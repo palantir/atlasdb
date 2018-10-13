@@ -59,7 +59,7 @@ public class SchemaMutationLockIntegrationTest {
     private static final SchemaMutationLock.Action DO_NOTHING = () -> { };
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(SchemaMutationLockIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private SchemaMutationLock schemaMutationLock;
     private SchemaMutationLock secondSchemaMutationLock;

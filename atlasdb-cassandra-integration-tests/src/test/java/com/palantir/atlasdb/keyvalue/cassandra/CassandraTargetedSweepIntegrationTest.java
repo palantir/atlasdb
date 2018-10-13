@@ -41,15 +41,14 @@ import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraTargetedSweepIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
+
 
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
     @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            kvs, CASSANDRA.getConfig());
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     public CassandraTargetedSweepIntegrationTest() {
         super(CASSANDRA, CASSANDRA);

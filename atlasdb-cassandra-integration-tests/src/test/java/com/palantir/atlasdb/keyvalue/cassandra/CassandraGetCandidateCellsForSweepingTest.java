@@ -29,8 +29,7 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTe
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     public CassandraGetCandidateCellsForSweepingTest() {
         super(CASSANDRA);

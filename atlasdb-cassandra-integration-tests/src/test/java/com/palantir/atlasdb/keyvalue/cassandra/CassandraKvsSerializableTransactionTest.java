@@ -28,8 +28,8 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKvsSerializableTransactionTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
+
 
     public CassandraKvsSerializableTransactionTest() {
         super(CASSANDRA, CASSANDRA);

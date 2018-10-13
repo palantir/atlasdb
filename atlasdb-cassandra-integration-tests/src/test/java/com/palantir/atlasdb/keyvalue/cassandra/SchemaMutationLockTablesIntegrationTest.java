@@ -47,8 +47,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 
 public class SchemaMutationLockTablesIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            SchemaMutationLockTablesIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 

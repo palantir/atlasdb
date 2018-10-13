@@ -25,7 +25,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraBackgroundSweeperIntegrationTest.class,
             CassandraBackgroundSweeperIntegrationTest::createKeyValueService);
 
     @Override

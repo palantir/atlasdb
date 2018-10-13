@@ -23,11 +23,9 @@ import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.flake.FlakeRetryingRule;
 
@@ -47,11 +45,9 @@ public class SchemaMutationLockReleasingRule implements TestRule {
         this.config = config;
     }
 
-    public static RuleChain createChainedReleaseAndRetry(KeyValueService kvs, CassandraKeyValueServiceConfig config) {
+    public static RuleChain createChainedReleaseAndRetry(CassandraResource cassandraResource) {
         // The ordering is important. If an attempt fails, we want to release the schema mutation lock BEFORE retrying.
-        Preconditions.checkArgument(kvs instanceof CassandraKeyValueService,
-                "SchemaMutationLockReleasingRule requires a Cassandra KVS");
-        return createChainedReleaseAndRetry(Suppliers.ofInstance((CassandraKeyValueService) kvs), config);
+        return createChainedReleaseAndRetry(cassandraResource::getDefaultKvs, cassandraResource.getConfig());
     }
 
     public static RuleChain createChainedReleaseAndRetry(Supplier<CassandraKeyValueService> kvs,

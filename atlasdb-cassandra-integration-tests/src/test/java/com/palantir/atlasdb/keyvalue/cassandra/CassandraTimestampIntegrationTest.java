@@ -31,13 +31,12 @@ import com.palantir.timestamp.TimestampBoundStore;
 @ShouldRetry
 public class CassandraTimestampIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraTimestampIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
 
     @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CASSANDRA.getConfig());
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     @Before
     public void setUp() {

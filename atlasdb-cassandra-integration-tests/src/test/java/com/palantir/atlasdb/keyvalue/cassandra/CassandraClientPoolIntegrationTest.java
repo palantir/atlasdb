@@ -44,13 +44,13 @@ import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraClientPoolIntegrationTest.class);
-    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
+    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
+    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
             CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 

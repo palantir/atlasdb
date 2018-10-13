@@ -32,8 +32,8 @@ import com.palantir.timestamp.TimestampManagementService;
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceTransactionIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
+
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.

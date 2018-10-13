@@ -99,8 +99,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceIntegrationTest.class, () -> CassandraKeyValueServiceImpl.create(
+    public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
             CassandraResource.LEADER_CONFIG,

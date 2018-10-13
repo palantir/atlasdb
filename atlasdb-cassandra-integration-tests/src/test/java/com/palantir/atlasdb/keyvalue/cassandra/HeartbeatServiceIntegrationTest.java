@@ -48,7 +48,7 @@ public class HeartbeatServiceIntegrationTest {
     private static final int heartbeatTimePeriodMillis = 100;
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(HeartbeatServiceIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();

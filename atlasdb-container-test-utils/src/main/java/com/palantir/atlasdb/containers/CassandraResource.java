@@ -20,6 +20,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -34,18 +36,23 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 public class CassandraResource extends ExternalResource implements KvsManager, TmManager {
     public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
-    private final Containers containers;
-    private final TestResourceManager testResourceManager;
+    private final Supplier<KeyValueService> supplier;
+    private Containers containers;
+    private TestResourceManager testResourceManager;
 
-    public CassandraResource(Class<?> classToSaveLogsFor) {
-        containers = new Containers(classToSaveLogsFor).with(containerInstance);
-        testResourceManager = new TestResourceManager(() -> CassandraKeyValueServiceImpl
-                .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG));
+    public CassandraResource() {
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
+                containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);
     }
 
-    public CassandraResource(Class<?> classToSaveLogsFor, Supplier<KeyValueService> supplier) {
-        containers = new Containers(classToSaveLogsFor).with(containerInstance);
+    public CassandraResource(Supplier<KeyValueService> supplier) {
+        this.supplier = supplier;
+    }
+
+    public Statement apply(Statement base, Description description) {
+        containers = new Containers(description.getTestClass()).with(containerInstance);
         testResourceManager = new TestResourceManager(supplier);
+        return super.apply(base, description);
     }
 
     @Override

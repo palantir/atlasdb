@@ -52,8 +52,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static CassandraKeyValueService slowTimeoutKvs;
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceTableCreationIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
+
 
     @BeforeClass
     public static void initializeKvs() {

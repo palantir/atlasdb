@@ -23,8 +23,8 @@ import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 
 public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraBackgroundSweeperIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
+
 
     public CassandraSweepProgressStoreIntegrationTest() {
         super(CASSANDRA);
