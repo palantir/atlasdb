@@ -19,7 +19,7 @@ CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check')
 
 CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
 CONTAINER_6=(':atlasdb-perf:postgresBenchmarkTest')
 
@@ -71,7 +71,7 @@ fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:jepsenTest ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-ete-tests:longTest ;;
     2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
