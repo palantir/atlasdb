@@ -71,8 +71,8 @@ fi
 
 case $CIRCLE_NODE_INDEX in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:jepsenTest ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} -x :atlasdb-ete-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
