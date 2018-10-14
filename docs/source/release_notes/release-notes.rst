@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Targeted sweep does better with missing tables, and also with the empty namespace
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3577>`__)
+
+    *    - |fixed|
          - ``KeyValueServicePuncherStore``s ``getMillisForTimestamp`` method now does a much more efficient ``_punch`` table lookup.
            This affects the performance of calculating the ``millisSinceLastSweptTs`` metric for targeted sweep.
            Also, the above mentioned metric will now consistently report falling behind if no new entries are being punhed into the punch table.
