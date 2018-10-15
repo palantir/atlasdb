@@ -28,7 +28,7 @@ import com.palantir.timestamp.TimestampRange;
 /**
  * A timelock service decorator for introducing runtime validity checks on received timestamps.
  */
-public class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService {
+public final class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService {
     static final String CLOCKS_WENT_BACKWARDS_MESSAGE =
             "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
 

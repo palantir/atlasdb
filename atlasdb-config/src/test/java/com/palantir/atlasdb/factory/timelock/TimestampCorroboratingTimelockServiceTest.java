@@ -96,11 +96,11 @@ public class TimestampCorroboratingTimelockServiceTest {
     }
 
     private TimelockService getMockTimelockService(TimestampService timestampService) {
-        TimelockService timelockService = mock(TimelockService.class);
+        TimelockService mockTimelockService = mock(TimelockService.class);
         return new AutoDelegate_TimelockService() {
             @Override
             public TimelockService delegate() {
-                return timelockService;
+                return mockTimelockService;
             }
 
             @Override
