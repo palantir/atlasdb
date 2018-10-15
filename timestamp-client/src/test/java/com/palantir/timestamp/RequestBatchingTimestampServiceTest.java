@@ -78,7 +78,7 @@ public final class RequestBatchingTimestampServiceTest {
     public void throwsIfAskForZeroTimestamps() {
         assertThatThrownBy(() -> timestamp.getFreshTimestamps(0))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Cannot ask for 0 timestamps");
+                .hasMessage("Must not request zero or negative timestamps");
     }
 
     @Test
