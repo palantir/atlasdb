@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,21 +15,19 @@
  */
 package com.palantir.timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public class TimestampRangeTest {
     @Test
     public void shouldHaveASizeOf1WhenCreatedWithTheSameUpperAndLowerBounds() {
-        assertThat(TimestampRange.createInclusiveRange(10, 10).size(), is(1L));
+        assertThat(TimestampRange.createInclusiveRange(10, 10).size()).isEqualTo(1L);
     }
 
     @Test
     public void shouldHaveASizeThatInludesBothEndpoints() {
-        assertThat(TimestampRange.createInclusiveRange(10, 12).size(), is(3L));
+        assertThat(TimestampRange.createInclusiveRange(10, 12).size()).isEqualTo(3L);
     }
 
     @Test
@@ -39,6 +37,6 @@ public class TimestampRangeTest {
         TimestampRange lowerUpper = TimestampRange.createInclusiveRange(lower, upper);
         TimestampRange upperLower = TimestampRange.createInclusiveRange(upper, lower);
 
-        assertThat(lowerUpper.size(), is(equalTo(upperLower.size())));
+        assertThat(lowerUpper.size()).isEqualTo(upperLower.size());
     }
 }

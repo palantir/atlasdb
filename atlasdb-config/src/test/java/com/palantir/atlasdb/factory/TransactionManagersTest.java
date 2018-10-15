@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.isA;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -484,10 +484,10 @@ public class TransactionManagersTest {
     private void setUpForLocalServices() throws IOException {
         doAnswer(invocation -> {
             // Configure our server to reply with the same server ID as the registered PingableLeader.
-            PingableLeader localPingableLeader = invocation.getArgumentAt(0, PingableLeader.class);
+            PingableLeader localPingableLeader = invocation.getArgument(0);
             availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse()
                     .withStatus(200)
-                    .withBody(("\"" + localPingableLeader.getUUID().toString() + "\"").getBytes())));
+                    .withBody(("\"" + localPingableLeader.getUUID() + "\"").getBytes())));
             return null;
         }).when(environment).accept(isA(PingableLeader.class));
         setUpLeaderBlockInConfig();

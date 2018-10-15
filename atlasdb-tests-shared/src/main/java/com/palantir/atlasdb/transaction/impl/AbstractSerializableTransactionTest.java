@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -701,6 +701,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
         put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows() {
+        byte[] row = PtBytes.toBytes("row");
+        byte[] differentRow = PtBytes.toBytes("differentRow");
+
+        Transaction transaction = startTransaction();
+        BatchColumnRangeSelection sameColumnRangeSelection =
+                BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1);
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
+        columnRangeResultForRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(differentRow), sameColumnRangeSelection);
+        columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(transaction, "mutation to ensure", "conflict", "handling");
+        transaction.commit();
     }
 
     private void writeColumns() {
