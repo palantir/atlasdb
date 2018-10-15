@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |fixed|
-           Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
+         - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
 
     *    - |improved|
@@ -63,7 +63,6 @@ develop
            This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
-
 
 ========
 v0.106.0
