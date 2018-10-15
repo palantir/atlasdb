@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,26 +17,27 @@ package com.palantir.atlasdb.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.longThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
 
 import org.apache.http.HttpStatus;
+import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
-import org.mockito.internal.matchers.And;
-import org.mockito.internal.matchers.GreaterOrEqual;
-import org.mockito.internal.matchers.LessThan;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
@@ -175,8 +176,8 @@ public class FailoverFeignTargetTest {
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        verify(spiedTarget, times(1)).pauseForBackoff(any(),
-                longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
+        verify(spiedTarget, times(1))
+                .pauseForBackoff(any(), longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
     }
 
     @Test
@@ -186,8 +187,8 @@ public class FailoverFeignTargetTest {
             spiedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
         }
 
-        verify(spiedTarget, times(3)).pauseForBackoff(any(),
-                longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
+        verify(spiedTarget, times(3))
+                .pauseForBackoff(any(), longThat(isWithinBounds(LOWER_BACKOFF_BOUND, UPPER_BACKOFF_BOUND)));
     }
 
     @Test
@@ -211,8 +212,8 @@ public class FailoverFeignTargetTest {
 
             int expectedNumOfCalls = i + 1;
             long cap = Math.round(Math.pow(GOLDEN_RATIO, expectedNumOfCalls));
-            verify(spiedTarget, times(expectedNumOfCalls)).pauseForBackoff(any(),
-                    longThat(isWithinBounds(0L, cap)));
+            verify(spiedTarget, times(expectedNumOfCalls))
+                    .pauseForBackoff(any(), longThat(isWithinBounds(0L, cap)));
         }
     }
 
@@ -223,10 +224,7 @@ public class FailoverFeignTargetTest {
     }
 
     @SuppressWarnings("unchecked")
-    private ArgumentMatcher<Long> isWithinBounds(long lowerBoundInclusive, long upperBoundExclusive) {
-        return new And(ImmutableList.of(
-                new GreaterOrEqual<>(lowerBoundInclusive),
-                new LessThan<>(upperBoundExclusive)
-        ));
+    private Matcher<Long> isWithinBounds(long lowerBoundInclusive, long upperBoundExclusive) {
+        return is(allOf(greaterThanOrEqualTo(lowerBoundInclusive), lessThan(upperBoundExclusive)));
     }
 }

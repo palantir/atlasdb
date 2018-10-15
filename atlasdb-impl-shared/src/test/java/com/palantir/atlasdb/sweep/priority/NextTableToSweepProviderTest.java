@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.priority;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +36,6 @@ import java.util.stream.IntStream;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -244,14 +242,10 @@ public class NextTableToSweepProviderTest {
     }
 
     private LockRequest requestContaining(String table) {
-        return argThat(new ArgumentMatcher<LockRequest>() {
-            @Override
-            public boolean matches(Object argument) {
-                LockRequest request = (LockRequest) argument;
-                return request != null && request.getLockDescriptors().stream()
-                        .anyMatch(des -> des.getLockIdAsString().contains(table));
-            }
-        });
+        return argThat(
+                argument -> argument != null
+                        && argument.getLockDescriptors().stream()
+                        .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 
     private void whenGettingNextTableToSweep() {
