@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.impl.TmManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CassandraResource extends ExternalResource implements KvsManager, TmManager {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;

@@ -196,7 +196,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.startAtlasDbTransaction(any())).thenReturn(
                 StartAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
-        TRM.registerTm(txnManagerWithMocks);
+        TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }
 }

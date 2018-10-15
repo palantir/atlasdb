@@ -40,7 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TmManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -76,7 +76,7 @@ public abstract class AbstractSweepTest {
     }
 
     private final KvsManager kvsManager;
-    private final TmManager tmManager;
+    private final TransactionManagerManager tmManager;
 
     protected KeyValueService kvs;
     protected TransactionManager txManager;
@@ -84,7 +84,7 @@ public abstract class AbstractSweepTest {
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;
 
-    protected AbstractSweepTest(KvsManager kvsManager, TmManager tmManager) {
+    protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }
@@ -103,13 +103,13 @@ public abstract class AbstractSweepTest {
     }
 
     protected TransactionManager getManager() {
-        return tmManager.getLastRegisteredTm().orElseGet(this::createAndRegisterManager);
+        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
     }
 
     protected TransactionManager createAndRegisterManager() {
         InMemoryTimestampService tsService = new InMemoryTimestampService();
         TransactionManager manager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
-        tmManager.registerTm(manager);
+        tmManager.registerTransactionManager(manager);
         return manager;
     }
 

@@ -49,7 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TmManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -70,7 +70,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
-    public AbstractSerializableTransactionTest(KvsManager kvsManager, TmManager tmManager) {
+    public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 

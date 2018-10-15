@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 import org.junit.After;
@@ -63,12 +62,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
+    private static final LongSupplier TS_SUPPLIER = () -> 150L;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-
     protected KeyValueService kvs;
     protected TransactionManager txManager;
-    final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweepThread backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
@@ -89,12 +87,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
-        LongSupplier tsSupplier = sweepTimestamp::get;
         PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, TS_SUPPLIER, TS_SUPPLIER, txService, ssm, cellsSweeper);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
@@ -123,7 +120,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     }
 
     @After
-    public void closeTm() {
+    public void closeTransactionManager() {
         txManager.close();
     }
 
@@ -138,7 +135,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         putManyCells(TABLE_2, 101, 111);
         putManyCells(TABLE_2, 104, 114);
         putManyCells(TABLE_3, 120, 130);
-        sweepTimestamp.set(150);
         try (SingleLockService sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
                 backgroundSweeper.checkConfigAndRunSweep(sweepLocks);

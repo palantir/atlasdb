@@ -66,7 +66,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TmManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -96,7 +96,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
 
-    public AbstractTransactionTest(KvsManager kvsManager, TmManager tmManager) {
+    public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 

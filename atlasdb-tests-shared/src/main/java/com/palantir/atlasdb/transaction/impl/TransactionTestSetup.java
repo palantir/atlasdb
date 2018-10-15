@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TmManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -64,7 +64,7 @@ public abstract class TransactionTestSetup {
             "ns.atlasdb_transactions_test_table_thorough");
 
     private final KvsManager kvsManager;
-    private final TmManager tmManager;
+    private final TransactionManagerManager tmManager;
 
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
@@ -83,7 +83,7 @@ public abstract class TransactionTestSetup {
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
 
-    protected TransactionTestSetup(KvsManager kvsManager, TmManager tmManager) {
+    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }
@@ -140,12 +140,12 @@ public abstract class TransactionTestSetup {
     }
 
     protected TransactionManager getManager() {
-        return tmManager.getLastRegisteredTm().orElseGet(this::createAndRegisterManager);
+        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
     }
 
     TransactionManager createAndRegisterManager() {
         TransactionManager manager = createManager();
-        tmManager.registerTm(manager);
+        tmManager.registerTransactionManager(manager);
         return manager;
     }
 

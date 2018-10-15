@@ -39,7 +39,7 @@ public abstract class AsyncInitializer {
 
     private final ScheduledExecutorService singleThreadedExecutor = createExecutorService();
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
-    private volatile AsyncInitializationState state = new AsyncInitializationState();
+    private AsyncInitializationState state = new AsyncInitializationState();
     private int numberOfInitializationAttempts = 1;
     private Long initializationStartTime;
 

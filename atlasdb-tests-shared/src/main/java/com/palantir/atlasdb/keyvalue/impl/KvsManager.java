@@ -16,12 +16,26 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
-import java.util.Optional;
-
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public interface KvsManager {
+    /**
+     * Returns an instance of {@link KeyValueService} and registers it as a closeable resource. Subsequent invocations
+     * of this method are guaranteed to return the same object
+     */
     KeyValueService getDefaultKvs();
+    /**
+     * Register the given {@link KeyValueService} as a closeable resource.
+     *
+     * @param kvs the instance to be registered
+     */
     void registerKvs(KeyValueService kvs);
-    Optional<KeyValueService> getLastRegisteredKvs();
+
+    /**
+     * Register the given {@link TransactionManager} as a closeable resource and for possible retrieval.
+     *
+     * @param manager the instance to be registered
+     */
+    void registerTransactionManager(TransactionManager manager);
 }

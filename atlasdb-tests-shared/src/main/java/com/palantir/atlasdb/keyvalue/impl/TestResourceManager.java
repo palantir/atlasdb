@@ -27,11 +27,10 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class TestResourceManager extends ExternalResource implements KvsManager, TmManager {
+public class TestResourceManager extends ExternalResource implements KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
-    private KeyValueService keyValueService = null;
     private TransactionManager transactionManager = null;
 
     public TestResourceManager(Supplier<KeyValueService> kvsSupplier) {
@@ -53,23 +52,17 @@ public class TestResourceManager extends ExternalResource implements KvsManager,
 
     @Override
     public void registerKvs(KeyValueService kvs) {
-        keyValueService = kvs;
         registerCloseable(kvs);
     }
 
     @Override
-    public Optional<KeyValueService> getLastRegisteredKvs() {
-        return Optional.ofNullable(keyValueService);
-    }
-
-    @Override
-    public void registerTm(TransactionManager manager) {
+    public void registerTransactionManager(TransactionManager manager) {
         transactionManager = manager;
         registerCloseable(manager);
     }
 
     @Override
-    public Optional<TransactionManager> getLastRegisteredTm() {
+    public Optional<TransactionManager> getLastRegisteredTransactionManager() {
         return Optional.ofNullable(transactionManager);
     }
 
