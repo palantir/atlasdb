@@ -156,5 +156,4 @@ public class TimestampCorroboratingTimelockServiceTest {
             return PING_RESPONSE;
         }
     }
-
 }
