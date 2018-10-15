@@ -5,6 +5,7 @@ apply from: "../gradle/shared.gradle"
 
 dependencies {
   compile project(":timestamp-api")
+  compile project(":atlasdb-autobatch")
   compile project(":atlasdb-commons")
 
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
@@ -14,5 +15,6 @@ dependencies {
 
   testCompile group: 'com.palantir.remoting2', name: 'tracing'
   testCompile group: 'junit', name: 'junit'
+  testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
 }

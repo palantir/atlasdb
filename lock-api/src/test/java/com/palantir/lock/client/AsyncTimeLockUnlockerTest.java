@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
@@ -52,8 +51,7 @@ public class AsyncTimeLockUnlockerTest {
     private List<LockToken> unlockedTokens;
 
     private TimelockService timelockService = mock(TimelockService.class);
-    private AsyncTimeLockUnlocker unlocker = new AsyncTimeLockUnlocker(
-            timelockService, PTExecutors.newSingleThreadScheduledExecutor());
+    private AsyncTimeLockUnlocker unlocker = AsyncTimeLockUnlocker.create(timelockService);
 
     @Before
     public void setUp() {
