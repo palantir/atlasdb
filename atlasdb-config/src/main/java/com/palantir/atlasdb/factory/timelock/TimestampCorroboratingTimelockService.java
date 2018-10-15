@@ -50,12 +50,7 @@ public class TimestampCorroboratingTimelockService implements AutoDelegate_Timel
 
     @Override
     public long getFreshTimestamp() {
-        long localLowerBound = lowerBound;
-        long freshTimestamp = delegate.getFreshTimestamp();
-
-        checkTimestamp(localLowerBound, freshTimestamp);
-        updateLowerBound(freshTimestamp);
-        return freshTimestamp;
+        return checkAndUpdate(delegate::getFreshTimestamp, x -> x, x -> x);
     }
 
     @Override
