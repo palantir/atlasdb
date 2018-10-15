@@ -1447,8 +1447,8 @@ public abstract class AbstractKeyValueServiceTest {
         }
 
         assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
-                .isInstanceOf(KeyAlreadyExistsException.class)
-                .as("putUnlessExists must throw when overwriting the same cell!");
+                .as("putUnlessExists must throw when overwriting the same cell!")
+                .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
     @Test

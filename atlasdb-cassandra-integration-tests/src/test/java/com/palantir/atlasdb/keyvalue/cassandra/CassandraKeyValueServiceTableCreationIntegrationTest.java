@@ -141,7 +141,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         assertThat(initialMetadata, is(existingMetadata));
     }
 
-
     @Test
     public void testGetMetadataCaseInsensitive() {
         // Make two casewise-different references to the "same" table

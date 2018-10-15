@@ -70,8 +70,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
-    public AbstractSerializableTransactionTest(KvsManager kvsManager,
-            TmManager tmManager) {
+    public AbstractSerializableTransactionTest(KvsManager kvsManager, TmManager tmManager) {
         super(kvsManager, tmManager);
     }
 

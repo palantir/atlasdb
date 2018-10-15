@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -38,7 +37,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
     }
 
     @Test
-    @Ignore
     public void should_not_oom_when_there_are_many_large_values_to_sweep() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
