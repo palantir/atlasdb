@@ -30,10 +30,10 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.keyvalue.impl.TmManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class CassandraResource extends ExternalResource implements KvsManager, TmManager {
+public class CassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
@@ -68,7 +68,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
 
     /**
      * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the constructor.
-     * */
+     */
     @Override
     public CassandraKeyValueService getDefaultKvs() {
         return (CassandraKeyValueService) testResourceManager.getDefaultKvs();
@@ -80,18 +80,13 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     }
 
     @Override
-    public Optional<KeyValueService> getLastRegisteredKvs() {
-        return testResourceManager.getLastRegisteredKvs();
+    public void registerTransactionManager(TransactionManager manager) {
+        testResourceManager.registerTransactionManager(manager);
     }
 
     @Override
-    public void registerTm(TransactionManager manager) {
-        testResourceManager.registerTm(manager);
-    }
-
-    @Override
-    public Optional<TransactionManager> getLastRegisteredTm() {
-        return testResourceManager.getLastRegisteredTm();
+    public Optional<TransactionManager> getLastRegisteredTransactionManager() {
+        return testResourceManager.getLastRegisteredTransactionManager();
     }
 
     public CassandraKeyValueServiceConfig getConfig() {

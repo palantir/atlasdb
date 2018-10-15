@@ -35,8 +35,8 @@ public interface TransactionManagerManager {
      * Correct usage in the case where multiple calls to {@link #registerTransactionManager(TransactionManager)} have
      * been made requires careful reasoning and is discouraged.
      *
-     * @return an {@link Optional} containing the latest registered {@link TransactionManager), or
-     * {@link Optional#empty()} if none were registered.
+     * @return an Optional containing the latest registered TransactionManager, or Optional.empty() if none were
+     * registered.
      */
     Optional<TransactionManager> getLastRegisteredTransactionManager();
 }

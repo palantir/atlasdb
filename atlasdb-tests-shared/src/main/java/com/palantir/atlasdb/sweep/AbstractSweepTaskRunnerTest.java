@@ -318,7 +318,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     }
 
     @Test
-    public void should_return_values_for_multiple_columns_when_sweeping() {
+    public void shouldReturnValuesForMultipleColumnsWhenSweeping() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
         for (int ts = 10; ts <= 150; ts += 10) {
