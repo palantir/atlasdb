@@ -43,7 +43,6 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
