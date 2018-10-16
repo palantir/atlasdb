@@ -51,7 +51,8 @@ develop
          - Change
 
     *    - |fixed|
-         - Targeted sweep does better with missing tables, and also with the empty namespace
+         - Targeted sweep does better with missing tables, and also with the empty namespace.
+           Previously, it would just cycle on the error and never sweep. A highly undesirable condition.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3577>`__)
 
     *    - |fixed|
