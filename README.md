@@ -9,4 +9,4 @@ We use [ZenHub](https://www.zenhub.com/) for tracking our work inside GitHub. If
 Please see our docs on [Contributing to AtlasDB](https://palantir.github.io/atlasdb/html/miscellaneous/contributing.html)
 
 ## License
-This project is made available under the [BSD 3-Clause License](https://github.com/palantir/atlasdb/blob/develop/LICENSE.txt).
+This project is made available under the [Apache 2.0 license](https://github.com/palantir/atlasdb/blob/develop/LICENSE.txt).

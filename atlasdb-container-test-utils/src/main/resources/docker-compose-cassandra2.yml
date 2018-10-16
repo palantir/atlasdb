@@ -1,0 +1,9 @@
+version: '2'
+
+services:
+  cassandra2:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    environment:
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - LOCAL_JMX=no

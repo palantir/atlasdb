@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -149,7 +149,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         long timestampExclusive = timestamp + 1;
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .retainColumns(ImmutableList.of(COLUMN))
+                .batchHint(1000)
+                .build();
 
         try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
                 timestampExclusive)) {

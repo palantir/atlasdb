@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
@@ -33,6 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
@@ -48,6 +48,7 @@ public class PaxosLeadershipCreator {
 
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
+    private LeadershipObserver leadershipObserver;
 
     public PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -79,6 +80,7 @@ public class PaxosLeadershipCreator {
                 "leader-election-service");
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
+        leadershipObserver = localPaxosServices.leadershipObserver();
 
         registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
@@ -121,6 +123,14 @@ public class PaxosLeadershipCreator {
 
     public Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    }
+
+    public void executeWhenGainedLeadership(Runnable task) {
+        leadershipObserver.executeWhenGainedLeadership(task);
+    }
+
+    public void executeWhenLostLeadership(Runnable task) {
+        leadershipObserver.executeWhenLostLeadership(task);
     }
 
     public boolean isCurrentSuspectedLeader() {

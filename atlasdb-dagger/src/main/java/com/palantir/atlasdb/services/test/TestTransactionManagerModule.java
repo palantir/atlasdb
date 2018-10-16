@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -102,6 +101,7 @@ public class TestTransactionManagerModule {
                 metricsManager,
                 kvs,
                 lts.timelock(),
+                lts.timestampManagement(),
                 lts.lock(),
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -111,12 +111,12 @@ public class TestTransactionManagerModule {
                 new TimestampCache(
                         metricsManager.getRegistry(), () -> config.atlasDbRuntimeConfig().getTimestampCacheSize()),
                 config.allowAccessToHiddenTables(),
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 config.atlasDbConfig().keyValueService().concurrentGetRangesThreadPoolSize(),
                 config.atlasDbConfig().keyValueService().defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 PTExecutors.newSingleThreadExecutor(true),
-                true);
+                true,
+                () -> config.atlasDbRuntimeConfig().transaction());
     }
 
 }

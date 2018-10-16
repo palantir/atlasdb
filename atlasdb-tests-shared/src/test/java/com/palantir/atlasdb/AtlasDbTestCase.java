@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -58,7 +58,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class AtlasDbTestCase {
     protected static LockClient lockClient;
@@ -67,7 +66,7 @@ public class AtlasDbTestCase {
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
-    protected TimestampService timestampService;
+    protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManagerImpl serializableTxManager;
@@ -118,6 +117,7 @@ public class AtlasDbTestCase {
                 metricsManager,
                 keyValueService,
                 timestampService,
+                timestampService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -154,7 +154,7 @@ public class AtlasDbTestCase {
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
         txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
-                timestampService, lockClient, lockService, transactionService, mode);
+                timestampService, timestampService, lockClient, lockService, transactionService, mode);
     }
 
     protected void clearTablesWrittenTo() {

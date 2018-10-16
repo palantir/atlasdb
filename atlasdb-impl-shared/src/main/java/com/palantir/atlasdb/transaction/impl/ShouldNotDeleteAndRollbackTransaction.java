@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,11 +21,12 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.palantir.atlasdb.AtlasDbConstants;
+import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
@@ -77,7 +78,8 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                                boolean allowHiddenTableAccess,
                                TimestampCache timestampCache,
                                ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency) {
+                               int defaultGetRangesConcurrency,
+                               Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager,
                 keyValueService,
                 null,
@@ -94,14 +96,13 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 readSentinelBehavior,
                 allowHiddenTableAccess,
                 timestampCache,
-                // never actually used, since timelockService is null
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                true);
+                true,
+                transactionConfig);
     }
 
     @Override

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -51,6 +52,7 @@ import org.apache.commons.lang3.Validate;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.common.base.Throwables;
@@ -351,21 +353,41 @@ public abstract class BasicSQL {
     }
 
     public static boolean assertNotOnSqlThread() {
-        assert !Thread.currentThread().getName().contains(selectThreadName);
-        assert !Thread.currentThread().getName().contains(executeThreadName);
+        assert !Thread.currentThread().getName().contains(SELECT_THREAD_NAME);
+        assert !Thread.currentThread().getName().contains(EXECUTE_THREAD_NAME);
         return true;
     }
 
-    private static final String selectThreadName = "SQL select statement"; //$NON-NLS-1$
-    private static final String executeThreadName = "SQL execute statement"; //$NON-NLS-1$
+    private static final String SELECT_THREAD_NAME = "SQL select statement"; //$NON-NLS-1$
+    private static final String EXECUTE_THREAD_NAME = "SQL execute statement"; //$NON-NLS-1$
     private static final int KEEP_SQL_THREAD_ALIVE_TIMEOUT = 3000; //3 seconds
-    private static ExecutorService service = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(selectThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
-    static ExecutorService executeService = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(executeThreadName, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT);
 
-    protected static enum AutoClose {
-        TRUE, FALSE;
+    // TODO (jkong): Should these be lazily initialized?
+    private static final Supplier<ExecutorService> DEFAULT_SELECT_EXECUTOR =
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
+                    new NamedThreadFactory(SELECT_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+    static final Supplier<ExecutorService> DEFAULT_EXECUTE_EXECUTOR =
+            Suppliers.memoize(() -> PTExecutors.newCachedThreadPool(
+                    new NamedThreadFactory(EXECUTE_THREAD_NAME, true), KEEP_SQL_THREAD_ALIVE_TIMEOUT));
+
+    private ExecutorService selectStatementExecutor;
+    private ExecutorService executeStatementExecutor;
+
+    public BasicSQL() {
+        this(DEFAULT_SELECT_EXECUTOR.get(), DEFAULT_EXECUTE_EXECUTOR.get());
+    }
+
+    /**
+     * Management of the life-cycle of these executors is left to the user.
+     */
+    public BasicSQL(ExecutorService selectStatementExecutor, ExecutorService executeStatementExecutor) {
+        this.selectStatementExecutor = selectStatementExecutor;
+        this.executeStatementExecutor = executeStatementExecutor;
+    }
+
+    protected enum AutoClose {
+        TRUE,
+        FALSE,
     }
 
     /**Execute the PreparedStatement asynchronously, cancel it if we're interrupted, and return the result set if we're not.
@@ -388,13 +410,13 @@ public abstract class BasicSQL {
         return getSqlConfig().isSqlCancellationDisabled();
     }
 
-    private static <T> T runUninterruptablyInternal(final PreparedStatement ps, final ResultSetVisitor<T> visitor, final FinalSQLString sql,
+    private <T> T runUninterruptablyInternal(final PreparedStatement ps, final ResultSetVisitor<T> visitor, final FinalSQLString sql,
             final AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         if (Thread.currentThread().isInterrupted()) {
             SqlLoggers.CANCEL_LOGGER.debug("interrupted prior to executing uninterruptable SQL call");
             throw new PalantirInterruptedException("interrupted prior to executing uninterruptable SQL call");
         }
-        return BasicSQLUtils.runUninterruptably(() -> {
+        return BasicSQLUtils.runUninterruptably(executeStatementExecutor, () -> {
             if (fetchSize != null) {
                 ps.setFetchSize(fetchSize);
             }
@@ -412,10 +434,14 @@ public abstract class BasicSQL {
                 /* We no longer have a connection to worry about */ null);
     }
 
-    private static <T> T runCancellablyInternal(final PreparedStatement ps, ResultSetVisitor<T> visitor, final FinalSQLString sql,
-                                        AutoClose autoClose, @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
+    private <T> T runCancellablyInternal(
+            final PreparedStatement ps,
+            ResultSetVisitor<T> visitor,
+            final FinalSQLString sql,
+            AutoClose autoClose,
+            @Nullable Integer fetchSize) throws PalantirInterruptedException, PalantirSqlException {
         final String threadString = sql.toString();
-        Future<ResultSet> result = service.submit(ThreadNamingCallable.wrapWithThreadName(() -> {
+        Future<ResultSet> result = selectStatementExecutor.submit(ThreadNamingCallable.wrapWithThreadName(() -> {
             if(Thread.currentThread().isInterrupted()) {
                 SqlLoggers.CANCEL_LOGGER.error("Threadpool thread has interrupt flag set!"); //$NON-NLS-1$
                 //we want to clear the interrupted status here -
@@ -475,7 +501,9 @@ public abstract class BasicSQL {
         PreparedStatement ps = null;
 
         try {
-            ps = BasicSQLUtils.runUninterruptably(() -> createPreparedStatement(c, query.getQuery(), vs), "SQL createPreparedStatement", c);
+            ps = BasicSQLUtils.runUninterruptably(
+                    executeStatementExecutor,
+                    () -> createPreparedStatement(c, query.getQuery(), vs), "SQL createPreparedStatement", c);
             return visitor.visit(ps);
         } catch (PalantirSqlException sqle) {
             throw wrapSQLExceptionWithVerboseLogging(sqle, query.getQuery(), vs);
@@ -541,7 +569,7 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL execution query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (() -> {
+        return BasicSQLUtils.runUninterruptably (executeStatementExecutor, () -> {
             return wrapPreparedStatement(c, sql, vs, ps -> {
                 PreparedStatements.execute(ps);
                 return ps;
@@ -702,7 +730,7 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL update interval query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (() -> {
+        return BasicSQLUtils.runUninterruptably (executeStatementExecutor, () -> {
      return wrapPreparedStatement(c, sql, vs, ps -> {
          PreparedStatements.execute(ps);
          return ps;
@@ -715,7 +743,7 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL update many query: {}", sql.getQuery());
         }
-        BasicSQLUtils.runUninterruptably ((Callable<Void>) () -> {
+        BasicSQLUtils.runUninterruptably (executeStatementExecutor, (Callable<Void>) () -> {
             List<BlobHandler> cleanups = Lists.newArrayList();
             PreparedStatement ps = null;
             SqlTimer.Handle timerKey = getSqlTimer().start("updateMany(" + vs.length + ")", sql.getKey(), sql.getQuery()); //$NON-NLS-1$ //$NON-NLS-2$
@@ -755,7 +783,7 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL insert one count rows internal query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (() -> {
+        return BasicSQLUtils.runUninterruptably (executeStatementExecutor, () -> {
             return wrapPreparedStatement(c, sql, vs, ps -> {
                 PreparedStatements.execute(ps);
                 return PreparedStatements.getUpdateCount(ps);
@@ -767,7 +795,7 @@ public abstract class BasicSQL {
         if (SqlLoggers.LOGGER.isTraceEnabled()) {
             SqlLoggers.LOGGER.trace("SQL insert many query: {}", sql.getQuery());
         }
-        return BasicSQLUtils.runUninterruptably (() -> {
+        return BasicSQLUtils.runUninterruptably (executeStatementExecutor, () -> {
             int[] inserted = null;
             PreparedStatement ps = null;
 

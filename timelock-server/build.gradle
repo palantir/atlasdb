@@ -18,7 +18,6 @@ dependencies {
     compile group: 'io.dropwizard', name: 'dropwizard-http2'
     compile group: 'io.dropwizard', name: 'dropwizard-request-logging'
     compile group: 'com.palantir.remoting-api', name: 'ssl-config'
-    compile group: 'com.palantir.remoting3', name: 'tracing'
     compile group: 'com.palantir.tritium', name: 'tritium-lib'
 
     compile (group: 'com.palantir.remoting3', name: 'jersey-servers')

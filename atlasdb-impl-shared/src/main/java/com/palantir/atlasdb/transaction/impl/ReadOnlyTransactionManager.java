@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,6 +21,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -36,6 +37,7 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public final class ReadOnlyTransactionManager extends AbstractLockAwareTransactionManager  {
@@ -47,6 +49,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final boolean allowHiddenTableAccess;
     private final int defaultGetRangesConcurrency;
+    private final Supplier<TransactionConfig> transactionConfig;
 
     public ReadOnlyTransactionManager(
             MetricsManager metricsManager,
@@ -57,7 +60,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             TransactionReadSentinelBehavior readSentinelBehavior,
             boolean allowHiddenTableAccess,
             int defaultGetRangesConcurrency,
-            TimestampCache timestampCache) {
+            TimestampCache timestampCache,
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -67,6 +71,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
         this.readSentinelBehavior = readSentinelBehavior;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
+        this.transactionConfig = transactionConfig;
     }
 
     @Override
@@ -171,6 +176,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
+    public TimestampManagementService getTimestampManagementService() {
+        return null;
+    }
+
+    @Override
     public Cleaner getCleaner() {
         return null;
     }
@@ -200,7 +210,8 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
                 MoreExecutors.newDirectExecutorService(),
-                defaultGetRangesConcurrency);
+                defaultGetRangesConcurrency,
+                transactionConfig);
         return runTaskThrowOnConflict((transaction) -> task.execute(transaction, condition),
                 new ReadTransaction(txn, txn.sweepStrategyManager));
     }

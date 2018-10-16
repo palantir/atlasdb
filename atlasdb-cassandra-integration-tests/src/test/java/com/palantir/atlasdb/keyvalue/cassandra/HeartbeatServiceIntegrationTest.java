@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,8 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.LockLeader;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -46,12 +45,10 @@ import com.palantir.flake.ShouldRetry;
 @ShouldRetry // There are flakes with the heartbeat service throwing because it was unable to stop beating.
 public class HeartbeatServiceIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(HeartbeatServiceIntegrationTest.class);
-
     private static final int heartbeatTimePeriodMillis = 100;
 
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(HeartbeatServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource(HeartbeatServiceIntegrationTest.class);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -73,7 +70,7 @@ public class HeartbeatServiceIntegrationTest {
     @Before
     public void setUp() throws TException {
         queryRunner = new TracingQueryRunner(log, TracingPrefsConfig.create());
-        CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
+        CassandraKeyValueServiceConfig config = CASSANDRA.getConfig();
 
         writeConsistency = ConsistencyLevel.EACH_QUORUM;
         clientPool = CassandraClientPoolImpl.create(metricsManager, config);

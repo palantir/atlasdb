@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -37,11 +36,11 @@ import org.junit.Test;
 import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -66,11 +65,13 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+            new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
+            timestampService,
             closeableLockService,
             null,
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
@@ -78,13 +79,13 @@ public class SnapshotTransactionManagerTest {
             null,
             cleaner,
             false,
-            () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
             TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
             TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
             TimestampCache.createForTests(),
             MultiTableSweepQueueWriter.NO_OP,
             executorService,
-            true);
+            true,
+            () -> ImmutableTransactionConfig.builder().build());
 
     @Test
     public void isAlwaysInitialized() {
@@ -111,11 +112,13 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+                new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
+                ts,
                 mock(LockService.class), // not closeable
                 null,
                 null,
@@ -123,13 +126,13 @@ public class SnapshotTransactionManagerTest {
                 null,
                 cleaner,
                 false,
-                () -> AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
                 TransactionTestConstants.DEFAULT_GET_RANGES_CONCURRENCY,
                 TimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService,
-                true);
+                true,
+                () -> ImmutableTransactionConfig.builder().build());
         newTransactionManager.close(); // should not throw
     }
 

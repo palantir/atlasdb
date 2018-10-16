@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,8 +42,6 @@ import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
-import com.palantir.docker.compose.execution.DockerComposeRunArgument;
-import com.palantir.docker.compose.execution.DockerComposeRunOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
@@ -87,23 +85,14 @@ public abstract class EteSetup {
             Duration waitTime,
             Map<String, String> environment) {
         waitDuration = waitTime;
-        return setup(eteClass, composeFile, availableClientNames, environment, true);
-    }
-
-    public static RuleChain setupWithoutWaiting(
-            Class<?> eteClass,
-            String composeFile,
-            List<String> availableClientNames,
-            Map<String, String> environment) {
-        return setup(eteClass, composeFile, availableClientNames, environment, false);
+        return setup(eteClass, composeFile, availableClientNames, environment);
     }
 
     public static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
-            Map<String, String> environment,
-            boolean waitForServers) {
+            Map<String, String> environment) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
@@ -118,41 +107,18 @@ public abstract class EteSetup {
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
-        if (waitForServers) {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule)
-                    .around(waitForServersToBeReady());
-        } else {
-            return RuleChain
-                    .outerRule(GRADLE_PREPARE_TASK)
-                    .around(docker)
-                    .around(dockerProxyRule);
-        }
-    }
-
-
-    static String runCliCommand(String command) throws IOException, InterruptedException {
-        return docker.run(
-                DockerComposeRunOption.options("-T"),
-                "ete-cli",
-                DockerComposeRunArgument.arguments("bash", "-c", command));
-    }
-
-    static void execCliCommandNoTty(String command) throws IOException, InterruptedException {
-        for (String client : availableClients) {
-            execCliCommand(DockerComposeExecOption.options("-T"), client, command);
-        }
+        return RuleChain
+                .outerRule(GRADLE_PREPARE_TASK)
+                .around(docker)
+                .around(dockerProxyRule)
+                .around(waitForServersToBeReady());
     }
 
     public static String execCliCommand(String client, String command) throws IOException, InterruptedException {
-        return execCliCommand(DockerComposeExecOption.noOptions(), client, command);
-    }
-
-    private static String execCliCommand(DockerComposeExecOption execOption, String client, String command)
-            throws IOException, InterruptedException {
-        return docker.exec(execOption, client, DockerComposeExecArgument.arguments("bash", "-c", command));
+        return docker.exec(
+                DockerComposeExecOption.noOptions(),
+                client,
+                DockerComposeExecArgument.arguments("bash", "-c", command));
     }
 
     static <T> T createClientToSingleNode(Class<T> clazz) {
@@ -161,13 +127,6 @@ public abstract class EteSetup {
 
     static <T> T createClientToAllNodes(Class<T> clazz) {
         return createClientToMultipleNodes(clazz, availableClients, SERVER_PORT);
-    }
-
-    static <T> T createClient(Class<T> clazz) {
-        if (availableClients.size() == 1) {
-            return createClientToSingleNode(clazz);
-        }
-        return createClientToAllNodes(clazz);
     }
 
     public static Container getContainer(String containerName) {

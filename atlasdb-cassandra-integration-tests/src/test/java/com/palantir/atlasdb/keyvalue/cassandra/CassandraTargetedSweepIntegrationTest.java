@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.mockito.Mockito.mock;
@@ -28,9 +27,8 @@ import org.junit.Rule;
 import org.junit.rules.RuleChain;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -40,8 +38,6 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
@@ -49,14 +45,12 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
     private TargetedSweeper sweepQueue;
 
     @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraTargetedSweepIntegrationTest.class).with(new CassandraContainer());
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraTargetedSweepIntegrationTest.class);
 
     @Rule
     public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(
-            getKeyValueService(), CassandraContainer.KVS_CONFIG);
+            getKeyValueService(), CASSANDRA.getConfig());
 
     @Before
     public void setup() {
@@ -69,8 +63,8 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractSweepTest {
 
     @Override
     protected KeyValueService getKeyValueService() {
-        CassandraKeyValueServiceConfig config = CassandraContainer.KVS_CONFIG;
-        return CassandraKeyValueServiceImpl.createForTesting(config, CassandraContainer.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl
+                .createForTesting(CASSANDRA.getConfig(), CassandraContainer.LEADER_CONFIG);
     }
 
     @Override

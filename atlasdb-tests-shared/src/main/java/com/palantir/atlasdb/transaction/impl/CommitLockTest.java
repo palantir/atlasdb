@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertFalse;
@@ -33,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -41,6 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -57,6 +57,8 @@ import com.palantir.lock.v2.LockResponse;
 
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
+    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+
     private static final String ROW = "row";
     private static final String COLUMN = "col_1";
     private static final String OTHER_COLUMN = "col_2";
@@ -175,13 +177,13 @@ public class CommitLockTest extends TransactionTestSetup {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
                 timestampCache,
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
-                true) {
+                true,
+                () -> TRANSACTION_CONFIG) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, input -> input.clone());
