@@ -19,35 +19,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraKeyValueServiceIntegrationTest.class);
 
     @Override
     protected KeyValueService createKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
-                metricsManager,
-                CassandraContainer.KVS_CONFIG,
-                CassandraContainer.LEADER_CONFIG,
-                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-                Mockito.mock(Logger.class));
+        return CASSANDRA.getDefaultKvs();
     }
 
     @Test

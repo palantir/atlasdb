@@ -86,8 +86,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         this(createTablesAutomatically, MoreExecutors.newDirectExecutorService());
     }
 
-    public InMemoryKeyValueService(boolean createTablesAutomatically,
-                                   ExecutorService executor) {
+    public InMemoryKeyValueService(boolean createTablesAutomatically, ExecutorService executor) {
         super(executor);
         this.createTablesAutomatically = createTablesAutomatically;
     }
