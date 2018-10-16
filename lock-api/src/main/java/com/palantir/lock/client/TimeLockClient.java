@@ -19,7 +19,6 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,6 +35,8 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
+import com.palantir.timestamp.CloseableTimestampService;
+import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimeLockClient implements AutoCloseable, TimelockService {
@@ -43,39 +44,46 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
+    private final CloseableTimestampService timestampService;
     private final LockRefresher lockRefresher;
     private final TimeLockUnlocker unlocker;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
-        ExecutorService asyncUnlockExecutor = createSingleThreadScheduledExecutor("async-unlock");
-        AsyncTimeLockUnlocker asyncUnlocker = new AsyncTimeLockUnlocker(timelockService, asyncUnlockExecutor);
-        return new TimeLockClient(timelockService, createLockRefresher(timelockService), asyncUnlocker);
+        AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
+        RequestBatchingTimestampService timestampService =
+                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService));
+        return new TimeLockClient(
+                timelockService, timestampService, createLockRefresher(timelockService), asyncUnlocker);
     }
 
     public static TimeLockClient withSynchronousUnlocker(TimelockService timelockService) {
-        return new TimeLockClient(timelockService, createLockRefresher(timelockService), timelockService::unlock);
+        CloseableTimestampService timestampService = new TimelockServiceErrorDecorator(timelockService);
+        return new TimeLockClient(
+                timelockService, timestampService, createLockRefresher(timelockService), timelockService::unlock);
     }
 
     @VisibleForTesting
-    TimeLockClient(TimelockService delegate, LockRefresher lockRefresher, TimeLockUnlocker unlocker) {
+    TimeLockClient(TimelockService delegate, CloseableTimestampService timestampService,
+            LockRefresher lockRefresher, TimeLockUnlocker unlocker) {
         this.delegate = delegate;
+        this.timestampService = timestampService;
         this.lockRefresher = lockRefresher;
         this.unlocker = unlocker;
     }
 
     @Override
     public boolean isInitialized() {
-        return delegate.isInitialized();
+        return delegate.isInitialized() && timestampService.isInitialized();
     }
 
     @Override
     public long getFreshTimestamp() {
-        return executeOnTimeLock(delegate::getFreshTimestamp);
+        return timestampService.getFreshTimestamp();
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return executeOnTimeLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
+        return timestampService.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
@@ -133,7 +141,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         return executeOnTimeLock(delegate::currentTimeMillis);
     }
 
-    private <T> T executeOnTimeLock(Callable<T> callable) {
+    private static <T> T executeOnTimeLock(Callable<T> callable) {
         try {
             return callable.call();
         } catch (Exception e) {
@@ -164,5 +172,26 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
                         .setNameFormat(TimeLockClient.class.getSimpleName() + "-" + operation + "-%d")
                         .setDaemon(true)
                         .build());
+    }
+
+    private static final class TimelockServiceErrorDecorator implements CloseableTimestampService {
+        private final TimelockService delegate;
+
+        private TimelockServiceErrorDecorator(TimelockService delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public long getFreshTimestamp() {
+            return executeOnTimeLock(delegate::getFreshTimestamp);
+        }
+
+        @Override
+        public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+            return executeOnTimeLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
+        }
+
+        @Override
+        public void close() {}
     }
 }

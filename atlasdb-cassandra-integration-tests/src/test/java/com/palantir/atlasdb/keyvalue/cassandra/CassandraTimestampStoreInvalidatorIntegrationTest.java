@@ -40,7 +40,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-
     private static final long ONE_MILLION = 1_000_000;
 
     private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();

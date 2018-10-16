@@ -44,7 +44,6 @@ public class CassandraTimestampBackupIntegrationTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-
     private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
