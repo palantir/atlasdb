@@ -27,6 +27,7 @@ import org.junit.Test;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -76,6 +77,16 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .hasMessage(generateClocksWentBackwardsMessage(1, 1));
     }
 
+    @Test
+    public void lockImmutableTimestampShouldFail() {
+        timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
+        goBackInTimeFor(1);
+
+        assertThatThrownBy(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST))
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(generateClocksWentBackwardsMessage(1, 1));
+    }
+
     private static String generateClocksWentBackwardsMessage(long lowerBound, long freshTimestamp) {
         return String.format(TimestampCorroboratingTimelockService.CLOCKS_WENT_BACKWARDS_MESSAGE,
                 lowerBound, freshTimestamp);
@@ -117,6 +128,12 @@ public class TimestampCorroboratingTimelockServiceTest {
             public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
                 return StartAtlasDbTransactionResponse.of(mock(LockImmutableTimestampResponse.class),
                         timestampService.getFreshTimestamp());
+            }
+
+            @Override
+            public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
+                return LockImmutableTimestampResponse.of(timestampService.getFreshTimestamp(),
+                        mock(LockToken.class));
             }
         };
     }
