@@ -109,8 +109,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 validateAnnotatedElement(annotatedElement);
                 TypeElement typeElement = (TypeElement) annotatedElement;
 
-                AutoDelegate annotation = annotatedElement.getAnnotation(AutoDelegate.class);
-                TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
+                TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
@@ -139,14 +138,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
     }
 
-    private TypeToExtend validateAnnotationAndCreateTypeToExtend(AutoDelegate annotation, TypeElement annotatedElement)
-            throws ProcessingException {
-
-        if (annotation == null) {
-            throw new ProcessingException(annotatedElement, "Type %s doesn't have annotation @%s",
-                    annotatedElement, AutoDelegate.class.getSimpleName());
-        }
-
+    private TypeToExtend createTypeToExtend(TypeElement annotatedElement) throws ProcessingException {
         PackageElement typePackage = elementUtils.getPackageOf(annotatedElement);
 
         if (typePackage.isUnnamed()) {
