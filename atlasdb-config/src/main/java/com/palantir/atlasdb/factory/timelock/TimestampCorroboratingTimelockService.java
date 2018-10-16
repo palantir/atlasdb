@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
@@ -33,7 +34,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
             "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
 
     private final TimelockService delegate;
-    private volatile long lowerBound = Long.MIN_VALUE;
+    private final LongAccumulator lowerBound = new LongAccumulator(Long::max, Long.MIN_VALUE);
 
     private TimestampCorroboratingTimelockService(TimelockService delegate) {
         this.delegate = delegate;
@@ -50,27 +51,27 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
 
     @Override
     public long getFreshTimestamp() {
-        return checkAndUpdate(delegate::getFreshTimestamp, x -> x, x -> x);
+        return checkAndUpdateLowerBound(delegate::getFreshTimestamp, x -> x, x -> x);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return checkAndUpdate(() -> delegate.getFreshTimestamps(numTimestampsRequested),
+        return checkAndUpdateLowerBound(() -> delegate.getFreshTimestamps(numTimestampsRequested),
                 TimestampRange::getLowerBound,
                 TimestampRange::getUpperBound);
     }
 
     @Override
     public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return checkAndUpdate(() -> delegate.startAtlasDbTransaction(request),
+        return checkAndUpdateLowerBound(() -> delegate.startAtlasDbTransaction(request),
                 StartAtlasDbTransactionResponse::freshTimestamp,
                 StartAtlasDbTransactionResponse::freshTimestamp);
     }
 
-    private <T> T checkAndUpdate(Supplier<T> timestampContainerSupplier,
+    private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,
             ToLongFunction<T> lowerBoundExtractor,
             ToLongFunction<T> upperBoundExtractor) {
-        long threadLocalLowerBound = lowerBound;
+        long threadLocalLowerBound = lowerBound.get();
         T timestampContainer = timestampContainerSupplier.get();
 
         checkTimestamp(threadLocalLowerBound, lowerBoundExtractor.applyAsLong(timestampContainer));
@@ -79,16 +80,16 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     private void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
-        if (freshTimestamp <= lowerBound) {
+        if (freshTimestamp <= lowerBound.get()) {
             throw clocksWentBackwards(timestampLowerBound, freshTimestamp);
         }
     }
 
-    private synchronized void updateLowerBound(long freshTimestamp) {
-        lowerBound = Math.max(freshTimestamp, lowerBound);
+    private void updateLowerBound(long freshTimestamp) {
+        lowerBound.accumulate(freshTimestamp);
     }
 
-    private AssertionError clocksWentBackwards(long timestampLowerBound, long freshTimestamp) {
+    private static AssertionError clocksWentBackwards(long timestampLowerBound, long freshTimestamp) {
         return new AssertionError(String.format(CLOCKS_WENT_BACKWARDS_MESSAGE, timestampLowerBound, freshTimestamp));
     }
 }
