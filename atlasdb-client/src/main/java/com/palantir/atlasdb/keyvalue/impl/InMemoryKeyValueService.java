@@ -78,8 +78,6 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  */
 @ThreadSafe
 public class InMemoryKeyValueService extends AbstractKeyValueService {
-
-
     private final ConcurrentMap<TableReference, Table> tables = Maps.newConcurrentMap();
     private final ConcurrentMap<TableReference, byte[]> tableMetadata = Maps.newConcurrentMap();
     private final boolean createTablesAutomatically;
