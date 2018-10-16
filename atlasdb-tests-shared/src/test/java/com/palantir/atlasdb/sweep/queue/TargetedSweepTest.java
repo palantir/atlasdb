@@ -49,6 +49,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
     private static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.2");
+    private static final TableReference TABLE_NONAMESPACE = TableReference.createWithEmptyNamespace("empty");
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
     private static final byte[] TEST_DATA = new byte[]{1};
     private static final WriteReference SINGLE_WRITE = WriteReference.write(TABLE_CONS, TEST_CELL);
@@ -65,6 +66,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
                 .setSweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
                 .build()
                 .toByteArray());
+        keyValueService.createTable(TABLE_NONAMESPACE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
@@ -202,6 +204,17 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         keyValueService.dropTable(TABLE_CONS);
 
         serializableTxManager.setUnreadableTimestamp(startTimestamp + 1);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+    }
+
+    @Test
+    public void sweepHandlesEmptyNamespace() {
+        useOneSweepQueueShard();
+        WriteReference write = WriteReference.write(TABLE_NONAMESPACE, TEST_CELL);
+        writeInTransactionAndGetStartTimestamp(write);
+        long timestamp = writeInTransactionAndGetStartTimestamp(write);
+
+        serializableTxManager.setUnreadableTimestamp(timestamp + 1);
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 

@@ -51,7 +51,7 @@ public final class WriteReferencePersister {
             public WriteReference visitTableNameAsStringBinary(byte[] ref) {
                 int offset = 1;
                 String tableReferenceString = EncodingUtils.decodeVarString(ref, offset);
-                TableReference tableReference = TableReference.createFromFullyQualifiedName(tableReferenceString);
+                TableReference tableReference = TableReference.fromString(tableReferenceString);
                 offset += EncodingUtils.sizeOfVarString(tableReferenceString);
                 byte[] row = EncodingUtils.decodeSizedBytes(ref, offset);
                 offset += EncodingUtils.sizeOfSizedBytes(row);

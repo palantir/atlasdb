@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+package com.palantir.atlasdb.autobatch;
 
-@AutoDelegate(typeToExtend = ManagedTimestampService.class)
-public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
+import com.google.common.util.concurrent.SettableFuture;
+
+public interface BatchElement<T, R> {
+    T argument();
+    SettableFuture<R> result();
 }
