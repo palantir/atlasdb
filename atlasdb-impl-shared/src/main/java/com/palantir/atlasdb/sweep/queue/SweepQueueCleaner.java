@@ -40,8 +40,10 @@ public class SweepQueueCleaner {
      * @param shardStrategy shard and strategy to clean for.
      * @param oldProgress last swept timestamp for the previous iteration of sweep.
      * @param newProgress last swept timestamp for this iteration of sweep.
+     * @param dedicatedRows the dedicated rows that have now been swept that should now be removed.
      */
-    public void clean(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
+    public void clean(ShardAndStrategy shardStrategy, long oldProgress, long newProgress, DedicatedRows dedicatedRows) {
+        cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, oldProgress, newProgress);
         cleanSweepableTimestamps(shardStrategy, oldProgress, newProgress);
         progressTo(shardStrategy, newProgress);
@@ -54,7 +56,6 @@ public class SweepQueueCleaner {
         long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionFine(oldProgress);
         long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionFine(newProgress + 1);
         if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
-            cleanDedicatedRows(shardStrategy, lastSweptPartitionPreviously);
             cleanNonDedicatedRow(shardStrategy, lastSweptPartitionPreviously);
             log.info("Deleted persisted sweep queue information in table {} for partition {}.",
                     LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
@@ -62,8 +63,8 @@ public class SweepQueueCleaner {
         }
     }
 
-    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, long partitionToDelete) {
-        sweepableCells.deleteDedicatedRows(shardStrategy, partitionToDelete);
+    private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
+        sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
     private void cleanNonDedicatedRow(ShardAndStrategy shardStrategy, long partitionToDelete) {

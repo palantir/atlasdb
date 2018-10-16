@@ -773,7 +773,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // we now read all to the end
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + 3 + writesInDedicated + 2);
     }
 
     @Test
