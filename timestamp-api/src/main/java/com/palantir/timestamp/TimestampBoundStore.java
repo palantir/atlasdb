@@ -17,7 +17,7 @@ package com.palantir.timestamp;
 
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = TimestampBoundStore.class)
+@AutoDelegate
 public interface TimestampBoundStore {
     /**
      * This will be called when the timestamp server is first created.

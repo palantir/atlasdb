@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - The AutoDelegate annotation no longer supports a typeToExtend parameter.
+           Users should instead annotate the desired class or interface directly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3579>`__)
+
     *    - |fixed|
          - Targeted sweep does better with missing tables, and also with the empty namespace.
            Previously, it would just cycle on the error and never sweep. A highly undesirable condition.
