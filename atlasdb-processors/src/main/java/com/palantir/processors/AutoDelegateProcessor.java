@@ -147,19 +147,18 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                     annotatedElement, AutoDelegate.class.getSimpleName());
         }
 
-        TypeElement baseType = ProcessorUtils.extractTypeFromAnnotation(elementUtils, annotation);
-        PackageElement typePackage = elementUtils.getPackageOf(baseType);
+        PackageElement typePackage = elementUtils.getPackageOf(annotatedElement);
 
         if (typePackage.isUnnamed()) {
-            throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
+            throw new ProcessingException(annotatedElement, "Type %s doesn't have a package", annotatedElement);
         }
 
-        if (baseType.getModifiers().contains(Modifier.FINAL)) {
-            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", baseType);
+        if (annotatedElement.getModifiers().contains(Modifier.FINAL)) {
+            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", annotatedElement);
         }
 
-        List<TypeElement> superTypes = fetchSuperTypes(baseType);
-        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
+        List<TypeElement> superTypes = fetchSuperTypes(annotatedElement);
+        return new TypeToExtend(typePackage, annotatedElement, superTypes.toArray(new TypeElement[0]));
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {
