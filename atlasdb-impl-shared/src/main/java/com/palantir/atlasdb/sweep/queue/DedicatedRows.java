@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Collection;
 import java.util.List;
 
 import org.immutables.value.Value;
 
-/**
- * Contains information on a batch to sweep: a possibly empty list of WriteInfos to sweep for and the maximum timestamp
- * guaranteed to have been swept once the batch is processed.
- */
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
+
 @Value.Immutable
-public interface SweepBatch {
-    List<WriteInfo> writes();
-    DedicatedRows dedicatedRows();
-    long lastSweptTimestamp();
+public interface DedicatedRows {
+    @Value.Parameter
+    List<SweepableCellsRow> getDedicatedRows();
 
-    default boolean isEmpty() {
-        return writes().isEmpty();
-    }
-
-    static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp) {
-        return ImmutableSweepBatch.builder()
-                .writes(writes)
-                .dedicatedRows(dedicatedRows)
-                .lastSweptTimestamp(timestamp).build();
+    static DedicatedRows of(List<SweepableCellsRow> dedicatedRows) {
+        return ImmutableDedicatedRows.of(dedicatedRows);
     }
 }
