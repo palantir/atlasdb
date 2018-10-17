@@ -17,160 +17,79 @@
 package com.palantir.atlasdb.factory.timelock;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.util.concurrent.atomic.AtomicLong;
-
+import org.assertj.core.api.ThrowableAssert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
-import com.palantir.timestamp.TimestampService;
 
 public class TimestampCorroboratingTimelockServiceTest {
     private static final IdentifiedTimeLockRequest IDENTIFIED_TIME_LOCK_REQUEST = IdentifiedTimeLockRequest.create();
+    private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
+            LockImmutableTimestampResponse.of(1L, mock(LockToken.class));
 
+    private TimelockService rawTimelockService;
     private TimelockService timelockService;
-    private GoBackInTimeTimestampService goBackInTimeTimestampService;
 
     @Before
     public void setUp() {
-        goBackInTimeTimestampService = new GoBackInTimeTimestampService();
-        timelockService = TimestampCorroboratingTimelockService.create(
-                getMockTimelockService(goBackInTimeTimestampService));
+        rawTimelockService = mock(TimelockService.class);
+        timelockService = TimestampCorroboratingTimelockService.create(rawTimelockService);
     }
 
     @Test
     public void getFreshTimestampShouldFail() {
-        getIndividualTimestamps(20);
-        goBackInTimeFor(10);
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
 
-        assertThatThrownBy(timelockService::getFreshTimestamp)
-                .isInstanceOf(AssertionError.class)
-                .hasMessage(generateClocksWentBackwardsMessage(20, 11));
+        timelockService.getFreshTimestamp();
+        verify(rawTimelockService).getFreshTimestamp();
+        assertThrowsGoBackInTimeError(timelockService::getFreshTimestamp);
     }
 
     @Test
     public void getFreshTimestampsShouldFail() {
-        getBatchedTimestamps(20);
-        goBackInTimeFor(10);
+        TimestampRange timestampRange = TimestampRange.createInclusiveRange(1, 2);
+        when(rawTimelockService.getFreshTimestamps(anyInt())).thenReturn(timestampRange);
 
-        assertThatThrownBy(() -> timelockService.getFreshTimestamps(10))
-                .isInstanceOf(AssertionError.class)
-                .hasMessage(generateClocksWentBackwardsMessage(20, 11));
+        timelockService.getFreshTimestamps(1);
+        verify(rawTimelockService).getFreshTimestamps(1);
+        assertThrowsGoBackInTimeError(() -> timelockService.getFreshTimestamps(1));
     }
 
     @Test
     public void startAtlasDbTransactionShouldFail() {
-        timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
-        goBackInTimeFor(1);
+        StartAtlasDbTransactionResponse response = StartAtlasDbTransactionResponse.of(
+                mock(LockImmutableTimestampResponse.class), 1L);
+        when(rawTimelockService.startAtlasDbTransaction(any())).thenReturn(response);
 
-        assertThatThrownBy(() -> timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST))
-                .isInstanceOf(AssertionError.class)
-                .hasMessage(generateClocksWentBackwardsMessage(1, 1));
+        timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
+        verify(rawTimelockService).startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
+        assertThrowsGoBackInTimeError(() -> timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST));
     }
 
     @Test
     public void lockImmutableTimestampShouldFail() {
+        when(rawTimelockService.lockImmutableTimestamp(any())).thenReturn(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE);
+
         timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
-        goBackInTimeFor(1);
+        verify(rawTimelockService).lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
+        assertThrowsGoBackInTimeError(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
+    }
 
-        assertThatThrownBy(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST))
+    private void assertThrowsGoBackInTimeError(ThrowableAssert.ThrowingCallable callable) {
+        assertThatThrownBy(callable)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage(generateClocksWentBackwardsMessage(1, 1));
-    }
-
-    private static String generateClocksWentBackwardsMessage(long lowerBound, long freshTimestamp) {
-        return String.format(TimestampCorroboratingTimelockService.CLOCKS_WENT_BACKWARDS_MESSAGE,
-                lowerBound, freshTimestamp);
-    }
-
-    private void getIndividualTimestamps(int numberOfTimestamps) {
-        for (int i = 0; i < numberOfTimestamps; i++) {
-            timelockService.getFreshTimestamp();
-        }
-    }
-
-    private void getBatchedTimestamps(int numberOfTimestamps) {
-        timelockService.getFreshTimestamps(numberOfTimestamps);
-    }
-
-    private void goBackInTimeFor(int numberOfTimestamps) {
-        goBackInTimeTimestampService.goBackInTime(numberOfTimestamps);
-    }
-
-    private TimelockService getMockTimelockService(TimestampService timestampService) {
-        TimelockService mockTimelockService = mock(TimelockService.class);
-        return new AutoDelegate_TimelockService() {
-            @Override
-            public TimelockService delegate() {
-                return mockTimelockService;
-            }
-
-            @Override
-            public long getFreshTimestamp() {
-                return timestampService.getFreshTimestamp();
-            }
-
-            @Override
-            public TimestampRange getFreshTimestamps(int numTimestampRequested) {
-                return timestampService.getFreshTimestamps(numTimestampRequested);
-            }
-
-            @Override
-            public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-                return StartAtlasDbTransactionResponse.of(mock(LockImmutableTimestampResponse.class),
-                        timestampService.getFreshTimestamp());
-            }
-
-            @Override
-            public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-                return LockImmutableTimestampResponse.of(timestampService.getFreshTimestamp(),
-                        mock(LockToken.class));
-            }
-        };
-    }
-
-    static class GoBackInTimeTimestampService implements TimestampService, TimestampManagementService {
-        private final AtomicLong counter = new AtomicLong(0);
-
-        public void goBackInTime(long time) {
-            counter.getAndUpdate(x -> Math.max(0, x - time));
-        }
-
-        @Override
-        public long getFreshTimestamp() {
-            return counter.incrementAndGet();
-        }
-
-        @Override
-        public TimestampRange getFreshTimestamps(int timestampsToGet) {
-            if (timestampsToGet <= 0) {
-                throw new IllegalArgumentException("Argument must be positive: " + timestampsToGet);
-            }
-            long topValue = counter.addAndGet(timestampsToGet);
-            return TimestampRange.createInclusiveRange(topValue - timestampsToGet + 1, topValue);
-        }
-
-        @Override
-        public void fastForwardTimestamp(long currentTimestamp) {
-            long latestTimestampFromService = counter.get();
-            while (latestTimestampFromService < currentTimestamp) {
-                counter.compareAndSet(latestTimestampFromService, currentTimestamp);
-                latestTimestampFromService = counter.get();
-            }
-        }
-
-        @Override
-        public String ping() {
-            return PING_RESPONSE;
-        }
+                .hasMessageStartingWith("Expected timestamp to be greater than");
     }
 }
