@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.junit.Before;
@@ -75,7 +74,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     @Override
     protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
         super.put(tableRef, cell, val, ts);
-        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, val.getBytes(StandardCharsets.UTF_8))), ts);
+        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, PtBytes.toBytes(val))), ts);
     }
 
     @Test
