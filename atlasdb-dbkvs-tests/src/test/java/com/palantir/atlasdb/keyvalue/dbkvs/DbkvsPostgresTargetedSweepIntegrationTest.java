@@ -21,11 +21,11 @@ import org.junit.ClassRule;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 
-public class DbkvsTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
+public class DbkvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule
     public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
 
-    public DbkvsTargetedSweepIntegrationTest() {
+    public DbkvsPostgresTargetedSweepIntegrationTest() {
         super(TRM, TRM);
     }
 }

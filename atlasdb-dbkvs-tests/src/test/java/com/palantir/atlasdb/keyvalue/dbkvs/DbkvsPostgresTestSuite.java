@@ -40,7 +40,7 @@ import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-        DbkvsTargetedSweepIntegrationTest.class
+        DbkvsPostgresTargetedSweepIntegrationTest.class,
         DbkvsPostgresKeyValueServiceTest.class,
         DbkvsPostgresSerializableTransactionTest.class,
         DbkvsPostgresSweepTaskRunnerTest.class,
