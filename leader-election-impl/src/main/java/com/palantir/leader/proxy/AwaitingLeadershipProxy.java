@@ -48,6 +48,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
     private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final long GAIN_LEADERSHIP_BACKOFF_MILLIS = 500;
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -116,11 +117,23 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipBlocking);
+            executor.submit(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);
             }
+        }
+    }
+
+    private void gainLeadershipWithRetry() {
+        gainLeadershipBlocking();
+        if (leadershipTokenRef.compareAndSet(null, null)) {
+            try {
+                Thread.sleep(GAIN_LEADERSHIP_BACKOFF_MILLIS);
+            } catch (InterruptedException e) {
+                log.warn("gain leadership backoff interrupted");
+            }
+            gainLeadershipWithRetry();
         }
     }
 
