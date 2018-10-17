@@ -20,10 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.assertj.core.api.ThrowableAssert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,9 +50,7 @@ public class TimestampCorroboratingTimelockServiceTest {
     public void getFreshTimestampShouldFail() {
         when(rawTimelockService.getFreshTimestamp()).thenReturn(1L);
 
-        timelockService.getFreshTimestamp();
-        verify(rawTimelockService).getFreshTimestamp();
-        assertThrowsGoBackInTimeError(timelockService::getFreshTimestamp);
+        assertThrowsOnSecondCall(timelockService::getFreshTimestamp);
     }
 
     @Test
@@ -62,9 +58,7 @@ public class TimestampCorroboratingTimelockServiceTest {
         TimestampRange timestampRange = TimestampRange.createInclusiveRange(1, 2);
         when(rawTimelockService.getFreshTimestamps(anyInt())).thenReturn(timestampRange);
 
-        timelockService.getFreshTimestamps(1);
-        verify(rawTimelockService).getFreshTimestamps(1);
-        assertThrowsGoBackInTimeError(() -> timelockService.getFreshTimestamps(1));
+        assertThrowsOnSecondCall(() -> timelockService.getFreshTimestamps(1));
     }
 
     @Test
@@ -73,22 +67,19 @@ public class TimestampCorroboratingTimelockServiceTest {
                 mock(LockImmutableTimestampResponse.class), 1L);
         when(rawTimelockService.startAtlasDbTransaction(any())).thenReturn(response);
 
-        timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
-        verify(rawTimelockService).startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST);
-        assertThrowsGoBackInTimeError(() -> timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST));
+        assertThrowsOnSecondCall(() -> timelockService.startAtlasDbTransaction(IDENTIFIED_TIME_LOCK_REQUEST));
     }
 
     @Test
     public void lockImmutableTimestampShouldFail() {
         when(rawTimelockService.lockImmutableTimestamp(any())).thenReturn(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE);
 
-        timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
-        verify(rawTimelockService).lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST);
-        assertThrowsGoBackInTimeError(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
+        assertThrowsOnSecondCall(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
     }
 
-    private void assertThrowsGoBackInTimeError(ThrowableAssert.ThrowingCallable callable) {
-        assertThatThrownBy(callable)
+    private void assertThrowsOnSecondCall(Runnable runnable) {
+        runnable.run();
+        assertThatThrownBy(runnable::run)
                 .isInstanceOf(AssertionError.class)
                 .hasMessageStartingWith("Expected timestamp to be greater than");
     }
