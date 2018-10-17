@@ -22,7 +22,7 @@ import org.junit.rules.TestRule;
 
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.exception.NotInitializedException;
@@ -33,8 +33,8 @@ import com.palantir.timestamp.TimestampManagementService;
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceTransactionIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraKeyValueServiceTransactionIntegrationTest.class);
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
@@ -52,7 +52,7 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     protected KeyValueService getKeyValueService() {
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
-                CassandraContainer.KVS_CONFIG,
+                CASSANDRA.getConfig(),
                 CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
                         () -> {

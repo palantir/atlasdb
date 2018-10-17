@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SweepPriorityStore.class)
+@AutoDelegate
 public interface SweepPriorityStore {
     void delete(Transaction tx, Collection<TableReference> tableRefs);
     void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update);

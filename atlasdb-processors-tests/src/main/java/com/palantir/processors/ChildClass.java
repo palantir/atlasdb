@@ -15,7 +15,7 @@
  */
 package com.palantir.processors;
 
-@AutoDelegate(typeToExtend = ChildClass.class)
+@AutoDelegate
 public class ChildClass extends TestClass {
     public ChildClass(int overridingParentsConstructor) {}
 

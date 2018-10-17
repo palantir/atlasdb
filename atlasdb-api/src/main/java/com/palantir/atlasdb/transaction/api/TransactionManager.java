@@ -27,7 +27,7 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = TransactionManager.class)
+@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,

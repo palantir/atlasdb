@@ -67,7 +67,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -91,8 +91,8 @@ import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource(
+            CassandraKeyValueServiceIntegrationTest.class);
 
     private final Logger logger = mock(Logger.class);
 
@@ -123,14 +123,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
     // to make sure the tests are actually exercising the correct retrieval codepaths
-    static byte[] originalMetadata = new TableMetadata(
+    private static byte[] originalMetadata = new TableMetadata(
             new NameMetadataDescription(),
             new ColumnMetadataDescription(),
             ConflictHandler.RETRY_ON_VALUE_CHANGED,
             TableMetadataPersistence.LogSafety.SAFE)
             .persistToBytes();
 
-    public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
     @Override
     protected KeyValueService getKeyValueService() {
@@ -199,7 +199,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -223,7 +223,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         kvs.createTable(testTable, tableMetadata);
 
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -235,7 +235,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+                .copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
@@ -266,9 +266,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
@@ -277,7 +275,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         TracingQueryRunner queryRunner = new TracingQueryRunner(
                 LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CassandraContainer.KVS_CONFIG,
+        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CASSANDRA.getConfig(),
                 ckvs.getClientPool(), lockTables, queryRunner);
 
         cleaner.cleanLocksState();
@@ -296,16 +294,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testCleanCassLocksStateCli() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
         createExtraLocksTable(lockTables, ckvs);
 
-        new CleanCassLocksStateCommand().runWithConfig(CassandraContainer.KVS_CONFIG);
+        new CleanCassLocksStateCommand().runWithConfig(CASSANDRA.getConfig());
 
         // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
         // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
@@ -475,7 +471,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                     .safeQueryFormat("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
                             + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;")
                     .addArgs(
-                            SafeArg.of("keyspace", CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow()),
+                            SafeArg.of("keyspace", CASSANDRA.getConfig().getKeyspaceOrThrow()),
                             LoggingArgs.internalTableName(tableReference),
                             UnsafeArg.of("row", convertBytesToHexString(cell.getRowName())),
                             UnsafeArg.of("column", convertBytesToHexString(cell.getColumnName())),

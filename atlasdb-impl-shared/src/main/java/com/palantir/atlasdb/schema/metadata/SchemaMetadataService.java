@@ -21,7 +21,7 @@ import java.util.Optional;
 import com.palantir.atlasdb.schema.SchemaMetadata;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SchemaMetadataService.class)
+@AutoDelegate
 public interface SchemaMetadataService {
     /**
      * Returns {@link SchemaMetadata} for the given schema name, provided the service knows it exists.

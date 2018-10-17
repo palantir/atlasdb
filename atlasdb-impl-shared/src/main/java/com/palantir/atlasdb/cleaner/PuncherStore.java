@@ -23,7 +23,7 @@ import com.palantir.processors.AutoDelegate;
  *
  * @author jweel
  */
-@AutoDelegate(typeToExtend = PuncherStore.class)
+@AutoDelegate
 public interface PuncherStore {
     /**
      * Used for PuncherStores that can be initialized asynchronously (i.e. those extending

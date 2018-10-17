@@ -15,7 +15,7 @@
  */
 package com.palantir.processors;
 
-@AutoDelegate(typeToExtend = ChildTestInterface.class)
+@AutoDelegate
 public interface ChildTestInterface extends TestInterface {
     @Override
     void overriddenMethod(Integer p1, Integer p2, Integer p3);

@@ -30,53 +30,29 @@ import java.util.Map.Entry;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraClientPoolIntegrationTest.class)
-            .with(new CassandraContainer());
-    private static final int MODIFIED_REPLICATION_FACTOR = CassandraContainer.KVS_CONFIG.replicationFactor() + 1;
+    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraClientPoolIntegrationTest.class);
+    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
 
-    private Blacklist blacklist = new Blacklist(CassandraContainer.KVS_CONFIG);
+    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
-            CassandraContainer.KVS_CONFIG, CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
-
-    private CassandraKeyValueService kv = CassandraKeyValueServiceImpl.create(
-            metricsManager,
-            CassandraContainer.KVS_CONFIG,
-            CassandraContainer.LEADER_CONFIG,
-            CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-            clientPool);
-
-
-    @Before
-    public void setUp() {
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-    }
-
-    @After
-    public void close() {
-        kv.close();
-    }
+            CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
     @Test
     public void testTokenMapping() {
@@ -103,8 +79,7 @@ public class CassandraClientPoolIntegrationTest {
     public void testSanitiseReplicationFactorPassesForTheKeyspace() {
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
-                        CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());
             } catch (TException e) {
                 fail("currentRf On Keyspace does not Match DesiredRf");
             }
@@ -118,7 +93,7 @@ public class CassandraClientPoolIntegrationTest {
             try {
                 CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
                         ImmutableCassandraKeyValueServiceConfig.copyOf(
-                                CassandraContainer.KVS_CONFIG).withReplicationFactor(
+                                CASSANDRA.getConfig()).withReplicationFactor(
                                 MODIFIED_REPLICATION_FACTOR));
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra config");
             } catch (Exception e) {
@@ -133,27 +108,27 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(MODIFIED_REPLICATION_FACTOR);
         clientPool.run(client -> {
             try {
-                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client,
-                        CassandraContainer.KVS_CONFIG);
+                CassandraVerifier.currentRfOnKeyspaceMatchesDesiredRf(client, CASSANDRA.getConfig());
                 fail("currentRf On Keyspace Matches DesiredRf after manipulating the cassandra keyspace");
             } catch (Exception e) {
                 assertReplicationFactorMismatchError(e);
             }
             return false;
         });
-        changeReplicationFactor(CassandraContainer.KVS_CONFIG.replicationFactor());
+        changeReplicationFactor(CASSANDRA.getConfig().replicationFactor());
     }
 
     private void assertReplicationFactorMismatchError(Exception ex) {
-        assertThat(ex.getMessage(), is("Your current Cassandra keyspace (atlasdb) has a replication"
-                + " factor not matching your Atlas Cassandra configuration. Change them to match, but be mindful"
-                + " of what steps you'll need to take to correctly repair or cleanup existing data in your cluster."));
+        assertThat(ex.getMessage(), is("Your current Cassandra keyspace ("
+                + CASSANDRA.getConfig().getKeyspaceOrThrow()
+                + ") has a replication factor not matching your Atlas Cassandra configuration. Change them to match, "
+                + "but be mindful of what steps you'll need to take to correctly repair or cleanup existing data in "
+                + "your cluster."));
     }
 
     private void changeReplicationFactor(int replicationFactor) throws TException {
         clientPool.run((FunctionCheckedException<CassandraClient, Void, TException>) client -> {
-            KsDef originalKsDef = client.describe_keyspace(
-                    CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow());
+            KsDef originalKsDef = client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow());
             KsDef modifiedKsDef = originalKsDef.deepCopy();
             modifiedKsDef.setStrategy_class(CassandraConstants.NETWORK_STRATEGY);
             modifiedKsDef.setStrategy_options(ImmutableMap.of("dc1", Integer.toString(replicationFactor)));
@@ -176,5 +151,5 @@ public class CassandraClientPoolIntegrationTest {
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =
-            client -> client.describe_ring("atlasdb");
+            client -> client.describe_ring(CASSANDRA.getConfig().getKeyspaceOrThrow());
 }

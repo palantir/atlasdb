@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -119,6 +120,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 SweepOutcomeMetrics.registerLegacy(metricsManager),
                 new CountDownLatch(1),
                 0);
+    }
+
+    @After
+    public void closeKvs() {
+        kvs.close();
     }
 
     @Test
