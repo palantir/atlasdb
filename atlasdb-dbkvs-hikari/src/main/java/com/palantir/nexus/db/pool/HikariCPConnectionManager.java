@@ -86,8 +86,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     @Override
     public Connection getConnection() throws SQLException {
-        ConnectionAcquisitionProfiler profiler = new ConnectionAcquisitionProfiler(
-                Stopwatch.createStarted(), Stopwatch.createStarted());
+        ConnectionAcquisitionProfiler profiler = new ConnectionAcquisitionProfiler();
         try {
             return acquirePooledConnection(profiler);
         } finally {
@@ -117,7 +116,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         e);
                 dataSourcePool.evictConnection(conn);
 
-                if (profiler.trialStopwatch.elapsed(TimeUnit.MILLISECONDS) > connConfig.getCheckoutTimeout()) {
+                if (profiler.globalStopwatch.elapsed(TimeUnit.MILLISECONDS) > connConfig.getCheckoutTimeout()) {
                     // It's been long enough that had hikari been
                     // validating internally it would have given up rather
                     // than retry
@@ -354,6 +353,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
         private long acquisitionMillis;
         private long connectionTestMillis;
+
+        private ConnectionAcquisitionProfiler() {
+            this(Stopwatch.createStarted(), Stopwatch.createStarted());
+        }
 
         private ConnectionAcquisitionProfiler(Stopwatch globalStopwatch, Stopwatch trialStopwatch) {
             this.globalStopwatch = globalStopwatch;
