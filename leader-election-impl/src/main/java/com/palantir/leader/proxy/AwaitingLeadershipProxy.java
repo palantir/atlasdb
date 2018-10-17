@@ -126,8 +126,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void gainLeadershipWithRetry() {
-        gainLeadershipBlocking();
-        if (leadershipTokenRef.compareAndSet(null, null)) {
+        if (!gainLeadershipBlocking()) {
             try {
                 Thread.sleep(GAIN_LEADERSHIP_BACKOFF_MILLIS);
             } catch (InterruptedException e) {
@@ -137,16 +136,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private void gainLeadershipBlocking() {
+    private boolean gainLeadershipBlocking() {
         log.debug("Block until gained leadership");
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             onGainedLeadership(leadershipToken);
+            return true;
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
         } catch (Throwable e) {
             log.error("problem blocking on leadership", e);
         }
+        return false;
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
