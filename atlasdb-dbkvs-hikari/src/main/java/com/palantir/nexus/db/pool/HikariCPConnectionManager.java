@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.JMX;
 import javax.management.MBeanServer;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.sql.ExceptionCheck;
@@ -85,27 +87,30 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     @Override
     public Connection getConnection() throws SQLException {
-        long start = System.currentTimeMillis();
+        ConnectionAcquisitionProfiler profiler = new ConnectionAcquisitionProfiler(
+                Stopwatch.createStarted(), Stopwatch.createStarted());
         try {
-            return acquirePooledConnection(start);
+            return acquirePooledConnection(profiler);
         } finally {
-            logConnectionAcquisitionTiming(start);
+            profiler.logQueryDuration();
         }
     }
 
     /**
      * Attempts to acquire a valid database connection from the pool.
-     * @param startMillis start milliseconds
+     * @param profiler Connection acquisition profiler for this attempt to acquire a connection
      * @return valid pooled connection
      * @throws SQLException if a connection cannot be acquired within the {@link ConnectionConfig#getCheckoutTimeout()}
      */
-    private Connection acquirePooledConnection(long startMillis) throws SQLException {
+    private Connection acquirePooledConnection(ConnectionAcquisitionProfiler profiler) throws SQLException {
         while (true) {
             HikariDataSource dataSourcePool = checkAndGetDataSourcePool();
             Connection conn = dataSourcePool.getConnection();
+            profiler.logAcquisitionAndRestart();
 
             try {
                 testConnection(conn);
+                profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {
                 log.error("[{}] Dropping connection which failed validation",
@@ -113,25 +118,13 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         e);
                 dataSourcePool.evictConnection(conn);
 
-                if (System.currentTimeMillis() > startMillis + connConfig.getCheckoutTimeout()) {
+                if (profiler.trialStopwatch.elapsed(TimeUnit.MILLISECONDS) > connConfig.getCheckoutTimeout()) {
                     // It's been long enough that had hikari been
                     // validating internally it would have given up rather
                     // than retry
                     throw e;
                 }
             }
-        }
-    }
-
-    private void logConnectionAcquisitionTiming(long startMillis) {
-        long elapsedMillis = System.currentTimeMillis() - startMillis;
-        if (elapsedMillis > 1000) {
-            log.warn("[{}] Waited {}ms for connection",
-                    connConfig.getConnectionPoolName(),
-                    elapsedMillis);
-            logPoolStats();
-        } else {
-            log.debug("Waited {}ms for connection", elapsedMillis);
         }
     }
 
@@ -355,5 +348,47 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     @Override
     public DBType getDbType() {
         return connConfig.getDbType();
+    }
+
+    private class ConnectionAcquisitionProfiler {
+        private final Stopwatch globalStopwatch;
+        private final Stopwatch trialStopwatch;
+
+        private long acquisitionMillis;
+        private long connectionTestMillis;
+
+        private ConnectionAcquisitionProfiler(Stopwatch globalStopwatch, Stopwatch trialStopwatch) {
+            this.globalStopwatch = globalStopwatch;
+            this.trialStopwatch = trialStopwatch;
+        }
+
+        private void logAcquisitionAndRestart() {
+            trialStopwatch.stop();
+            acquisitionMillis = trialStopwatch.elapsed(TimeUnit.MILLISECONDS);
+            trialStopwatch.reset().start();
+        }
+
+        private void logConnectionTest() {
+            trialStopwatch.stop();
+            connectionTestMillis = trialStopwatch.elapsed(TimeUnit.MILLISECONDS);
+        }
+
+        private void logQueryDuration() {
+            long elapsedMillis = globalStopwatch.elapsed(TimeUnit.MILLISECONDS);
+            if (elapsedMillis > 1000) {
+                log.warn("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                        connConfig.getConnectionPoolName(),
+                        elapsedMillis,
+                        acquisitionMillis,
+                        connectionTestMillis);
+                logPoolStats();
+            } else {
+                log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                        connConfig.getConnectionPoolName(),
+                        elapsedMillis,
+                        acquisitionMillis,
+                        connectionTestMillis);
+            }
+        }
     }
 }
