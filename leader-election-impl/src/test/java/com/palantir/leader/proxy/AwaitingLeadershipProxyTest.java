@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -194,6 +195,23 @@ public class AwaitingLeadershipProxyTest {
 
         verify(leaderElectionService).getCurrentTokenIfLeading();
         verify(leaderElectionService).blockOnBecomingLeader();
+    }
+
+    @Test
+    public void shouldRetryBecomingLeader() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader())
+                .thenThrow(new RuntimeException())
+                .thenReturn(leadershipToken);
+
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Runnable.class,
+                delegateSupplier,
+                leaderElectionService);
+
+        Thread.sleep(1000); //wait for retrying on gaining leadership
+
+        proxy.run();
+        verify(leaderElectionService, times(2)).blockOnBecomingLeader();
     }
 
     @SuppressWarnings("IllegalThrows")
