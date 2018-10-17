@@ -66,9 +66,15 @@ import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
@@ -497,6 +503,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         long tsSecondPartitionFine = LOW_TS + TS_FINE_GRANULARITY;
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 1L);
+        enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, LOW_TS + 2L);
+        putTimestampIntoTransactionTable(LOW_TS + 2L, LOW_TS + 2L);
         enqueueWriteCommitted(TABLE_CONS, tsSecondPartitionFine);
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
 
@@ -517,6 +525,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
+        assertSweepableCellsHasNoDedicatedRowsForShard(CONS_SHARD);
     }
 
     @Test
@@ -773,7 +782,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // we now read all to the end
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + 3 + writesInDedicated + 2);
+        assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
     }
 
     @Test
@@ -1013,6 +1022,23 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void assertReadAtTimestampReturnsNothing(TableReference tableRef, long readTs) {
         assertThat(readFromDefaultCell(tableRef, readTs)).isEmpty();
+    }
+
+    private void assertSweepableCellsHasNoDedicatedRowsForShard(int shard) {
+        TableReference sweepableCellsTable =
+                TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
+        try (ClosableIterator<RowResult<Value>> iterator =
+                spiedKvs.getRange(sweepableCellsTable, RangeRequest.all(), Long.MAX_VALUE)) {
+            assertThat(iterator.stream()
+                    .map(RowResult::getRowName)
+                    .map(SweepableCellsTable.SweepableCellsRow.BYTES_HYDRATOR::hydrateFromBytes)
+                    .map(SweepableCellsTable.SweepableCellsRow::getMetadata)
+                    .map(TargetedSweepMetadata.BYTES_HYDRATOR::hydrateFromBytes)
+                    .filter(TargetedSweepMetadata::dedicatedRow)
+                    .filter(metadata -> metadata.shard() == shard)
+                    .collect(Collectors.toList()))
+                    .isEmpty();
+        }
     }
 
     // this implicitly assumes the entry was not committed after the timestamp

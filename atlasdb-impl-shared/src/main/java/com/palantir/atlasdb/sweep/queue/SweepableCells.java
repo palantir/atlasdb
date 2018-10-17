@@ -15,12 +15,16 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -29,6 +33,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -161,8 +167,20 @@ public class SweepableCells extends SweepQueueTable {
         TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(
                 shardStrategy, minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
+        DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, DedicatedRows.of(writeBatch.dedicatedRows), lastSweptTs);
+        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs);
+    }
+
+    private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {
+        return DedicatedRows.of(rows.stream()
+            .filter(row -> {
+                TargetedSweepMetadata metadata =
+                        TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
+                checkState(metadata.dedicatedRow(), "Row not a dedicated row",
+                        SafeArg.of("row", row));
+                return tsToSweep.timestampsDescending().contains(row.getTimestampPartition());
+            }).collect(Collectors.toList()));
     }
 
     private WriteBatch getBatchOfWrites(SweepableCellsRow row,
@@ -259,10 +277,13 @@ public class SweepableCells extends SweepQueueTable {
                     LoggingArgs.tableRef(tableRef));
         });
 
-        return TimestampsToSweep.of(Lists.reverse(committedTimestamps), lastSweptTs, processedAll);
+        return TimestampsToSweep.of(
+                ImmutableSortedSet.copyOf(committedTimestamps).descendingSet(),
+                lastSweptTs,
+                processedAll);
     }
 
-    private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, List<Long> startTs) {
+    private Collection<WriteInfo> getWritesToSweep(Multimap<Long, WriteInfo> writesByStartTs, SortedSet<Long> startTs) {
         Map<CellReference, WriteInfo> writesToSweepFor = new HashMap<>();
         startTs.stream()
                 .map(writesByStartTs::get)
@@ -361,6 +382,10 @@ public class SweepableCells extends SweepQueueTable {
                 .forEach(this::deleteRange);
     }
 
+    void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
+        rangeRequestsDedicatedRows(shardAndStrategy, partitionFine).forEach(this::deleteRange);
+    }
+
     void deleteNonDedicatedRow(ShardAndStrategy shardAndStrategy, long partitionFine) {
         deleteRange(rangeRequestNonDedicatedRow(shardAndStrategy, partitionFine));
     }
@@ -369,6 +394,26 @@ public class SweepableCells extends SweepQueueTable {
         return addCell(info, write.writeRef(), dedicate, index / SweepQueueUtils.MAX_CELLS_DEDICATED,
                 index % SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
+
+    private List<RangeRequest> rangeRequestsDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {
+        SweepableCellsTable.SweepableCellsRow row = computeRow(partitionFine, shardAndStrategy);
+        RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRow(row);
+        List<RangeRequest> requests = new ArrayList<>();
+        rowIterator.forEachRemaining(entry -> requests.addAll(rangeRequestsIfDedicated(row, computeColumn(entry))));
+        return requests;
+    }
+
+    private Set<RangeRequest> rangeRequestsIfDedicated(SweepableCellsTable.SweepableCellsRow row,
+            SweepableCellsTable.SweepableCellsColumn col) {
+        if (!isReferenceToDedicatedRows(col)) {
+            return ImmutableSet.of();
+        }
+        return computeDedicatedRows(row, col).stream()
+                .map(SweepableCellsRow::persistToBytes)
+                .map(bytes -> computeRangeRequestForRows(bytes, bytes))
+                .collect(Collectors.toSet());
+    }
+
 
     private RangeRequest rangeRequestNonDedicatedRow(ShardAndStrategy shardAndStrategy, long partitionFine) {
         byte[] row = computeRow(partitionFine, shardAndStrategy).persistToBytes();
@@ -396,6 +441,10 @@ public class SweepableCells extends SweepQueueTable {
         byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(endExcl, SweepQueueUtils.MINIMUM_WRITE_INDEX)
                 .persistToBytes();
         return new ColumnRangeSelection(startCol, endCol);
+    }
+
+    private RowColumnRangeIterator getWithColumnRangeAllForRow(SweepableCellsTable.SweepableCellsRow row) {
+        return getWithColumnRangeAll(ImmutableList.of(row.persistToBytes()));
     }
 
     private long exactColumnOrElseOneBeyondEndOfRow(long endTsExclusive, long partitionFine) {
