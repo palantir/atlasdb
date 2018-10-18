@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.impl;
+
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.junit.ClassRule;
 
-public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 
-    public InMemoryKeyValueServiceTest() {
-        super(TRM);
+public class DbkvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+
+    public DbkvsPostgresTargetedSweepIntegrationTest() {
+        super(TRM, TRM);
     }
 }

@@ -15,13 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.function.Supplier;
+
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
@@ -32,9 +34,10 @@ import com.palantir.timestamp.TimestampManagementService;
 
 @ShouldRetry // The first test can fail with a TException: No host tried was able to create the keyspace requested.
 public class CassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
+    private final Supplier<KeyValueService> kvsSupplier = Suppliers.memoize(this::createAndRegisterKeyValueService);
+
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceTransactionIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
@@ -43,6 +46,10 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
+    public CassandraKeyValueServiceTransactionIntegrationTest() {
+        super(CASSANDRA, CASSANDRA);
+    }
+
     @Before
     public void advanceTimestamp() {
         ((TimestampManagementService) timestampService).fastForwardTimestamp(ONE_BILLION);
@@ -50,10 +57,14 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
 
     @Override
     protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl.create(
+        return kvsSupplier.get();
+    }
+
+    private KeyValueService createAndRegisterKeyValueService() {
+        KeyValueService kvs = CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 CASSANDRA.getConfig(),
-                CassandraContainer.LEADER_CONFIG,
+                CassandraResource.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
                         () -> {
                             if (timestampService == null) {
@@ -61,6 +72,8 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                             }
                             return timestampService.getFreshTimestamp();
                         }));
+        CASSANDRA.registerKvs(kvs);
+        return kvs;
     }
 
     @Override

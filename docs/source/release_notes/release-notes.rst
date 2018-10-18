@@ -50,6 +50,15 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
+
+    *    - |fixed|
+         - Targeted sweep now deletes certain sweep queue rows faster than before, which should
+           reduce table bloat (particularly on space constrained systems).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
     *    - |devbreak|
          - The AutoDelegate annotation no longer supports a typeToExtend parameter.
            Users should instead annotate the desired class or interface directly.

@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.impl;
 
-import org.junit.ClassRule;
+package com.palantir.atlasdb.sweep.queue;
 
-public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+import java.util.List;
 
-    public InMemoryKeyValueServiceTest() {
-        super(TRM);
+import org.immutables.value.Value;
+
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
+
+@Value.Immutable
+public interface DedicatedRows {
+    @Value.Parameter
+    List<SweepableCellsRow> getDedicatedRows();
+
+    static DedicatedRows of(List<SweepableCellsRow> dedicatedRows) {
+        return ImmutableDedicatedRows.of(dedicatedRows);
     }
 }
