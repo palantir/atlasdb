@@ -617,11 +617,6 @@ public abstract class TransactionManagers {
             return LambdaCallback.of(tm -> corroboratingTimelockService.validateWithUnreadableTimestamp(
                     () -> tm.getUnreadableTimestamp()
             ));
-//            return ConsistencyCheckRunner.create(
-//                    ImmutableTimestampCorroborationConsistencyCheck.builder()
-//                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
-//                            .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
-//                            .build());
         }
         return Callback.noOp();
     }
