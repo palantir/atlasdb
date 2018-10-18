@@ -39,7 +39,6 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
-    private static final String CHECKPOINT_TABLE_NAME = "tmp_migrate_progress";
     private static final int PARTITIONS = 256;
 
     private final TransactionManager fromTransactionManager;
@@ -82,7 +81,8 @@ public class KeyValueServiceMigrator {
                                    KvsMigrationMessageProcessor messageProcessor,
                                    TaskProgress taskProgress,
                                    Set<TableReference> unmigratableTables) {
-        this.checkpointTable = TableReference.create(checkpointNamespace, CHECKPOINT_TABLE_NAME);
+        this.checkpointTable =
+                TableReference.create(checkpointNamespace, KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
         this.fromTransactionManager = fromTransactionManager;
         this.toTransactionManager = toTransactionManager;
         this.fromKvs = fromKvs;
@@ -108,11 +108,6 @@ public class KeyValueServiceMigrator {
      * Drop and create tables before starting migration.
      */
     public void setup() {
-        /*
-         * We do *not* want to drop tables that aren't getting migrated (since that would drop them
-         * ON THE SOURCE KVS), but we *do* actually want to create metadata for those tables,
-         * because they might be migrated later by dbcopy.
-         */
         processMessage("dropping tables: " + getCreatableTableNames(toKvs), KvsMigrationMessageLevel.INFO);
         toKvs.dropTables(getCreatableTableNames(toKvs));
 

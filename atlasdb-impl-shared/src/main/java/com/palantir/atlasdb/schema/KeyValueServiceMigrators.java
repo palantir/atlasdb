@@ -28,6 +28,9 @@ import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLe
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
 
 public final class KeyValueServiceMigrators {
+
+    public static final String CHECKPOINT_TABLE_NAME = "tmp_migrate_progress";
+
     private KeyValueServiceMigrators() {
         // Utility class
     }
@@ -43,11 +46,14 @@ public final class KeyValueServiceMigrators {
          * certain tables to always be in the legacy DB KVS (because that one supports
          * putUnlessExists), and those tables cannot and should not be migrated. Also, special
          * tables that are not controlled by the transaction table should not be
-         * migrated.
+         * migrated. Lastly, we never migrate any checkpoints from previous KVS migration attempts,
+         * since that would corrupt the current migration. Since the namespace might have changed, we
+         * remove all table names that match the internal checkpoint table name.
          */
         Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
         tableNames.removeAll(AtlasDbConstants.hiddenTables);
         tableNames.removeAll(unmigratableTables);
+        tableNames.removeIf(tableRef -> tableRef.getTablename().equals(CHECKPOINT_TABLE_NAME));
         return tableNames;
     }
 

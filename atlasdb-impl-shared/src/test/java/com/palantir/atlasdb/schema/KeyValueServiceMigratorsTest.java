@@ -16,12 +16,14 @@
 package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -29,17 +31,37 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KeyValueServiceMigratorsTest {
+    private static final TableReference TABLE_TO_MIGRATE =
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, "can-be-migrated");
+
+    @Mock
+    private KeyValueService fromKvs;
+
     @Test
     public void skipsTheOldScrubTable() {
-        TableReference tableToMigrate = TableReference.create(Namespace.DEFAULT_NAMESPACE, "can-be-migrated");
-
-        KeyValueService fromKvs = mock(KeyValueService.class);
-        when(fromKvs.getAllTableNames()).thenReturn(ImmutableSet.of(AtlasDbConstants.OLD_SCRUB_TABLE, tableToMigrate));
+        when(fromKvs.getAllTableNames())
+                .thenReturn(ImmutableSet.of(AtlasDbConstants.OLD_SCRUB_TABLE, TABLE_TO_MIGRATE));
 
         Set<TableReference> creatableTableNames = KeyValueServiceMigrators.getMigratableTableNames(fromKvs,
                 ImmutableSet.of());
 
-        assertThat(creatableTableNames).containsExactly(tableToMigrate);
+        assertThat(creatableTableNames).containsExactly(TABLE_TO_MIGRATE);
+    }
+
+    @Test
+    public void skipsOldCheckpointTables() {
+        TableReference noNamespaceCheckpoint =
+                TableReference.createWithEmptyNamespace(KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
+        TableReference defaultNamespaceCheckpoint = TableReference.create(
+                Namespace.create("old_namespace"), KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
+        when(fromKvs.getAllTableNames())
+                .thenReturn(ImmutableSet.of(noNamespaceCheckpoint, defaultNamespaceCheckpoint, TABLE_TO_MIGRATE));
+
+        Set<TableReference> creatableTableNames = KeyValueServiceMigrators.getMigratableTableNames(fromKvs,
+                ImmutableSet.of());
+
+        assertThat(creatableTableNames).containsExactly(TABLE_TO_MIGRATE);
     }
 }
