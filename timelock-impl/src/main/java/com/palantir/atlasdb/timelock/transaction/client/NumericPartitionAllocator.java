@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.processors.AutoDelegate;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+package com.palantir.atlasdb.timelock.transaction.client;
 
-@AutoDelegate(typeToExtend = ManagedTimestampService.class)
-public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
+import java.util.List;
+
+/**
+ * Given instances of objects, a {@link NumericPartitionAllocator} returns integers that may in some way be related
+ * to the objects.
+ * @param <T> types of objects an implementation works with
+ */
+public interface NumericPartitionAllocator<T> {
+    List<Integer> getRelevantModuli(T object);
 }
