@@ -221,6 +221,10 @@ This includes details of queueing threads on each underlying sync object, as wel
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug where <code class="docutils literal notranslate"><span class="pre">AwaitingLeadershipProxy</span></code> stops trying to gain leadership, causing client calls to leader to throw <code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3582">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
