@@ -52,7 +52,7 @@ develop
 
     *    - |userbreak|
          - Qos Service: The experimental QosService for rate-limiting clients has been removed.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
 
     *    - |fixed|
          - Targeted sweep now deletes certain sweep queue rows faster than before, which should
