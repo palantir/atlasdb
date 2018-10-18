@@ -20,17 +20,22 @@ import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 
 /**
  * A timelock service decorator for introducing runtime validity checks on received timestamps.
  */
 public final class TimestampCorroboratingTimelockService implements AutoDelegate_TimelockService {
+    private static final Logger log = LoggerFactory.getLogger(TimestampCorroboratingTimelockService.class);
     private static final String CLOCKS_WENT_BACKWARDS_MESSAGE =
             "Expected timestamp to be greater than %s, but a fresh timestamp was %s!";
 
@@ -41,7 +46,7 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         this.delegate = delegate;
     }
 
-    public static TimelockService create(TimelockService delegate) {
+    public static TimestampCorroboratingTimelockService create(TimelockService delegate) {
         return new TimestampCorroboratingTimelockService(delegate);
     }
 
@@ -74,6 +79,27 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return checkAndUpdateLowerBound(() -> delegate.lockImmutableTimestamp(request),
                 LockImmutableTimestampResponse::getImmutableTimestamp,
                 LockImmutableTimestampResponse::getImmutableTimestamp);
+    }
+
+    public void validateWithUnreadableTimestamp(Supplier<Long> unreadableSupplier) {
+        long unreadableTimestamp = unreadableSupplier.get();
+        long freshTimestamp = getFreshTimestamp();
+
+        if (freshTimestamp <= unreadableTimestamp) {
+            log.error("Your AtlasDB client believes that a strict lower bound for the timestamp was {} (typically by"
+                            + " reading the unreadable timestamp), but that's newer than a fresh timestamp of {}, which"
+                            + " implies clocks went back. If using TimeLock, this could be because timestamp bounds"
+                            + " were not migrated properly - which can happen if you've moved TimeLock Server without"
+                            + " moving its persistent state. For safety, AtlasDB will refuse to start.",
+                    SafeArg.of("timestampLowerBound", lowerBound),
+                    SafeArg.of("freshTimestamp", freshTimestamp));
+            throw clocksWentBackwards(unreadableTimestamp, freshTimestamp);
+        }
+
+        log.info("Passed timestamp corroboration consistency check; expected a strict lower bound of {}, which was"
+                        + " lower than a fresh timestamp of {}.",
+                SafeArg.of("timestampLowerBound", lowerBound),
+                SafeArg.of("freshTimestamp", freshTimestamp));
     }
 
     private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,

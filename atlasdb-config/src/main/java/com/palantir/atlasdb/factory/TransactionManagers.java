@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
+import com.palantir.async.initializer.LambdaCallback;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
@@ -65,7 +66,6 @@ import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
-import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
@@ -116,7 +116,6 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -298,10 +297,12 @@ public abstract class TransactionManagers {
         com.google.common.base.Supplier<TimestampManagementService> managementSupplier =
                 () -> atlasFactory.getTimestampManagementService(timestampSupplier.get());
 
-        LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
+        LockAndTimestampServices rawlockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
                 runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
                 timestampSupplier, managementSupplier,
                 atlasFactory.getTimestampStoreInvalidator(), userAgent());
+        TimestampCorroboratingTimelockService corroboratingTimelockService = TimestampCorroboratingTimelockService.create(rawlockAndTimestampServices.timelock());
+        LockAndTimestampServices lockAndTimestampServices = withCorroboratingTimestampService(rawlockAndTimestampServices, corroboratingTimelockService);
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
@@ -360,7 +361,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
-                timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
+                timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), corroboratingTimelockService),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback()));
 
@@ -606,18 +607,21 @@ public abstract class TransactionManagers {
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
-            LockAndTimestampServices lockAndTimestampServices) {
+            TimestampCorroboratingTimelockService corroboratingTimelockService) {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             // Only do the consistency check if we're using TimeLock.
             // This avoids a bootstrapping problem with leader-block services without async initialisation,
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            return ConsistencyCheckRunner.create(
-                    ImmutableTimestampCorroborationConsistencyCheck.builder()
-                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
-                            .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
-                            .build());
+            return LambdaCallback.of(tm -> corroboratingTimelockService.validateWithUnreadableTimestamp(
+                    () -> tm.getUnreadableTimestamp()
+            ));
+//            return ConsistencyCheckRunner.create(
+//                    ImmutableTimestampCorroborationConsistencyCheck.builder()
+//                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
+//                            .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
+//                            .build());
         }
         return Callback.noOp();
     }
@@ -678,20 +682,19 @@ public abstract class TransactionManagers {
                 createRawInstrumentedServices(metricsManager, config, runtimeConfigSupplier, env, lock, time,
                         timeManagement, invalidator, userAgent);
         return withMetrics(metricsManager,
-                withCorroboratingTimestampService(
                         withRefreshingLockService(
-                                withBridgingTimelockService(lockAndTimestampServices))));
+                                withBridgingTimelockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockService = TimestampCorroboratingTimelockService
-                .create(lockAndTimestampServices.timelock());
-        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
+            LockAndTimestampServices lockAndTimestampServices,
+            TimestampCorroboratingTimelockService corroboratingTimelockService) {
+        TimestampService corroboratingTimestampService =
+                new TimelockTimestampServiceAdapter(corroboratingTimelockService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(timelockService)
+                .timelock(corroboratingTimelockService)
                 .timestamp(corroboratingTimestampService)
                 .build();
     }
