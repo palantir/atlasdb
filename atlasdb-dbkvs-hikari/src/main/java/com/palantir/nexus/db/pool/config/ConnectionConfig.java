@@ -106,6 +106,7 @@ public abstract class ConnectionConfig {
         return "db-pool";
     }
 
+    @JsonIgnore
     @Value.Derived
     public String getConnectionPoolName() {
         return String.format(
