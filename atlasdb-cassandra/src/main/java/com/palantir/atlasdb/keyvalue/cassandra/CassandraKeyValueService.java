@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = CassandraKeyValueService.class)
+@AutoDelegate
 public interface CassandraKeyValueService extends KeyValueService {
     CassandraTables getCassandraTables();
     TracingQueryRunner getTracingQueryRunner();

@@ -19,6 +19,6 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = ManagedTimestampService.class)
+@AutoDelegate
 public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }

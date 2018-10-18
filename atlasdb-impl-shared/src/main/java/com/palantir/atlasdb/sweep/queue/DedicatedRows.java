@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.sweep.priority;
 
-import java.util.Collection;
+package com.palantir.atlasdb.sweep.queue;
+
 import java.util.List;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.processors.AutoDelegate;
+import org.immutables.value.Value;
 
-@AutoDelegate
-public interface SweepPriorityStore {
-    void delete(Transaction tx, Collection<TableReference> tableRefs);
-    void update(Transaction tx, TableReference tableRef, UpdateSweepPriority update);
-    List<SweepPriority> loadNewPriorities(Transaction tx);
-    List<SweepPriority> loadOldPriorities(Transaction tx, long sweepTimestamp);
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 
-    default boolean isInitialized() {
-        return true;
+@Value.Immutable
+public interface DedicatedRows {
+    @Value.Parameter
+    List<SweepableCellsRow> getDedicatedRows();
+
+    static DedicatedRows of(List<SweepableCellsRow> dedicatedRows) {
+        return ImmutableDedicatedRows.of(dedicatedRows);
     }
 }

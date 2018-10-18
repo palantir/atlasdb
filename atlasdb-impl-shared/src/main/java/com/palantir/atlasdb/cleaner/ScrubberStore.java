@@ -30,7 +30,7 @@ import com.palantir.processors.AutoDelegate;
  *
  * @author ejin
  */
-@AutoDelegate(typeToExtend = ScrubberStore.class)
+@AutoDelegate
 public interface ScrubberStore {
     default boolean isInitialized() {
         return true;

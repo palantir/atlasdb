@@ -20,7 +20,7 @@ import java.util.Optional;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = SweepProgressStore.class)
+@AutoDelegate
 public interface SweepProgressStore {
     void clearProgress(TableReference tableRef);
 
