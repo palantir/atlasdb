@@ -29,23 +29,6 @@ Changelog
 .. toctree::
   :hidden:
 
-========
-v0.61.12
-========
-
-.. replace this with the release date
-
-.. list-table::
-    :widths: 5 40
-    :header-rows: 1
-
-    *    - Type
-         - Change
-
-    *    - |fixed|
-         - Fixed a bug in LockServiceImpl (caused by a bug in AbstractQueuedSynchronizer) where a race condition could cause a lock to become stuck indefinitely.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/2799>`__)
-
 =======
 develop
 =======
