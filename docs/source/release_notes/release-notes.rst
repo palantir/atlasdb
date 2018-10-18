@@ -51,6 +51,21 @@ develop
          - Change
 
     *    - |fixed|
+         - Targeted sweep now deletes certain sweep queue rows faster than before, which should
+           reduce table bloat (particularly on space constrained systems).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
+    *    - |devbreak|
+         - The AutoDelegate annotation no longer supports a typeToExtend parameter.
+           Users should instead annotate the desired class or interface directly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3579>`__)
+
+    *    - |fixed|
+         - Targeted sweep does better with missing tables, and also with the empty namespace.
+           Previously, it would just cycle on the error and never sweep. A highly undesirable condition.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3577>`__)
+
+    *    - |fixed|
          - ``KeyValueServicePuncherStore``s ``getMillisForTimestamp`` method now does a much more efficient ``_punch`` table lookup.
            This affects the performance of calculating the ``millisSinceLastSweptTs`` metric for targeted sweep.
            Also, the above mentioned metric will now consistently report falling behind if no new entries are being punhed into the punch table.

@@ -27,13 +27,17 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface SweepBatch {
     List<WriteInfo> writes();
+    DedicatedRows dedicatedRows();
     long lastSweptTimestamp();
 
     default boolean isEmpty() {
         return writes().isEmpty();
     }
 
-    static SweepBatch of(Collection<WriteInfo> writes, long timestamp) {
-        return ImmutableSweepBatch.builder().writes(writes).lastSweptTimestamp(timestamp).build();
+    static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp) {
+        return ImmutableSweepBatch.builder()
+                .writes(writes)
+                .dedicatedRows(dedicatedRows)
+                .lastSweptTimestamp(timestamp).build();
     }
 }

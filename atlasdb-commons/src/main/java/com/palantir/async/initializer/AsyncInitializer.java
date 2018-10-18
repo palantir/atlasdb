@@ -114,8 +114,7 @@ public abstract class AsyncInitializer {
         }
     }
 
-    // Not final for tests.
-    int sleepIntervalInMillis() {
+    protected int sleepIntervalInMillis() {
         return 10_000;
     }
 

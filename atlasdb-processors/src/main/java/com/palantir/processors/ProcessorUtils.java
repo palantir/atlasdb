@@ -23,24 +23,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 
 import com.squareup.javapoet.ParameterSpec;
 
 final class ProcessorUtils {
     private ProcessorUtils() {}
-
-    static TypeElement extractTypeFromAnnotation(Elements elementUtils, AutoDelegate annotation) {
-        try {
-            // Throws a MirroredTypeException if the type is not compiled.
-            Class typeClass = annotation.typeToExtend();
-            return elementUtils.getTypeElement(typeClass.getCanonicalName());
-        } catch (MirroredTypeException mte) {
-            DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            return (TypeElement) typeMirror.asElement();
-        }
-    }
 
     static TypeElement extractType(Types typeUtils, TypeMirror typeToExtract) {
         try {

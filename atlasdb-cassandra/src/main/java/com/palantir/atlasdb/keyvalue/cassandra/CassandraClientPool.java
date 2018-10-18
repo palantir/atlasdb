@@ -21,7 +21,7 @@ import java.util.Map;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = CassandraClientPool.class)
+@AutoDelegate
 public interface CassandraClientPool {
     FunctionCheckedException<CassandraClient, Void, Exception> getValidatePartitioner();
     <V, K extends Exception> V runOnHost(InetSocketAddress specifiedHost,

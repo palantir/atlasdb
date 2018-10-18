@@ -109,8 +109,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 validateAnnotatedElement(annotatedElement);
                 TypeElement typeElement = (TypeElement) annotatedElement;
 
-                AutoDelegate annotation = annotatedElement.getAnnotation(AutoDelegate.class);
-                TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
+                TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
@@ -139,27 +138,19 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
     }
 
-    private TypeToExtend validateAnnotationAndCreateTypeToExtend(AutoDelegate annotation, TypeElement annotatedElement)
-            throws ProcessingException {
-
-        if (annotation == null) {
-            throw new ProcessingException(annotatedElement, "Type %s doesn't have annotation @%s",
-                    annotatedElement, AutoDelegate.class.getSimpleName());
-        }
-
-        TypeElement baseType = ProcessorUtils.extractTypeFromAnnotation(elementUtils, annotation);
-        PackageElement typePackage = elementUtils.getPackageOf(baseType);
+    private TypeToExtend createTypeToExtend(TypeElement annotatedElement) throws ProcessingException {
+        PackageElement typePackage = elementUtils.getPackageOf(annotatedElement);
 
         if (typePackage.isUnnamed()) {
-            throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
+            throw new ProcessingException(annotatedElement, "Type %s doesn't have a package", annotatedElement);
         }
 
-        if (baseType.getModifiers().contains(Modifier.FINAL)) {
-            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", baseType);
+        if (annotatedElement.getModifiers().contains(Modifier.FINAL)) {
+            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", annotatedElement);
         }
 
-        List<TypeElement> superTypes = fetchSuperTypes(baseType);
-        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
+        List<TypeElement> superTypes = fetchSuperTypes(annotatedElement);
+        return new TypeToExtend(typePackage, annotatedElement, superTypes.toArray(new TypeElement[0]));
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {

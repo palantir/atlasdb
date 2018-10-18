@@ -23,22 +23,19 @@ import org.junit.Test;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 
 public class CassandraConnectionIntegrationTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraConnectionIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraConnectionIntegrationTest.class);
 
     private static final CassandraKeyValueServiceConfig NO_CREDS_CKVS_CONFIG = ImmutableCassandraKeyValueServiceConfig
-            .copyOf(CassandraContainer.KVS_CONFIG)
+            .copyOf(CASSANDRA.getConfig())
             .withCredentials(Optional.empty());
 
     @Test
     public void testAuthProvided() {
-        CassandraKeyValueServiceImpl.createForTesting(
-                CassandraContainer.KVS_CONFIG,
-                CassandraContainer.LEADER_CONFIG).close();
+        CASSANDRA.getDefaultKvs();
     }
 
     @Test

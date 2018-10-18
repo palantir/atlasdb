@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.timestamp;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.primitives.Ints;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.jmx.OperationTimer;
@@ -36,35 +36,18 @@ import com.palantir.util.timer.LoggingOperationTimer;
 
 /**
  * This uses smart batching to queue up requests and send them all as one larger batch.
- * @author carrino
  */
 @ThreadSafe
-public class RequestBatchingTimestampService implements TimestampService {
+public final class RequestBatchingTimestampService implements CloseableTimestampService {
     private static final OperationTimer timer = LoggingOperationTimer.create(RequestBatchingTimestampService.class);
-    private static final Logger log = LoggerFactory.getLogger(RequestBatchingTimestampService.class);
-
-    public static final long DEFAULT_MIN_TIME_BETWEEN_REQUESTS = 0L;
-
-    @GuardedBy("this")
-    private long lastRequestTimeNanos = 0;
-    private final long minTimeBetweenRequestsMillis;
 
     private final TimestampService delegate;
+    private final DisruptorAutobatcher<Integer, TimestampRange> batcher;
 
-    /* The currently outstanding remote call, if any. If it exists, it should be used,
-     * thus batching remote calls. If there is none, one should be created and installed.
-     * The creator of a call must populate it.
-     */
-    private final AtomicReference</* nullable */ TimestampHolder> currentBatch =
-            new AtomicReference<TimestampHolder>();
-
-    public RequestBatchingTimestampService(TimestampService delegate) {
-        this(delegate, DEFAULT_MIN_TIME_BETWEEN_REQUESTS);
-    }
-
-    public RequestBatchingTimestampService(TimestampService delegate, long minTimeBetweenRequestsMillis) {
-        this.delegate = TimingProxy.newProxyInstance(TimestampService.class, delegate, timer);
-        this.minTimeBetweenRequestsMillis = minTimeBetweenRequestsMillis;
+    private RequestBatchingTimestampService(TimestampService delegate,
+            DisruptorAutobatcher<Integer, TimestampRange> batcher) {
+        this.delegate = delegate;
+        this.batcher = batcher;
     }
 
     @Override
@@ -73,211 +56,76 @@ public class RequestBatchingTimestampService implements TimestampService {
     }
 
     @Override
+    public void close() {
+        batcher.close();
+    }
+
+    @Override
     public long getFreshTimestamp() {
-        Long result = null;
-        do {
-            JoinedBatch joinedBatch = joinBatch();
-
-            TimestampHolder batch = joinedBatch.batch;
-            if (joinedBatch.thisThreadOwnsBatch) {
-                boolean populationSuccess = populateBatchAndInstallNewBatch(batch);
-                if (!populationSuccess) {
-                    continue;
-                }
-            }
-
-            try {
-                batch.awaitPopulation();
-            } catch (InterruptedException e) {
-                log.warn("Interrupted waiting for timestamp batch to populate. Trying another batch.", e);
-                throw Throwables.rewrapAndThrowUncheckedException(e);
-            }
-            if (!batch.isFailed()) {
-                result = batch.getValue();
-            }
-        } while (result == null);
-        return result;
-    }
-
-    private static class JoinedBatch {
-        public final TimestampHolder batch;
-        public final boolean thisThreadOwnsBatch;
-
-        JoinedBatch(TimestampHolder batch, boolean thisThreadOwnsBatch) {
-            this.batch = batch;
-            this.thisThreadOwnsBatch = thisThreadOwnsBatch;
-        }
-    }
-
-    private static final int MAX_BATCH_JOIN_ATTEMPTS = 5;
-
-    private JoinedBatch joinBatch() {
-        @Nullable TimestampHolder batch = null;
-        boolean installedFreshBatch = false;
-        boolean joinedBatch = false;
-        for (int joinAttempts = 0; !(installedFreshBatch || joinedBatch); joinAttempts++) {
-            batch = currentBatch.get();
-            if (batch != null) {
-                joinedBatch = batch.joinBatch();
-            }
-            if (!joinedBatch) {
-                // Try to install a new batch if there is none or the current one can't be used.
-                TimestampHolder freshBatch = new TimestampHolder();
-                if (joinAttempts <= MAX_BATCH_JOIN_ATTEMPTS) {
-                    /* Replace only if the current batch is null. If we already read a null out, then we expect it's
-                     * still there. If we read a non-null batch but couldn't join it, then it has been invalidated by
-                     * its owner. But, before invalidating, the owner should have replaced it with null, so the value
-                     * changed since we read it. That's why we should expect to see a null now even though we read a
-                     * non-null earlier.
-                     */
-                    installedFreshBatch = currentBatch.compareAndSet(null, freshBatch);
-                } else {
-                    /* This thread got unlucky too many times. Specifically: it tried to join a batch, but couldn't, but
-                     * there was already a new batch when it tried to publish its own; and this repeated
-                     * MAX_BATCH_JOIN_ATTEMPTS times in a row. To guarantee progress, blindly install its current batch.
-                     * This may overwrite a currently-outstanding batch if it gets unlucky yet again, but that will not
-                     * break correctness. Instead, this batch will "steal" that one's participants, and the two will
-                     * need to block on each other. All of this is inefficient but not incorrect, and doing it
-                     * guarantees progress, and it should be rare to get this unlucky.
-                     */
-                    log.warn("Failed to join a timestamp batch {} times; blindly installing a batch. "
-                            + "This should be rare!", MAX_BATCH_JOIN_ATTEMPTS);
-                    currentBatch.set(freshBatch);
-                    installedFreshBatch = true;
-                }
-                if (installedFreshBatch) {
-                    batch = freshBatch;
-                }
-            }
-        }
-        Preconditions.checkState(batch != null, "Failed to join any timestamp batch");
-        return new JoinedBatch(batch, installedFreshBatch);
+        TimestampRange range = getFreshTimestamps(1);
+        return range.getLowerBound();
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return delegate.getFreshTimestamps(numTimestampsRequested);
-    }
-
-    private synchronized boolean populateBatchAndInstallNewBatch(TimestampHolder batch) {
-        sleepForRateLimiting();
-
-        /* Only replace the current batch if it's the one this thread is populating.
-         * Otherwise it has already been replaced, and it's some other thread's job to
-         * replace the current batch.
-         */
-        currentBatch.compareAndSet(batch, null);
-
+        checkArgument(numTimestampsRequested > 0, "Must not request zero or negative timestamps");
+        ListenableFuture<TimestampRange> range = batcher.apply(numTimestampsRequested);
         try {
-            int numTimestampsToGet = batch.getRequestCountAndSetInvalid();
-            Preconditions.checkState(TimestampHolder.isRequestCountValid(numTimestampsToGet),
-                    "Timestamp batch's number of requests has already been invalidated. "
-                    + "This should not have happened yet. numTimestampsToGet = %s", numTimestampsToGet);
-
-            // NOTE: At this point, we are sure no new requests for fresh timestamps
-            // for "batch" can come in. We can now safely populate the batch
-            // with fresh timestamps without violating any freshness guarantees.
-            // TODO(jkong): probably need to adjust this formula
-            TimestampRange freshTimestamps = delegate.getFreshTimestamps(numTimestampsToGet);
-
-            batch.populate(freshTimestamps);
-        } catch (Throwable t) {
-            batch.fail();
-            throw t;
-        } finally {
-            lastRequestTimeNanos = System.nanoTime();
-            batch.becomeReadable();
-        }
-
-        return true;
-    }
-
-    private synchronized void sleepForRateLimiting() {
-        if (minTimeBetweenRequestsMillis == 0) {
-            return;
-        }
-
-        long nowNanos = System.nanoTime();
-        long elapsedMillis = TimeUnit.MILLISECONDS.convert(
-                nowNanos - lastRequestTimeNanos,
-                TimeUnit.NANOSECONDS);
-        long timeToSleepMillis = Math.max(0, minTimeBetweenRequestsMillis - elapsedMillis);
-
-        if (timeToSleepMillis > 0) {
-            try {
-                Thread.sleep(timeToSleepMillis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            return range.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            // bit goofy, but would match previous stack trace behaviour... Think there's some stuff at higher levels
+            // which only looks one cause down, where it should really examine the whole cause chain.
+            Throwables.throwIfUncheckedException(e.getCause());
+            throw new RuntimeException(e);
         }
     }
 
-    static class TimestampHolder {
-        private final AtomicInteger requestCount;
-        private final CountDownLatch populationLatch;
-        private volatile boolean failed;
-        private volatile long endInclusive;
-        private final AtomicLong valueToReturnNext;
+    public static RequestBatchingTimestampService create(TimestampService untimedDelegate) {
+        TimestampService delegate = TimingProxy.newProxyInstance(TimestampService.class, untimedDelegate, timer);
+        DisruptorAutobatcher<Integer, TimestampRange> autobatcher = DisruptorAutobatcher.create(consumer(delegate));
+        return new RequestBatchingTimestampService(delegate, autobatcher);
+    }
 
-        TimestampHolder() {
-            requestCount = new AtomicInteger(1); // 1 because the current thread wants to make a request.
-
-            // This will count down after it's been populated, which happens only once.
-            populationLatch = new CountDownLatch(1);
-
-            valueToReturnNext = new AtomicLong(-1L); // Dummy value. Will be populated.
-            failed = false;
-        }
-
-        // The following methods must only be called by the thread that created this batch.
-        public void populate(TimestampRange range) {
-            this.endInclusive = range.getUpperBound();
-            this.valueToReturnNext.set(range.getLowerBound());
-        }
-        public int getRequestCountAndSetInvalid() {
-            return requestCount.getAndSet(Integer.MIN_VALUE);
-        }
-        public void fail() {
-            failed = true;
-        }
-        public void becomeReadable() {
-            populationLatch.countDown();
-        }
-        // End creator-only threads.
-
-        public boolean isFailed() {
-            return failed;
-        }
-
-        /**
-         * Attempts to join a timestamp request batch.
-         *
-         * @return true if we are included in the batch and false otherwise
-         */
-        public boolean joinBatch() {
-            if (requestCount.get() < 0) {
-                return false;
+    @VisibleForTesting
+    static Consumer<List<BatchElement<Integer, TimestampRange>>> consumer(TimestampService delegate) {
+        return batch -> {
+            long totalTimestamps = batch.stream().mapToLong(BatchElement::argument).reduce(0, Math::addExact);
+            long startInclusive = 0;
+            long endExclusive = 0;
+            for (BatchElement<Integer, TimestampRange> element : batch) {
+                int timestampsRequired = element.argument();
+                if (element.argument() <= endExclusive - startInclusive) {
+                    element.result().set(createExclusiveRange(startInclusive, startInclusive + timestampsRequired));
+                    startInclusive += timestampsRequired;
+                    totalTimestamps -= timestampsRequired;
+                } else {
+                    TimestampRange requested = getFreshTimestampsFromDelegate(
+                            delegate, Ints.saturatedCast(totalTimestamps));
+                    startInclusive = requested.getLowerBound();
+                    endExclusive = Math.addExact(requested.getUpperBound(), 1);
+                    int toTake = Math.min(Ints.checkedCast(endExclusive - startInclusive), timestampsRequired);
+                    element.result().set(createExclusiveRange(startInclusive, startInclusive + toTake));
+                    startInclusive += toTake;
+                    totalTimestamps -= timestampsRequired;
+                }
             }
-            int val = requestCount.incrementAndGet();
-            return isRequestCountValid(val);
-        }
+        };
+    }
 
-        public void awaitPopulation() throws InterruptedException {
-            populationLatch.await();
+    private static TimestampRange getFreshTimestampsFromDelegate(TimestampService timestampService, int timestamps) {
+        if (timestamps == 1) {
+            long timestamp = timestampService.getFreshTimestamp();
+            return TimestampRange.createInclusiveRange(timestamp, timestamp);
         }
+        return timestampService.getFreshTimestamps(timestamps);
+    }
 
-        // This must only be called after awaitPopulation().
-        public Long getValue() {
-            long toReturn = valueToReturnNext.getAndIncrement();
-            if (toReturn > endInclusive) {
-                return null;
-            }
-            return toReturn;
-        }
-
-
-        public static boolean isRequestCountValid(int requestCount) {
-            return requestCount > 0;
-        }
+    private static TimestampRange createExclusiveRange(long start, long end) {
+        checkArgument(end > start,
+                "End is not ahead of start so cannot create an exclusive range");
+        return TimestampRange.createInclusiveRange(start, end - 1);
     }
 }

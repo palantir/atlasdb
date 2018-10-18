@@ -68,7 +68,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
             this.executorService = initializer;
-            scheduleInitializationCheckAndCallback();
+            runCallbackIfInitializedOrScheduleForLater(this::attemptCallbackSynchronously);
         }
 
         @Override
@@ -123,16 +123,20 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
         }
 
+        private void runCallbackIfInitializedOrScheduleForLater(Runnable callbackTask) {
+            if (isInitializedInternal()) {
+                callbackTask.run();
+            } else {
+                scheduleInitializationCheckAndCallback();
+            }
+        }
+
         private void scheduleInitializationCheckAndCallback() {
             executorService.schedule(() -> {
                 if (status != State.INITIALIZING) {
                     return;
                 }
-                if (isInitializedInternal()) {
-                    runCallback();
-                } else {
-                    scheduleInitializationCheckAndCallback();
-                }
+                runCallbackIfInitializedOrScheduleForLater(this::runCallbackWithRetry);
             }, 1_000, TimeUnit.MILLISECONDS);
         }
 
@@ -148,18 +152,38 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && initializationPrerequisite.get();
         }
 
-        private void runCallback() {
+        private void attemptCallbackSynchronously() {
             try {
-                callback.runWithRetry(txManager);
-                if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY)) {
-                    executorService.shutdown();
+                if (callback.runOnceOnly(txManager)) {
+                    changeStateToReady();
+                } else {
+                    scheduleInitializationCheckAndCallback();
                 }
             } catch (Throwable e) {
-                log.error("Callback failed and was not able to perform its cleanup task. "
-                        + "Closing the TransactionManager.", e);
-                callbackThrowable = e;
-                closeInternal(State.CLOSED_BY_CALLBACK_FAILURE);
+                changeStateToCallbackFailure(e);
             }
+        }
+
+        private void runCallbackWithRetry() {
+            try {
+                callback.runWithRetry(txManager);
+                changeStateToReady();
+            } catch (Throwable e) {
+                changeStateToCallbackFailure(e);
+            }
+        }
+
+        private void changeStateToReady() {
+            if (checkAndSetStatus(ImmutableSet.of(State.INITIALIZING), State.READY)) {
+                executorService.shutdown();
+            }
+        }
+
+        private void changeStateToCallbackFailure(Throwable th) {
+            log.error("Callback failed and was not able to perform its cleanup task. "
+                    + "Closing the TransactionManager.", th);
+            callbackThrowable = th;
+            closeInternal(State.CLOSED_BY_CALLBACK_FAILURE);
         }
 
         private void closeInternal(State newStatus) {
