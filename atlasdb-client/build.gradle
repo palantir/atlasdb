@@ -49,7 +49,6 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
-  compile project(":qos-service-api")
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }

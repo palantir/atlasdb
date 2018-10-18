@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra.qos;
+package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;

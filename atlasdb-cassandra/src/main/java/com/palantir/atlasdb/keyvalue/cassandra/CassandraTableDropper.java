@@ -36,8 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
@@ -96,7 +96,7 @@ class CassandraTableDropper {
             throw new InsufficientConsistencyException(
                     "Dropping tables requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -114,7 +114,7 @@ class CassandraTableDropper {
                                     CassandraKeyValueServices.getMetadataCell(tableRef), meta)).entrySet(),
                             ts));
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
         new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency, unused -> System.currentTimeMillis())

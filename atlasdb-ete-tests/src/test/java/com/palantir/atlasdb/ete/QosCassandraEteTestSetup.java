@@ -41,8 +41,6 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableSweepConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.qos.config.ImmutableQosClientConfig;
-import com.palantir.atlasdb.qos.config.ImmutableQosLimitsConfig;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -51,7 +49,6 @@ import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class QosCassandraEteTestSetup {
@@ -135,13 +132,6 @@ public class QosCassandraEteTestSetup {
     private static Optional<AtlasDbRuntimeConfig> getAtlasDbRuntimeConfig() {
         return Optional.of(ImmutableAtlasDbRuntimeConfig.builder()
                 .sweep(ImmutableSweepConfig.builder().enabled(false).build())
-                .qos(ImmutableQosClientConfig.builder()
-                        .limits(ImmutableQosLimitsConfig.builder()
-                                .readBytesPerSecond(readBytesPerSecond)
-                                .writeBytesPerSecond(writeBytesPerSecond)
-                                .build())
-                        .maxBackoffSleepTime(HumanReadableDuration.milliseconds(MAX_SOFT_LIMITING_SLEEP_MILLIS))
-                        .build())
                 .build());
     }
 

@@ -39,7 +39,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -49,7 +48,6 @@ import com.palantir.logsafe.UnsafeArg;
 public class CassandraClientPoolingContainer implements PoolingContainer<CassandraClient> {
     private static final Logger log = LoggerFactory.getLogger(CassandraClientPoolingContainer.class);
 
-    private final QosClient qosClient;
     private final InetSocketAddress host;
     private final CassandraKeyValueServiceConfig config;
     private final MetricsManager metricsManager;
@@ -60,12 +58,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
-            QosClient qosClient,
             InetSocketAddress host,
             CassandraKeyValueServiceConfig config,
             int poolNumber) {
         this.metricsManager = metricsManager;
-        this.qosClient = qosClient;
         this.host = host;
         this.config = config;
         this.poolNumber = poolNumber;
@@ -238,8 +234,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(metricsManager, qosClient, host, config);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(metricsManager, host, config);
         GenericObjectPoolConfig poolConfig = new GenericObjectPoolConfig();
 
         poolConfig.setMinIdle(config.poolSize());

@@ -82,11 +82,6 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
-import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.config.QosClientConfig;
-import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
@@ -136,9 +131,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -279,15 +271,11 @@ public abstract class TransactionManagers {
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = initializeCloseable(() -> getQosClient(metricsManager,
-                        JavaSuppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier)), closeables);
-
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
                         config.keyValueService(),
                         JavaSuppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier),
-                        config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
-                        qosClient, adapter);
+                        config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(), adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -393,7 +381,6 @@ public abstract class TransactionManagers {
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
-        instrumentedTransactionManager.registerClosingCallback(qosClient::close);
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
@@ -457,25 +444,6 @@ public abstract class TransactionManagers {
             Optional<T> closeableOptional, @Output List<AutoCloseable> closeables) {
         closeableOptional.ifPresent(closeables::add);
         return closeableOptional;
-    }
-
-    private QosClient getQosClient(MetricsManager metricsManager, Supplier<QosClientConfig> config) {
-        Optional<ServiceConfiguration> qosServiceConfig = config.get().qosService();
-        QosRateLimiters rateLimiters;
-        if (qosServiceConfig.isPresent()) {
-            QosService qosService = JaxRsClient.create(QosService.class, userAgent(),
-                    ClientConfigurations.of(qosServiceConfig.get()));
-            rateLimiters = QosRateLimiters.create(
-                    JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    () -> qosService.readLimit(config().getNamespaceString()),
-                    () -> qosService.writeLimit(config().getNamespaceString()));
-        } else {
-            rateLimiters = QosRateLimiters.create(
-                    JavaSuppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config),
-                    JavaSuppliers.compose(conf -> conf.limits().readBytesPerSecond(), config),
-                    JavaSuppliers.compose(conf -> conf.limits().writeBytesPerSecond(), config));
-        }
-        return AtlasDbQosClient.create(metricsManager, rateLimiters);
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
