@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Before;
 
 import com.codahale.metrics.MetricRegistry;
@@ -34,6 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -42,7 +43,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -63,6 +63,9 @@ public abstract class TransactionTestSetup {
     protected static final TableReference TEST_TABLE_THOROUGH = TableReference.createFromFullyQualifiedName(
             "ns.atlasdb_transactions_test_table_thorough");
 
+    private final KvsManager kvsManager;
+    private final TransactionManagerManager tmManager;
+
     protected LockClient lockClient;
     protected LockServiceImpl lockService;
     protected TimelockService timelockService;
@@ -76,11 +79,14 @@ public abstract class TransactionTestSetup {
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
 
-    protected TransactionOutcomeMetrics transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
-
     protected final TimestampCache timestampCache = new TimestampCache(
             new MetricRegistry(),
             () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
+
+    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        this.kvsManager = kvsManager;
+        this.tmManager = tmManager;
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -129,33 +135,35 @@ public abstract class TransactionTestSetup {
         txMgr = getManager();
     }
 
-    @After
-    public void tearDown() {
-        lockService.close();
-        keyValueService.close();
+    protected KeyValueService getKeyValueService() {
+        return kvsManager.getDefaultKvs();
     }
 
     protected TransactionManager getManager() {
+        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+    }
+
+    TransactionManager createAndRegisterManager() {
+        TransactionManager manager = createManager();
+        tmManager.registerTransactionManager(manager);
+        return manager;
+    }
+
+    protected TransactionManager createManager() {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService, timestampService, timestampManagementService, lockClient, lockService,
-                transactionService, conflictDetectionManager, sweepStrategyManager, MultiTableSweepQueueWriter.NO_OP,
+                transactionService, conflictDetectionManager, sweepStrategyManager,
+                MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService());
     }
 
-    protected void put(Transaction txn,
-            String rowName,
-            String columnName,
-            String value) {
+    protected void put(Transaction txn, String rowName, String columnName, String value) {
         put(txn, TEST_TABLE, rowName, columnName, value);
     }
 
-    protected void put(Transaction txn,
-            TableReference tableRef,
-            String rowName,
-            String columnName,
-            String value) {
-        Cell cell = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
+    protected void put(Transaction txn, TableReference tableRef, String rowName, String columnName, String value) {
+        Cell cell = createCell(rowName, columnName);
         byte[] valueBytes = value == null ? null : PtBytes.toBytes(value);
         Map<Cell, byte[]> map = Maps.newHashMap();
         map.put(cell, valueBytes);
@@ -163,19 +171,14 @@ public abstract class TransactionTestSetup {
     }
 
     protected void delete(Transaction txn, String rowName, String columnName) {
-        txn.delete(TEST_TABLE, ImmutableSet.of(Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName))));
+        txn.delete(TEST_TABLE, ImmutableSet.of(createCell(rowName, columnName)));
     }
 
-    protected String get(Transaction txn,
-            String rowName,
-            String columnName) {
+    protected String get(Transaction txn, String rowName, String columnName) {
         return get(txn, TEST_TABLE, rowName, columnName);
     }
 
-    protected String get(Transaction txn,
-            TableReference tableRef,
-            String rowName,
-            String columnName) {
+    protected String get(Transaction txn, TableReference tableRef, String rowName, String columnName) {
         byte[] row = PtBytes.toBytes(rowName);
         byte[] column = PtBytes.toBytes(columnName);
         Cell cell = Cell.create(row, column);
@@ -186,53 +189,36 @@ public abstract class TransactionTestSetup {
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
-    protected String getCell(Transaction txn,
-            String rowName,
-            String columnName) {
+    String getCell(Transaction txn, String rowName, String columnName) {
         return getCell(txn, TEST_TABLE, rowName, columnName);
     }
 
-    protected String getCell(Transaction txn,
-            TableReference tableRef,
-            String rowName,
-            String columnName) {
-        byte[] row = PtBytes.toBytes(rowName);
-        byte[] column = PtBytes.toBytes(columnName);
-        Cell cell = Cell.create(row, column);
+    private String getCell(Transaction txn, TableReference tableRef, String rowName, String columnName) {
+        Cell cell = createCell(rowName, columnName);
         Map<Cell, byte[]> map = txn.get(tableRef, ImmutableSet.of(cell));
         byte[] valueBytes = map.get(cell);
         return valueBytes != null ? PtBytes.toString(valueBytes) : null;
     }
 
-    protected Cell getCell(String rowName, String colName) {
-        byte[] row = PtBytes.toBytes(rowName);
-        return Cell.create(row, PtBytes.toBytes(colName));
-    }
-
-    protected void putDirect(String rowName,
-            String columnName,
-            String value, long timestamp) {
-        Cell cell = Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
+    void putDirect(String rowName, String columnName, String value, long timestamp) {
+        Cell cell = createCell(rowName, columnName);
         byte[] valueBytes = PtBytes.toBytes(value);
         keyValueService.put(TEST_TABLE, ImmutableMap.of(cell, valueBytes), timestamp);
     }
 
-    protected Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {
+    Pair<String, Long> getDirect(String rowName, String columnName, long timestamp) {
         return getDirect(TEST_TABLE, rowName, columnName, timestamp);
     }
 
-    protected Pair<String, Long> getDirect(TableReference tableRef,
-            String rowName,
-            String columnName,
-            long timestamp) {
-        byte[] row = PtBytes.toBytes(rowName);
-        Cell cell = Cell.create(row, PtBytes.toBytes(columnName));
+    Pair<String, Long> getDirect(TableReference tableRef, String rowName, String columnName, long timestamp) {
+        Cell cell = createCell(rowName, columnName);
         Value valueBytes = keyValueService.get(tableRef, ImmutableMap.of(cell, timestamp)).get(cell);
         return valueBytes != null
                 ? Pair.create(PtBytes.toString(valueBytes.getContents()), valueBytes.getTimestamp())
                 : null;
     }
 
-    protected abstract KeyValueService getKeyValueService();
-
+    Cell createCell(String rowName, String columnName) {
+        return Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
+    }
 }
