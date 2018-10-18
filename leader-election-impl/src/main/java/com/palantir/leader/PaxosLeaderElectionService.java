@@ -162,7 +162,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 new PaxosLatestRoundVerifierImpl(
                         acceptors,
                         proposer.getQuorumSize(),
-                        executorServiceFactory.apply("latest-round-verifier"),
+                        createLatestRoundVerifierExectors(acceptors, executorServiceFactory),
                         onlyLogOnQuorumFailure));
     }
 
@@ -189,6 +189,16 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 .collect(Collectors.toMap(
                         paxosLearners::get,
                         index -> executorServiceFactory.apply("knowledge-update-" + index)));
+    }
+
+    private Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExectors(
+            List<PaxosAcceptor> acceptors,
+            Function<String, ExecutorService> executorServiceFactory) {
+        Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
+        for (int i=0; i < acceptors.size(); i++) {
+            executors.put(acceptors.get(i), executorServiceFactory.apply("lates-round-verifier-" + i));
+        }
+        return executors;
     }
 
     @Override

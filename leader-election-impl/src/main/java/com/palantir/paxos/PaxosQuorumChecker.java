@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -175,7 +176,9 @@ public final class PaxosQuorumChecker {
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
         for (final SERVICE remote : remotes) {
-            allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
+            try {
+                allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
+            } catch (RejectedExecutionException e) {}
         }
 
         List<Throwable> toLog = Lists.newArrayList();

@@ -20,12 +20,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 // TODO(nziebart): these tests are mostly sanity checks, until we have better tests for {@link PaxosQuorumChecker}.
 public class PaxosLatestRoundVerifierTest {
@@ -44,9 +47,14 @@ public class PaxosLatestRoundVerifierTest {
             acceptor3);
 
     private final Supplier<Boolean> onlyLogOnQuorumFailure = () -> false;
+    private final Map<PaxosAcceptor, ExecutorService> executorServiceMap = ImmutableMap.of(
+            acceptor1, Executors.newSingleThreadExecutor(),
+            acceptor2, Executors.newSingleThreadExecutor(),
+            acceptor3, Executors.newSingleThreadExecutor()
+    );
 
     private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptors, 2,
-            Executors.newCachedThreadPool(), onlyLogOnQuorumFailure);
+            executorServiceMap, onlyLogOnQuorumFailure);
 
     @Test
     public void hasQuorumIfAllNodesAgree() {
