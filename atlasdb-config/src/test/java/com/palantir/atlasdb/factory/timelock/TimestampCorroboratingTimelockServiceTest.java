@@ -38,7 +38,7 @@ public class TimestampCorroboratingTimelockServiceTest {
             LockImmutableTimestampResponse.of(1L, mock(LockToken.class));
 
     private TimelockService rawTimelockService;
-    private TimelockService timelockService;
+    private TimestampCorroboratingTimelockService timelockService;
 
     @Before
     public void setUp() {
@@ -77,8 +77,24 @@ public class TimestampCorroboratingTimelockServiceTest {
         assertThrowsOnSecondCall(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
     }
 
+    @Test
+    public void failsIfFreshTimestampIsLowerThanConservativeBound() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(0L);
+        assertThrowsGoBackInTimeError(() -> timelockService.validateWithConservativeLowerBound(() -> 1L));
+    }
+
+    @Test
+    public void shouldNotFailIfConservativeBoundIsLowerThanFreshTimestamp() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(2L);
+        timelockService.validateWithConservativeLowerBound(() -> 1L);
+    }
+
     private void assertThrowsOnSecondCall(Runnable runnable) {
         runnable.run();
+        assertThrowsGoBackInTimeError(runnable);
+    }
+
+    private void assertThrowsGoBackInTimeError(Runnable runnable) {
         assertThatThrownBy(runnable::run)
                 .isInstanceOf(AssertionError.class)
                 .hasMessageStartingWith("Expected timestamp to be greater than");

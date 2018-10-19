@@ -297,12 +297,14 @@ public abstract class TransactionManagers {
         com.google.common.base.Supplier<TimestampManagementService> managementSupplier =
                 () -> atlasFactory.getTimestampManagementService(timestampSupplier.get());
 
-        LockAndTimestampServices rawlockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
+        LockAndTimestampServices rawLockAndTimestampServices = createLockAndTimestampServices(metricsManager, config,
                 runtimeConfigSupplier, registrar(), () -> LockServiceImpl.create(lockServerOptions()),
                 timestampSupplier, managementSupplier,
                 atlasFactory.getTimestampStoreInvalidator(), userAgent());
-        TimestampCorroboratingTimelockService corroboratingTimelockService = TimestampCorroboratingTimelockService.create(rawlockAndTimestampServices.timelock());
-        LockAndTimestampServices lockAndTimestampServices = withCorroboratingTimestampService(rawlockAndTimestampServices, corroboratingTimelockService);
+        TimestampCorroboratingTimelockService corroboratingTimelockService = TimestampCorroboratingTimelockService
+                .create(rawLockAndTimestampServices.timelock());
+        LockAndTimestampServices lockAndTimestampServices =
+                withCorroboratingTimestampService(rawLockAndTimestampServices, corroboratingTimelockService);
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
@@ -614,9 +616,8 @@ public abstract class TransactionManagers {
             // where you need a working timestamp service to check consistency, you need to check consistency
             // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
             // ports in order to get a working timestamp service.
-            return LambdaCallback.of(tm -> corroboratingTimelockService.validateWithUnreadableTimestamp(
-                    () -> tm.getUnreadableTimestamp()
-            ));
+            return LambdaCallback.of(tm ->
+                    corroboratingTimelockService.validateWithConservativeLowerBound(tm::getUnreadableTimestamp));
         }
         return Callback.noOp();
     }
