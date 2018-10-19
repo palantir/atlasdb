@@ -128,12 +128,12 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private void logPoolStats() {
-        if (log.isTraceEnabled()) {
+        if (log.isWarnEnabled()) {
             State stateLocal = state;
             HikariPoolMXBean poolProxy = stateLocal.poolProxy;
             if (poolProxy != null) {
                 try {
-                    log.trace(
+                    log.warn(
                             "[{}] HikariCP: "
                                     + "numBusyConnections = {}, "
                                     + "numIdleConnections = {}, "
@@ -287,8 +287,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             } catch (IllegalArgumentException e) {
                 // allow multiple pools on same JVM (they need unique names / endpoints)
                 if (e.getMessage().contains("A metric named")) {
-                    // Done to preserve legacy naming for continuity of metrics.
-                    String poolName = String.format("db-pool-%s-%s", connConfig.getConnId(), connConfig.getDbLogin());
+                    String poolName = connConfig.getConnectionPoolName();
 
                     connConfig.getHikariConfig().setPoolName(poolName + "-" + ThreadLocalRandom.current().nextInt());
                     dataSourcePool = new HikariDataSource(connConfig.getHikariConfig());
