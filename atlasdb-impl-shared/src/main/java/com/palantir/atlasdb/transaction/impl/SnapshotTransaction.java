@@ -1089,7 +1089,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                 + " This can be caused by hard delete transactions using the type "
                                 + TransactionType.AGGRESSIVE_HARD_DELETE
                                 + ". It can also be caused by transactions taking too long, or"
-                                + " its locks expired. Retrying it should work.");
+                                + " its locks expired. Retrying it should work."
+                                + " Table " + tableRef + ", cell " + key + ".");
                     default:
                         throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
                 }
