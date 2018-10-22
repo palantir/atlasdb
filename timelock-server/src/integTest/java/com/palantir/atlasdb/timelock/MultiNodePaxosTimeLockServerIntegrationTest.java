@@ -277,11 +277,14 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
         // enough between the first and second call that the immutable timestamp lock expires, then
         // IT on response 2 > FT on response 1.
-        List<Long> temporalSequence = ImmutableList.of(
+        assertThat(ImmutableList.of(
                 firstResponse.immutableTimestamp().getImmutableTimestamp(),
                 firstResponse.startTimestampAndPartition().timestamp(),
-                secondResponse.startTimestampAndPartition().timestamp());
-        assertThat(temporalSequence).isSorted();
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
     }
 
     @Test
