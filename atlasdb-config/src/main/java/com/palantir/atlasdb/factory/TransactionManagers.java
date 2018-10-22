@@ -67,11 +67,6 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-<<<<<<< HEAD
-import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
-=======
-import com.palantir.atlasdb.factory.timestamp.DecoratedTimelockServices;
->>>>>>> 3e25978... burning bridges
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
