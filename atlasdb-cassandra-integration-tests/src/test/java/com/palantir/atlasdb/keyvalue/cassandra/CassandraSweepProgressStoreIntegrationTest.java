@@ -18,16 +18,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.junit.ClassRule;
 
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 
 public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraBackgroundSweeperIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
+
+    public CassandraSweepProgressStoreIntegrationTest() {
+        super(CASSANDRA);
     }
 }

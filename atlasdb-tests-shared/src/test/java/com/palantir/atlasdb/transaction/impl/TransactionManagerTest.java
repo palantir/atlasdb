@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.MoreExecutors;
@@ -32,13 +33,13 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -49,6 +50,26 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionManagerTest extends TransactionTestSetup {
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+
+    public TransactionManagerTest() {
+        super(TRM, TRM);
+    }
+
+    @Override
+    protected KeyValueService getKeyValueService() {
+        // create new kvs every time because some tests close it
+        KeyValueService kvs = new InMemoryKeyValueService(false);
+        TRM.registerKvs(kvs);
+        return kvs;
+    }
+
+    @Override
+    protected TransactionManager getManager() {
+        // create new transaction manager every time because some tests close it
+        return createAndRegisterManager();
+    }
 
     @Test
     public void shouldSuccessfullyCloseTransactionManagerMultipleTimes() {
@@ -146,12 +167,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
         txnManagerWithMocks.runTaskThrowOnConflict(txn -> null);
     }
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
-    }
-
     private TransactionManager setupTransactionManager() {
         TimelockService timelock = mock(TimelockService.class);
         TimestampManagementService timeManagement = mock(TimestampManagementService.class);
@@ -181,7 +196,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.startAtlasDbTransaction(any())).thenReturn(
                 StartAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
-
+        TRM.registerTransactionManager(txnManagerWithMocks);
         return txnManagerWithMocks;
     }
 }

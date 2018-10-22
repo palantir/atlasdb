@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,26 +42,21 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractGetCandidateCellsForSweepingTest {
+    private final KvsManager kvsManager;
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "get_candidate_cells_for_sweeping.test_table");
 
-    private static KeyValueService kvs = null;
+    private KeyValueService kvs;
+
+    protected AbstractGetCandidateCellsForSweepingTest(KvsManager kvsManager) {
+        this.kvsManager = kvsManager;
+    }
 
     @Before
     public void setUp() {
-        if (kvs == null) {
-            kvs = createKeyValueService();
-        }
+        kvs = kvsManager.getDefaultKvs();
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
-    }
-
-    @AfterClass
-    public static void closeKvs() {
-        if (kvs != null) {
-            kvs.close();
-            kvs = null;
-        }
     }
 
     @Test
@@ -283,6 +277,4 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     protected static byte[] row(int rowNum) {
         return Ints.toByteArray(rowNum);
     }
-
-    protected abstract KeyValueService createKeyValueService();
 }

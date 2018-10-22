@@ -42,16 +42,14 @@ public class CassandraTimestampBackupIntegrationTest {
     private static final long TIMESTAMP_3 = TIMESTAMP_2 + 1000;
 
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraTimestampIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
     @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CASSANDRA.getConfig());
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     @Before
     public void setUp() {

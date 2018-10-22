@@ -15,12 +15,15 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.ClassRule;
+
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 
 public class SweepProgressStoreTest extends AbstractSweepProgressStoreTest {
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false, exec);
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+
+    public SweepProgressStoreTest() {
+        super(TRM);
     }
 }

@@ -19,9 +19,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.ClassRule;
 
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
@@ -30,13 +28,11 @@ import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest
 
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKvsSerializableTransactionTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return CassandraKeyValueServiceImpl
-                .createForTesting(CASSANDRA.getConfig(), CassandraContainer.LEADER_CONFIG);
+
+    public CassandraKvsSerializableTransactionTest() {
+        super(CASSANDRA, CASSANDRA);
     }
 
     @Override
