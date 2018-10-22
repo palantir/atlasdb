@@ -89,6 +89,19 @@ develop
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |userbreak|
+         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
+           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
+           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
+           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
+           Note that for or across this version, blue-green deployment of embedded services is not supported.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
+
+    *    - |new|
+         - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
+           This may be used by AtlasDB clients for some key value services to achieve better data distribution and performance as far as the transactions table is concerned.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3529>`__)
+
 ========
 v0.106.0
 ========
