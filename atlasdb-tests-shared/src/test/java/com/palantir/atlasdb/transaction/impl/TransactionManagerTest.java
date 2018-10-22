@@ -44,8 +44,9 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -193,10 +194,13 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startAtlasDbTransaction(any())).thenReturn(
-                StartAtlasDbTransactionResponse.of(
-                        LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())), 1L));
+        when(timelock.startIdentifiedAtlasDbTransaction(any())).thenReturn(
+                StartIdentifiedAtlasDbTransactionResponse.of(
+                        LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
+                        TimestampAndPartition.of(1L, 1)
+                ));
         TRM.registerTransactionManager(txnManagerWithMocks);
+        
         return txnManagerWithMocks;
     }
 }
