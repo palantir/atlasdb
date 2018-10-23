@@ -25,7 +25,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.paxos.AutoDelegate_ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
@@ -35,7 +38,7 @@ public class DelegatingClientAwareManagedTimestampService
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     @VisibleForTesting
-    static final int NUM_PARTITIONS = 16;
+    static final int NUM_PARTITIONS = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
 
     private NumericPartitionAllocator<UUID> allocator;
     private ManagedTimestampService delegate;
@@ -48,8 +51,13 @@ public class DelegatingClientAwareManagedTimestampService
         this.delegate = delegate;
     }
 
+    public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
+        NumericPartitionAllocator<UUID> allocator = CachingPartitionAllocator.createDefault(NUM_PARTITIONS);
+        return new DelegatingClientAwareManagedTimestampService(allocator, delegate);
+    }
+
     @Override
-    public long getFreshTimestampForClient(UUID clientIdentifier) {
+    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
         while (true) {
             TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS);
             int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
@@ -58,13 +66,13 @@ public class DelegatingClientAwareManagedTimestampService
                     targetResidue,
                     NUM_PARTITIONS);
             if (relevantTimestamp.isPresent()) {
-                return relevantTimestamp.getAsLong();
+                return TimestampAndPartition.of(relevantTimestamp.getAsLong(), targetResidue);
             }
 
             // Not a bug - getFreshTimestamps is permitted to return less than the number of timestamps asked for,
             // so this case is possible.
             log.info("The timestamp range we received from the underlying timestamp service - {} -"
-                            + " did not contain a value with residue {} modulo {}."
+                            + " did not contain a value with residue {} modulo {}. We will try again."
                             + " This is not a bug; but if it happens excessively frequently, please contact support.",
                     SafeArg.of("timestampRange", timestampRange),
                     SafeArg.of("targetResidue", targetResidue),
