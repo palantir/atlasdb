@@ -89,6 +89,9 @@ develop
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |devbreak|
+         - ``TransactionManagers.builder()`` no longer returns a ``ConfigStage``, but a ``TransactionManagers.Builder``. If this is used in a fluent fashion, it should have no effect.
+
 ========
 v0.106.0
 ========
