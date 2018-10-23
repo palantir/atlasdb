@@ -1059,6 +1059,22 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
+     * A sentinel becomes orphaned if the table
+     */
+    private Set<Cell> findOrphanedSentinels(TableReference table, Map<Cell, Value> rawResults) {
+        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::atDeletionSentinel).keySet();
+        if (sweepSentinels.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Map<Cell, Value> atMaxTimestamp = keyValueService.get(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
+        return Maps.filterValues(atMaxTimestamp, SnapshotTransaction::atDeletionSentinel).keySet();
+    }
+
+    private static boolean atDeletionSentinel(Value value) {
+        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
+    }
+
+    /**
      * This will return all the keys that still need to be postFiltered.  It will output properly
      * postFiltered keys to the results output param.
      */
@@ -1073,25 +1089,34 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
+        Set<Cell> orphanedSentinels = findOrphanedSentinels(tableRef, rawResults);
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+            if (atDeletionSentinel(value)) {
                 getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
-                // This means that this transaction started too long ago. When we do garbage collection,
-                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                switch (getReadSentinelBehavior()) {
-                    case IGNORE:
-                        break;
-                    case THROW_EXCEPTION:
-                        throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
-                                + " This can be caused by hard delete transactions using the type "
-                                + TransactionType.AGGRESSIVE_HARD_DELETE
-                                + ". It can also be caused by transactions taking too long, or"
-                                + " its locks expired. Retrying it should work.");
-                    default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+
+                if (!getTransactionType().equals(TransactionType.TRUNCATION_CLEANUP)) {
+                    // This means that this transaction started too long ago. When we do garbage collection,
+                    // we clean up old values, and this transaction started at a timestamp before the garbage collection.
+                    switch (getReadSentinelBehavior()) {
+                        case IGNORE:
+                            break;
+                        case THROW_EXCEPTION:
+                            if (orphanedSentinels.contains(key)) {
+                                throw new TransactionFailedRetriableException("Tried to read a value that has been "
+                                        + "deleted. This can be caused by hard delete transactions using the type "
+                                        + TransactionType.AGGRESSIVE_HARD_DELETE
+                                        + ". It can also be caused by transactions taking too long, or"
+                                        + " its locks expired. Retrying it should work.");
+
+                            }
+                            break;
+                        default:
+                            throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                    }
+
                 }
             } else {
                 Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
