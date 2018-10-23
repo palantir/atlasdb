@@ -13,8 +13,8 @@ publishing {
                 scm.appendNode('url', 'https://github.com/palantir/atlasdb')
                 def licenses = asNode().appendNode('licenses')
                 def license = licenses.appendNode('license')
-                license.appendNode('name', 'BSD-3')
-                license.appendNode('url', 'http://opensource.org/licenses/BSD-3-Clause')
+                license.appendNode('name', 'Apache 2.0')
+                license.appendNode('url', 'https://opensource.org/licenses/Apache-2.0')
             }
         }
     }
@@ -29,7 +29,7 @@ bintray {
         userOrg = 'palantir'
         repo = 'releases'
         name = 'atlasdb'
-        licenses = ['BSD-3-Clause']
+        licenses = ['Apache-2.0']
         publications = ['dists']
     }
 }

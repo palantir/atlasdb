@@ -1,12 +1,12 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,27 +16,36 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.PostgresDdlTable;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 
 public class DbkvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+
     private static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     private static final String TEST_LONG_TABLE_NAME =
             "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";
     private static final int TWO_UNDERSCORES = 2;
 
+    public DbkvsPostgresKeyValueServiceTest() {
+        super(TRM);
+    }
+
+    @After
     @Override
-    protected KeyValueService getKeyValueService() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
-        kvs.getAllTableNames().stream().filter(table -> !table.getQualifiedName().equals("_metadata")).forEach(
-                kvs::dropTable);
-        return kvs;
+    public void tearDown() throws Exception {
+        super.tearDown();
+        keyValueService.getAllTableNames().stream()
+                .filter(table -> !table.getQualifiedName().equals("_metadata"))
+                .forEach(keyValueService::dropTable);
     }
 
     @Test(expected = RuntimeException.class)

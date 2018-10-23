@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,6 +40,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
@@ -52,6 +53,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
@@ -62,6 +64,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
@@ -82,6 +85,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimestampService timestampService,
+            TimestampManagementService timestampManagementService,
             LockClient lockClient,
             LockService lockService,
             TransactionService transactionService,
@@ -89,6 +93,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         super(metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
                 new LegacyTimelockService(timestampService, lockService, lockClient),
+                timestampManagementService,
                 lockService,
                 transactionService,
                 Suppliers.ofInstance(constraintCheckingMode),

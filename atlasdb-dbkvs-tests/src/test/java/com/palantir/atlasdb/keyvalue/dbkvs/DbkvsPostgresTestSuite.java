@@ -1,12 +1,12 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,6 +40,7 @@ import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 @RunWith(Suite.class)
 @SuiteClasses({
+        DbkvsPostgresTargetedSweepIntegrationTest.class,
         DbkvsPostgresKeyValueServiceTest.class,
         DbkvsPostgresSerializableTransactionTest.class,
         DbkvsPostgresSweepTaskRunnerTest.class,
@@ -98,7 +99,7 @@ public final class DbkvsPostgresTestSuite {
         return () -> {
             ConnectionManagerAwareDbKvs kvs = null;
             try {
-                kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
+                kvs = createKvs();
                 return kvs.getConnectionManager().getConnection().isValid(5);
             } catch (Exception ex) {
                 if (ex.getMessage().contains("The connection attempt failed.")
@@ -113,5 +114,9 @@ public final class DbkvsPostgresTestSuite {
                 }
             }
         };
+    }
+
+    public static ConnectionManagerAwareDbKvs createKvs() {
+        return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,10 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = TransactionManager.class)
+@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
@@ -256,6 +257,14 @@ public interface TransactionManager extends AutoCloseable {
      * @return the timestamp service for this transaction manager
      */
     TimestampService getTimestampService();
+
+    /**
+     * The timestamp management service is used by libraries providing additional functionality
+     * around AtlasDB. End-user clients probably should not require it.
+     *
+     * @return the timestamp management service for this transaction manager
+     */
+    TimestampManagementService getTimestampManagementService();
 
     /**
      * Returns the cleaner used by this transaction manager.

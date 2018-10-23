@@ -58,16 +58,17 @@ task timeLockTest(type: Test) {
     exclude '**/*TimeLockMigration*.class'
 }
 
-task startupIndependenceTest(type: Test) {
+task dbkvsTest(type: Test) {
     dependsOn prepareForEteTests
-    include '**/StartupIndependence*Test.class'
+    include '**/DbKvsTestSuite.class'
 }
 
 test {
-    dependsOn longTest, prepareForEteTests, timeLockTest, startupIndependenceTest
+    dependsOn longTest, prepareForEteTests, timeLockTest, dbkvsTest
     exclude '**/MultiCassandraTestSuite.class'
     exclude '**/*TimeLock*.class'
     exclude '**/*EteTest.class'
+    exclude '**/DbKvsTestSuite.class'
 }
 
 distribution {

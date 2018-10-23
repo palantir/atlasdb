@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMap;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doAnswer;
@@ -67,9 +66,15 @@ import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
@@ -174,8 +179,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         setTimelockTime(5_000L);
         punchTimeAtTimestamp(2_000, LOW_TS);
-        // all entries were swept
-        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(0L);
+        assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5_000L - 2_000L);
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
     }
 
@@ -499,6 +503,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         long tsSecondPartitionFine = LOW_TS + TS_FINE_GRANULARITY;
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 1L);
+        enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(100, LOW_TS + 2L);
+        putTimestampIntoTransactionTable(LOW_TS + 2L, LOW_TS + 2L);
         enqueueWriteCommitted(TABLE_CONS, tsSecondPartitionFine);
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
 
@@ -519,6 +525,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
+        assertSweepableCellsHasNoDedicatedRowsForShard(CONS_SHARD);
     }
 
     @Test
@@ -916,13 +923,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // minimum: as in the example above, but we have extra threads
         // threads + ... + threads * (shards / threads) + shards * (threads * sweepers - shards)
         verify(stickyLockService, atLeast(shards * (shards / threads + 1) / 2 + shards * (threads * sweepers - shards)))
-                .lock(any(LockRequest.class));
+                .lock(captor.capture());
         // maximum: one would think that it is
         // shards + shards - 1 + ... + shards - (sweepers - 1) + shards * (threads * sweepers - shards)
         // but actually the logic is much more complicated since threads from the same sweeper can loop back and hit a
         // race condition with each other, so we go with the more conservative upper bound
-        verify(stickyLockService, atMost(threads * sweepers * shards)).lock(captor.capture());
-
+        verify(stickyLockService, atMost(threads * sweepers * shards)).lock(any());
         Set<String> requestedLockIds = captor.getAllValues().stream()
                 .map(LockRequest::getLockDescriptors)
                 .map(Iterables::getOnlyElement)
@@ -1018,6 +1024,23 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(readFromDefaultCell(tableRef, readTs)).isEmpty();
     }
 
+    private void assertSweepableCellsHasNoDedicatedRowsForShard(int shard) {
+        TableReference sweepableCellsTable =
+                TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef();
+        try (ClosableIterator<RowResult<Value>> iterator =
+                spiedKvs.getRange(sweepableCellsTable, RangeRequest.all(), Long.MAX_VALUE)) {
+            assertThat(iterator.stream()
+                    .map(RowResult::getRowName)
+                    .map(SweepableCellsTable.SweepableCellsRow.BYTES_HYDRATOR::hydrateFromBytes)
+                    .map(SweepableCellsTable.SweepableCellsRow::getMetadata)
+                    .map(TargetedSweepMetadata.BYTES_HYDRATOR::hydrateFromBytes)
+                    .filter(TargetedSweepMetadata::dedicatedRow)
+                    .filter(metadata -> metadata.shard() == shard)
+                    .collect(Collectors.toList()))
+                    .isEmpty();
+        }
+    }
+
     // this implicitly assumes the entry was not committed after the timestamp
     private void assertSweepableCellsHasEntryForTimestamp(long timestamp) {
         SweepBatch batch = sweepableCells.getBatchForPartition(
@@ -1088,13 +1111,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
      * Creates a mock of a LockService that only gives out a lock once per unique request and never releases it, even
      * if unlock is called. The returned tokens are monotonically increasing in the tokenId.
      */
-    private TimelockService createStickyLockService() throws InterruptedException {
+    private TimelockService createStickyLockService() {
         AtomicLong lockToken = new AtomicLong(0);
-
         Set<LockDescriptor> requestedLocks = new ConcurrentHashSet<>();
         TimelockService stickyLockService = mock(TimelockService.class);
-        doAnswer((invocation) -> {
-            LockRequest request = (LockRequest) invocation.getArguments()[0];
+        doAnswer(invocation -> {
+            LockRequest request = invocation.getArgument(0);
             if (requestedLocks.add(Iterables.getOnlyElement(request.getLockDescriptors()))) {
                 return (LockResponse) () -> Optional.of(LockToken.of(new UUID(lockToken.getAndIncrement(), 0L)));
             } else {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,11 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -35,6 +31,7 @@ import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -61,7 +58,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.util.JavaSuppliers;
 
 public final class Leaders {
     private Leaders() {
@@ -155,21 +151,13 @@ public final class Leaders {
                 PaxosProposerImpl.newProposer(ourLearner, acceptors, learners, config.quorumSize(),
                 leaderUuid, proposerExecutorService));
 
-        // TODO (jkong): Make the limits configurable.
-        // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
-        Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        otherLeaders.size(),
-                        Math.max(otherLeaders.size(), 100),
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-leaders-election-" + useCase + "-%d")
+        InstrumentedExecutorService leaderElectionExecutor = new InstrumentedExecutorService(
+                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+                        .setNameFormat("atlas-leaders-election-%d")
                         .setDaemon(true)
                         .build()),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, "executor"));
 
         PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)
@@ -177,12 +165,12 @@ public final class Leaders {
                 .potentialLeadersToHosts(otherLeaders)
                 .acceptors(acceptors)
                 .learners(learners)
-                .executorServiceFactory(leaderElectionExecutor)
+                .executor(leaderElectionExecutor)
                 .pingRateMs(config.pingRateMs())
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
-                .onlyLogOnQuorumFailure(JavaSuppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime))
+                .onlyLogOnQuorumFailure(Suppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime::get))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),

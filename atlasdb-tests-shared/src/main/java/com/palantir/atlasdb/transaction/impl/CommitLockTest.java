@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.junit.Assert.assertFalse;
@@ -23,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Assume;
+import org.junit.ClassRule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -36,9 +36,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -49,7 +48,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -58,8 +56,10 @@ import com.palantir.lock.v2.LockResponse;
 
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
-    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
+    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
     private static final String ROW = "row";
     private static final String COLUMN = "col_1";
     private static final String OTHER_COLUMN = "col_2";
@@ -67,10 +67,8 @@ public class CommitLockTest extends TransactionTestSetup {
     @DataPoints
     public static ConflictHandler[] conflictHandlers = ConflictHandler.values();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
+    public CommitLockTest() {
+        super(TRM, TRM);
     }
 
     @Theory
@@ -187,7 +185,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 () -> TRANSACTION_CONFIG) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, input -> input.clone());
+                return Maps.transformValues(map, byte[]::clone);
             }
         };
     }

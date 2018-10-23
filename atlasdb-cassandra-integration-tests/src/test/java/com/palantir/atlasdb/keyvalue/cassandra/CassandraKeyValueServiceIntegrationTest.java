@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.hamcrest.Matchers.either;
@@ -26,9 +25,9 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -67,8 +66,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.config.LockLeader;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -91,61 +89,24 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
-    @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraKeyValueServiceIntegrationTest.class)
-            .with(new CassandraContainer());
-
-    private final Logger logger = mock(Logger.class);
-
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
-
-    private TableReference testTable = TableReference.createFromFullyQualifiedName("ns.never_seen");
-
+    private static final Logger logger = mock(Logger.class);
+    private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
-    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
-
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
+    private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
+    private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
+    private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
 
-    private byte[] tableMetadata = new TableDefinition() {
-        {
-            rowName();
-            rowComponent("blob", ValueType.BLOB);
-            columns();
-            column("boblawblowlawblob", "col", ValueType.BLOB);
-            conflictHandler(ConflictHandler.IGNORE_ALL);
-            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-            explicitCompressionBlockSizeKB(8);
-            rangeScanAllowed();
-            ignoreHotspottingChecks();
-            negativeLookups();
-            cachePriority(TableMetadataPersistence.CachePriority.COLD);
-        }
-    }.toTableMetadata().persistToBytes();
+    @ClassRule
+    public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
+            MetricsManagers.createForTests(),
+            getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
+            CassandraResource.LEADER_CONFIG,
+            CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+            logger));
 
-    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
-    // to make sure the tests are actually exercising the correct retrieval codepaths
-    static byte[] originalMetadata = new TableMetadata(
-            new NameMetadataDescription(),
-            new ColumnMetadataDescription(),
-            ConflictHandler.RETRY_ON_VALUE_CHANGED,
-            TableMetadataPersistence.LogSafety.SAFE)
-            .persistToBytes();
-
-    public static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), logger);
-    }
-
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
-        // Mutation provider is needed, because deletes/sentinels are to be written after writes
-        return CassandraKeyValueServiceImpl.create(
-                metricsManager,
-                config,
-                CassandraContainer.LEADER_CONFIG,
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
-                testLogger);
+    public CassandraKeyValueServiceIntegrationTest() {
+        super(CASSANDRA);
     }
 
     @Override
@@ -156,7 +117,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Override
     @Ignore
     public void testGetAllTableNames() {
-        //
+        // this test class creates a number of tables
     }
 
     @Test
@@ -179,7 +140,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         Logger testLogger = mock(Logger.class);
         //nth startup
         CassandraKeyValueService kvs = createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), testLogger);
-        kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(NEVER_SEEN, AtlasDbConstants.GENERIC_TABLE_METADATA);
         assertThatGcGraceSecondsIs(kvs, FOUR_DAYS_IN_SECONDS);
         kvs.close();
 
@@ -200,7 +161,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
@@ -213,7 +174,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         if (keyValueService instanceof CassandraKeyValueService) {
             kvs = (CassandraKeyValueServiceImpl) keyValueService;
         } else if (keyValueService instanceof TableSplittingKeyValueService) { // scylla tests
-            KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(testTable);
+            KeyValueService delegate = ((TableSplittingKeyValueService) keyValueService).getDelegate(NEVER_SEEN);
             assertTrue("The nesting of Key Value Services has apparently changed",
                     delegate instanceof CassandraKeyValueService);
             kvs = (CassandraKeyValueServiceImpl) delegate;
@@ -221,27 +182,27 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             throw new IllegalArgumentException("Can't run this cassandra-specific test against a non-cassandra KVS");
         }
 
-        kvs.createTable(testTable, tableMetadata);
+        kvs.createTable(NEVER_SEEN, getMetadata());
 
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
-                client.describe_keyspace("atlasdb").getCf_defs());
+                client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
                 .filter(cf -> cf.getName().equals(getInternalTestTableName()))
                 .collect(Collectors.toList()));
 
         assertTrue("After serialization and deserialization to database, Cf metadata did not match.",
-                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(testTable, tableMetadata,
+                ColumnFamilyDefinitions.isMatchingCf(kvs.getCfForTable(NEVER_SEEN, getMetadata(),
                         FOUR_DAYS_IN_SECONDS), clusterSideCf));
     }
 
-    private ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
+    private static ImmutableCassandraKeyValueServiceConfig getConfigWithGcGraceSeconds(int gcGraceSeconds) {
         return ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
+                .copyOf(CASSANDRA.getConfig())
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
     private String getInternalTestTableName() {
-        return testTable.getQualifiedName().replaceFirst("\\.", "__");
+        return NEVER_SEEN.getQualifiedName().replaceFirst("\\.", "__");
     }
 
     @Test
@@ -252,14 +213,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     @Test
     public void repeatedDropTableDoesNotAccumulateGarbage() {
-        int preExistingGarbageBeforeTest = getAmountOfGarbageInMetadataTable(keyValueService, testTable);
+        int preExistingGarbageBeforeTest = getAmountOfGarbageInMetadataTable(keyValueService, NEVER_SEEN);
 
         for (int i = 0; i < 3; i++) {
-            keyValueService.createTable(testTable, tableMetadata);
-            keyValueService.dropTable(testTable);
+            keyValueService.createTable(NEVER_SEEN, getMetadata());
+            keyValueService.dropTable(NEVER_SEEN);
         }
 
-        int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, testTable);
+        int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, NEVER_SEEN);
 
         assertThat(garbageAfterTest, lessThanOrEqualTo(preExistingGarbageBeforeTest));
     }
@@ -267,9 +228,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testLockTablesStateCleanUp() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
@@ -278,7 +237,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         TracingQueryRunner queryRunner = new TracingQueryRunner(
                 LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CassandraContainer.KVS_CONFIG,
+        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CASSANDRA.getConfig(),
                 ckvs.getClientPool(), lockTables, queryRunner);
 
         cleaner.cleanLocksState();
@@ -297,16 +256,14 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testCleanCassLocksStateCli() throws Exception {
         CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(
-                ckvs.getClientPool(),
-                CassandraContainer.KVS_CONFIG);
+        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
         SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
                 ckvs.getClientPool(),
                 new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
 
         createExtraLocksTable(lockTables, ckvs);
 
-        new CleanCassLocksStateCommand().runWithConfig(CassandraContainer.KVS_CONFIG);
+        new CleanCassLocksStateCommand().runWithConfig(CASSANDRA.getConfig());
 
         // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
         // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
@@ -399,10 +356,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(oldMetadataCell, originalMetadata), System.currentTimeMillis());
+                ImmutableMap.of(oldMetadataCell, originalMetadata()), System.currentTimeMillis());
 
         assertThat(
-                Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata),
+                Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata()),
                 is(true));
     }
 
@@ -410,7 +367,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void metadataForNewTableIsLowerCased() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
 
-        keyValueService.createTable(userTable, originalMetadata);
+        keyValueService.createTable(userTable, originalMetadata());
 
         assertThat(keyValueService.getMetadataForTables().keySet().stream()
                 .anyMatch(tableRef -> tableRef.getQualifiedName().equals(userTable.getQualifiedName().toLowerCase())),
@@ -431,7 +388,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(oldMetadataCell, originalMetadata),
+                ImmutableMap.of(oldMetadataCell, originalMetadata()),
                 System.currentTimeMillis());
 
         keyValueService.createTable(userTable, tableMetadataUpdate);
@@ -445,9 +402,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), originalMetadata),
+                ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), originalMetadata()),
                 System.currentTimeMillis());
-        keyValueService.createTable(tableRef, originalMetadata);
+        keyValueService.createTable(tableRef, originalMetadata());
 
         ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), any(Object.class));
@@ -459,12 +416,22 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(CassandraKeyValueServices.getOldMetadataCell(tableRef), originalMetadata),
+                ImmutableMap.of(CassandraKeyValueServices.getOldMetadataCell(tableRef), originalMetadata()),
                 System.currentTimeMillis());
-        keyValueService.createTable(tableRef, originalMetadata);
+        keyValueService.createTable(tableRef, originalMetadata());
 
         ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), any(Object.class));
+    }
+
+    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+        // Mutation provider is needed, because deletes/sentinels are to be written after writes
+        return CassandraKeyValueServiceImpl.create(
+                metricsManager,
+                config,
+                CassandraResource.LEADER_CONFIG,
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
+                testLogger);
     }
 
     private void putDummyValueAtCellAndTimestamp(
@@ -476,7 +443,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                     .safeQueryFormat("INSERT INTO \"%s\".\"%s\" (key, column1, column2, value)"
                             + " VALUES (%s, %s, %s, %s) USING TIMESTAMP %s;")
                     .addArgs(
-                            SafeArg.of("keyspace", CassandraContainer.KVS_CONFIG.getKeyspaceOrThrow()),
+                            SafeArg.of("keyspace", CASSANDRA.getConfig().getKeyspaceOrThrow()),
                             LoggingArgs.internalTableName(tableReference),
                             UnsafeArg.of("row", convertBytesToHexString(cell.getRowName())),
                             UnsafeArg.of("column", convertBytesToHexString(cell.getColumnName())),
@@ -516,5 +483,34 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                         tableRef.getQualifiedName().getBytes(StandardCharsets.UTF_8),
                         "m".getBytes(StandardCharsets.UTF_8))),
                 AtlasDbConstants.MAX_TS).size();
+    }
+
+    private static byte[] getMetadata() {
+        return new TableDefinition() {
+            {
+                rowName();
+                rowComponent("blob", ValueType.BLOB);
+                columns();
+                column("boblawblowlawblob", "col", ValueType.BLOB);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                explicitCompressionBlockSizeKB(8);
+                rangeScanAllowed();
+                ignoreHotspottingChecks();
+                negativeLookups();
+                cachePriority(TableMetadataPersistence.CachePriority.COLD);
+            }
+        }.toTableMetadata().persistToBytes();
+    }
+
+    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
+    // to make sure the tests are actually exercising the correct retrieval codepaths
+    private static byte[] originalMetadata() {
+        return new TableMetadata(
+                new NameMetadataDescription(),
+                new ColumnMetadataDescription(),
+                ConflictHandler.RETRY_ON_VALUE_CHANGED,
+                TableMetadataPersistence.LogSafety.SAFE)
+                .persistToBytes();
     }
 }

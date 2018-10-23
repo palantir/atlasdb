@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,44 +57,41 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
-
-    protected static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
+    static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
+    private static final LongSupplier TS_SUPPLIER = () -> 150L;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService kvs;
     protected TransactionManager txManager;
-    protected final AtomicLong sweepTimestamp = new AtomicLong();
     private BackgroundSweepThread backgroundSweeper;
     private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
             .maxCellTsPairsToExamine(1000)
             .build();
-    protected TransactionService txService;
-    protected SpecificTableSweeper specificTableSweeper;
-    protected AdjustableSweepBatchConfigSource sweepBatchConfigSource;
+    private TransactionService txService;
+    SpecificTableSweeper specificTableSweeper;
+    AdjustableSweepBatchConfigSource sweepBatchConfigSource;
 
     @Before
     public void setup() {
-        TimestampService tsService = new InMemoryTimestampService();
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
         kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
         );
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
-        LongSupplier tsSupplier = sweepTimestamp::get;
+        txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
         PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, persistentLockManager, ImmutableList.of());
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, ssm, cellsSweeper);
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(kvs, TS_SUPPLIER, TS_SUPPLIER, txService, ssm, cellsSweeper);
         LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
         specificTableSweeper = SpecificTableSweeper.create(
                 txManager,
@@ -122,6 +119,11 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 0);
     }
 
+    @After
+    public void closeTransactionManager() {
+        txManager.close();
+    }
+
     @Test
     public void smokeTest() throws Exception {
         createTable(TABLE_1, SweepStrategy.CONSERVATIVE);
@@ -133,7 +135,6 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         putManyCells(TABLE_2, 101, 111);
         putManyCells(TABLE_2, 104, 114);
         putManyCells(TABLE_3, 120, 130);
-        sweepTimestamp.set(150);
         try (SingleLockService sweepLocks = backgroundSweeper.createSweepLocks()) {
             for (int i = 0; i < 50; ++i) {
                 backgroundSweeper.checkConfigAndRunSweep(sweepLocks);
@@ -149,7 +150,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected abstract KeyValueService getKeyValueService();
 
-    protected void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
+    void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
         try (ClosableIterator<RowResult<Set<Long>>> iter =
                 kvs.getRangeOfTimestamps(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
             int numCells = 0;
@@ -179,7 +180,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         );
     }
 
-    protected void putManyCells(TableReference tableRef, long startTs, long commitTs) {
+    void putManyCells(TableReference tableRef, long startTs, long commitTs) {
         Map<Cell, byte[]> cells = Maps.newHashMap();
         for (int i = 0; i < 50; ++i) {
             cells.put(Cell.create(Ints.toByteArray(i), "c".getBytes()),
