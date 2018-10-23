@@ -215,7 +215,7 @@ public abstract class TransactionManagers {
     }
 
     public static Builder builder() {
-        return ImmutableTransactionManagers.builder();
+        return new Builder();
     }
 
     @VisibleForTesting
