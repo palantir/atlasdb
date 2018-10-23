@@ -32,8 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -46,13 +44,6 @@ import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
-import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
-import com.palantir.atlasdb.schema.stream.StreamTableType;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -67,11 +58,6 @@ public class SchemaTest {
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
     private static final TableReference INDEX_TABLE_REF = TableReference.createWithEmptyNamespace(TEST_INDEX_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
-
-    private static final Consumer<CleanupMetadata> NULL_CLEANUP_METADATA_ASSERTION =
-            metadata -> assertThat(metadata).isInstanceOf(NullCleanupMetadata.class);
-    private static final Consumer<CleanupMetadata> ARBITRARY_CLEANUP_METADATA_ASSERTION =
-            metadata -> assertThat(metadata).isInstanceOf(ArbitraryCleanupMetadata.class);
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -207,120 +193,6 @@ public class SchemaTest {
     }
 
     @Test
-    public void simpleTablesHaveNullCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void tablesWithCustomCleanupTaskHaveArbitraryCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
-        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-
-        addTestIndexDefinition(schema);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithCleanupTasksHaveArbitraryCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-
-        addTestIndexDefinition(schema);
-        schema.addCleanupTask(TEST_INDEX_NAME, () -> (tx, cells) -> false);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadataEvenIfBaseTableHasCleanupTasks() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
-
-        addTestIndexDefinition(schema);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForSimpleStreamStore() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "f";
-        String longName = "Floccinaucinihilipilification";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 0, ValueType.VAR_LONG);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashFirstRowComponent() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "a";
-        String longName = "Antidisestablishmentarianism";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG)
-                        .hashFirstRowComponent()
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 1, ValueType.FIXED_LONG);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashRowComponents() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "p";
-        String longName = "Pneumonoultramicroscopicsilicovolcanoconiosis";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG_LITTLE_ENDIAN)
-                        .hashRowComponents()
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 2, ValueType.FIXED_LONG_LITTLE_ENDIAN);
-    }
-
-    @Test
-    public void streamStoreTablesSupportAdditionalCleanupTasks() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "l";
-        String longName = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_SIGNED_LONG)
-                        .hashRowComponents()
-                        .build());
-        schema.addCleanupTask(StreamTableType.HASH.getTableName(shortName), () -> (cells, tx) -> false);
-        schema.addCleanupTask(StreamTableType.INDEX.getTableName(shortName), () -> (cells, tx) -> false);
-
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.VALUE.getTableName(shortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.HASH.getTableName(shortName),
-                ARBITRARY_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.METADATA.getTableName(shortName),
-                getStreamStoreMetadataAssertion(2, ValueType.VAR_SIGNED_LONG));
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.INDEX.getTableName(shortName),
-                ARBITRARY_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
     public void v2SchemaTablesCanBeGeneratedWithAllRowAndColumnComponents() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.addTableDefinition(TEST_TABLE_NAME, new TableDefinition() {{
@@ -365,70 +237,6 @@ public class SchemaTest {
                 .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
                         "invalidDeprecatedTables_unsafe",
                         ImmutableSet.of(TableReference.create(namespace, TEST_TABLE_NAME)))));
-    }
-
-    private Schema getSchemaWithSimpleTestTable() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        return schema;
-    }
-
-    private void addTestIndexDefinition(Schema schema) {
-        IndexDefinition indexDefinition = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
-        indexDefinition.onTable(TEST_TABLE_NAME);
-        schema.addIndexDefinition(TEST_TABLE_NAME, indexDefinition);
-    }
-
-    private void assertCleanupMetadataInSchemaSatisfies(
-            Schema schema,
-            String tableName,
-            Consumer<CleanupMetadata> verification) {
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                TableReference.create(Namespace.EMPTY_NAMESPACE, tableName),
-                verification);
-    }
-
-    private void assertCleanupMetadataInSchemaSatisfies(
-            Schema schema,
-            TableReference tableReference,
-            Consumer<CleanupMetadata> verification) {
-        Map<TableReference, SchemaDependentTableMetadata> metadatas
-                = schema.getSchemaMetadata().schemaDependentTableMetadata();
-        assertThat(metadatas).containsKey(tableReference);
-        verification.accept(metadatas.get(tableReference).cleanupMetadata());
-    }
-
-    private void assertCleanupMetadataCorrectForStreamStore(
-            Schema schema,
-            String streamStoreShortName,
-            int numComponentsHashed,
-            ValueType idType) {
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.VALUE.getTableName(streamStoreShortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.HASH.getTableName(streamStoreShortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.METADATA.getTableName(streamStoreShortName),
-                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.INDEX.getTableName(streamStoreShortName),
-                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
-    }
-
-    private Consumer<CleanupMetadata> getStreamStoreMetadataAssertion(int numHashedComponents, ValueType streamIdType) {
-        return metadata -> {
-            assertThat(metadata).isInstanceOf(StreamStoreCleanupMetadata.class);
-            StreamStoreCleanupMetadata streamStoreCleanupMetadata = (StreamStoreCleanupMetadata) metadata;
-            assertThat(streamStoreCleanupMetadata.numHashedRowComponents()).isEqualTo(numHashedComponents);
-            assertThat(streamStoreCleanupMetadata.streamIdType()).isEqualTo(streamIdType);
-        };
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {

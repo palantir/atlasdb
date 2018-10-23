@@ -88,8 +88,6 @@ import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
 import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -331,10 +329,8 @@ public abstract class TransactionManagers {
             return ValidatingQueryRewritingKeyValueService.create(kvs);
         }, closeables);
 
-        SchemaMetadataService schemaMetadataService =
-                SchemaMetadataServiceImpl.create(keyValueService, config().initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), schemaMetadataService, config().initializeAsync());
+                keyValueService, schemas(), config().initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
