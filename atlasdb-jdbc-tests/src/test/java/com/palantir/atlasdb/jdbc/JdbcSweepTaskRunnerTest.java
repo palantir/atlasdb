@@ -15,12 +15,23 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import org.junit.After;
+import org.junit.ClassRule;
+
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 
 public class JdbcSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return JdbcTests.createEmptyKvs();
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(JdbcTests::createEmptyKvs);
+
+    public JdbcSweepTaskRunnerTest() {
+        super(TRM, TRM);
+    }
+
+    // this is necessary because jdbc does not update metadata for existing tables on create table
+    @After
+    public void dropTestTable() {
+        kvs.dropTable(TABLE_NAME);
     }
 }

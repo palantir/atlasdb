@@ -50,6 +50,14 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Introduced runtime checks on client side for timestamps retrieved from timelock; aiming to prevent data corruption in case of timestamps going back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and do not provide absolute protection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
+    *    - |fixed|
+         - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
+
     *    - |fixed|
          - Targeted sweep now deletes certain sweep queue rows faster than before, which should
            reduce table bloat (particularly on space constrained systems).
@@ -81,6 +89,13 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |new|
+         - Old deprecated tables can now be added to a schema to be cleaned up on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
+
+    *    - |fixed|
+         - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
 ========
 v0.106.0

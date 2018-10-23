@@ -15,18 +15,17 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
+import org.junit.ClassRule;
+
 import com.palantir.atlasdb.keyvalue.dbkvs.DbkvsPostgresTestSuite;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 
 public class DbKvsPostgresGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
 
-    @Override
-    protected KeyValueService createKeyValueService() {
-        DbKeyValueServiceConfig config = DbkvsPostgresTestSuite.getKvsConfig();
-        return ConnectionManagerAwareDbKvs.create(config);
+    public DbKvsPostgresGetCandidateCellsForSweepingTest() {
+        super(TRM);
     }
-
 }
