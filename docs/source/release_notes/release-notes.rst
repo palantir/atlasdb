@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Introduced runtime checks on client side for timestamps retrieved from timelock; aiming to prevent data corruption in case of timestamps going back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and do not provide absolute protection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
     *    - |fixed|
          - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
