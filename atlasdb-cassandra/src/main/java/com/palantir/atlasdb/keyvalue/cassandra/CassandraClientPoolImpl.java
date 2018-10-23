@@ -256,17 +256,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
-        Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
+        Set<InetSocketAddress> serversToRemove = Sets.newHashSet();
+        Set<InetSocketAddress> serversToAdd = Sets.newHashSet();
+        Set<InetSocketAddress> currentServers = cassandra.refreshTokenRanges();
 
         if (config.autoRefreshNodes()) {
-            serversToAdd.addAll(cassandra.refreshTokenRanges());
+            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), currentServers));
+            serversToAdd.addAll(Sets.difference(currentServers, cassandra.getPools().keySet()));
         }
 
-        serversToAdd = Sets.difference(serversToAdd, cassandra.getPools().keySet());
-
+        //what does this mean?????
         if (!config.autoRefreshNodes()) { // (we would just add them back in)
-            serversToRemove = Sets.difference(cassandra.getPools().keySet(), config.servers());
+            serversToAdd.addAll(Sets.difference(config.servers(), cassandra.getPools().keySet()));
+            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), config.servers()));
         }
 
         serversToAdd.forEach(cassandra::addPool);
@@ -274,9 +276,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
-            if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
-                cassandra.refreshTokenRanges();
-            }
         }
 
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
