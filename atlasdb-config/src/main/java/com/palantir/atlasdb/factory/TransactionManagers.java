@@ -252,7 +252,7 @@ public abstract class TransactionManagers {
     }
 
     @JsonIgnore
-    @Value.Derived
+    @Value.Lazy
     public TransactionManager serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
