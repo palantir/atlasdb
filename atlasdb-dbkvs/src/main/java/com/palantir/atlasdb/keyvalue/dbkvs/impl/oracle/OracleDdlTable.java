@@ -136,7 +136,7 @@ public final class OracleDdlTable implements DbDdlTable {
                 "Unsupported table change from raw to overflow for table {}, likely due to a schema change. "
                 + "Changing the table type requires manual intervention. Please roll back the change or "
                 + "contact support for help with the change.",
-                SafeArg.of("tableName", tableRef.getQualifiedName()));
+                LoggingArgs.tableRef(tableRef));
     }
 
     private String createTable(boolean needsOverflow) {
