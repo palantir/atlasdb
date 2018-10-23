@@ -116,12 +116,9 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private boolean needsOverflow(byte[] tableMetadata) {
-        boolean needsOverflow = false;
         TableMetadata metadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
-        if (metadata != null) {
-            needsOverflow = metadata.getColumns().getMaxValueSize() > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD;
-        }
-        return needsOverflow;
+        return (metadata != null)
+                && (metadata.getColumns().getMaxValueSize() > AtlasDbConstants.ORACLE_OVERFLOW_THRESHOLD);
     }
 
     private boolean overflowColumnExists(String shortTableName) {
