@@ -148,7 +148,6 @@ import com.palantir.util.JavaSuppliers;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
-@Value.Style(stagedBuilder = true)
 public abstract class TransactionManagers {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
@@ -205,7 +204,17 @@ public abstract class TransactionManagers {
         return Callback.noOp();
     }
 
-    public static ImmutableTransactionManagers.ConfigBuildStage builder() {
+    public interface Configurator<T extends TransactionManager> {
+        Supplier<T> configure(Builder builder);
+    }
+
+    public static class Builder extends ImmutableTransactionManagers.Builder {
+        <T extends TransactionManager> Supplier<T> serializable(Configurator<T> configurator) {
+            return configurator.configure(this);
+        }
+    }
+
+    public static Builder builder() {
         return ImmutableTransactionManagers.builder();
     }
 
