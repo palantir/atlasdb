@@ -38,8 +38,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraTimestampStoreInvalidatorIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private static final long ONE_MILLION = 1_000_000;
 
@@ -48,14 +47,13 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
     @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CASSANDRA.getConfig());
+    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     @Before
     public void setUp() {
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
                 CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @Test

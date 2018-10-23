@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.sweep.progress;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -29,12 +28,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.sweep.SweepTestUtils;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 
 public abstract class AbstractSweepProgressStoreTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");
+
+    private final KvsManager kvsManager;
 
     private static final SweepProgress PROGRESS = ImmutableSweepProgress.builder()
             .startRow(new byte[] {1, 2, 3})
@@ -59,23 +59,22 @@ public abstract class AbstractSweepProgressStoreTest {
     private static final SweepProgress SECOND_PROGRESS = ImmutableSweepProgress.copyOf(OTHER_PROGRESS)
             .withTableRef(TABLE);
 
-    protected ExecutorService exec;
     private KeyValueService kvs;
     private SweepProgressStore progressStore;
 
+    protected AbstractSweepProgressStoreTest(KvsManager kvsManager) {
+        this.kvsManager = kvsManager;
+    }
+
     @Before
     public void setup() {
-        exec = PTExecutors.newCachedThreadPool();
-        kvs = getKeyValueService();
-        SweepTestUtils.setupTxManager(kvs);
+        kvs = kvsManager.getDefaultKvs();
         progressStore = SweepProgressStoreImpl.create(kvs, false);
     }
 
-    protected abstract KeyValueService getKeyValueService();
-
     @After
-    public void shutdownExec() {
-        exec.shutdown();
+    public void clearKvs() {
+        kvs.truncateTable(AtlasDbConstants.SWEEP_PROGRESS_TABLE);
     }
 
     @Test

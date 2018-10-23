@@ -62,6 +62,11 @@ public interface TimelockService {
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
+    @Path("start-identified-atlasdb-transaction")
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request);
+
+    @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp();
 

@@ -13,32 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class InstrumentedKeyValueServiceTest extends AbstractKeyValueServiceTest {
-
-    private static final String METRIC_PREFIX = "test.instrumented." + KeyValueService.class.getName();
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return AtlasDbMetrics.instrument(
-                new MetricRegistry(),
-                KeyValueService.class,
-                new InMemoryKeyValueService(false),
-                METRIC_PREFIX);
-    }
+public interface KvsManager {
+    /**
+     * Returns an instance of {@link KeyValueService} and registers it as a closeable resource. Subsequent invocations
+     * of this method are guaranteed to return the same object
+     */
+    KeyValueService getDefaultKvs();
+    /**
+     * Register the given {@link KeyValueService} as a closeable resource.
+     *
+     * @param kvs the instance to be registered
+     */
+    void registerKvs(KeyValueService kvs);
 
     /**
-     * Tear down KVS so that it is recreated and captures metrics for each test.
+     * Register the given {@link TransactionManager} as a closeable resource and for possible retrieval.
+     *
+     * @param manager the instance to be registered
      */
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-        tearDownKvs();
-    }
-
+    void registerTransactionManager(TransactionManager manager);
 }

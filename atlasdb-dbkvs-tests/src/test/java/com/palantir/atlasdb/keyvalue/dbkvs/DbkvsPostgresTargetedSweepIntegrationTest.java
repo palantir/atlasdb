@@ -13,24 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
+package com.palantir.atlasdb.keyvalue.dbkvs;
 
-import com.google.common.base.Suppliers;
+import org.junit.ClassRule;
 
-/**
- * This class provides utilities for Java Suppliers.
- *
- * TODO(jkong): Investigate if this can be removed once on Guava 21.
- */
-public final class JavaSuppliers {
-    private JavaSuppliers() {
-        // utility
-    }
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 
-    public static <F, T> Supplier<T> compose(Function<F, T> function, Supplier<F> supplier) {
-        return Suppliers.compose(function::apply, supplier::get)::get;
+public class DbkvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(DbkvsPostgresTestSuite::createKvs);
+
+    public DbkvsPostgresTargetedSweepIntegrationTest() {
+        super(TRM, TRM);
     }
 }

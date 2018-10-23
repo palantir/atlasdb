@@ -16,19 +16,44 @@
 
 package com.palantir.atlasdb.containers;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.junit.rules.ExternalResource;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class CassandraResource extends ExternalResource {
+public class CassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
-    private final Containers containers;
-    private CassandraKeyValueService kvs = null;
+    private final Supplier<KeyValueService> supplier;
+    private Containers containers;
+    private TestResourceManager testResourceManager;
 
-    public CassandraResource(Class<?> classToSaveLogsFor) {
-        containers = new Containers(classToSaveLogsFor).with(containerInstance);
+    public CassandraResource() {
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
+                containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);
+    }
+
+    public CassandraResource(Supplier<KeyValueService> supplier) {
+        this.supplier = supplier;
+    }
+
+    public Statement apply(Statement base, Description description) {
+        containers = new Containers(description.getTestClass()).with(containerInstance);
+        testResourceManager = new TestResourceManager(supplier);
+        return super.apply(base, description);
     }
 
     @Override
@@ -38,17 +63,30 @@ public class CassandraResource extends ExternalResource {
 
     @Override
     public void after() {
-        if (kvs != null) {
-            kvs.close();
-        }
+        testResourceManager.after();
     }
 
-    public synchronized CassandraKeyValueService getDefaultKvs() {
-        if (kvs == null) {
-            kvs = CassandraKeyValueServiceImpl
-                    .createForTesting(containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);
-        }
-        return kvs;
+    /**
+     * Returns the memoized instance of the {@link CassandraKeyValueService} given by the supplier from the constructor.
+     */
+    @Override
+    public CassandraKeyValueService getDefaultKvs() {
+        return (CassandraKeyValueService) testResourceManager.getDefaultKvs();
+    }
+
+    @Override
+    public void registerKvs(KeyValueService kvs) {
+        testResourceManager.registerKvs(kvs);
+    }
+
+    @Override
+    public void registerTransactionManager(TransactionManager manager) {
+        testResourceManager.registerTransactionManager(manager);
+    }
+
+    @Override
+    public Optional<TransactionManager> getLastRegisteredTransactionManager() {
+        return testResourceManager.getLastRegisteredTransactionManager();
     }
 
     public CassandraKeyValueServiceConfig getConfig() {

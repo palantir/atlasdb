@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -40,7 +41,6 @@ import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
-import com.palantir.util.JavaSuppliers;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -86,7 +86,7 @@ public class TimeLockAgent {
         this.lockCreator = new LockCreator(runtime, deprecated);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime));
+                Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
         this.timelockCreator = install.asyncLock().useAsyncLockService()
                 ? new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator, install.asyncLock())
                 : new LegacyTimeLockServicesCreator(metricsManager.getRegistry(), leadershipCreator);
@@ -94,9 +94,9 @@ public class TimeLockAgent {
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
-        if (PaxosTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+        if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
             return getPaxosTimestampCreator(metrics);
-        } else if (DatabaseTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+        } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
                     ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
                             .keyValueServiceConfig());
@@ -109,7 +109,7 @@ public class TimeLockAgent {
         return new PaxosTimestampCreator(metrics, paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
                 PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 
     private void createAndRegisterResources() {
@@ -122,7 +122,7 @@ public class TimeLockAgent {
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
         registrar.accept(resource);
 
         ClockSkewMonitorCreator.create(metricsManager, install, registrar).registerClockServices();
