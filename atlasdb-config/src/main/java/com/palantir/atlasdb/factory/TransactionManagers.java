@@ -270,8 +270,6 @@ public abstract class TransactionManagers {
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
-        final AtlasDbConfig config = config();
-        checkInstallConfig(config);
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
@@ -282,14 +280,14 @@ public abstract class TransactionManagers {
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
-                config.keyValueService(),
+                config().keyValueService(),
                 Suppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier::get),
-                config.leader(), config.namespace(), Optional.empty(), config.initializeAsync(),
+                config().leader(), config().namespace(), Optional.empty(), config().initializeAsync(),
                 qosClient,
                 adapter);
 
         LockRequest.setDefaultLockTimeout(
-                SimpleTimeDuration.of(config.getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
+                SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
 
         com.google.common.base.Supplier<TimestampService> timestampSupplier =
                 Suppliers.memoize(atlasFactory::getTimestampService);
@@ -298,7 +296,7 @@ public abstract class TransactionManagers {
 
         LockAndTimestampServices lockAndTimestampServices = createLockAndTimestampServices(
                 metricsManager,
-                config,
+                config(),
                 runtimeConfigSupplier,
                 registrar(),
                 () -> LockServiceImpl.create(lockServerOptions()),
@@ -308,7 +306,7 @@ public abstract class TransactionManagers {
                 userAgent());
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
-        KvsProfilingLogger.setSlowLogThresholdMillis(config.getKvsSlowLogThresholdMillis());
+        KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
 
         Supplier<SweepConfig> sweepConfig = Suppliers.compose(AtlasDbRuntimeConfig::sweep, runtimeConfigSupplier::get);
 
@@ -317,7 +315,7 @@ public abstract class TransactionManagers {
             kvs = ProfilingKeyValueService.create(kvs);
 
             // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
-            if (!config.targetedSweep().enableSweepQueueWrites()) {
+            if (!config().targetedSweep().enableSweepQueueWrites()) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         Suppliers.compose(SweepConfig::writeThreshold, sweepConfig::get),
@@ -334,11 +332,11 @@ public abstract class TransactionManagers {
         }, closeables);
 
         SchemaMetadataService schemaMetadataService =
-                SchemaMetadataServiceImpl.create(keyValueService, config.initializeAsync());
+                SchemaMetadataServiceImpl.create(keyValueService, config().initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), schemaMetadataService, config.initializeAsync());
+                keyValueService, schemas(), schemaMetadataService, config().initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
-                keyValueService, registrar(), config.initializeAsync());
+                keyValueService, registrar(), config().initializeAsync());
 
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
@@ -352,25 +350,26 @@ public abstract class TransactionManagers {
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
                                         ImmutableList.of(follower), transactionService)
-                                .setBackgroundScrubAggressively(config.backgroundScrubAggressively())
-                                .setBackgroundScrubBatchSize(config.getBackgroundScrubBatchSize())
-                                .setBackgroundScrubFrequencyMillis(config.getBackgroundScrubFrequencyMillis())
-                                .setBackgroundScrubThreads(config.getBackgroundScrubThreads())
-                                .setPunchIntervalMillis(config.getPunchIntervalMillis())
-                                .setTransactionReadTimeout(config.getTransactionReadTimeoutMillis())
-                                .setInitializeAsync(config.initializeAsync())
+                                .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
+                                .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
+                                .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
+                                .setBackgroundScrubThreads(config().getBackgroundScrubThreads())
+                                .setPunchIntervalMillis(config().getPunchIntervalMillis())
+                                .setTransactionReadTimeout(config().getTransactionReadTimeoutMillis())
+                                .setInitializeAsync(config().initializeAsync())
                                 .buildCleaner(),
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedTargetedSweeper(metricsManager, config.targetedSweep(), follower,
+                () -> uninitializedTargetedSweeper(metricsManager, config().targetedSweep(), follower,
                         Suppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier::get)),
                 closeables);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain<>(ImmutableList.of(
-                timelockConsistencyCheckCallback(config, runtimeConfigSupplier.get(), lockAndTimestampServices),
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+                timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
-                asyncInitializationCallback()));
+                new DeprecatedTablesCleaner(schemas()),
+                asyncInitializationCallback());
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
@@ -388,9 +387,9 @@ public abstract class TransactionManagers {
                                 initializer,
                                 lockAndTimestampServices),
                         allowHiddenTableAccess(),
-                        config.keyValueService().concurrentGetRangesThreadPoolSize(),
-                        config.keyValueService().defaultGetRangesConcurrency(),
-                        config.initializeAsync(),
+                        config().keyValueService().concurrentGetRangesThreadPoolSize(),
+                        config().keyValueService().defaultGetRangesConcurrency(),
+                        config().initializeAsync(),
                         new TimestampCache(metricsManager.getRegistry(),
                                 () -> runtimeConfigSupplier.get().getTimestampCacheSize()),
                         targetedSweep,
@@ -408,12 +407,12 @@ public abstract class TransactionManagers {
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
-                        metricsManager, persistentLockService, config.getSweepPersistentLockWaitMillis()),
+                        metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
-                        config,
+                        config(),
                         runtimeConfigSupplier,
                         registrar(),
                         keyValueService,
@@ -496,17 +495,6 @@ public abstract class TransactionManagers {
     @VisibleForTesting
     static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
         return lockAndTimestampServices.migrator().map(AsyncInitializer::isInitialized).orElse(true);
-    }
-
-    private static void checkInstallConfig(AtlasDbConfig config) {
-        if (config.getSweepBatchSize() != null
-                || config.getSweepCellBatchSize() != null
-                || config.getSweepReadLimit() != null
-                || config.getSweepCandidateBatchHint() != null
-                || config.getSweepDeleteBatchHint() != null) {
-            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
-                    + " Please use the runtime config to specify them.");
-        }
     }
 
     private static BackgroundSweeperImpl initializeSweepEndpointAndBackgroundProcess(
