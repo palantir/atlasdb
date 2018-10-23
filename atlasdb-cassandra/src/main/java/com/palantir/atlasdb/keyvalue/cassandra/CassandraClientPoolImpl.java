@@ -278,6 +278,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             sanityCheckRingConsistency();
         }
 
+        //TODO(achow): Log some kind of placeholder for addresses detected in token range refresh
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
                 SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
