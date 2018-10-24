@@ -25,8 +25,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -36,7 +35,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -50,36 +48,19 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
 
+    private static CassandraKeyValueService kvs;
+    private static CassandraKeyValueService slowTimeoutKvs;
+
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceTableCreationIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    protected CassandraKeyValueService kvs;
-    protected CassandraKeyValueService slowTimeoutKvs;
 
-    @Before
-    public void setUp() {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CASSANDRA.getConfig())
-                .withSchemaMutationTimeoutMillis(500);
-        kvs = CassandraKeyValueServiceImpl.createForTesting(
-                quickTimeoutConfig,
-                CassandraContainer.LEADER_CONFIG);
-
-        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CASSANDRA.getConfig())
-                .withSchemaMutationTimeoutMillis(6 * 1000);
-        slowTimeoutKvs = CassandraKeyValueServiceImpl.createForTesting(
-                slowTimeoutConfig,
-                CassandraContainer.LEADER_CONFIG);
-
-        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-    }
-
-    @After
-    public void close() {
-        kvs.close();
-        slowTimeoutKvs.close();
+    @BeforeClass
+    public static void initializeKvs() {
+        kvs = kvsWithSchemaMutationTimeout(500);
+        CASSANDRA.registerKvs(kvs);
+        slowTimeoutKvs = kvsWithSchemaMutationTimeout(6 * 1000);
+        CASSANDRA.registerKvs(slowTimeoutKvs);
     }
 
     @Test(timeout = 10 * 1000)
@@ -120,7 +101,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     public void describeVersionBehavesCorrectly() throws Exception {
         kvs.getClientPool().runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
     }
-
 
     @Test
     public void testCreateTableCanRestoreLostMetadata() {
@@ -189,5 +169,14 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         assertThat(initialMetadata, is(existingMetadata));
 
         kvs.dropTable(caseSensitiveTable);
+    }
+
+    private static CassandraKeyValueService kvsWithSchemaMutationTimeout(int millis) {
+        ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
+                .copyOf(CASSANDRA.getConfig())
+                .withSchemaMutationTimeoutMillis(millis);
+        return CassandraKeyValueServiceImpl.createForTesting(
+                config,
+                CassandraResource.LEADER_CONFIG);
     }
 }

@@ -113,9 +113,6 @@ import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.qos.FakeQosClient;
-import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
@@ -247,8 +244,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 leaderConfig,
                 mutationTimestampProvider,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static CassandraKeyValueService create(
@@ -272,16 +268,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            boolean initializeAsync,
-            QosClient qosClient) {
+            boolean initializeAsync) {
         return create(metricsManager,
                 config,
                 runtimeConfig,
                 leaderConfig,
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
-                initializeAsync,
-                qosClient);
+                initializeAsync);
     }
 
     @VisibleForTesting
@@ -297,8 +291,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 leaderConfig,
                 mutationTimestampProvider,
                 log,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     private static CassandraKeyValueService create(
@@ -308,13 +301,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Optional<LeaderConfig> leaderConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
-            boolean initializeAsync,
-            QosClient qosClient) {
+            boolean initializeAsync) {
         CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
                 config,
                 runtimeConfig,
-                initializeAsync,
-                qosClient);
+                initializeAsync);
         return createOrShutdownClientPool(metricsManager, config, clientPool, leaderConfig, mutationTimestampProvider,
                 log, initializeAsync);
     }
@@ -625,7 +616,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ImmutableMap.copyOf(result);
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -694,7 +685,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return builder.build();
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -806,7 +797,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             }
             return ret;
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -845,7 +836,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     });
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -969,7 +960,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             cellValuePutter.put("put", tableRef,
                     KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp));
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -991,7 +982,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             cellValuePutter.put("putWithTimestamps", tableRef, values.entries());
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -1136,7 +1127,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes"
                         + " to be up and available.");
             } catch (TException e) {
-                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         }
     }
@@ -1494,7 +1485,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 }
             }
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
         return filteredTables;
@@ -1527,8 +1518,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 } catch (TException thriftException) {
                     if (thriftException.getMessage() != null
                             && !thriftException.getMessage().contains("already existing table")) {
-                        throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(
-                                thriftException);
+                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
                     }
                 }
             }
@@ -1775,7 +1765,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 return null;
             });
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -1813,7 +1803,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 throw new InsufficientConsistencyException(
                         "Deleting requires all Cassandra nodes to be up and available.", e);
             } catch (TException e) {
-                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         } else {
             super.deleteRange(tableRef, range);
@@ -1871,7 +1861,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             cellValuePutter.putWithOverriddenTimestamps("addGarbageCollectionSentinelValues",
                     tableRef, Iterables.transform(cells, cell -> Maps.immutableEntry(cell, value)));
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -1932,7 +1922,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (KeyAlreadyExistsException e) {
             throw e;
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -1966,7 +1956,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (CheckAndSetException e) {
             throw e;
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 

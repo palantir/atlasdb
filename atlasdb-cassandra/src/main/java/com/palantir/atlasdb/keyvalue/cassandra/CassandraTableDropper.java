@@ -30,8 +30,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTableDropper {
@@ -83,7 +83,7 @@ class CassandraTableDropper {
                         return null;
                     });
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
@@ -96,7 +96,7 @@ class CassandraTableDropper {
                             ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), meta).entrySet(),
                             ts));
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
         try {
