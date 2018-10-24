@@ -123,17 +123,13 @@ public class MultiplexingCompletionServiceTest {
     @Test
     public void rejectsExecutionsIfUnderlyingExecutorRejects() throws InterruptedException, ExecutionException {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, createBoundedExecutor(2), KEY_2, createBoundedExecutor(2)));
+                ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
 
         Callable<Integer> sleepForFiveSeconds = getSleepCallable(5_000);
 
         boundedService.submit(KEY_1, sleepForFiveSeconds);
-        boundedService.submit(KEY_2, sleepForFiveSeconds);
-        boundedService.submit(KEY_1, sleepForFiveSeconds);
-        boundedService.submit(KEY_2, getSleepCallable(2));
         boundedService.submit(KEY_1, sleepForFiveSeconds);
 
-        assertThat(boundedService.poll(1, TimeUnit.SECONDS).get()).isEqualTo(2);
         assertThat(boundedService.poll()).isNull();
         assertThatThrownBy(() -> boundedService.submit(KEY_1, sleepForFiveSeconds))
                 .isInstanceOf(RejectedExecutionException.class);
@@ -144,7 +140,7 @@ public class MultiplexingCompletionServiceTest {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, createBoundedExecutor(2), KEY_2, createBoundedExecutor(2)));
 
-        for (int i = 0; i < 50_000; i++) {
+        for (int i = 0; i < 4; i++) {
             try {
                 boundedService.submit(KEY_1, getSleepCallable(5_000));
             } catch (RejectedExecutionException e) {

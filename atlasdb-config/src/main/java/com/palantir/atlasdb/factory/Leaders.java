@@ -156,7 +156,7 @@ public final class Leaders {
                 leaderUuid, proposerExecutorService));
 
         // TODO (jkong): Make the limits configurable.
-        // Current use cases tend to have not more than 10 inflight tasks under normal circumstances.
+        // Current use cases tend to have not more than 10 (<< 100) inflight tasks under normal circumstances.
         Function<String, ExecutorService> leaderElectionExecutor = (useCase) -> new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         otherLeaders.size(),

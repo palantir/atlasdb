@@ -49,8 +49,8 @@ public class MultiplexingCompletionService<K, V> {
         this.taskQueue = taskQueue;
     }
 
-    public static <T, V> MultiplexingCompletionService<T, V> create(
-            Map<T, ExecutorService> executors) {
+    public static <K, V> MultiplexingCompletionService<K, V> create(
+            Map<K, ExecutorService> executors) {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
     }
 
