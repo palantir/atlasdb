@@ -25,6 +25,8 @@ import org.apache.cassandra.thrift.CqlRow;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 
 import okio.ByteString;
 
@@ -38,7 +40,7 @@ final class CheckAndSetResponseDecoder {
         // Utility Class
     }
 
-    static CheckAndSetResult decodeCqlResult(CqlResult cqlResult) {
+    static CheckAndSetResult<ByteString> decodeCqlResult(CqlResult cqlResult) {
         CqlRow resultRow = Iterables.getOnlyElement(cqlResult.getRows());
         return ImmutableCheckAndSetResult.of(isResultSuccessful(resultRow), existingValues(resultRow));
     }

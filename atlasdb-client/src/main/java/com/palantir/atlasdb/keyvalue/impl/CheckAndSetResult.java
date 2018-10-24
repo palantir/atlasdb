@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.keyvalue.cassandra.cas;
+
+package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.List;
 
 import org.immutables.value.Value;
 
-import okio.ByteString;
-
 @Value.Immutable
-public interface CheckAndSetResult {
+public interface CheckAndSetResult<T> {
     @Value.Parameter
     boolean successful();
 
     @Value.Parameter
-    List<ByteString> existingValues();
+    List<T> existingValues();
 }
