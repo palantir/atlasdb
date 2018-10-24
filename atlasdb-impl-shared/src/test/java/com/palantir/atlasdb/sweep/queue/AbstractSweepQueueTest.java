@@ -78,11 +78,12 @@ public abstract class AbstractSweepQueueTest {
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
         metricsManager = MetricsManagers.createForTests();
-        spiedKvs = spy(new InMemoryKeyValueService(true));
+        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
+        spiedKvs = spy(new SafeTableClearerKeyValueService(
+                timestampsSupplier::getImmutableTimestamp, new InMemoryKeyValueService(true)));
         spiedKvs.createTable(TABLE_CONS, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
         spiedKvs.createTable(TABLE_THOR, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING));
-        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
     }

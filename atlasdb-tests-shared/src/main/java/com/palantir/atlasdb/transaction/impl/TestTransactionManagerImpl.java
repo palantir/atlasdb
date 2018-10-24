@@ -147,7 +147,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                OrphanedSentinelCleaner.deleting(conflictDetectionManager),
                 deleteExecutor,
                 CommitProfileProcessor.createNonLogging(metricsManager),
                 validateLocksOnReads,

@@ -219,8 +219,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
 
-    protected final OrphanedSentinelCleaner orphanedSentinelCleaner;
-
     protected volatile boolean hasReads;
 
     /**
@@ -249,13 +247,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
-            OrphanedSentinelCleaner orphanedSentinelCleaner,
             ExecutorService deleteExecutor,
             CommitProfileProcessor commitProfileProcessor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
-        this.orphanedSentinelCleaner = orphanedSentinelCleaner;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
@@ -1072,12 +1068,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         if (sweepSentinels.isEmpty()) {
             return Collections.emptySet();
         }
-        Map<Cell, Value> atMaxTimestamp = keyValueService.get(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
-        Set<Cell> result = Maps.filterValues(atMaxTimestamp, SnapshotTransaction::atDeletionSentinel).keySet();
-        if (!atMaxTimestamp.isEmpty()) {
-            orphanedSentinelCleaner.enqueue(this, table, result);
-        }
-        return result;
+        Map<Cell, Long> atMaxTimestamp = keyValueService.getLatestTimestamps(
+                table,
+                Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
+        return Maps.filterValues(atMaxTimestamp, ts -> Value.INVALID_VALUE_TIMESTAMP == ts).keySet();
     }
 
     private static boolean atDeletionSentinel(Value value) {

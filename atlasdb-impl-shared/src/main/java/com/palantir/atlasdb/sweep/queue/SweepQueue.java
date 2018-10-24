@@ -29,6 +29,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -51,17 +52,19 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.metrics = factory.metrics;
     }
 
-    public static SweepQueue create(TargetedSweepMetrics metrics, KeyValueService kvs, Supplier<Integer> shardsConfig,
+    public static SweepQueue create(
+            TargetedSweepMetrics metrics, KeyValueService kvs, TimelockService timelock, Supplier<Integer> shardsConfig,
             TargetedSweepFollower follower) {
-        return new SweepQueue(SweepQueueFactory.create(metrics, kvs, shardsConfig), follower);
+        return new SweepQueue(SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig), follower);
     }
 
     /**
      * Creates a SweepQueueWriter, performing all the necessary initialization.
      */
     public static MultiTableSweepQueueWriter createWriter(TargetedSweepMetrics metrics, KeyValueService kvs,
+            TimelockService timelock,
             Supplier<Integer> shardsConfig) {
-        return SweepQueueFactory.create(metrics, kvs, shardsConfig).createWriter();
+        return SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig).createWriter();
     }
 
     /**
@@ -144,18 +147,23 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         private final SweepableTimestamps timestamps;
         private final TargetedSweepMetrics metrics;
         private final KeyValueService kvs;
+        private final TimelockService timelock;
 
-        private SweepQueueFactory(ShardProgress progress, Supplier<Integer> numShards, SweepableCells cells,
-                SweepableTimestamps timestamps, TargetedSweepMetrics metrics, KeyValueService kvs) {
+        private SweepQueueFactory(
+                ShardProgress progress, Supplier<Integer> numShards, SweepableCells cells,
+                SweepableTimestamps timestamps, TargetedSweepMetrics metrics,
+                KeyValueService kvs, TimelockService timelock) {
             this.progress = progress;
             this.numShards = numShards;
             this.cells = cells;
             this.timestamps = timestamps;
             this.metrics = metrics;
             this.kvs = kvs;
+            this.timelock = timelock;
         }
 
         static SweepQueueFactory create(TargetedSweepMetrics metrics, KeyValueService kvs,
+                TimelockService timelock,
                 Supplier<Integer> shardsConfig) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
@@ -164,7 +172,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-            return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs);
+            return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs, timelock);
         }
 
         private SweepQueueWriter createWriter() {
@@ -176,7 +184,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {
-            return new SweepQueueDeleter(kvs, follower);
+            return new SweepQueueDeleter(kvs, follower, new DefaultTableClearer(kvs, timelock::getImmutableTimestamp));
         }
 
         private SweepQueueCleaner createCleaner() {

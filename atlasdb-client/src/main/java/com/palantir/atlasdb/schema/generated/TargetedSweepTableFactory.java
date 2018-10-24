@@ -66,7 +66,12 @@ public final class TargetedSweepTableFactory {
         return SweepableTimestampsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends SweepIdToNameTable.SweepIdToNameTrigger, SweepNameToIdTable.SweepNameToIdTrigger, SweepShardProgressTable.SweepShardProgressTrigger, SweepableCellsTable.SweepableCellsTrigger, SweepableTimestampsTable.SweepableTimestampsTrigger {
+    public TableClearsTable getTableClearsTable(Transaction t,
+            TableClearsTable.TableClearsTrigger... triggers) {
+        return TableClearsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public interface SharedTriggers extends SweepIdToNameTable.SweepIdToNameTrigger, SweepNameToIdTable.SweepNameToIdTrigger, SweepShardProgressTable.SweepShardProgressTrigger, SweepableCellsTable.SweepableCellsTrigger, SweepableTimestampsTable.SweepableTimestampsTrigger, TableClearsTable.TableClearsTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
@@ -92,6 +97,11 @@ public final class TargetedSweepTableFactory {
 
         @Override
         public void putSweepableTimestamps(Multimap<SweepableTimestampsTable.SweepableTimestampsRow, ? extends SweepableTimestampsTable.SweepableTimestampsColumnValue> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putTableClears(Multimap<TableClearsTable.TableClearsRow, ? extends TableClearsTable.TableClearsNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

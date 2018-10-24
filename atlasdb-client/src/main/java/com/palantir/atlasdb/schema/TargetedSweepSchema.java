@@ -144,6 +144,19 @@ public enum TargetedSweepSchema implements AtlasSchema {
             sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
             conflictHandler(ConflictHandler.IGNORE_ALL);
         }});
+
+        schema.addTableDefinition("tableClears", new TableDefinition() {{
+            allSafeForLoggingByDefault();
+            rowName();
+            rowComponent("table", ValueType.STRING);
+
+            columns();
+            column("lastClearedTimestamp", "l", ValueType.VAR_LONG);
+
+            // all writes are CAS
+            sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+            conflictHandler(ConflictHandler.IGNORE_ALL);
+        }});
     }
 
     @Override

@@ -99,7 +99,6 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                OrphanedSentinelCleaner.noOp(),
                 IGNORING_EXECUTOR,
                 CommitProfileProcessor.createNonLogging(metricsManager),
                 true,

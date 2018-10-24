@@ -133,7 +133,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                OrphanedSentinelCleaner.deleting(conflictDetectionManager),
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
