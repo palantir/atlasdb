@@ -93,6 +93,16 @@ develop
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |improved|
+         - Re-introduced the distinct bounded thread pools to PaxosLeaderElectionService for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
+
 ========
 v0.106.0
 ========
