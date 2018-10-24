@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - Qos Service: The experimental QosService for rate-limiting clients has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
+
     *    - |fixed|
          - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)

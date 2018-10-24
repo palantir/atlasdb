@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
+import com.palantir.common.base.Throwables;
 
 class TaskRunner {
     private ExecutorService executor;
@@ -41,7 +41,7 @@ class TaskRunner {
                 //Callable<Void> returns null, so can't use immutable list
                 return Collections.singletonList(tasks.get(0).call());
             } catch (Exception e) {
-                throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
         }
 
@@ -56,7 +56,7 @@ class TaskRunner {
             }
             return results;
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         } finally {
             for (Future<V> future : futures) {
                 future.cancel(true);
