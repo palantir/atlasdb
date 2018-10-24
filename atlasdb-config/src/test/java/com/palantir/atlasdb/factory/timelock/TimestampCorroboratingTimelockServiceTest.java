@@ -22,6 +22,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,7 +31,10 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimestampCorroboratingTimelockServiceTest {
@@ -75,6 +80,19 @@ public class TimestampCorroboratingTimelockServiceTest {
         when(rawTimelockService.lockImmutableTimestamp(any())).thenReturn(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE);
 
         assertThrowsOnSecondCall(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionShouldFail() {
+        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
+                StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
+                        TimestampAndPartition.of(1L, 0));
+
+        when(rawTimelockService.startIdentifiedAtlasDbTransaction(any()))
+                .thenReturn(startIdentifiedAtlasDbTransactionResponse);
+
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(UUID.randomUUID())));
     }
 
     private void assertThrowsOnSecondCall(Runnable runnable) {
