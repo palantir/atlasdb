@@ -97,6 +97,11 @@ develop
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |improved|
+         - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
+           Previously, puts would instead fail at runtime when the column did not exist.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
+ 
 ========
 v0.106.0
 ========
