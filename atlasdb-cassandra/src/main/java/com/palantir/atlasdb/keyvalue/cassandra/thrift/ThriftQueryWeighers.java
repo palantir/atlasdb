@@ -18,7 +18,6 @@ package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -36,12 +35,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 public final class ThriftQueryWeighers {
     private static final Logger log = LoggerFactory.getLogger(CassandraClient.class);
 
-    private static final int ESTIMATED_NUM_BYTES_PER_ROW = 100;
-    private static final QueryWeight DEFAULT_ESTIMATED_WEIGHT = ImmutableQueryWeight.builder()
-            .numBytes(ESTIMATED_NUM_BYTES_PER_ROW)
-            .numDistinctRows(1)
-            .timeTakenNanos(TimeUnit.MILLISECONDS.toNanos(2))
-            .build();
+    static final int ESTIMATED_NUM_BYTES_PER_ROW = 100;
 
     private ThriftQueryWeighers() { }
 
@@ -90,9 +84,9 @@ public final class ThriftQueryWeighers {
             @Override
             public QueryWeight weighFailure(Exception error, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
-                        .from(DEFAULT_ESTIMATED_WEIGHT)
                         .numBytes(ESTIMATED_NUM_BYTES_PER_ROW * numberOfQueriedRows)
                         .timeTakenNanos(timeTakenNanos)
+                        .numDistinctRows(1)
                         .build();
             }
         };
@@ -106,7 +100,6 @@ public final class ThriftQueryWeighers {
             @Override
             public QueryWeight weighSuccess(T result, long timeTakenNanos) {
                 return ImmutableQueryWeight.builder()
-                        .from(DEFAULT_ESTIMATED_WEIGHT)
                         .numBytes(weight.get())
                         .numDistinctRows(numRows)
                         .timeTakenNanos(timeTakenNanos)
@@ -126,7 +119,7 @@ public final class ThriftQueryWeighers {
             return numBytes.get();
         } catch (Exception e) {
             log.warn("Error calculating number of bytes", e);
-            return DEFAULT_ESTIMATED_WEIGHT.numBytes();
+            return ESTIMATED_NUM_BYTES_PER_ROW;
         }
     }
 
