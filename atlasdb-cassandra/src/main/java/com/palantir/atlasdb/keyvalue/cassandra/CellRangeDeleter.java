@@ -31,8 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
 class CellRangeDeleter {
     private final CassandraClientPool clientPool;
@@ -50,7 +50,7 @@ class CellRangeDeleter {
         this.rangeTombstoneTimestampProvider = rangeTombstoneTimestampProvider;
     }
 
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
+    void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
             boolean deleteSentinels) {
         if (maxTimestampExclusiveByCell.isEmpty()) {
             return;
@@ -74,7 +74,7 @@ class CellRangeDeleter {
         }
     }
 
-    public void deleteAllTimestampsOnSingleHost(
+    private void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
             InetSocketAddress host,
             Map<Cell, Long> maxTimestampExclusiveByCell,
@@ -104,7 +104,7 @@ class CellRangeDeleter {
             throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
                     e);
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
