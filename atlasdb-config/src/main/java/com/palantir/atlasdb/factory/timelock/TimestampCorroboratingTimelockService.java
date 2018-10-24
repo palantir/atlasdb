@@ -84,8 +84,6 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     /**
      * Runs a validation by comparing a fresh timestamp with a conservative lower bound that should be strictly lower
      * than any timestamp returned. This method can be used for assertion checks on startup.
-     *
-     * @param conservativeLowerBoundSupplier
      */
     public void validateWithConservativeLowerBound(Supplier<Long> conservativeLowerBoundSupplier) {
         long unreadableTimestamp = conservativeLowerBoundSupplier.get();

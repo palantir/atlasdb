@@ -373,7 +373,7 @@ public abstract class TransactionManagers {
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), corroboratingTimelockService),
                 targetedSweep.singleAttemptCallback(),
                 new DeprecatedTablesCleaner(schemas()),
-                asyncInitializationCallback());
+                asyncInitializationCallback()));
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
