@@ -40,7 +40,7 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
-@AutoDelegate(typeToExtend = CassandraKeyValueServiceConfig.class)
+@AutoDelegate
 @Value.Immutable
 public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
 

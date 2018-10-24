@@ -15,7 +15,7 @@ dependencies {
 		exclude group: 'com.squareup.okhttp3'
 		exclude group: 'com.google.guava'
     }
-    compile (project(":qos-service-api"));
+    compile (project(":qos-service-api"))
     compile group: 'com.google.guava', name: 'guava'
     compile group: 'net.jcip', name: 'jcip-annotations'
 
@@ -43,7 +43,6 @@ dependencies {
 
 configurations.all {
     resolutionStrategy {
-        force 'org.assertj:assertj-core:3.5.2'
         force 'org.hamcrest:hamcrest-core:1.3'
     }
 }

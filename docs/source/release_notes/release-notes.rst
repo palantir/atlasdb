@@ -51,6 +51,20 @@ develop
          - Change
 
     *    - |fixed|
+         - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
+
+    *    - |fixed|
+         - Targeted sweep now deletes certain sweep queue rows faster than before, which should
+           reduce table bloat (particularly on space constrained systems).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
+    *    - |devbreak|
+         - The AutoDelegate annotation no longer supports a typeToExtend parameter.
+           Users should instead annotate the desired class or interface directly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3579>`__)
+
+    *    - |fixed|
          - Targeted sweep does better with missing tables, and also with the empty namespace.
            Previously, it would just cycle on the error and never sweep. A highly undesirable condition.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3577>`__)
@@ -71,6 +85,13 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |new|
+         - Old deprecated tables can now be added to a schema to be cleaned up on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
+
+    *    - |fixed|
+         - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
 ========
 v0.106.0

@@ -42,7 +42,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @Path("/keyvalue")
-@AutoDelegate(typeToExtend = KeyValueService.class)
+@AutoDelegate
 public interface KeyValueService extends AutoCloseable {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.

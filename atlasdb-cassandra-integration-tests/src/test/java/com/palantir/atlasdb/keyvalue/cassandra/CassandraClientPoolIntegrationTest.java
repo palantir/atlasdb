@@ -44,13 +44,13 @@ import com.palantir.common.base.FunctionCheckedException;
 
 public class CassandraClientPoolIntegrationTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(CassandraClientPoolIntegrationTest.class);
-    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
+    private static final int MODIFIED_REPLICATION_FACTOR = CASSANDRA.getConfig().replicationFactor() + 1;
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
+    private Blacklist blacklist = new Blacklist(CASSANDRA.getConfig());
     private CassandraClientPoolImpl clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
             CASSANDRA.getConfig(), CassandraClientPoolImpl.StartupChecks.RUN, blacklist);
 
@@ -118,6 +118,18 @@ public class CassandraClientPoolIntegrationTest {
         changeReplicationFactor(CASSANDRA.getConfig().replicationFactor());
     }
 
+    @Test
+    public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
+        blacklist.addAll(clientPool.getCurrentPools().keySet());
+        try {
+            clientPool.run(describeRing);
+        } catch (Exception e) {
+            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
+        }
+
+        blacklist.removeAll();
+    }
+
     private void assertReplicationFactorMismatchError(Exception ex) {
         assertThat(ex.getMessage(), is("Your current Cassandra keyspace ("
                 + CASSANDRA.getConfig().getKeyspaceOrThrow()
@@ -136,18 +148,6 @@ public class CassandraClientPoolIntegrationTest {
             client.system_update_keyspace(modifiedKsDef);
             return null;
         });
-    }
-
-    @Test
-    public void testPoolGivenNoOptionTalksToBlacklistedHosts() {
-        blacklist.addAll(clientPool.getCurrentPools().keySet());
-        try {
-            clientPool.run(describeRing);
-        } catch (Exception e) {
-            fail("Should have been allowed to attempt forward progress after blacklisting all hosts in pool.");
-        }
-
-        blacklist.removeAll();
     }
 
     private FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> describeRing =

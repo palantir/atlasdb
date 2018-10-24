@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedScheduledExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -45,7 +46,6 @@ import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import com.palantir.util.JavaSuppliers;
 
 public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private static final Logger log = LoggerFactory.getLogger(AsyncTimeLockServicesCreator.class);
@@ -84,7 +84,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 LockService.class,
                 asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
                         ? rawLockServiceSupplier
-                        : JavaSuppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier),
+                        : Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
                 client);
 
         leadershipCreator.executeWhenLostLeadership(() ->

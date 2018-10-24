@@ -31,7 +31,7 @@ import com.palantir.timestamp.TimestampRange;
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@AutoDelegate(typeToExtend = TimelockService.class)
+@AutoDelegate
 public interface TimelockService {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
@@ -60,6 +60,11 @@ public interface TimelockService {
     @POST
     @Path("start-atlasdb-transaction")
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
+
+    @POST
+    @Path("start-identified-atlasdb-transaction")
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request);
 
     @POST
     @Path("immutable-timestamp")

@@ -13,24 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
+package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.base.Suppliers;
+import java.util.List;
 
-/**
- * This class provides utilities for Java Suppliers.
- *
- * TODO(jkong): Investigate if this can be removed once on Guava 21.
- */
-public final class JavaSuppliers {
-    private JavaSuppliers() {
-        // utility
-    }
+import org.immutables.value.Value;
 
-    public static <F, T> Supplier<T> compose(Function<F, T> function, Supplier<F> supplier) {
-        return Suppliers.compose(function::apply, supplier::get)::get;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
+
+@Value.Immutable
+public interface DedicatedRows {
+    @Value.Parameter
+    List<SweepableCellsRow> getDedicatedRows();
+
+    static DedicatedRows of(List<SweepableCellsRow> dedicatedRows) {
+        return ImmutableDedicatedRows.of(dedicatedRows);
     }
 }

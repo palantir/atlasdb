@@ -15,12 +15,13 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import org.junit.ClassRule;
 
 public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    @Override
-    protected KeyValueService createKeyValueService() {
-        return new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+
+    public InMemoryGetCandidateCellsForSweepingTest() {
+        super(TRM);
     }
 }

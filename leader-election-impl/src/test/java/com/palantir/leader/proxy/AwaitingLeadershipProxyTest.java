@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -194,6 +195,23 @@ public class AwaitingLeadershipProxyTest {
 
         verify(leaderElectionService).getCurrentTokenIfLeading();
         verify(leaderElectionService).blockOnBecomingLeader();
+    }
+
+    @Test
+    public void shouldRetryBecomingLeader() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader())
+                .thenThrow(new RuntimeException())
+                .thenReturn(leadershipToken);
+
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Runnable.class,
+                delegateSupplier,
+                leaderElectionService);
+
+        Thread.sleep(1000); //wait for retrying on gaining leadership
+
+        proxy.run();
+        verify(leaderElectionService, atLeast(2)).blockOnBecomingLeader();
     }
 
     @SuppressWarnings("IllegalThrows")

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.persistentlock;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.processors.AutoDelegate;
 
-@AutoDelegate(typeToExtend = LockStore.class)
+@AutoDelegate
 public interface LockStore {
     LockEntry getLockEntryWithLockId(PersistentLockId lockId);
     void releaseLock(LockEntry lockEntry) throws CheckAndSetException;

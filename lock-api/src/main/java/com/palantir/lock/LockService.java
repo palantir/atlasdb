@@ -39,7 +39,7 @@ import com.palantir.processors.AutoDelegate;
  * @author jtamer
  */
 @Path("/lock")
-@AutoDelegate(typeToExtend = LockService.class)
+@AutoDelegate
 @Beta public interface LockService extends RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks. The locks are
