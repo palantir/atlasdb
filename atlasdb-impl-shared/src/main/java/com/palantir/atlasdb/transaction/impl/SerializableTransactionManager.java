@@ -402,6 +402,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
+                OrphanedSentinelCleaner.deleting(conflictDetectionManager),
                 deleteExecutor,
                 commitProfileProcessor,
                 validateLocksOnReads,

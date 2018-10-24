@@ -179,6 +179,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
+                OrphanedSentinelCleaner.deleting(conflictDetectionManager),
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
                 true,

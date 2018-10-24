@@ -123,6 +123,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
+                OrphanedSentinelCleaner.deleting(conflictDetectionManager),
                 MoreExecutors.newDirectExecutorService(),
                 CommitProfileProcessor.createNonLogging(metricsManager),
                 true,

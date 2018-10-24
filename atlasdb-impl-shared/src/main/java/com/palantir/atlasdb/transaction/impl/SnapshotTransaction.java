@@ -219,38 +219,43 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
 
+    protected final OrphanedSentinelCleaner orphanedSentinelCleaner;
+
     protected volatile boolean hasReads;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
+     * @param orphanedSentinelCleaner
      */
     /* package */ SnapshotTransaction(
-                               MetricsManager metricsManager,
-                               KeyValueService keyValueService,
-                               TimelockService timelockService,
-                               TransactionService transactionService,
-                               Cleaner cleaner,
-                               Supplier<Long> startTimeStamp,
-                               ConflictDetectionManager conflictDetectionManager,
-                               SweepStrategyManager sweepStrategyManager,
-                               long immutableTimestamp,
-                               Optional<LockToken> immutableTimestampLock,
-                               PreCommitCondition preCommitCondition,
-                               AtlasDbConstraintCheckingMode constraintCheckingMode,
-                               Long transactionTimeoutMillis,
-                               TransactionReadSentinelBehavior readSentinelBehavior,
-                               boolean allowHiddenTableAccess,
-                               TimestampCache timestampValidationReadCache,
-                               ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency,
-                               MultiTableSweepQueueWriter sweepQueue,
-                               ExecutorService deleteExecutor,
-                               CommitProfileProcessor commitProfileProcessor,
-                               boolean validateLocksOnReads,
-                               Supplier<TransactionConfig> transactionConfig) {
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Optional<LockToken> immutableTimestampLock,
+            PreCommitCondition preCommitCondition,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampValidationReadCache,
+            ExecutorService getRangesExecutor,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueue,
+            OrphanedSentinelCleaner orphanedSentinelCleaner,
+            ExecutorService deleteExecutor,
+            CommitProfileProcessor commitProfileProcessor,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
+        this.orphanedSentinelCleaner = orphanedSentinelCleaner;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
@@ -1059,7 +1064,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
-     * A sentinel becomes orphaned if the table
+     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred
+     * and where it was truncated.
      */
     private Set<Cell> findOrphanedSentinels(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::atDeletionSentinel).keySet();
@@ -1067,7 +1073,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return Collections.emptySet();
         }
         Map<Cell, Value> atMaxTimestamp = keyValueService.get(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
-        return Maps.filterValues(atMaxTimestamp, SnapshotTransaction::atDeletionSentinel).keySet();
+        Set<Cell> result = Maps.filterValues(atMaxTimestamp, SnapshotTransaction::atDeletionSentinel).keySet();
+        if (!atMaxTimestamp.isEmpty()) {
+            orphanedSentinelCleaner.enqueue(this, table, result);
+        }
+        return result;
     }
 
     private static boolean atDeletionSentinel(Value value) {
@@ -1097,26 +1107,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (atDeletionSentinel(value)) {
                 getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
 
-                if (!getTransactionType().equals(TransactionType.TRUNCATION_CLEANUP)) {
-                    // This means that this transaction started too long ago. When we do garbage collection,
-                    // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                    switch (getReadSentinelBehavior()) {
-                        case IGNORE:
-                            break;
-                        case THROW_EXCEPTION:
-                            if (orphanedSentinels.contains(key)) {
-                                throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                        + "deleted. This can be caused by hard delete transactions using the type "
-                                        + TransactionType.AGGRESSIVE_HARD_DELETE
-                                        + ". It can also be caused by transactions taking too long, or"
-                                        + " its locks expired. Retrying it should work.");
+                // This means that this transaction started too long ago. When we do garbage collection,
+                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
+                switch (getReadSentinelBehavior()) {
+                    case IGNORE:
+                        break;
+                    case THROW_EXCEPTION:
+                        if (!orphanedSentinels.contains(key)) {
+                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
+                                    + "deleted. This can be caused by hard delete transactions using the type "
+                                    + TransactionType.AGGRESSIVE_HARD_DELETE
+                                    + ". It can also be caused by transactions taking too long, or"
+                                    + " its locks expired. Retrying it should work.");
 
-                            }
-                            break;
-                        default:
-                            throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
-                    }
-
+                        }
+                        break;
+                    default:
+                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
                 }
             } else {
                 Long theirCommitTimestamp = commitTimestamps.get(value.getTimestamp());
