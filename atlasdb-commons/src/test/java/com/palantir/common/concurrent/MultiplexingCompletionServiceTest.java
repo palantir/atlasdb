@@ -144,6 +144,7 @@ public class MultiplexingCompletionServiceTest {
             try {
                 boundedService.submit(KEY_1, getSleepCallable(5_000));
             } catch (RejectedExecutionException e) {
+                e.printStackTrace();
                 // This is permissible
             }
         }
