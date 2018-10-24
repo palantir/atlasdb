@@ -13,14 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.cassandra.multinode;
 
-import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+package com.palantir.common.base;
 
-public class LessThanQuorumNodeAvailabilityTest extends AbstractNodeAvailabilityTest {
-
-    @Override
-    protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
-        return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
-    }
+@FunctionalInterface
+public interface RunnableCheckedException<E extends Exception> {
+    void run() throws E;
 }

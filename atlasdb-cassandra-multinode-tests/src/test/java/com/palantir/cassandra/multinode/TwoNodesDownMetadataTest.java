@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.cassandra.multinode;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
-public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
+public class TwoNodesDownMetadataTest extends AbstractDegradedClusterTest {
 
     @Override
     void testSetup(CassandraKeyValueService kvs) {
@@ -30,14 +30,26 @@ public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
     }
 
     @Test
-    public void deletingThrows() {
+    public void getMetadataForTableThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, TIMESTAMP)));
+                getTestKvs().getMetadataForTable(TEST_TABLE));
     }
 
     @Test
-    public void deleteAllTimestampsThrows() {
+    public void getMetadataForTablesThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, TIMESTAMP), false));
+                getTestKvs().getMetadataForTables());
+    }
+
+    @Test
+    public void putMetadataForTableThrowsAndDoesNotChangeCassandraSchema() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().putMetadataForTable(TEST_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA));
+    }
+
+    @Test
+    public void putMetadataForTablesThrowsAndDoesNotChangeCassandraSchema() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().putMetadataForTables(ImmutableMap.of(TEST_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA)));
     }
 }

@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 
 public class SchemaMutationLockTables {
@@ -72,7 +72,7 @@ public class SchemaMutationLockTables {
             log.info("Creating lock table {}", SafeArg.of("schemaMutationTableName", lockTable.getQualifiedName()));
             createTableWithCustomId(lockTable);
             return lockTable;
-        } catch (InvalidRequestException ire) {
+        } catch (AtlasDbDependencyException e) {
             // This can happen if multiple nodes concurrently attempt to create the locks table
             Set<TableReference> lockTables = getAllLockTables();
             if (lockTables.size() == 1) {
@@ -111,11 +111,8 @@ public class SchemaMutationLockTables {
             try {
                 client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        config,
-                        client,
-                        tableRef.getQualifiedName(),
-                        true);
+                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                        "creating the lock table " + tableRef.getQualifiedName());
                 return null;
             } catch (TException ex) {
                 log.warn("Failed to create table", ex);

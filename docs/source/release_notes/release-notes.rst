@@ -63,6 +63,12 @@ develop
            reduce table bloat (particularly on space constrained systems).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
 
+    *    - |improved| |fixed|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, all reachable nodes must agree and at least a quorum of nodes must be reachable, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
+
     *    - |devbreak|
          - The AutoDelegate annotation no longer supports a typeToExtend parameter.
            Users should instead annotate the desired class or interface directly.

@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.cassandra.multinode;
 
-import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+package com.palantir.atlasdb.keyvalue.api;
 
-public class LessThanQuorumNodeAvailabilityTest extends AbstractNodeAvailabilityTest {
+import java.util.List;
 
-    @Override
-    protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
-        return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
+import com.palantir.common.exception.AtlasDbDependencyException;
+
+public class RetryLimitReachedException extends AtlasDbDependencyException {
+    private static final String MESSAGE = "Request was retried %d times and failed each time for the request.";
+
+    public RetryLimitReachedException(List<Exception> exceptions) {
+        super(String.format(MESSAGE, exceptions.size()));
+        exceptions.forEach(this::addSuppressed);
     }
 }
