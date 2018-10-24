@@ -89,6 +89,10 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |new|
+         - Old deprecated tables can now be added to a schema to be cleaned up on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
+
     *    - |fixed|
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)

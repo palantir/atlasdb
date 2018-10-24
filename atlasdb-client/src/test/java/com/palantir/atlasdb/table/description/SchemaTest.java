@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -40,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -51,6 +53,8 @@ import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
 import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.schema.stream.StreamTableType;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SchemaTest {
     @Rule
@@ -104,7 +108,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testIgnoreTableNameLengthFlag() throws IOException {
+    public void testIgnoreTableNameLengthFlag() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.ignoreTableNameLengthChecks();
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
@@ -113,7 +117,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsCassandra() throws IOException {
+    public void testLongTableNameLengthFailsCassandra() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
@@ -127,7 +131,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsBoth() throws IOException {
+    public void testLongTableNameLengthFailsBoth() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
@@ -141,7 +145,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsNamespace() throws IOException {
+    public void testLongTableNameLengthFailsNamespace() {
         // If namespace is non-empty, internal table name length is |namespace| + |tableName| + 2
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
@@ -184,7 +188,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongIndexNameLengthFailsCassandra() throws IOException {
+    public void testLongIndexNameLengthFailsCassandra() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
@@ -333,6 +337,34 @@ public class SchemaTest {
         }});
 
         schema.validate();
+    }
+
+    @Test
+    public void canAddDeprecatedTablesAndIndexes() {
+        Namespace namespace = Namespace.create("namespace");
+        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
+        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
+        schema.addDeprecatedTables("anOldTable");
+
+        schema.validate();
+        assertThat(schema.getDeprecatedTables()).containsOnly(
+                TableReference.create(namespace, "anOldTable"));
+    }
+
+    @Test
+    public void cannotAddDeprecatedTablesOrIndexesThatConflictWithCurrentTables() {
+        Namespace namespace = Namespace.create("namespace");
+        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
+        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
+        schema.addDeprecatedTables(TEST_TABLE_NAME);
+
+        assertThatExceptionOfType(SafeIllegalStateException.class)
+                .isThrownBy(schema::validate)
+                .withMessage("A deprecated table cannot also be part of your schema. "
+                        + "Check logs for any unsafe table names.")
+                .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
+                        "invalidDeprecatedTables_unsafe",
+                        ImmutableSet.of(TableReference.create(namespace, TEST_TABLE_NAME)))));
     }
 
     private Schema getSchemaWithSimpleTestTable() {

@@ -19,14 +19,14 @@ import java.io.Closeable;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
-public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
+public interface AsyncTimelockService extends ClientAwareManagedTimestampService, Closeable {
 
     long currentTimeMillis();
 
