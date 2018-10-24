@@ -28,6 +28,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableSequenceAndBound.class)
 @JsonDeserialize(as = ImmutableSequenceAndBound.class)
 public interface SequenceAndBound {
+    @Value.Parameter
     long sequence();
+
+    @Value.Parameter
     long bound();
 }

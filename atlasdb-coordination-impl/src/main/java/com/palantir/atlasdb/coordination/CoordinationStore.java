@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 public interface CoordinationStore {
     /**
      * Gets the value associated with a given sequence number.
+     * Sequence numbers are expected to be strictly positive.
      *
      * @param sequenceNumber sequence number to read a value for
      * @return value stored at that sequence number; empty if none is present
@@ -34,6 +35,7 @@ public interface CoordinationStore {
 
     /**
      * Stores a value for a given sequence number.
+     * Sequence numbers are expected to be strictly positive.
      *
      * @param sequenceNumber sequence number to store a value for
      * @param value value to be stored
