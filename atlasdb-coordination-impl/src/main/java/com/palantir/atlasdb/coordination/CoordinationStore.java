@@ -18,6 +18,8 @@ package com.palantir.atlasdb.coordination;
 
 import java.util.Optional;
 
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+
 /**
  * A CoordinationStore stores data that a CoordinationService may use.
  */
@@ -53,6 +55,6 @@ public interface CoordinationStore {
      * @return the value that is now present after this check-and-set operation. Note that a successful CAS and a
      *         failed CAS where the value was set to our value are indistinguishable, but this is fine.
      */
-    Optional<SequenceAndBound> checkAndSetCoordinationValue(
+    CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue);
 }

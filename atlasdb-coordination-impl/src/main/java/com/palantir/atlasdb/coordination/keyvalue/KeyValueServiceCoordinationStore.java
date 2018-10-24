@@ -18,9 +18,9 @@ package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,8 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -124,7 +126,7 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
     }
 
     @Override
-    public Optional<SequenceAndBound> checkAndSetCoordinationValue(
+    public CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
         CheckAndSetRequest request = oldValue
                 .map(value -> CheckAndSetRequest.singleCell(
@@ -140,14 +142,12 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
         try {
             kvs.checkAndSet(request);
             // success
-            return Optional.of(newValue);
+            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
-            List<byte[]> actualValues = e.getActualValues();
-            Preconditions.checkState(actualValues.size() < 2,
-                    "Should not have more than one value, given that our CAS request was on a single cell!");
-            return actualValues.stream()
-                    .findFirst()
-                    .map(KeyValueServiceCoordinationStore::deserializeSequenceAndBound);
+            return ImmutableCheckAndSetResult.of(false, e.getActualValues()
+                    .stream()
+                    .map(KeyValueServiceCoordinationStore::deserializeSequenceAndBound)
+                    .collect(Collectors.toList()));
         }
     }
 
