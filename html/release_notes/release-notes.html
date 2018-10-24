@@ -186,40 +186,48 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Qos Service: The experimental QosService for rate-limiting clients has been removed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3586">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug in the <code class="docutils literal notranslate"><span class="pre">AsyncInitializer.cancelInitialization</span></code> method that caused asynchronously initialized <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueServiceImpl</span></code> and <code class="docutils literal notranslate"><span class="pre">CassandraClientPoolImpl</span></code> objects unable to be closed and shut down, respectively.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3578">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Targeted sweep now deletes certain sweep queue rows faster than before, which should
 reduce table bloat (particularly on space constrained systems).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3581">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The AutoDelegate annotation no longer supports a typeToExtend parameter.
 Users should instead annotate the desired class or interface directly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3579">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Targeted sweep does better with missing tables, and also with the empty namespace.
 Previously, it would just cycle on the error and never sweep. A highly undesirable condition.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3577">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">KeyValueServicePuncherStore``s</span> <span class="pre">``getMillisForTimestamp</span></code> method now does a much more efficient <code class="docutils literal notranslate"><span class="pre">_punch</span></code> table lookup.
 This affects the performance of calculating the <code class="docutils literal notranslate"><span class="pre">millisSinceLastSweptTs</span></code> metric for targeted sweep.
 Also, the above mentioned metric will now consistently report falling behind if no new entries are being punhed into the punch table.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3570">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The legacy lock service’s lock state logger now logs additional information about the lock service’s internal synchronization state.
 This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Old deprecated tables can now be added to a schema to be cleaned up on startup.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3569">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug where <code class="docutils literal notranslate"><span class="pre">AwaitingLeadershipProxy</span></code> stops trying to gain leadership, causing client calls to leader to throw <code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code>.
