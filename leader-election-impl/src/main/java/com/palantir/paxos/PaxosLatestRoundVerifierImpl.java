@@ -31,15 +31,15 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
-    private final Map<PaxosAcceptor, ExecutorService> executor;
+    private final Map<PaxosAcceptor, ExecutorService> executors;
     private final Supplier<Boolean> onlyLogOnQuorumFailure;
 
     public PaxosLatestRoundVerifierImpl(
             List<PaxosAcceptor> acceptors, int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executor, Supplier<Boolean> onlyLogOnQuorumFailure) {
+            Map<PaxosAcceptor, ExecutorService> executors, Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
-        this.executor = executor;
+        this.executors = executors;
         this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
     }
 
@@ -55,7 +55,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
                 acceptors,
                 acceptor -> new PaxosResponseImpl(acceptorAgreesIsLatestRound(acceptor, round)),
                 quorumSize,
-                executor,
+                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
                 onlyLogOnQuorumFailure.get());
     }

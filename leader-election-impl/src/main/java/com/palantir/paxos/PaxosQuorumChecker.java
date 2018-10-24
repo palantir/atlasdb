@@ -73,30 +73,30 @@ public final class PaxosQuorumChecker {
      * @param remotes a list endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests required to reach quorum
-     * @param executor runs the requests
+     * @param executorService runs the requests
      * @return a list responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec) {
-        return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
+        return collectQuorumResponses(remotes, request, quorumSize, executorService, remoteRequestTimeoutInSec, false);
     }
 
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure) {
         return collectResponses(
                 remotes,
                 request,
                 quorumSize,
-                mapToSingleExecutorService(remotes, executor),
+                mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeoutInSec,
                 onlyLogOnQuorumFailure,
                 true);
@@ -127,19 +127,19 @@ public final class PaxosQuorumChecker {
      *
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
-     * @param executor runs the requests
+     * @param executorService runs the requests
      * @return a list of responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectAsManyResponsesAsPossible(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec) {
         return collectResponses(
                 remotes,
                 request,
                 remotes.size(),
-                mapToSingleExecutorService(remotes, executor),
+                mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeoutInSec,
                 false,
                 false);

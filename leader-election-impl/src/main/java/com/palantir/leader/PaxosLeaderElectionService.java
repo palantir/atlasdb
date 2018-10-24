@@ -99,52 +99,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
                                       List<PaxosAcceptor> acceptors,
                                       List<PaxosLearner> learners,
-                                      ExecutorService executor,
+                                      Function<String, ExecutorService> executorServiceFactory,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs,
+                                      PaxosLeaderElectionEventRecorder eventRecorder,
                                       Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer, knowledge, otherPotentialLeadersToHosts, acceptors, learners, executor,
-                updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
-                PaxosLeaderElectionEventRecorder.NO_OP, onlyLogOnQuorumFailure);
-    }
-
-    PaxosLeaderElectionService(PaxosProposer proposer,
-            PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            ExecutorService executor,
-            long updatePollingWaitInMs,
-            long randomWaitBeforeProposingLeadership,
-            long leaderPingResponseWaitMs,
-            PaxosLeaderElectionEventRecorder eventRecorder,
-            Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer,
-                knowledge,
-                otherPotentialLeadersToHosts,
-                acceptors,
-                learners,
-                unused -> executor,
-                updatePollingWaitInMs,
-                randomWaitBeforeProposingLeadership,
-                leaderPingResponseWaitMs,
-                eventRecorder,
-                onlyLogOnQuorumFailure);
-    }
-
-    // Please use the builder instead.
-    PaxosLeaderElectionService(PaxosProposer proposer,
-            PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            Function<String, ExecutorService> executorServiceFactory,
-            long updatePollingWaitInMs,
-            long randomWaitBeforeProposingLeadership,
-            long leaderPingResponseWaitMs,
-            PaxosLeaderElectionEventRecorder eventRecorder,
-            Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -196,7 +156,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             Function<String, ExecutorService> executorServiceFactory) {
         Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
         for (int i = 0; i < paxosAcceptors.size(); i++) {
-            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("lates-round-verifier-" + i));
+            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("latest-round-verifier-" + i));
         }
         return executors;
     }
@@ -330,7 +290,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
             allFutures.add(pingService.submit(potentialLeader,
-                    () -> new AbstractMap.SimpleEntry<>(potentialLeader.getUUID(), potentialLeader)));
+                    () -> Maps.immutableEntry(potentialLeader.getUUID(), potentialLeader)));
         }
 
         // collect responses
