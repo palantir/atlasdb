@@ -155,7 +155,7 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
         try {
             return OBJECT_MAPPER.readValue(contents, SequenceAndBound.class);
         } catch (IOException e) {
-            log.error("Error encountered when deserializing sequence and bound: %s",
+            log.error("Error encountered when deserializing sequence and bound: {}",
                     SafeArg.of("sequenceAndBound", Arrays.toString(contents)));
             throw new RuntimeException(e);
         }
@@ -165,7 +165,7 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
         try {
             return OBJECT_MAPPER.writeValueAsBytes(sequenceAndBound);
         } catch (JsonProcessingException e) {
-            log.error("Error encountered when serializing sequence and bound: %s",
+            log.error("Error encountered when serializing sequence and bound: {}",
                     SafeArg.of("sequenceAndBound", sequenceAndBound));
             throw new RuntimeException(e);
         }
