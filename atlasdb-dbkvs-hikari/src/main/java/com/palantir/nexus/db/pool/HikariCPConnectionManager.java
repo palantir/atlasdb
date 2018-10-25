@@ -348,7 +348,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         return connConfig.getDbType();
     }
 
-    private class ConnectionAcquisitionProfiler {
+    private final class ConnectionAcquisitionProfiler {
         private final Stopwatch globalStopwatch;
         private final Stopwatch trialStopwatch;
 
