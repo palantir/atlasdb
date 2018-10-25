@@ -101,9 +101,7 @@ final class SchemaMutationLock {
 
     void cleanLockState() throws TException {
         Optional<Column> existingColumn = clientPool.runWithRetry(this::queryExistingLockColumn);
-        if (existingColumn.isPresent()) {
-            schemaMutationUnlock(getLockIdFromColumn(existingColumn.get()));
-        }
+        existingColumn.ifPresent(column -> schemaMutationUnlock(getLockIdFromColumn(column)));
     }
 
     synchronized void runWithLock(Action action) {

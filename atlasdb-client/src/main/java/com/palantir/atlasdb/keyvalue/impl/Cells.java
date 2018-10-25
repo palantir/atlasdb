@@ -58,19 +58,11 @@ public final class Cells {
 
     private Cells() { /* */ }
 
-    public static Function<Cell, byte[]> getRowFunction() {
-        return from -> from.getRowName();
-    }
-
-    public static Function<Cell, byte[]> getColumnFunction() {
-        return from -> from.getColumnName();
-    }
-
     public static SortedSet<byte[]> getRows(Iterable<Cell> cells) {
         if (Iterables.isEmpty(cells)) {
             return ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator()).build();
         }
-        return FluentIterable.from(cells).transform(getRowFunction())
+        return FluentIterable.from(cells).transform(Cell::getRowName)
                 .toSortedSet(UnsignedBytes.lexicographicalComparator());
     }
 

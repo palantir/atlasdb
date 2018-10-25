@@ -36,15 +36,14 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
 
 class CellDeleter {
+    private final CassandraClientPool clientPool;
+    private final WrappingQueryRunner wrappingQueryRunner;
+    private final ConsistencyLevel deleteConsistency;
     private final LongUnaryOperator deleteTimestampGetter;
-
-    private CassandraClientPool clientPool;
-    private WrappingQueryRunner wrappingQueryRunner;
-    private ConsistencyLevel deleteConsistency;
 
     CellDeleter(CassandraClientPool clientPool,
             WrappingQueryRunner wrappingQueryRunner,
@@ -120,7 +119,7 @@ class CellDeleter {
             throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
                     e);
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 }
