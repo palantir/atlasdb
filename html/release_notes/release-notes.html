@@ -231,20 +231,26 @@ This includes details of queueing threads on each underlying sync object, as wel
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
 <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The HikariConnectionClientPool now allows specification of a use-case.
+If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
+This may be useful for debugging when users run multiple such pools.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3588">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>Old deprecated tables can now be added to a schema to be cleaned up on startup.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3569">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug where <code class="docutils literal notranslate"><span class="pre">AwaitingLeadershipProxy</span></code> stops trying to gain leadership, causing client calls to leader to throw <code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3582">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.
 If you were consuming this service, please contact the AtlasDB team.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3605">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
 Previously, puts would instead fail at runtime when the column did not exist.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3604">Pull Request</a>)</td>
