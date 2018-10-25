@@ -38,8 +38,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.qos.FakeQosClient;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -68,8 +66,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -85,7 +82,6 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 timestampTable,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
@@ -95,8 +91,7 @@ public class ServiceDiscoveringAtlasSupplier {
             java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            boolean initializeAsync,
-            QosClient qosClient) {
+            boolean initializeAsync) {
         this(metricsManager,
                 config,
                 runtimeConfig,
@@ -104,7 +99,6 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 Optional.empty(),
                 initializeAsync,
-                qosClient,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
@@ -116,7 +110,6 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
-            QosClient qosClient,
             LongSupplier timestampSupplier) {
         // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
@@ -131,8 +124,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         leaderConfig,
                         namespace,
                         timestampSupplier,
-                        initializeAsync,
-                        qosClient));
+                        initializeAsync));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());

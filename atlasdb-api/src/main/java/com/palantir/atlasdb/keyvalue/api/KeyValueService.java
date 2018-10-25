@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -650,8 +651,6 @@ public interface KeyValueService extends AutoCloseable {
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell
-     *
-     * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
     @POST
     @Path("get-all-timestamps")
@@ -661,7 +660,7 @@ public interface KeyValueService extends AutoCloseable {
     Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") TableReference tableRef,
                                           Set<Cell> cells,
                                           @QueryParam("timestamp") long timestamp)
-            throws InsufficientConsistencyException;
+            throws AtlasDbDependencyException;
 
     /**
      * Does whatever can be done to compact or cleanup a table. Intended to be called after many
