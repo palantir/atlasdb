@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -55,6 +56,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -64,6 +66,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
+    final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
@@ -71,11 +74,12 @@ import com.palantir.timestamp.TimestampService;
     final AtomicLong recentImmutableTs = new AtomicLong(-1L);
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
-    protected final Supplier<Long> lockAcquireTimeoutMs;
     final ExecutorService getRangesExecutor;
     final ExecutorService deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
+    final boolean validateLocksOnReads;
+    final Supplier<TransactionConfig> transactionConfig;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -86,6 +90,7 @@ import com.palantir.timestamp.TimestampService;
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
             TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
@@ -93,17 +98,19 @@ import com.palantir.timestamp.TimestampService;
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             boolean allowHiddenTableAccess,
-            Supplier<Long> lockAcquireTimeoutMs,
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
         super(metricsManager, timestampCache);
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
+        this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
@@ -111,7 +118,6 @@ import com.palantir.timestamp.TimestampService;
         this.constraintModeSupplier = constraintModeSupplier;
         this.cleaner = cleaner;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.lockAcquireTimeoutMs = lockAcquireTimeoutMs;
         this.closingCallbacks = new CopyOnWriteArrayList<>();
         this.isClosed = new AtomicBoolean(false);
         this.getRangesExecutor = createGetRangesExecutor(concurrentGetRangesThreadPoolSize);
@@ -119,6 +125,8 @@ import com.palantir.timestamp.TimestampService;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
         this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
+        this.validateLocksOnReads = validateLocksOnReads;
+        this.transactionConfig = transactionConfig;
     }
 
     @Override
@@ -169,10 +177,12 @@ import com.palantir.timestamp.TimestampService;
         Timer postTaskTimer = getTimer("finishTask");
         Timer.Context postTaskContext;
 
+        TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, txAndLock.immutableTsLock());
+
         SnapshotTransaction tx = (SnapshotTransaction) txAndLock.transaction();
         T result;
         try {
-            result = runTaskThrowOnConflict(task, tx);
+            result = runTaskThrowOnConflict(wrappedTask, tx);
         } finally {
             postTaskContext = postTaskTimer.time();
             timelockService.tryUnlock(ImmutableSet.of(txAndLock.immutableTsLock()));
@@ -190,6 +200,18 @@ import com.palantir.timestamp.TimestampService;
                     tx.getTimestamp(),
                     tx.getCommitTimestamp());
         }
+    }
+
+    private <T, E extends Exception> TransactionTask<T, E> wrapTaskIfNecessary(
+            TransactionTask<T, E> task, LockToken immutableTsLock) {
+        if (taskWrappingIsNecessary()) {
+            return new LockCheckingTransactionTask<>(task, timelockService, immutableTsLock);
+        }
+        return task;
+    }
+
+    private boolean taskWrappingIsNecessary() {
+        return !validateLocksOnReads;
     }
 
     protected SnapshotTransaction createTransaction(
@@ -214,12 +236,13 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads,
+                transactionConfig);
     }
 
     @Override
@@ -244,12 +267,13 @@ import com.palantir.timestamp.TimestampService;
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 allowHiddenTableAccess,
                 timestampValidationReadCache,
-                lockAcquireTimeoutMs.get(),
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor);
+                commitProfileProcessor,
+                validateLocksOnReads,
+                transactionConfig);
         try {
             return runTaskThrowOnConflict(txn -> task.execute(txn, condition),
                     new ReadTransaction(transaction, sweepStrategyManager));
@@ -375,6 +399,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);
+    }
+
+    @Override
+    public TimestampManagementService getTimestampManagementService() {
+        return timestampManagementService;
     }
 
     @Override

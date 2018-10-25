@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.leader;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+import java.util.Optional;
 
 import org.junit.After;
 import org.junit.Test;
@@ -32,7 +33,9 @@ public class LeadershipEventRecorderTest {
     private static final String LEADER_ID = "foo";
 
     private final LeadershipEvents events = mock(LeadershipEvents.class);
-    private final PaxosLeadershipEventRecorder recorder = new PaxosLeadershipEventRecorder(events, LEADER_ID);
+    private final LeadershipObserver observer = mock(LeadershipObserver.class);
+    private final PaxosLeadershipEventRecorder recorder =
+            new PaxosLeadershipEventRecorder(events, LEADER_ID, Optional.of(observer));
 
     private static final PaxosValue ROUND_1_LEADING = round(1, true);
     private static final PaxosValue ROUND_2_LEADING = round(2, true);
@@ -190,6 +193,26 @@ public class LeadershipEventRecorderTest {
         recorder.recordNoQuorum(null);
 
         verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+    }
+
+    @Test
+    public void notifiesObserverIfGainedLeadership() {
+        recorder.recordRound(ROUND_1_LEADING);
+
+        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(observer).gainedLeadership();
+    }
+
+    @Test
+    public void notifiesObserverIfLostLeadership() {
+        recorder.recordRound(ROUND_1_LEADING);
+        recorder.recordRound(ROUND_2_NOT_LEADING);
+
+        verify(events).gainedLeadershipFor(ROUND_1_LEADING);
+        verify(events).lostLeadershipFor(ROUND_1_LEADING);
+
+        verify(observer).gainedLeadership();
+        verify(observer).lostLeadership();
     }
 
     private static PaxosValue round(long sequence, boolean leading) {

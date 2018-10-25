@@ -1,12 +1,12 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -31,8 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -40,17 +39,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
-import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
-import com.palantir.atlasdb.schema.stream.StreamTableType;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SchemaTest {
     @Rule
@@ -63,11 +58,6 @@ public class SchemaTest {
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
     private static final TableReference INDEX_TABLE_REF = TableReference.createWithEmptyNamespace(TEST_INDEX_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
-
-    private static final Consumer<CleanupMetadata> NULL_CLEANUP_METADATA_ASSERTION =
-            metadata -> assertThat(metadata).isInstanceOf(NullCleanupMetadata.class);
-    private static final Consumer<CleanupMetadata> ARBITRARY_CLEANUP_METADATA_ASSERTION =
-            metadata -> assertThat(metadata).isInstanceOf(ArbitraryCleanupMetadata.class);
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -104,7 +94,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testIgnoreTableNameLengthFlag() throws IOException {
+    public void testIgnoreTableNameLengthFlag() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         schema.ignoreTableNameLengthChecks();
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
@@ -113,7 +103,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsCassandra() throws IOException {
+    public void testLongTableNameLengthFailsCassandra() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
@@ -127,7 +117,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsBoth() throws IOException {
+    public void testLongTableNameLengthFailsBoth() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
@@ -141,7 +131,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongTableNameLengthFailsNamespace() throws IOException {
+    public void testLongTableNameLengthFailsNamespace() {
         // If namespace is non-empty, internal table name length is |namespace| + |tableName| + 2
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
@@ -184,7 +174,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void testLongIndexNameLengthFailsCassandra() throws IOException {
+    public void testLongIndexNameLengthFailsCassandra() {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
@@ -200,120 +190,6 @@ public class SchemaTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
                         getErrorMessage(longTableName + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix(), kvsList));
-    }
-
-    @Test
-    public void simpleTablesHaveNullCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void tablesWithCustomCleanupTaskHaveArbitraryCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
-        assertCleanupMetadataInSchemaSatisfies(schema, TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-
-        addTestIndexDefinition(schema);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithCleanupTasksHaveArbitraryCleanupMetadata() {
-        Schema schema = getSchemaWithSimpleTestTable();
-
-        addTestIndexDefinition(schema);
-        schema.addCleanupTask(TEST_INDEX_NAME, () -> (tx, cells) -> false);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, ARBITRARY_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void indexTablesWithoutCleanupTasksHaveNullCleanupMetadataEvenIfBaseTableHasCleanupTasks() {
-        Schema schema = getSchemaWithSimpleTestTable();
-        schema.addCleanupTask(TEST_TABLE_NAME, () -> (tx, cells) -> false);
-
-        addTestIndexDefinition(schema);
-
-        assertCleanupMetadataInSchemaSatisfies(schema, INDEX_TABLE_REF, NULL_CLEANUP_METADATA_ASSERTION);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForSimpleStreamStore() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "f";
-        String longName = "Floccinaucinihilipilification";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_LONG)
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 0, ValueType.VAR_LONG);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashFirstRowComponent() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "a";
-        String longName = "Antidisestablishmentarianism";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG)
-                        .hashFirstRowComponent()
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 1, ValueType.FIXED_LONG);
-    }
-
-    @Test
-    public void streamStoreMetadataGeneratedCorrectlyForStreamStoreWithHashRowComponents() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "p";
-        String longName = "Pneumonoultramicroscopicsilicovolcanoconiosis";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.FIXED_LONG_LITTLE_ENDIAN)
-                        .hashRowComponents()
-                        .build());
-
-        assertCleanupMetadataCorrectForStreamStore(schema, shortName, 2, ValueType.FIXED_LONG_LITTLE_ENDIAN);
-    }
-
-    @Test
-    public void streamStoreTablesSupportAdditionalCleanupTasks() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
-        String shortName = "l";
-        String longName = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch";
-
-        schema.addStreamStoreDefinition(
-                new StreamStoreDefinitionBuilder(shortName, longName, ValueType.VAR_SIGNED_LONG)
-                        .hashRowComponents()
-                        .build());
-        schema.addCleanupTask(StreamTableType.HASH.getTableName(shortName), () -> (cells, tx) -> false);
-        schema.addCleanupTask(StreamTableType.INDEX.getTableName(shortName), () -> (cells, tx) -> false);
-
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.VALUE.getTableName(shortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.HASH.getTableName(shortName),
-                ARBITRARY_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.METADATA.getTableName(shortName),
-                getStreamStoreMetadataAssertion(2, ValueType.VAR_SIGNED_LONG));
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.INDEX.getTableName(shortName),
-                ARBITRARY_CLEANUP_METADATA_ASSERTION);
     }
 
     @Test
@@ -335,68 +211,32 @@ public class SchemaTest {
         schema.validate();
     }
 
-    private Schema getSchemaWithSimpleTestTable() {
-        Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
+    @Test
+    public void canAddDeprecatedTablesAndIndexes() {
+        Namespace namespace = Namespace.create("namespace");
+        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
         schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        return schema;
+        schema.addDeprecatedTables("anOldTable");
+
+        schema.validate();
+        assertThat(schema.getDeprecatedTables()).containsOnly(
+                TableReference.create(namespace, "anOldTable"));
     }
 
-    private void addTestIndexDefinition(Schema schema) {
-        IndexDefinition indexDefinition = new IndexDefinition(IndexDefinition.IndexType.ADDITIVE);
-        indexDefinition.onTable(TEST_TABLE_NAME);
-        schema.addIndexDefinition(TEST_TABLE_NAME, indexDefinition);
-    }
+    @Test
+    public void cannotAddDeprecatedTablesOrIndexesThatConflictWithCurrentTables() {
+        Namespace namespace = Namespace.create("namespace");
+        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
+        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
+        schema.addDeprecatedTables(TEST_TABLE_NAME);
 
-    private void assertCleanupMetadataInSchemaSatisfies(
-            Schema schema,
-            String tableName,
-            Consumer<CleanupMetadata> verification) {
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                TableReference.create(Namespace.EMPTY_NAMESPACE, tableName),
-                verification);
-    }
-
-    private void assertCleanupMetadataInSchemaSatisfies(
-            Schema schema,
-            TableReference tableReference,
-            Consumer<CleanupMetadata> verification) {
-        Map<TableReference, SchemaDependentTableMetadata> metadatas
-                = schema.getSchemaMetadata().schemaDependentTableMetadata();
-        assertThat(metadatas).containsKey(tableReference);
-        verification.accept(metadatas.get(tableReference).cleanupMetadata());
-    }
-
-    private void assertCleanupMetadataCorrectForStreamStore(
-            Schema schema,
-            String streamStoreShortName,
-            int numComponentsHashed,
-            ValueType idType) {
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.VALUE.getTableName(streamStoreShortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.HASH.getTableName(streamStoreShortName),
-                NULL_CLEANUP_METADATA_ASSERTION);
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.METADATA.getTableName(streamStoreShortName),
-                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
-        assertCleanupMetadataInSchemaSatisfies(
-                schema,
-                StreamTableType.INDEX.getTableName(streamStoreShortName),
-                getStreamStoreMetadataAssertion(numComponentsHashed, idType));
-    }
-
-    private Consumer<CleanupMetadata> getStreamStoreMetadataAssertion(int numHashedComponents, ValueType streamIdType) {
-        return metadata -> {
-            assertThat(metadata).isInstanceOf(StreamStoreCleanupMetadata.class);
-            StreamStoreCleanupMetadata streamStoreCleanupMetadata = (StreamStoreCleanupMetadata) metadata;
-            assertThat(streamStoreCleanupMetadata.numHashedRowComponents()).isEqualTo(numHashedComponents);
-            assertThat(streamStoreCleanupMetadata.streamIdType()).isEqualTo(streamIdType);
-        };
+        assertThatExceptionOfType(SafeIllegalStateException.class)
+                .isThrownBy(schema::validate)
+                .withMessage("A deprecated table cannot also be part of your schema. "
+                        + "Check logs for any unsafe table names.")
+                .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
+                        "invalidDeprecatedTables_unsafe",
+                        ImmutableSet.of(TableReference.create(namespace, TEST_TABLE_NAME)))));
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {

@@ -1,11 +1,11 @@
-/**
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+/*
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,6 +16,8 @@
 package com.palantir.lock.logger;
 
 import java.util.Date;
+
+import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
@@ -34,6 +36,7 @@ public abstract class SimpleTokenInfo {
                 .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
                 .requestThread(token.getRequestingThread())
                 .createAt(new Date(token.getCreationDateMs()).toString())
+                .versionId(token.getVersionId())
                 .build();
     }
 
@@ -57,4 +60,8 @@ public abstract class SimpleTokenInfo {
 
     @Value.Parameter
     public abstract String getCreateAt();
+
+    @Nullable
+    @Value.Parameter
+    public abstract Long getVersionId();
 }

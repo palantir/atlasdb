@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyMap;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -31,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -40,6 +40,7 @@ public class ShardProgressTest {
     private static final long INITIAL_TIMESTAMP = SweepQueueUtils.INITIAL_TIMESTAMP;
 
     private ShardProgress progress;
+    private KeyValueService kvs;
 
     private static final ShardAndStrategy CONSERVATIVE_TEN = ShardAndStrategy.conservative(10);
     private static final ShardAndStrategy THOROUGH_TEN = ShardAndStrategy.thorough(10);
@@ -49,12 +50,23 @@ public class ShardProgressTest {
 
     @Before
     public void setup() {
-        progress = new ShardProgress(new InMemoryKeyValueService(true));
+        kvs = new InMemoryKeyValueService(true);
+        progress = new ShardProgress(kvs);
     }
 
     @Test
     public void canReadInitialNumberOfShards() {
         assertThat(progress.getNumberOfShards()).isEqualTo(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+    }
+
+    @Test
+    public void canUpgradeNumberOfShardsIfPersistedDefaultValue() {
+        byte[] defaultValue = ShardProgress.createColumnValue(AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+        CheckAndSetRequest request = progress.createNewCellRequest(ShardProgress.SHARD_COUNT_SAS, defaultValue);
+        kvs.checkAndSet(request);
+
+        progress.updateNumberOfShards(128);
+        assertThat(progress.getNumberOfShards()).isEqualTo(128);
     }
 
     @Test

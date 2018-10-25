@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,61 +15,48 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-
-import java.util.Map;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
-public class OneNodeDownMetadataTest {
+public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
+    private static final TableReference TEST_TABLE_2 = TableReference.createWithEmptyNamespace("test_table_2");
+    private static final TableReference TEST_TABLE_3 = TableReference.createWithEmptyNamespace("test_table_3");
+
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(TEST_TABLE_2, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.createTable(TEST_TABLE_3, AtlasDbConstants.EMPTY_TABLE_METADATA);
+    }
 
     @Test
     public void canGetMetadataForTable() {
-        byte[] metadata = OneNodeDownTestSuite.kvs.getMetadataForTable(OneNodeDownTestSuite.TEST_TABLE);
-        assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
-                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata));
+        assertKvsReturnsGenericMetadata(TEST_TABLE);
     }
 
     @Test
     public void canGetMetadataForAll() {
-        Map<TableReference, byte[]> metadataMap = OneNodeDownTestSuite.kvs.getMetadataForTables();
-        assertEquals(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA),
-                TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataMap.get(OneNodeDownTestSuite.TEST_TABLE)));
+        assertThat(getTestKvs().getMetadataForTables().get(TEST_TABLE))
+                .isEqualTo(AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
-    public void putMetadataForTableThrows() {
-        TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTable(OneNodeDownTestSuite.TEST_TABLE,
-                newTableMetadata.persistToBytes()))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
-
-        canGetMetadataForTable();
+    public void canPutMetadataForTable() {
+        getTestKvs().putMetadataForTable(TEST_TABLE_2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertKvsReturnsGenericMetadata(TEST_TABLE_2);
+        assertCassandraSchemaChanged();
     }
 
     @Test
-    public void putMetadataForTablesThrows() {
-        TableMetadata newTableMetadata = new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(), ConflictHandler.IGNORE_ALL);
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.putMetadataForTables(
-                ImmutableMap.of(OneNodeDownTestSuite.TEST_TABLE, newTableMetadata.persistToBytes())))
-                .isExactlyInstanceOf(AtlasDbDependencyException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
-                .hasStackTraceContaining("At schema version UNREACHABLE");
-
-        canGetMetadataForTable();
+    public void canPutMetadataForTables() {
+        getTestKvs().putMetadataForTables(ImmutableMap.of(TEST_TABLE_3, AtlasDbConstants.GENERIC_TABLE_METADATA));
+        assertKvsReturnsGenericMetadata(TEST_TABLE_3);
+        assertCassandraSchemaChanged();
     }
 }

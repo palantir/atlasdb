@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +39,8 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -53,7 +52,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -77,37 +75,42 @@ public abstract class AbstractSweepTest {
         SMALL_LIST_OF_CELLS.addAll(BIG_LIST_OF_CELLS.subList(0, 4));
     }
 
+    private final KvsManager kvsManager;
+    private final TransactionManagerManager tmManager;
+
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     protected TransactionService txService;
     protected SweepStrategyManager ssm;
     protected PersistentLockManager persistentLockManager;
 
-    /**
-     * Called once before each test.
-     *
-     * @return the KVS used for testing
-     */
-    protected abstract KeyValueService getKeyValueService();
+    protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        this.kvsManager = kvsManager;
+        this.tmManager = tmManager;
+    }
 
     @Before
     public void setup() {
-        TimestampService tsService = new InMemoryTimestampService();
-        kvs = SweepStatsKeyValueService.create(getKeyValueService(), tsService,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_THRESHOLD,
-                () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD);
+        kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.createDefault(kvs);
         txService = TransactionServices.createTransactionService(kvs);
-        txManager = SweepTestUtils.setupTxManager(kvs, tsService, ssm, txService);
+        txManager = getManager();
+        SweepTestUtils.setupTables(kvs);
         persistentLockManager = new PersistentLockManager(
                 MetricsManagers.createForTests(),
                 SweepTestUtils.getPersistentLockService(kvs),
                 AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS);
     }
 
-    @After
-    public void close() {
-        kvs.close();
+    protected TransactionManager getManager() {
+        return tmManager.getLastRegisteredTransactionManager().orElseGet(this::createAndRegisterManager);
+    }
+
+    protected TransactionManager createAndRegisterManager() {
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
+        TransactionManager manager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
+        tmManager.registerTransactionManager(manager);
+        return manager;
     }
 
     @Test(timeout = 50000)
@@ -527,5 +530,4 @@ public abstract class AbstractSweepTest {
                 }.toTableMetadata().persistToBytes()
         );
     }
-
 }

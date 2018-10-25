@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -987,7 +987,7 @@ public final class LockServiceImpl
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
-                    log.warn("Lock token {} was not properly refreshed and is now being reaped.",
+                    log.info("Lock token {} was not properly refreshed and is now being reaped.",
                             UnsafeArg.of("token", realToken));
                     unlockInternal(realToken, heldLocksMap);
                 }
@@ -1033,6 +1033,7 @@ public final class LockServiceImpl
         LockServiceStateLogger lockServiceStateLogger = new LockServiceStateLogger(
                 heldLocksTokenMap,
                 outstandingLockRequestMultimap,
+                descriptorToLockMap.asMap(),
                 lockStateLoggerDir);
         lockServiceStateLogger.logLocks();
     }

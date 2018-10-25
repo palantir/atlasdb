@@ -1,12 +1,12 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,23 +24,25 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.remoting2.tracing.Span;
 import com.palantir.remoting2.tracing.SpanObserver;
 import com.palantir.remoting2.tracing.SpanType;
 import com.palantir.remoting2.tracing.Tracer;
 
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
-    private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(() ->
+            TracingKeyValueService.create(new InMemoryKeyValueService(false)));
 
+    private static final Logger log = LoggerFactory.getLogger(TracingKvsTest.class);
     private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();
 
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return TracingKeyValueService.create(new InMemoryKeyValueService(false));
+    public TracingKvsTest() {
+        super(TRM);
     }
 
     @Override

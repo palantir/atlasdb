@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Optional;
@@ -70,7 +69,6 @@ public final class CassandraSchemaLockCleaner {
         ExecutorService executorService = PTExecutors.newFixedThreadPool(config.poolSize(),
                 new NamedThreadFactory("Atlas CleanCassLocksState", false));
         TaskRunner taskRunner = new TaskRunner(executorService);
-        CellLoader cellLoader = new CellLoader(config, clientPool, wrappingQueryRunner, taskRunner);
 
         CellValuePutter cellValuePutter = new CellValuePutter(
                 config,
@@ -82,12 +80,19 @@ public final class CassandraSchemaLockCleaner {
 
         return new CassandraTableDropper(config,
                 clientPool,
-                cellLoader,
                 cellValuePutter,
                 wrappingQueryRunner,
                 ConsistencyLevel.ALL);
     }
 
+    /**
+     * Removes all but one lock table if multiple lock tables are present. Then releases the schema mutation lock.
+     *
+     * @throws com.palantir.common.exception.AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are
+     * reachable, or the cluster cannot come to an agreement on schema versions. This method will still drop all but
+     * one lock table on each of the reachable nodes, even if there are fewer than quorum, but the schema mutation
+     * lock will not have been unlocked.
+     */
     public void cleanLocksState() throws TException {
         Set<TableReference> tables = lockTables.getAllLockTables();
         Optional<TableReference> tableToKeep = tables.stream().findFirst();

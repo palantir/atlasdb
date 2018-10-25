@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -71,7 +71,6 @@ public class CachingTransaction extends ForwardingTransaction {
     public SortedMap<byte[], RowResult<byte[]>> getRows(TableReference tableRef, Iterable<byte[]> rows,
                                                         ColumnSelection columnSelection) {
         if (Iterables.isEmpty(rows)) {
-            log.info("Attempted getRows on '{}' table and {} with empty rows argument", tableRef, columnSelection);
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
 
@@ -114,7 +113,6 @@ public class CachingTransaction extends ForwardingTransaction {
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         if (cells.isEmpty()) {
-            log.info("Attempted get on '{}' table with empty cells argument", tableRef);
             return ImmutableMap.of();
         }
 

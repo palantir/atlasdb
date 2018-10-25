@@ -5,22 +5,23 @@ set -x
 BASE_GRADLE_ARGS="--profile --continue"
 
 function checkDocsBuild {
+    sudo apt-get install python-pip
     sudo -H pip install --upgrade sphinx sphinx_rtd_theme requests recommonmark
     cd docs/
     make html
 }
 
-CONTAINER_1=(':atlasdb-cassandra-integration-tests:check' ':atlasdb-cassandra-integration-tests:memorySensitiveTest')
+CONTAINER_1=(':atlasdb-cassandra-integration-tests:check')
 
 CONTAINER_2=(':atlasdb-ete-tests:check')
 
-CONTAINER_3=(':atlasdb-perf:postgresBenchmarkTest')
+CONTAINER_3=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check')
 
-CONTAINER_4=(':atlasdb-dbkvs:check' ':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-cassandra-integration-tests:longTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-impl-shared:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
 
-CONTAINER_5=(':atlasdb-ete-tests:longTest' ':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:check' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
 
-CONTAINER_6=(':atlasdb-ete-tests:startupIndependenceTest' ':atlasdb-ete-test-utils:check' ':atlasdb-cassandra:check' ':atlasdb-api:check' ':atlasdb-jepsen-tests:check' ':atlasdb-cli:check')
+CONTAINER_6=(':atlasdb-ete-tests:dbkvsTest' ':timelock-server:integTest')
 
 CONTAINER_7=('compileJava' 'compileTestJava')
 
@@ -68,27 +69,13 @@ else
     export CASSANDRA_HEAP_NEWSIZE=24m
 fi
 
-ETE_EXCLUDES=('-x :atlasdb-ete-tests:longTest')
-
-if [[ $INTERNAL_BUILD != true ]]; then
-    # Timelock and Startup ordering require Docker 1.12; currently unavailable on external Circle. Might not be needed
-    # if we move to CircleCI 2.0.
-    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:timeLockTest')
-    ETE_EXCLUDES+=('-x :atlasdb-ete-tests:startupIndependenceTest')
-
-    # Sweep tests include a test that we do not OOM when writing a lot of data.
-    # Running this test is not feasible on external Circle owing to small size of the containers, but it gives good
-    # signal so it's worth keeping it around on internal runs.
-    ETE_EXCLUDES+=('-x :atlasdb-cassandra-integration-tests:memorySensitiveTest')
-fi
-
 case $CIRCLE_NODE_INDEX in
-    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS ;;
-    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-cassandra-integration-tests:longTest ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-ete-tests:startupIndependenceTest;;
+    0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:jepsenTest ;;
+    1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
-    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} -x :atlasdb-perf:postgresBenchmarkTest;;
-    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ${ETE_EXCLUDES[@]} -x :atlasdb-jepsen-tests:jepsenTest && checkDocsBuild ;;
-    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true ;;
+    5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;
+    6) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_6[@]} ;;
+    7) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_7[@]} -PenableErrorProne=true && checkDocsBuild ;;
 esac

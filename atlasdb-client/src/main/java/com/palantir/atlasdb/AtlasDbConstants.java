@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -80,6 +80,7 @@ public final class AtlasDbConstants {
     public static final long MAX_TS = Long.MAX_VALUE;
 
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
+    public static final int THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS = 10_000_000;
 
     public static final Set<TableReference> hiddenTables = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
@@ -128,8 +129,8 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_SWEEP_WRITE_THRESHOLD = 1 << 12;
     public static final long DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 25;
 
-    public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = false;
-    public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = false;
+    public static final boolean DEFAULT_ENABLE_SWEEP_QUEUE_WRITES = true;
+    public static final boolean DEFAULT_ENABLE_TARGETED_SWEEP = true;
     public static final int DEFAULT_SWEEP_QUEUE_SHARDS = 1;
     public static final int DEFAULT_TARGETED_SWEEP_THREADS = 1;
     public static final int MAX_SWEEP_QUEUE_SHARDS = TargetedSweepMetadata.MAX_SHARDS;

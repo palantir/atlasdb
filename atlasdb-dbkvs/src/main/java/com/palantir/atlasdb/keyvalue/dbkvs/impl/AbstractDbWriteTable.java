@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -163,5 +163,27 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
 
         // execute the query
         conns.get().updateUnregisteredQuery(query.toString(), args.toArray());
+    }
+
+    @Override
+    public void deleteAllTimestamps(Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
+        List<Object[]> args = Lists.newArrayListWithCapacity(maxTimestampExclusiveByCell.size());
+        long minTsToDelete = getLowerBound(deleteSentinels);
+        maxTimestampExclusiveByCell.forEach((cell, ts) ->
+                args.add(new Object[] {cell.getRowName(), cell.getColumnName(), minTsToDelete, ts}));
+
+        String prefixedTableName = prefixedTableNames.get(tableRef, conns);
+        conns.get().updateManyUnregisteredQuery(" /* DELETE_ALL_TS (" + prefixedTableName + ") */ "
+                        + " DELETE /*+ INDEX(m " + PrimaryKeyConstraintNames.get(prefixedTableName) + ") */ "
+                        + " FROM " + prefixedTableName + " m "
+                        + " WHERE m.row_name = ? "
+                        + "  AND m.col_name = ? "
+                        + "  AND m.ts >= ? "
+                        + "  AND m.ts < ?",
+                args);
+    }
+
+    private long getLowerBound(boolean includeSentinels) {
+        return includeSentinels ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
     }
 }

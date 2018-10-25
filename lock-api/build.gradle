@@ -12,8 +12,10 @@ repositories {
 
 libsDirName = file('build/artifacts')
 dependencies {
+    compile project(":atlasdb-autobatch")
     compile project(":atlasdb-commons")
     compile project(":timestamp-api")
+    compile project(":timestamp-client")
     compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
@@ -24,6 +26,7 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
+    testCompile group: 'com.palantir.remoting3', name: 'jackson-support'
     testCompile group: 'org.awaitility', name: 'awaitility'
     testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library'

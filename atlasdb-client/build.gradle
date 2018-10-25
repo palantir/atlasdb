@@ -49,7 +49,6 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":atlasdb-api")
   compile project(":atlasdb-client-protobufs")
-  compile project(":qos-service-api")
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
@@ -84,7 +83,9 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   compile group: 'com.squareup', name:'javapoet', version: '1.9.0'
+  compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
+  compile group: 'com.palantir.common', name: 'streams'
 
   processor group: 'org.immutables', name: 'value'
 
@@ -95,6 +96,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'ch.qos.logback', name: 'logback-classic'
   testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.awaitility', name: 'awaitility'
 
   integrationInputCompile project(":atlasdb-client")
 

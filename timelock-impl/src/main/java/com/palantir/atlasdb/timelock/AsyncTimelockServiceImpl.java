@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,31 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
-    private final ManagedTimestampService timestampService;
+    private final ClientAwareManagedTimestampService timestampService;
 
-    public AsyncTimelockServiceImpl(AsyncLockService lockService, ManagedTimestampService timestampService) {
+    public AsyncTimelockServiceImpl(
+            AsyncLockService lockService,
+            ManagedTimestampService timestampService) {
         this.lockService = lockService;
-        this.timestampService = timestampService;
+        this.timestampService = DelegatingClientAwareManagedTimestampService.createDefault(timestampService);
     }
 
     @Override
@@ -53,6 +58,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return timestampService.getFreshTimestamps(numTimestampsRequested);
+    }
+
+    @Override
+    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
+        return timestampService.getFreshTimestampForClient(clientIdentifier);
     }
 
     @Override

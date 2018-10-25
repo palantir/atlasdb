@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.processors;
 
 import java.util.List;
@@ -24,24 +23,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 
 import com.squareup.javapoet.ParameterSpec;
 
 final class ProcessorUtils {
     private ProcessorUtils() {}
-
-    static TypeElement extractTypeFromAnnotation(Elements elementUtils, AutoDelegate annotation) {
-        try {
-            // Throws a MirroredTypeException if the type is not compiled.
-            Class typeClass = annotation.typeToExtend();
-            return elementUtils.getTypeElement(typeClass.getCanonicalName());
-        } catch (MirroredTypeException mte) {
-            DeclaredType typeMirror = (DeclaredType) mte.getTypeMirror();
-            return (TypeElement) typeMirror.asElement();
-        }
-    }
 
     static TypeElement extractType(Types typeUtils, TypeMirror typeToExtract) {
         try {

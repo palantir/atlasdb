@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -48,7 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -344,7 +343,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         writeCommittedConservativeRowForTimestamp(TS + 5, MAX_CELLS_GENERIC);
 
         sweepableCells.deleteNonDedicatedRow(ShardAndStrategy.conservative(0), TS_FINE_PARTITION);
-        SweepableCellsTable.SweepableCellsRow row = SweepableCellsTable.SweepableCellsRow.of(TS_FINE_PARTITION,
+        SweepableCellsRow row = SweepableCellsRow.of(TS_FINE_PARTITION,
                 ImmutableTargetedSweepMetadata.builder()
                         .conservative(true)
                         .dedicatedRow(false)
@@ -359,11 +358,9 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     @Test
     public void cleanupMultipleDedicatedRows() {
         useSingleShard();
-        writeCommittedConservativeRowForTimestamp(TS + 1, MAX_CELLS_DEDICATED * 2 + 1);
 
-        sweepableCells.deleteDedicatedRows(ShardAndStrategy.conservative(0), TS_FINE_PARTITION);
-
-        List<SweepableCellsTable.SweepableCellsRow> expectedRangesToDelete = LongStream.range(0, 3)
+        long timestamp = TS + 1;
+        DedicatedRows dedicatedRows = DedicatedRows.of(LongStream.range(0, 3)
                 .mapToObj(rowNumber -> ImmutableTargetedSweepMetadata.builder()
                         .conservative(true)
                         .dedicatedRow(true)
@@ -371,12 +368,40 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
                         .shard(0)
                         .build()
                         .persistToBytes())
-                .map(metadata -> SweepableCellsTable.SweepableCellsRow.of(TS + 1, metadata))
-                .collect(Collectors.toList());
-        verifyRowsDeletedFromSweepQueue(expectedRangesToDelete);
+                .map(metadata -> SweepableCellsRow.of(timestamp, metadata))
+                .collect(Collectors.toList()));
+
+        writeCommittedConservativeRowForTimestamp(timestamp, MAX_CELLS_DEDICATED * 2 + 1);
+
+        sweepableCells.deleteDedicatedRows(dedicatedRows);
+
+        verifyRowsDeletedFromSweepQueue(dedicatedRows.getDedicatedRows());
     }
 
-    private void verifyRowsDeletedFromSweepQueue(List<SweepableCellsTable.SweepableCellsRow> rows) {
+    @Test
+    public void getBatchReturnsDedicatedRowsSeen() {
+        useSingleShard();
+
+        long timestamp = TS + 1;
+
+        writeCommittedConservativeRowForTimestamp(timestamp, MAX_CELLS_DEDICATED * 2 + 1);
+
+        DedicatedRows expectedDedicatedRows = DedicatedRows.of(LongStream.range(0, 3)
+                .mapToObj(rowNumber -> ImmutableTargetedSweepMetadata.builder()
+                        .conservative(true)
+                        .dedicatedRow(true)
+                        .dedicatedRowNumber(rowNumber)
+                        .shard(0)
+                        .build()
+                        .persistToBytes())
+                .map(metadata -> SweepableCellsRow.of(timestamp, metadata))
+                .collect(Collectors.toList()));
+
+        assertThat(readConservative(0, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS).dedicatedRows())
+                .isEqualTo(expectedDedicatedRows);
+    }
+
+    private void verifyRowsDeletedFromSweepQueue(List<SweepableCellsRow> rows) {
         ArgumentCaptor<RangeRequest> captor = ArgumentCaptor.forClass(RangeRequest.class);
         verify(spiedKvs, atLeast(0)).deleteRange(eq(SWEEP_QUEUE_TABLE), captor.capture());
 

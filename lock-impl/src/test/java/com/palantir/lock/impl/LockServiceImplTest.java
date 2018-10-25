@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,16 +21,30 @@ import static org.junit.Assert.assertThat;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.debug;
 import static uk.org.lidalia.slf4jtest.LoggingEvent.warn;
 
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.lock.LockClient;
+import com.palantir.lock.LockMode;
+import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
+import com.palantir.lock.SimpleTimeDuration;
+import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.LockRefreshingLockService;
 
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.LoggingEvent;
@@ -126,6 +140,22 @@ public final class LockServiceImplTest {
                 TEST_LOCKID, LockClient.ANONYMOUS, LockServiceImpl.DEBUG_SLOW_LOG_TRIGGER_MILLIS - 5);
         assertThat(testLockServiceImplLogger.getLoggingEvents().size(), is(0));
         assertThat(testSlowLogger.getLoggingEvents().size(), is(0));
+    }
+
+    @Test
+    public void verifySerializedBatchOfLockRequestsSmallerThan45MB() throws InterruptedException, IOException {
+        Set<LockRefreshToken> tokens = new HashSet<>();
+
+        // divide batch size by 1000 and check size in KB as approximation
+        for (int i = 0; i < LockRefreshingLockService.REFRESH_BATCH_SIZE / 1000; i++) {
+            LockRequest request = LockRequest.builder(
+                    ImmutableSortedMap.of(StringLockDescriptor.of(UUID.randomUUID().toString()), LockMode.READ))
+                    .timeoutAfter(SimpleTimeDuration.of(10, TimeUnit.MILLISECONDS))
+                    .build();
+            tokens.add(lockServiceWithSlowLogDisabled.lock("test", request));
+        }
+
+        Assertions.assertThat(new ObjectMapper().writeValueAsString(tokens).length()).isLessThan(45_000);
     }
 
     private static void assertContainsMatchingLoggingEvent(List<LoggingEvent> actuals, LoggingEvent expected) {

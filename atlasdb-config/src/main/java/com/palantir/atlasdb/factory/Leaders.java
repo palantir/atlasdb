@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,6 +31,7 @@ import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -44,7 +45,9 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
+import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
@@ -55,7 +58,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.util.JavaSuppliers;
 
 public final class Leaders {
     private Leaders() {
@@ -110,8 +112,9 @@ public final class Leaders {
             String userAgent) {
         UUID leaderUuid = UUID.randomUUID();
 
+        AsyncLeadershipObserver leadershipObserver = AsyncLeadershipObserver.create();
         PaxosLeadershipEventRecorder leadershipEventRecorder = PaxosLeadershipEventRecorder.create(
-                metricsManager.getRegistry(), leaderUuid.toString());
+                metricsManager.getRegistry(), leaderUuid.toString(), leadershipObserver);
 
         PaxosAcceptor ourAcceptor = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PaxosAcceptor.class,
@@ -167,7 +170,7 @@ public final class Leaders {
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
-                .onlyLogOnQuorumFailure(JavaSuppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime))
+                .onlyLogOnQuorumFailure(Suppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime::get))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
@@ -182,6 +185,7 @@ public final class Leaders {
                 .ourLearner(ourLearner)
                 .leaderElectionService(leaderElectionService)
                 .pingableLeader(pingableLeader)
+                .leadershipObserver(leadershipObserver)
                 .build();
     }
 
@@ -233,6 +237,7 @@ public final class Leaders {
         PaxosLearner ourLearner();
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
+        LeadershipObserver leadershipObserver();
     }
 
     @Value.Immutable

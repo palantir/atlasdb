@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.processors;
 
 import java.io.IOException;
@@ -110,8 +109,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
                 validateAnnotatedElement(annotatedElement);
                 TypeElement typeElement = (TypeElement) annotatedElement;
 
-                AutoDelegate annotation = annotatedElement.getAnnotation(AutoDelegate.class);
-                TypeToExtend typeToExtend = validateAnnotationAndCreateTypeToExtend(annotation, typeElement);
+                TypeToExtend typeToExtend = createTypeToExtend(typeElement);
 
                 if (generatedTypes.contains(typeToExtend.getCanonicalName())) {
                     continue;
@@ -140,27 +138,19 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         }
     }
 
-    private TypeToExtend validateAnnotationAndCreateTypeToExtend(AutoDelegate annotation, TypeElement annotatedElement)
-            throws ProcessingException {
-
-        if (annotation == null) {
-            throw new ProcessingException(annotatedElement, "Type %s doesn't have annotation @%s",
-                    annotatedElement, AutoDelegate.class.getSimpleName());
-        }
-
-        TypeElement baseType = ProcessorUtils.extractTypeFromAnnotation(elementUtils, annotation);
-        PackageElement typePackage = elementUtils.getPackageOf(baseType);
+    private TypeToExtend createTypeToExtend(TypeElement annotatedElement) throws ProcessingException {
+        PackageElement typePackage = elementUtils.getPackageOf(annotatedElement);
 
         if (typePackage.isUnnamed()) {
-            throw new ProcessingException(baseType, "Type %s doesn't have a package", baseType);
+            throw new ProcessingException(annotatedElement, "Type %s doesn't have a package", annotatedElement);
         }
 
-        if (baseType.getModifiers().contains(Modifier.FINAL)) {
-            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", baseType);
+        if (annotatedElement.getModifiers().contains(Modifier.FINAL)) {
+            throw new ProcessingException(annotatedElement, "Trying to extend final type %s", annotatedElement);
         }
 
-        List<TypeElement> superTypes = fetchSuperTypes(baseType);
-        return new TypeToExtend(typePackage, baseType, superTypes.toArray(new TypeElement[0]));
+        List<TypeElement> superTypes = fetchSuperTypes(annotatedElement);
+        return new TypeToExtend(typePackage, annotatedElement, superTypes.toArray(new TypeElement[0]));
     }
 
     private List<TypeElement> fetchSuperTypes(TypeElement baseType) {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Map;
@@ -39,11 +38,11 @@ import com.palantir.util.PersistableBoolean;
 
 public class ShardProgress {
     private static final Logger log = LoggerFactory.getLogger(ShardProgress.class);
-    private static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
+    static final TableReference TABLE_REF = TargetedSweepTableFactory.of()
             .getSweepShardProgressTable(null).getTableRef();
 
     private static final int SHARD_COUNT_INDEX = -1;
-    private static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
+    static final ShardAndStrategy SHARD_COUNT_SAS = ShardAndStrategy.conservative(SHARD_COUNT_INDEX);
 
     private final KeyValueService kvs;
 
@@ -116,7 +115,7 @@ public class ShardProgress {
     }
 
     private long increaseValueFromToAtLeast(ShardAndStrategy shardAndStrategy, long oldVal, long newVal) {
-        byte[] colValNew = SweepShardProgressTable.Value.of(newVal).persistValue();
+        byte[] colValNew = createColumnValue(newVal);
 
         long currentValue = oldVal;
         while (currentValue < newVal) {
@@ -126,17 +125,21 @@ public class ShardProgress {
                 return newVal;
             } catch (CheckAndSetException e) {
                 log.info("Failed to check and set from expected old value {} to new value {}. Retrying if the old "
-                        + "value changed under us.",
-                        SafeArg.of("old value", oldVal),
+                                + "value changed under us.",
+                        SafeArg.of("old value", currentValue),
                         SafeArg.of("new value", newVal));
-                currentValue = updateOrRethrowIfNoChange(shardAndStrategy, currentValue, e);
+                currentValue = rethrowIfUnchanged(shardAndStrategy, currentValue, e);
             }
         }
         return currentValue;
     }
 
-    private long updateOrRethrowIfNoChange(ShardAndStrategy shardAndStrategy, long oldVal, CheckAndSetException ex) {
-        long updatedOldVal = getValue(getEntry(shardAndStrategy));
+    static byte[] createColumnValue(long newVal) {
+        return SweepShardProgressTable.Value.of(newVal).persistValue();
+    }
+
+    private long rethrowIfUnchanged(ShardAndStrategy shardStrategy, long oldVal, CheckAndSetException ex) {
+        long updatedOldVal = getValue(getEntry(shardStrategy));
         if (updatedOldVal == oldVal) {
             throw ex;
         }
@@ -144,11 +147,27 @@ public class ShardProgress {
     }
 
     private CheckAndSetRequest createRequest(ShardAndStrategy shardAndStrategy, long oldVal, byte[] colValNew) {
-        if (oldVal == SweepQueueUtils.INITIAL_TIMESTAMP
-                || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS)) {
-            return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
+        if (isDefaultValue(shardAndStrategy, oldVal)) {
+            return maybeGet(shardAndStrategy)
+                    .map(persistedValue -> createSingleCellRequest(shardAndStrategy, persistedValue, colValNew))
+                    .orElse(createNewCellRequest(shardAndStrategy, colValNew));
+        } else {
+            return createSingleCellRequest(shardAndStrategy, oldVal, colValNew);
         }
-        byte[] colValOld = SweepShardProgressTable.Value.of(oldVal).persistValue();
+    }
+
+    private boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
+        return oldVal == SweepQueueUtils.INITIAL_TIMESTAMP
+                || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
+    }
+
+    CheckAndSetRequest createNewCellRequest(ShardAndStrategy shardAndStrategy, byte[] colValNew) {
+        return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
+    }
+
+    private CheckAndSetRequest createSingleCellRequest(ShardAndStrategy shardAndStrategy, long oldVal,
+            byte[] colValNew) {
+        byte[] colValOld = createColumnValue(oldVal);
         return CheckAndSetRequest.singleCell(TABLE_REF, cellForShard(shardAndStrategy), colValOld, colValNew);
     }
 }

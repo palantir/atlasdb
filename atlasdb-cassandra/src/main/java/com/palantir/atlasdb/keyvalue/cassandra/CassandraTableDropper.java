@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,51 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KsDef;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.qos.ratelimit.QosAwareThrowables;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
-    private CellLoader cellLoader;
     private CellValuePutter cellValuePutter;
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
 
     CassandraTableDropper(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
-            CellLoader cellLoader,
             CellValuePutter cellValuePutter,
             WrappingQueryRunner wrappingQueryRunner,
             ConsistencyLevel deleteConsistency) {
         this.config = config;
         this.clientPool = clientPool;
-        this.cellLoader = cellLoader;
         this.cellValuePutter = cellValuePutter;
         this.wrappingQueryRunner = wrappingQueryRunner;
         this.deleteConsistency = deleteConsistency;
@@ -87,38 +78,35 @@ class CassandraTableDropper {
                                         LoggingArgs.tableRef(table));
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(
-                                config,
-                                client,
-                                "(all tables in a call to dropTables)");
+                        CassandraKeyValueServices.waitForSchemaVersions(config, client, "after dropping the column "
+                                + "family for tables " + tablesToDrop + " in a call to drop tables");
                         return null;
                     });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "Dropping tables requires all Cassandra nodes to be up and available.", e);
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
     private void putMetadataWithoutChangingSettings(final TableReference tableRef, final byte[] meta) {
         long ts = System.currentTimeMillis();
 
-        Multimap<Cell, Long> oldVersions = cellLoader.getAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableSet.of(CassandraKeyValueServices.getMetadataCell(tableRef)), ts, deleteConsistency
-        );
-
         try {
             cellValuePutter.put("put", AtlasDbConstants.DEFAULT_METADATA_TABLE,
                     KeyValueServices.toConstantTimestampValues(
-                            ((Map<Cell, byte[]>) ImmutableMap.of(
-                                    CassandraKeyValueServices.getMetadataCell(tableRef), meta)).entrySet(),
+                            ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), meta).entrySet(),
                             ts));
         } catch (Exception e) {
-            throw QosAwareThrowables.unwrapAndThrowRateLimitExceededOrAtlasDbDependencyException(e);
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
 
-        new CellDeleter(clientPool, wrappingQueryRunner, deleteConsistency, unused -> System.currentTimeMillis())
-                .delete(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldVersions);
+        try {
+            new CellRangeDeleter(clientPool, wrappingQueryRunner, deleteConsistency, no -> System.currentTimeMillis())
+                    .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                            ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), ts), false);
+        } catch (AtlasDbDependencyException e) {
+            log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up. However,"
+                    + "the table has been dropped and the table metadata reflecting this has been successfully "
+                    + "persisted.", LoggingArgs.tableRef(tableRef), e);
+        }
     }
 }

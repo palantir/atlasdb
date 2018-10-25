@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
+
+import org.immutables.value.Value;
 
 import com.google.common.base.Stopwatch;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
@@ -26,26 +27,26 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public class CqlQuery {
-    final String queryFormat;
-    final Arg<?>[] queryArgs;
-
-    public CqlQuery(String queryFormat, Arg<?>... args) {
-        this.queryFormat = queryFormat;
-        this.queryArgs = args;
-    }
+@Value.Immutable
+public abstract class CqlQuery {
+    public abstract String safeQueryFormat();
+    public abstract List<Arg<?>> args();
 
     @Override
     public String toString() {
-        return String.format(queryFormat, (Object[]) queryArgs);
+        return String.format(safeQueryFormat(), args().toArray());
+    }
+
+    public static ImmutableCqlQuery.Builder builder() {
+        return ImmutableCqlQuery.builder();
     }
 
     public void logSlowResult(KvsProfilingLogger.LoggingFunction log, Stopwatch timer) {
-        Object[] allArgs = new Object[queryArgs.length + 3];
-        allArgs[0] = SafeArg.of("queryFormat", queryFormat);
+        Object[] allArgs = new Object[args().size() + 3];
+        allArgs[0] = SafeArg.of("queryFormat", safeQueryFormat());
         allArgs[1] = UnsafeArg.of("fullQuery", toString());
         allArgs[2] = LoggingArgs.durationMillis(timer);
-        System.arraycopy(queryArgs, 0, allArgs, 3, queryArgs.length);
+        System.arraycopy(args().toArray(), 0, allArgs, 3, args().size());
 
         log.log("A CQL query was slow: queryFormat = [{}], fullQuery = [{}], durationMillis = {}", allArgs);
     }
@@ -58,12 +59,12 @@ public class CqlQuery {
         return new Object() {
             @Override
             public String toString() {
-                String argsString = Arrays.stream(queryArgs)
+                String argsString = args().stream()
                         .filter(Arg::isSafeForLogging)
                         .map(arg -> String.format("%s = %s", arg.getName(), arg.getValue()))
                         .collect(Collectors.joining(", "));
 
-                return queryFormat + ": " + argsString;
+                return safeQueryFormat() + ": " + argsString;
             }
         };
     }

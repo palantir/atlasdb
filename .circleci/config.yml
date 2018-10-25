@@ -1,0 +1,132 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8u171-jdk-node
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+
+    steps:
+      - checkout
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+
+      - run: git tag -l | xargs git tag -d && git fetch -t # ensure all tags are fetched and up-to-date
+      - run: ./scripts/circle-ci/download-moreutils.sh
+      - run: ./scripts/time-cmd.sh ./gradlew --profile --parallel --stacktrace resolveConfigurations classes testClasses
+
+      - save_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/wrapper
+      - save_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+          paths:
+            - ~/.gradle/caches
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+      - run: scripts/circle-ci/pr-changelog-status-check.sh
+
+  test:
+    parallelism: 8
+    docker:
+      - image: circleci/openjdk:8u171-jdk-node
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /home/circleci/junit
+      CIRCLE_ARTIFACTS: /home/circleci/artifacts
+
+    steps:
+      - attach_workspace: { at: . }
+      - restore_cache:
+          key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
+      - setup_remote_docker
+      - run:
+          command: ./scripts/circle-ci/pull-all-images.sh
+          background: true
+      - run:
+          command: ./scripts/circle-ci/track-memory-usage.sh
+          background: true
+      - run: ./scripts/circle-ci/download-moreutils.sh
+      - run:
+          command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
+          no_output_timeout: 600
+      - run: ./scripts/time-cmd.sh ./scripts/circle-ci/ensure-repo-clean.sh
+      - run: mkdir -p $CIRCLE_TEST_REPORTS/junit/ && mkdir -p $CIRCLE_ARTIFACTS/checkstyle && mkdir -p $CIRCLE_ARTIFACTS/findbugs
+      - run:
+          command: find . -type f -regex ".*/build/test-results/TEST-.*\.xml" -exec cp {} --parents $CIRCLE_TEST_REPORTS \;
+          when: always
+      - store_test_results:
+          path: /home/circleci/junit # Circle doesn't do substitution in this path
+      - run: if [ -d docs/build/html ]; then cp -r docs/build/html $CIRCLE_ARTIFACTS/docs; fi
+      - run: mkdir -p $CIRCLE_ARTIFACTS/heapdumps
+      - run: find . -type f -name "*.hprof" -o -name "*.gc.log" -exec cp {} $CIRCLE_ARTIFACTS/heapdumps \;
+      - store_artifacts:
+          path: /home/circleci/artifacts
+      - persist_to_workspace:
+          root: .
+          paths: [ . ]
+
+  deploy:
+    docker:
+      - image: circleci/openjdk:8u171-jdk-node
+    resource_class: xlarge
+    environment:
+      GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+      _JAVA_OPTIONS: "-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      CIRCLE_TEST_REPORTS: /tmp/test-reports
+      CIRCLE_ARTIFACTS: /tmp/artifacts
+    steps:
+      - attach_workspace: { at: . }
+      - run: sudo apt-get install python python-pip
+      - run:
+          command: |
+            # hack - notion of "owners" isn't supported in Circle 2
+            if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+              if [[ "${CIRCLE_BRANCH}" =~ develop ]]; then
+                ./scripts/circle-ci/publish-github-page.sh
+                curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
+              else
+                echo "Internal and external docs are typically published from develop, not ${CIRCLE_BRANCH}."
+              fi
+            fi
+      - run:
+          command: |
+            # hack - notion of "owners" isn't supported in Circle 2
+            if [ $CIRCLE_PROJECT_USERNAME = 'atlasdb' ] && [ -z $CIRCLE_PR_NUMBER ]; then
+              # publishing snapshots to bintray does not work, so we only publish from tag builds (not develop)
+              if [[ "${CIRCLE_TAG}" =~ [0-9]+(\.[0-9]+){2}(-alpha|-beta|-rc[0-9]+)?(\+[0-9]{3})? ]]; then
+                ./gradlew --profile --stacktrace --continue bintrayUpload -x check
+              else
+                echo "${CIRCLE_TAG} does not appear to be a version, so not publishing."
+              fi
+            fi
+
+workflows:
+  version: 2
+  check:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          requires: [build]
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires: [build, test]
+          filters:
+            tags:
+              only: /.*/

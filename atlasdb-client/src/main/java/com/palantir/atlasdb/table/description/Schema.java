@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.table.description;
+
+import static java.util.stream.Collectors.toSet;
+
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+import static com.google.common.collect.Maps.immutableEntry;
+import static com.palantir.logsafe.Preconditions.checkState;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -25,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -38,6 +43,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
@@ -45,21 +51,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
-import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.SchemaMetadata;
-import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -67,6 +66,9 @@ import com.palantir.atlasdb.table.description.render.TableFactoryRenderer;
 import com.palantir.atlasdb.table.description.render.TableRenderer;
 import com.palantir.atlasdb.table.description.render.TableRendererV2;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 
 /**
  * Defines a schema.
@@ -96,9 +98,7 @@ public class Schema {
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
 
-    // Used to determine cleanup metadata.
-    private final Set<String> tablesWithCustomCleanupTasks = Sets.newHashSet();
-    private final Map<String, StreamStoreCleanupMetadata> streamStoreCleanupMetadata = Maps.newHashMap();
+    private final Set<String> deprecatedTableNames = Sets.newHashSet();
 
     /** Creates a new schema, using Guava Optionals. */
     public Schema(Namespace namespace) {
@@ -161,14 +161,14 @@ public class Schema {
 
     public Set<TableReference> getAllIndexes() {
         return indexDefinitions.keySet().stream()
-                .map((table) -> TableReference.create(namespace, table))
-                .collect(Collectors.toSet());
+                .map(table -> TableReference.create(namespace, table))
+                .collect(toSet());
     }
 
     public Set<TableReference> getAllTables() {
         return tableDefinitions.keySet().stream()
-                .map((table) -> TableReference.create(namespace, table))
-                .collect(Collectors.toSet());
+                .map(table -> TableReference.create(namespace, table))
+                .collect(toSet());
     }
 
     public void addIndexDefinition(String idxName, IndexDefinition definition) {
@@ -202,6 +202,24 @@ public class Schema {
     }
 
     /**
+     * Registers old tables referred to by {@code deprecatedTableNames} to be dropped from backing store on startup.
+     *
+     * If running in a multi-node configuration, you must ensure that tables added in one version are not being
+     * read/written to in the other running version to avoid consistency problems.
+     *
+     * @param deprecatedTableNames old tables that should be dropped
+     */
+    public void addDeprecatedTables(String... deprecatedTableNames) {
+        this.deprecatedTableNames.addAll(ImmutableList.copyOf(deprecatedTableNames));
+    }
+
+    public Set<TableReference> getDeprecatedTables() {
+        return deprecatedTableNames.stream()
+                .map(tableName -> TableReference.create(namespace, tableName))
+                .collect(toImmutableSet());
+    }
+
+    /**
      * Adds the given stream store to your schema.
      *
      * @param streamStoreDefinition You probably want to use a @{StreamStoreDefinitionBuilder} for convenience.
@@ -211,13 +229,6 @@ public class Schema {
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
         Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
                 packageName, name, renderer, namespace);
-
-        StreamStoreCleanupMetadata metadata = ImmutableStreamStoreCleanupMetadata.builder()
-                .numHashedRowComponents(streamStoreDefinition.getNumberOfRowComponentsHashed())
-                .streamIdType(streamStoreDefinition.getIdType())
-                .build();
-        streamStoreDefinition.getTables().forEach(
-                (tableName, definition) -> streamStoreCleanupMetadata.put(tableName, metadata));
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -303,6 +314,25 @@ public class Schema {
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
+
+        validateDeprecatedTables();
+    }
+
+    private void validateDeprecatedTables() {
+        Map<TableReference, TableMetadata> allTablesAndIndexMetadata = getAllTablesAndIndexMetadata();
+        Set<TableReference> invalidTables =
+                Sets.intersection(allTablesAndIndexMetadata.keySet(), getDeprecatedTables());
+
+        SetMultimap<LogSafety, TableReference> referencesByLogSafety = KeyedStream.stream(
+                allTablesAndIndexMetadata)
+                .filterKeys(invalidTables::contains)
+                .mapEntries((reference, metadata) -> immutableEntry(metadata.getNameLogSafety(), reference))
+                .collectToSetMultimap();
+
+        checkState(invalidTables.isEmpty(),
+                "A deprecated table cannot also be part of your schema. Check logs for any unsafe table names.",
+                SafeArg.of("invalidDeprecatedTables_safe", referencesByLogSafety.get(LogSafety.SAFE)),
+                UnsafeArg.of("invalidDeprecatedTables_unsafe", referencesByLogSafety.get(LogSafety.UNSAFE)));
     }
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
@@ -412,7 +442,6 @@ public class Schema {
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
-        tablesWithCustomCleanupTasks.add(rawTableName);
         cleanupTasks.put(rawTableName, task);
     }
 
@@ -426,38 +455,5 @@ public class Schema {
 
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
-    }
-
-    public SchemaMetadata getSchemaMetadata() {
-        ImmutableSchemaMetadata.Builder builder = ImmutableSchemaMetadata.builder();
-
-        Map<TableReference, SchemaDependentTableMetadata> tableMetadatas =
-                Stream.of(tableDefinitions, indexDefinitions)
-                        .map(Map::keySet)
-                        .map(Set::stream)
-                        .flatMap(x -> x)
-                        .collect(Collectors.toMap(
-                                tableName -> TableReference.create(namespace, tableName),
-                                this::constructSchemaDependentTableMetadata));
-        builder.putAllSchemaDependentTableMetadata(tableMetadatas);
-
-        return builder.build();
-    }
-
-    private SchemaDependentTableMetadata constructSchemaDependentTableMetadata(String tableName) {
-        return ImmutableSchemaDependentTableMetadata.builder()
-                .cleanupMetadata(getCleanupMetadata(tableName))
-                .build();
-    }
-
-    private CleanupMetadata getCleanupMetadata(String tableName) {
-        if (!cleanupTasks.containsKey(tableName)) {
-            return new NullCleanupMetadata();
-        }
-        if (!tablesWithCustomCleanupTasks.contains(tableName) && streamStoreCleanupMetadata.containsKey(tableName)) {
-            // Stream store Index or Metadata table with no custom cleanup task.
-            return streamStoreCleanupMetadata.get(tableName);
-        }
-        return new ArbitraryCleanupMetadata();
     }
 }

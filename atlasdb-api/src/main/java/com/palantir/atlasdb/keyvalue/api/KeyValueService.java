@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,8 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -41,6 +43,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  * A service which stores key-value pairs.
  */
 @Path("/keyvalue")
+@AutoDelegate
 public interface KeyValueService extends AutoCloseable {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
@@ -648,8 +651,6 @@ public interface KeyValueService extends AutoCloseable {
      * @param cells set containg cells to retrieve timestamps for.
      * @param timestamp maximum timestamp to get (exclusive)
      * @return multimap of timestamps by cell
-     *
-     * @throws InsufficientConsistencyException if not all hosts respond successfully
      */
     @POST
     @Path("get-all-timestamps")
@@ -659,7 +660,7 @@ public interface KeyValueService extends AutoCloseable {
     Multimap<Cell, Long> getAllTimestamps(@QueryParam("tableName") TableReference tableRef,
                                           Set<Cell> cells,
                                           @QueryParam("timestamp") long timestamp)
-            throws InsufficientConsistencyException;
+            throws AtlasDbDependencyException;
 
     /**
      * Does whatever can be done to compact or cleanup a table. Intended to be called after many

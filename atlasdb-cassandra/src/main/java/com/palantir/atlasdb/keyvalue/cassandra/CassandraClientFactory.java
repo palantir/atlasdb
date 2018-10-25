@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,8 +46,6 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.qos.QosCassandraClient;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -71,17 +69,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             });
 
     private final MetricsManager metricsManager;
-    private final QosClient qosClient;
     private final InetSocketAddress addr;
     private final CassandraKeyValueServiceConfig config;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
-            QosClient qosClient,
             InetSocketAddress addr,
             CassandraKeyValueServiceConfig config) {
         this.metricsManager = metricsManager;
-        this.qosClient = qosClient;
         this.addr = addr;
         this.config = config;
     }
@@ -106,7 +101,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         // TODO(ssouza): use the kvsMethodName to tag the timers.
         client = AtlasDbMetrics.instrument(metricsManager.getRegistry(), CassandraClient.class, client);
         client = new InstrumentedCassandraClient(client, metricsManager.getTaggedRegistry());
-        client = new QosCassandraClient(client, qosClient);
+        client = QosCassandraClient.instrumentWithMetrics(client, metricsManager);
         return client;
     }
 

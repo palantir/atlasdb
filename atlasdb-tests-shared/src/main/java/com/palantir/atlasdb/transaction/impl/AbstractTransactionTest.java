@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -65,11 +65,15 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -90,6 +94,11 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
+    private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+
+    public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        super(kvsManager, tmManager);
+    }
 
     protected boolean supportsReverse() {
         return true;
@@ -121,13 +130,13 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 false,
                 timestampCache,
-                // never actually used, since timelockService is null
-                AtlasDbConstants.DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS,
                 GET_RANGES_EXECUTOR,
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager));
+                CommitProfileProcessor.createNonLogging(metricsManager),
+                true,
+                () -> TRANSACTION_CONFIG);
     }
 
     @Test
@@ -709,7 +718,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertNull(pair);
     }
@@ -721,7 +730,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 2L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 2L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -734,7 +743,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v0", pair.getLhSide());
@@ -759,7 +768,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -772,7 +781,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
@@ -784,8 +793,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 3L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 3L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());

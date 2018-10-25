@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -65,8 +65,8 @@ public class TodoEteTest {
         assertThat(valueSweep.getCellTsPairsExamined(), equalTo(9L));
         assertThat(valueSweep.getStaleValuesDeleted(), equalTo(4L));
 
-        // Stores five larger streams, which take 19 blocks each
-        StreamTestUtils.storeFiveStreams(todoClient, 7654321);
+        // Stores five larger streams, which take 3 blocks each
+        StreamTestUtils.storeFiveStreams(todoClient, 1254321);
 
         // The index table now contains ten rows:
         // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 examined, 0 deleted)
@@ -81,12 +81,12 @@ public class TodoEteTest {
         // The value table now contains ten rows:
         // 4 rows with a sentinel and a delete (sweep sees the delete, but doesn't sweep it - 4 E, 0 D)
         // 1 single-block row with one block and a delete (sweep sees both, and sweeps the value - 2 E, 1 D)
-        // 4 rows with 19 blocks and 19 deletes (38 E, 19 D per row = 152 E, 76 D)
-        // 1 row (the most recent) with 19 blocks (19 E, 0 D)
-        // The total cells examined is thus 4 + 2 + 4*2*19 + 19 = 177
-        // And the total cells deleted is 1 + 4*19 = 77
+        // 4 rows with 3 blocks and 3 deletes (6 E, 3 D per row = 24 E, 12 D)
+        // 1 row (the most recent) with 3 blocks (3 E, 0 D)
+        // The total cells examined is thus 4 + 2 + 4*2*3 + 3 = 33
+        // And the total cells deleted is 1 + 4*3 = 13
         SweepResults secondValueSweep = todoClient.sweepSnapshotValues();
-        assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(177L));
-        assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(1L + 19 * 4L));
+        assertThat(secondValueSweep.getCellTsPairsExamined(), equalTo(33L));
+        assertThat(secondValueSweep.getStaleValuesDeleted(), equalTo(13L));
     }
 }

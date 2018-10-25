@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,8 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting3.tracing.Tracers;
+import com.palantir.tracing.Tracers;
 
 /**
  * Please always use the static methods in this class instead of the ones in {@link
@@ -438,8 +437,8 @@ public final class PTExecutors {
     public static ScheduledThreadPoolExecutor newScheduledThreadPoolExecutor(int corePoolSize,
             ThreadFactory threadFactory, RejectedExecutionHandler handler) {
         Preconditions.checkArgument(corePoolSize >= 0,
-                "Cannot create a ScheduledThreadPoolExecutor with {} threads - thread count must not be negative!",
-                SafeArg.of("corePoolSize", corePoolSize));
+                "Cannot create a ScheduledThreadPoolExecutor with %s threads - thread count must not be negative!",
+                corePoolSize);
         int positiveCorePoolSize = corePoolSize > 0 ? corePoolSize : 1;
         ScheduledThreadPoolExecutor ret = new ScheduledThreadPoolExecutor(positiveCorePoolSize, threadFactory,
                 handler) {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -43,6 +43,8 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
@@ -262,5 +264,75 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             metrics.assertContainsHistogram("clock.skew");
             assertThat(metrics.getHistogram("clock.skew").get("count").intValue()).isGreaterThan(0);
         }
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionGivesUsTimestampsInSequence() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+
+        // Note that we technically cannot guarantee an ordering between the fresh timestamp on response 1 and the
+        // immutable timestamp on response 2. Most of the time, we will have IT on response 2 = IT on response 1
+        // < FT on response 1, as the lock token on response 1 has not expired yet. However, if we sleep for long
+        // enough between the first and second call that the immutable timestamp lock expires, then
+        // IT on response 2 > FT on response 1.
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                firstResponse.startTimestampAndPartition().timestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+        assertThat(ImmutableList.of(
+                firstResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.immutableTimestamp().getImmutableTimestamp(),
+                secondResponse.startTimestampAndPartition().timestamp())).isSorted();
+    }
+
+    @Test
+    public void startIdentifiedAtlasDbTransactionGivesUsStartTimestampsInTheSamePartition() {
+        UUID requestorUuid = UUID.randomUUID();
+        StartIdentifiedAtlasDbTransactionResponse firstResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+        StartIdentifiedAtlasDbTransactionResponse secondResponse = startIdentifiedAtlasDbTransaction(requestorUuid);
+
+        assertThat(firstResponse.startTimestampAndPartition().partition())
+                .isEqualTo(secondResponse.startTimestampAndPartition().partition());
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedWhenMixingStandardTimestampAndIdentifiedTimestampRequests() {
+        UUID requestorUuid = UUID.randomUUID();
+        List<Long> temporalSequence = ImmutableList.of(
+                CLUSTER.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                CLUSTER.getFreshTimestamp(),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestorUuid),
+                CLUSTER.getFreshTimestamp());
+
+        assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void distinctClientsStillShareTheSameSequenceOfTimestamps() {
+        UUID requestor1 = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+
+        List<Long> temporalSequence = ImmutableList.of(
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor2),
+                getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1));
+
+        assertThat(temporalSequence).isSorted();
+    }
+
+    private StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return CLUSTER.startIdentifiedAtlasDbTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(requestorUuid));
+    }
+
+    private long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+        return startIdentifiedAtlasDbTransaction(requestorUuid).startTimestampAndPartition().timestamp();
     }
 }

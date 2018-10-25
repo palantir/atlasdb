@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,30 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.priority;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.TableToSweep;
@@ -53,7 +55,7 @@ public class NextTableToSweepProviderTest {
     private Set<String> priorityTables;
     private Set<String> blacklistTables;
 
-    private Optional<TableToSweep> tableToSweep;
+    private List<Optional<TableToSweep>> tablesToSweep = Lists.newArrayList();
 
     @Before
     public void setup() throws InterruptedException {
@@ -138,6 +140,7 @@ public class NextTableToSweepProviderTest {
 
         whenGettingNextTableToSweep();
 
+        Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
         Assert.assertTrue(tableToSweep.isPresent());
         Assert.assertThat(tableToSweep.get().getTableRef(),
                 anyOf(is(table("table2")), is(table("table3")), is(table("table4"))));
@@ -200,6 +203,24 @@ public class NextTableToSweepProviderTest {
         thenProviderReturnsEmpty();
     }
 
+    @Test
+    public void calculatorReturnsMultipleTablesWithPriorityOverride_thenProviderDoesNotPinAnyOne() {
+        givenPriority(table("table1"), 1.0);
+        givenPriority(table("table2"), 1.0);
+        givenPriority(table("table3"), 1.0);
+        givenPriorityOverride(table("table1"));
+        givenPriorityOverride(table("table2"));
+        givenPriorityOverride(table("table3"));
+
+        whenGettingNextTableToSweepMultipleTimes(1_000);
+
+        // There is a chance this test strobes, but assuming uniform randomness this is bounded above by
+        // 3 * (2/3)^1000 or ~2.4e-176.
+        thenTableIsChosenAtLeastOnce(table("table1"));
+        thenTableIsChosenAtLeastOnce(table("table2"));
+        thenTableIsChosenAtLeastOnce(table("table3"));
+    }
+
     private void givenNoPrioritiesReturned() {
         //Nothing to do
     }
@@ -221,20 +242,20 @@ public class NextTableToSweepProviderTest {
     }
 
     private LockRequest requestContaining(String table) {
-        return argThat(new ArgumentMatcher<LockRequest>() {
-            @Override
-            public boolean matches(Object argument) {
-                LockRequest request = (LockRequest) argument;
-                return request != null && request.getLockDescriptors().stream()
-                        .anyMatch(des -> des.getLockIdAsString().contains(table));
-            }
-        });
+        return argThat(
+                argument -> argument != null
+                        && argument.getLockDescriptors().stream()
+                        .anyMatch(descriptor -> descriptor.getLockIdAsString().contains(table)));
     }
 
     private void whenGettingNextTableToSweep() {
         when(calculator.calculateSweepPriorityScores(any(), anyLong())).thenReturn(priorities);
 
-        tableToSweep = provider.getNextTableToSweep(null, 0L, createOverrideConfig());
+        tablesToSweep.add(provider.getNextTableToSweep(null, 0L, createOverrideConfig()));
+    }
+
+    private void whenGettingNextTableToSweepMultipleTimes(int times) {
+        IntStream.range(0, times).forEach(unused -> whenGettingNextTableToSweep());
     }
 
     private SweepPriorityOverrideConfig createOverrideConfig() {
@@ -245,12 +266,23 @@ public class NextTableToSweepProviderTest {
     }
 
     private void thenProviderReturnsEmpty() {
-        Assert.assertFalse(tableToSweep.isPresent());
+        Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
+        Assert.assertFalse("expected to not have chosen a table!", tableToSweep.isPresent());
     }
 
     private void thenTableChosenIs(TableReference table) {
+        Optional<TableToSweep> tableToSweep = Iterables.getOnlyElement(tablesToSweep);
         Assert.assertTrue("expected to have chosen a table!", tableToSweep.isPresent());
         Assert.assertThat(tableToSweep.get().getTableRef(), is(table));
+    }
+
+    private void thenTableIsChosenAtLeastOnce(TableReference table) {
+        Assert.assertTrue("expected table " + table + " to be chosen at least once, but wasn't!",
+                tablesToSweep.stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .map(TableToSweep::getTableRef)
+                        .anyMatch(chosenTable -> chosenTable.equals(table)));
     }
 
     // helpers
