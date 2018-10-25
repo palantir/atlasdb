@@ -49,7 +49,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -61,24 +60,20 @@ public class CassandraService implements AutoCloseable {
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
-    private final QosClient qosClient;
 
     private volatile RangeMap<LightweightOppToken, List<InetSocketAddress>> tokenMap = ImmutableRangeMap.of();
     private final Map<InetSocketAddress, CassandraClientPoolingContainer> currentPools = Maps.newConcurrentMap();
 
     private List<InetSocketAddress> cassandraHosts;
 
-    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config,
-            Blacklist blacklist, QosClient qosClient) {
+    public CassandraService(MetricsManager metricsManager, CassandraKeyValueServiceConfig config, Blacklist blacklist) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.blacklist = blacklist;
-        this.qosClient = qosClient;
     }
 
     @Override
     public void close() {
-        qosClient.close();
     }
 
     public Set<InetSocketAddress> refreshTokenRanges() {
@@ -272,7 +267,7 @@ public class CassandraService implements AutoCloseable {
     public void addPool(InetSocketAddress server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         currentPools.put(server,
-                new CassandraClientPoolingContainer(metricsManager, qosClient, server, config, currentPoolNumber));
+                new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber));
     }
 
     public void removePool(InetSocketAddress removedServerAddress) {

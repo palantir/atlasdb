@@ -26,21 +26,15 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.Throwables;
 
 public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
     private final Containers containers;
-    private final KeyValueService kvs = CassandraKeyValueServiceImpl.create(
-            MetricsManagers.createForTests(),
-            containerInstance.getConfig(),
-            CassandraKeyValueServiceRuntimeConfig::getDefault,
-            CassandraContainer.LEADER_CONFIG,
-            CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-            true,
-            FakeQosClient.INSTANCE);
+
+    private final KeyValueService kvs = createKvs();
+
     private AtomicBoolean initialized = new AtomicBoolean(false);
 
     public UninitializedCassandraResource(Class<?> classToSaveLogsFor) {
@@ -62,6 +56,7 @@ public class UninitializedCassandraResource extends ExternalResource {
             return;
         }
         try {
+            kvs.close();
             containers.getContainer(containerInstance.getServiceName()).kill();
         } catch (IOException | InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -70,5 +65,15 @@ public class UninitializedCassandraResource extends ExternalResource {
 
     public KeyValueService getAsyncInitializeableKvs() {
         return kvs;
+    }
+
+    private KeyValueService createKvs() {
+        return CassandraKeyValueServiceImpl.create(
+                MetricsManagers.createForTests(),
+                containerInstance.getConfig(),
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                CassandraContainer.LEADER_CONFIG,
+                CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
+                true);
     }
 }

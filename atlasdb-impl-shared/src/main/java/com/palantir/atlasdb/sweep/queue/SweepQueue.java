@@ -118,7 +118,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
-        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp(), sweepBatch.dedicatedRows());
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());

@@ -50,6 +50,25 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - Qos Service: The experimental QosService for rate-limiting clients has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
+
+    *    - |fixed|
+         - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
+
+    *    - |fixed|
+         - Targeted sweep now deletes certain sweep queue rows faster than before, which should
+           reduce table bloat (particularly on space constrained systems).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
+    *    - |improved| |fixed|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, all reachable nodes must agree and at least a quorum of nodes must be reachable, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
+
     *    - |devbreak|
          - The AutoDelegate annotation no longer supports a typeToExtend parameter.
            Users should instead annotate the desired class or interface directly.
@@ -82,7 +101,19 @@ develop
            This may be useful for debugging when users run multiple such pools.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3588>`__)
 
+    *    - |new|
+         - Old deprecated tables can now be added to a schema to be cleaned up on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
 
+    *    - |fixed|
+         - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
+
+    *    - |improved|
+         - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
+           Previously, puts would instead fail at runtime when the column did not exist.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
+ 
 ========
 v0.106.0
 ========
