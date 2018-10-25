@@ -76,6 +76,12 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |improved|
+         - The HikariConnectionClientPool now allows specification of a use-case.
+           If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
+           This may be useful for debugging when users run multiple such pools.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3588>`__)
+
 
 ========
 v0.106.0
