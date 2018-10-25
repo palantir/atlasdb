@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - We no longer retry failed Cassandra  schema mutations; these can cause concurrent schema mutations
+           while holding the schema mutation lock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3613>`__)
+
     *    - |userbreak|
          - Qos Service: The experimental QosService for rate-limiting clients has been removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
