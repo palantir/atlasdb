@@ -1061,7 +1061,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     /**
      * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred
-     * and where it was truncated.
+     * and where it was truncated. In this case, there is a chance that we end up with a sentinel with no
+     * valid AtlasDB cell covering it. In this case, we ignore it.
      */
     private Set<Cell> findOrphanedSentinels(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::atDeletionSentinel).keySet();

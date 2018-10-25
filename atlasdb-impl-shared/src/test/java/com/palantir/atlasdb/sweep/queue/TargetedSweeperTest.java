@@ -943,6 +943,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(requestedLockIds).hasSameElementsAs(expectedLockIds);
     }
 
+    @Test
+    public void doesNotLeaveSentinelsIfTableDestroyed() {
+        enqueueWriteCommitted(TABLE_CONS, 10);
+        immutableTs = 11;
+        unreadableTs = 11;
+        spiedKvs.truncateTable(TABLE_CONS);
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
+    }
+
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 5);

@@ -23,11 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 
-/**
- * Yeah yeah, this shouldn't be another forwarding layer. However, I don't have a good sense
- * of the best way to expose this to clients, so here we are.
- */
-public final class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
+public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
     private final TableClearer tableClearer;
 

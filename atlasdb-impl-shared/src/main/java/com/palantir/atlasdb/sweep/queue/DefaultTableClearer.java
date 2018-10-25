@@ -56,6 +56,7 @@ public final class DefaultTableClearer implements TableClearer, TargetedSweepFil
         sweepStrategies = Caffeine.newBuilder()
                 .maximumSize(10_000)
                 .build(table -> Optional.ofNullable(kvs.getMetadataForTable(table))
+                        .filter(metadata -> metadata.length != 0)
                         .map(TableMetadata.BYTES_HYDRATOR::hydrateFromBytes)
                         .map(TableMetadata::getSweepStrategy)
                         .orElse(null));
