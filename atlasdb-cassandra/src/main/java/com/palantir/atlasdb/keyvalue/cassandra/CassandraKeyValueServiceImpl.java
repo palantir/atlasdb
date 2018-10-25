@@ -1504,7 +1504,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        clientPool.runWithRetry(client -> {
+        clientPool.run(client -> {
             for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
                 try {
                     client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
