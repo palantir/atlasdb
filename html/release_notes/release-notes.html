@@ -255,6 +255,11 @@ If you were consuming this service, please contact the AtlasDB team.
 Previously, puts would instead fail at runtime when the column did not exist.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3604">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
+Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/qqqq">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
