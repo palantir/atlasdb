@@ -200,7 +200,6 @@ public class TransactionManagerTest extends TransactionTestSetup {
                         TimestampAndPartition.of(1L, 1)
                 ));
         TRM.registerTransactionManager(txnManagerWithMocks);
-
         return txnManagerWithMocks;
     }
 }
