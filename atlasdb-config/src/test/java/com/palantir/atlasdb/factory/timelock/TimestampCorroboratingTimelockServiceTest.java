@@ -40,7 +40,7 @@ import com.palantir.timestamp.TimestampRange;
 public class TimestampCorroboratingTimelockServiceTest {
     private static final IdentifiedTimeLockRequest IDENTIFIED_TIME_LOCK_REQUEST = IdentifiedTimeLockRequest.create();
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
-            LockImmutableTimestampResponse.of(1L, mock(LockToken.class));
+            LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
     private TimelockService rawTimelockService;
     private TimelockService timelockService;
