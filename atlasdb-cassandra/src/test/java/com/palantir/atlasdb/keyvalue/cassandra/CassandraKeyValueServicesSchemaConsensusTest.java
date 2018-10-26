@@ -49,96 +49,105 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
     private static final String VERSION_UNREACHABLE = "UNREACHABLE";
-    private static final List<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3");
-    private static final List<String> REST_OF_NODES = ImmutableList.of("4", "5");
+    private static final List<String> QUORUM_OF_NODES = ImmutableList.of("1", "2", "3", "4");
+    private static final List<String> REMAINING_NODE = ImmutableList.of("5");
     private static final List<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
 
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
         when(config.servers()).thenReturn(FIVE_SERVERS);
+        when(config.replicationFactor()).thenReturn(3);
         when(waitingConfig.schemaMutationTimeoutMillis()).thenReturn(10_000);
         when(waitingConfig.servers()).thenReturn(FIVE_SERVERS);
+        when(waitingConfig.replicationFactor()).thenReturn(3);
     }
 
     @Test
     public void waitSucceedsForSameSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
-    public void waitThrowsForAllUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForQuorumDoesNotThrow();
+        assertWaitForAllDoesNotThrow();
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForQuorumThrowsAndContainsConfigNodesInformation();
+        assertWaitForAllThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
-    public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
-    }
-
-    @Test
-    public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
+    public void waitQuorumSuceedsForQuorumOfUnreachableNodes() throws TException {
         when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REMAINING_NODE));
+        assertWaitForQuorumDoesNotThrow();
     }
 
     @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
-    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
+    public void waitAllThrowsForUnreachableNode() throws TException {
         when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REMAINING_NODE));
+        assertWaitForAllThrowsAndContainsConfigNodesInformation();
+    }
+
+    @Test
+    public void waitThrowsForLessThanQuorumOfReachableNodes() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REMAINING_NODE));
+        assertWaitForQuorumThrowsAndContainsConfigNodesInformation();
+        assertWaitForAllThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
-                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REMAINING_NODE));
+        assertWaitForQuorumThrowsAndContainsConfigNodesInformation();
+        assertWaitForAllThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
-    public void waitWaitsForSchemaVersions() throws TException {
+    public void waitQuorumWaitsForSchemaVersions() throws TException {
         CassandraClient waitingClient = mock(CassandraClient.class);
         when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
-                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REMAINING_NODE),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REMAINING_NODE),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
+        CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(waitingConfig, waitingClient, TABLE);
+        verify(waitingClient, times(2)).describe_schema_versions();
+    }
+
+    @Test
+    public void waitAllWaitsForSchemaVersions() throws TException {
+        CassandraClient waitingClient = mock(CassandraClient.class);
+        when(waitingClient.describe_schema_versions()).thenReturn(
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REMAINING_NODE),
+                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REMAINING_NODE),
+                ImmutableMap.of(VERSION_1, ALL_NODES));
+
+        CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(waitingConfig, waitingClient, TABLE);
         verify(waitingClient, times(3)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
+    private void assertWaitForQuorumThrowsAndContainsConfigNodesInformation() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(config, client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
     }
 
-    private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+    private void assertWaitForAllThrowsAndContainsConfigNodesInformation() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client, TABLE))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
+    }
+
+    private void assertWaitForQuorumDoesNotThrow() throws TException {
+        CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(config, client, TABLE);
+    }
+
+    private void assertWaitForAllDoesNotThrow() throws TException {
+        CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client, TABLE);
     }
 }

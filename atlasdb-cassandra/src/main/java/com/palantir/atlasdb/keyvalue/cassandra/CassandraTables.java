@@ -76,8 +76,8 @@ class CassandraTables {
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
         try {
-            CassandraKeyValueServices
-                    .waitForSchemaVersions(config, client, "before making a call to get all table names.");
+            CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(
+                    config, client, "before making a call to get all table names.");
         } catch (IllegalStateException e) {
             throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions "
                     + "before making a call to get all table names.", e);

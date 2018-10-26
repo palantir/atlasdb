@@ -111,7 +111,7 @@ public class SchemaMutationLockTables {
             try {
                 client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 
-                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(config, client,
                         "creating the lock table " + tableRef.getQualifiedName());
                 return null;
             } catch (TException ex) {

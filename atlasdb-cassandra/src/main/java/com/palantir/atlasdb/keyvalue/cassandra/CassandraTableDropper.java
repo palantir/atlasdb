@@ -58,6 +58,8 @@ class CassandraTableDropper {
         try {
             clientPool.runWithRetry(
                     (FunctionCheckedException<CassandraClient, Void, Exception>) client -> {
+                        CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client, "before dropping the"
+                                + " column family for tables " + tablesToDrop + " in a call to drop tables");
                         KsDef ks = client.describe_keyspace(
                                 config.getKeyspaceOrThrow());
                         Set<TableReference> existingTables = Sets.newHashSet();
@@ -78,8 +80,8 @@ class CassandraTableDropper {
                                         LoggingArgs.tableRef(table));
                             }
                         }
-                        CassandraKeyValueServices.waitForSchemaVersions(config, client, "after dropping the column "
-                                + "family for tables " + tablesToDrop + " in a call to drop tables");
+                        CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client, "after dropping the "
+                                + "column family for tables " + tablesToDrop + " in a call to drop tables");
                         return null;
                     });
         } catch (Exception e) {

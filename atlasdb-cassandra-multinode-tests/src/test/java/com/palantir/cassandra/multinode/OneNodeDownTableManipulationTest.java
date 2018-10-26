@@ -17,6 +17,7 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +38,7 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
+    @Ignore // until we rework table creation
     public void canCreateTable() {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
         getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -47,6 +49,7 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
+    @Ignore // until we rework table creation
     public void canCreateTables() {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table2");
         getTestKvs().createTables(ImmutableMap.of(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
@@ -57,6 +60,23 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
+    public void createTableThrowsAndDoesNotChangeCassandraSchema() {
+        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
+
+    }
+
+    @Test
+    public void createTablesThrowsAndDoesNotChangeCassandraSchema() {
+        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().createTables(ImmutableMap.of(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA)));
+
+    }
+
+    @Test
+    @Ignore // until we rework table dropping
     public void canDropTable() {
         getTestKvs().dropTable(TABLE_TO_DROP);
 
@@ -66,12 +86,25 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
+    @Ignore // until we rework table dropping
     public void canDropTables() {
         getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2));
 
         assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP_2);
         assertKvsReturnsEmptyMetadata(TABLE_TO_DROP_2);
         assertCassandraSchemaChanged();
+    }
+
+    @Test
+    public void dropTableThrowsAndDoesNotChangeCassandraSchema() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().dropTable(TEST_TABLE));
+    }
+
+    @Test
+    public void dropTablesThrowsAndDoesNotChangeCassandraSchema() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().dropTables(ImmutableSet.of(TEST_TABLE)));
     }
 
     @Test

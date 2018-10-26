@@ -1503,30 +1503,37 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        clientPool.runWithRetry(client -> {
-            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
-                try {
-                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            config.getKeyspaceOrThrow(),
-                            tableEntry.getKey(),
-                            config.gcGraceSeconds(),
-                            tableEntry.getValue()));
-                } catch (UnavailableException e) {
-                    throw new InsufficientConsistencyException(
-                            "Creating tables requires all Cassandra nodes to be up and available.");
-                } catch (TException thriftException) {
-                    if (thriftException.getMessage() != null
-                            && !thriftException.getMessage().contains("already existing table")) {
-                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
+    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
+        try {
+            clientPool.run(client -> {
+                CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client,
+                        "before adding the column family"
+                                + " for tables " + tableNamesToTableMetadata.keySet() + " in a call to create tables");
+
+                for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
+                    try {
+                        client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
+                                config.getKeyspaceOrThrow(),
+                                tableEntry.getKey(),
+                                config.gcGraceSeconds(),
+                                tableEntry.getValue()));
+
+                    } catch (TException thriftException) {
+                        if (thriftException.getMessage() != null
+                                && !thriftException.getMessage().contains("already existing table")) {
+                            throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
+                        }
                     }
                 }
-            }
 
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
-                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
-            return null;
-        });
+                CassandraKeyValueServices.waitForSchemaAgreementOnAllNodes(config, client,
+                        "after adding the column family "
+                                + "for tables " + tableNamesToTableMetadata.keySet() + " in a call to create tables");
+                return null;
+            });
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
     }
 
     /**
@@ -1757,7 +1764,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         client.system_update_column_family(cf);
                     }
 
-                    CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    CassandraKeyValueServices.waitForSchemaAgreementOnQuorumOfNodes(config, client,
                             schemaChangeDescriptionForPutMetadataForTables(updatedCfs));
                 }
                 // Done with actual schema mutation, push the metadata

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,7 +65,7 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Attempt to wait until nodes' schema versions match.
+     * Attempt to wait until all nodes have matching schema versions.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
@@ -72,20 +73,43 @@ public final class CassandraKeyValueServices {
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
-    static void waitForSchemaVersions(
+    static void waitForSchemaAgreementOnAllNodes(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, false, unsafeSchemaChangeDescription);
+    }
+
+    /**
+     * Attempt to wait until a quorum of nodes have matching schema versions, as long as the rest are unreachable.
+     *
+     * @param config the KVS configuration.
+     * @param client Cassandra client.
+     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
+     *
+     * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
+     */
+    static void waitForSchemaAgreementOnQuorumOfNodes(
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, true, unsafeSchemaChangeDescription);
+    }
+
+    private static void waitForSchemaVersions(
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            boolean allowQuorumAgreement,
             String unsafeSchemaChangeDescription)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
-            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
-            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
-            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
+            if (agreeOnSchemaVersions(config, versions, allowQuorumAgreement)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -117,31 +141,24 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
+    private static boolean agreeOnSchemaVersions(
             CassandraKeyValueServiceConfig config,
-            Map<String, List<String>> versions) {
+            Map<String, List<String>> versions,
+            boolean allowQuorumAgreement) {
         List<String> reachableSchemas = getDistinctReachableSchemas(versions);
         if (reachableSchemas.size() > 1) {
             return false;
         }
-
-        int numberOfServers = config.servers().size();
-        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
-
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+        // todo(gmaretic): this is a conservative estimate, we can instead check we have a quorum of racks available
+        int safeNumberOfUnreachableNodes = allowQuorumAgreement ? (config.replicationFactor() + 1) / 2 - 1 : 0;
+        int numberOfUnreachableNodes = Optional.ofNullable(versions.get(VERSION_UNREACHABLE)).map(List::size).orElse(0);
+        return numberOfUnreachableNodes <= safeNumberOfUnreachableNodes;
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream()
                 .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
                 .collect(Collectors.toList());
-    }
-
-    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
-        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue)
-                .mapToInt(List::size)
-                .sum();
     }
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {
@@ -172,7 +189,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(config, client, " during an initialization check");
+                waitForSchemaVersions(config, client, true, " during an initialization check");
                 return null;
             });
         } catch (Exception e) {
@@ -377,8 +394,7 @@ public final class CassandraKeyValueServices {
 
     public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
         if (metadata == null
-                || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)
-                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
+                || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
             return true;
         }
         return false;

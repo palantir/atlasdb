@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed a bug in Cassandra KVS that could result in issuing a request to create the same table to two different Cassandra nodes, requiring manual intervention to correct the resulting schema versions state in Cassandra.
+           We now require all nodes to agree on schema versions after we obtain the schema mutation lock and before we create or drop tables.
+           This temporarily reverts some of the changes in https://github.com/palantir/atlasdb/pull/3480 until we rework table creation and dropping.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3614>`__)
+
     *    - |userbreak|
          - Qos Service: The experimental QosService for rate-limiting clients has been removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
