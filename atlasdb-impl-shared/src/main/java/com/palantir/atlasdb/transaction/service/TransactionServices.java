@@ -19,7 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionServices {
     private TransactionServices() {
-        // Uility class
+        // Utility class
     }
 
     public static TransactionService createTransactionService(
