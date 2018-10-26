@@ -31,13 +31,15 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 
+import okio.ByteString;
+
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_KEY = PtBytes.toBytes("aaaaa");
 
     private static final long SEQUENCE_NUMBER_1 = 1L;
     private static final long SEQUENCE_NUMBER_2 = 111L;
-    private static final byte[] VALUE_1 = PtBytes.toBytes("blabla");
-    private static final byte[] VALUE_2 = PtBytes.toBytes("testtest");
+    private static final ByteString VALUE_1 = ByteString.of(PtBytes.toBytes("blabla"));
+    private static final ByteString VALUE_2 = ByteString.of(PtBytes.toBytes("testtest"));
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
 

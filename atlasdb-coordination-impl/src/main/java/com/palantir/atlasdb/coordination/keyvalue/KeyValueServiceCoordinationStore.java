@@ -52,6 +52,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
+import okio.ByteString;
+
 public class KeyValueServiceCoordinationStore implements CoordinationStore {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
@@ -97,7 +99,7 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
     }
 
     @Override
-    public Optional<byte[]> getValue(long sequenceNumber) {
+    public Optional<ByteString> getValue(long sequenceNumber) {
         Preconditions.checkState(
                 sequenceNumber > 0,
                 "Only positive sequence numbers are supported, but found %s",
@@ -105,17 +107,17 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
         Cell targetCell = getCellForSequence(sequenceNumber);
         Map<Cell, Value> response = kvs.get(AtlasDbConstants.COORDINATION_TABLE,
                 ImmutableMap.of(targetCell, Long.MAX_VALUE));
-        return Optional.ofNullable(response.get(targetCell)).map(Value::getContents);
+        return Optional.ofNullable(response.get(targetCell)).map(Value::getContents).map(ByteString::of);
     }
 
     @Override
-    public void putValue(long sequenceNumber, byte[] value) {
+    public void putValue(long sequenceNumber, ByteString value) {
         Preconditions.checkState(
                 sequenceNumber > 0,
                 "Only positive sequence numbers are supported, but found %s",
                 sequenceNumber);
         kvs.put(AtlasDbConstants.COORDINATION_TABLE,
-                ImmutableMap.of(getCellForSequence(sequenceNumber), value),
+                ImmutableMap.of(getCellForSequence(sequenceNumber), value.toByteArray()),
                 WRITE_TIMESTAMP);
     }
 

@@ -20,6 +20,8 @@ import java.util.Optional;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
+import okio.ByteString;
+
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
  */
@@ -31,7 +33,7 @@ public interface CoordinationStore {
      * @param sequenceNumber sequence number to read a value for
      * @return value stored at that sequence number; empty if none is present
      */
-    Optional<byte[]> getValue(long sequenceNumber);
+    Optional<ByteString> getValue(long sequenceNumber);
 
     /**
      * Stores a value for a given sequence number.
@@ -40,7 +42,7 @@ public interface CoordinationStore {
      * @param sequenceNumber sequence number to store a value for
      * @param value value to be stored
      */
-    void putValue(long sequenceNumber, byte[] value);
+    void putValue(long sequenceNumber, ByteString value);
 
     /**
      * Gets the current value of the {@link SequenceAndBound} that a {@link CoordinationService} may have stored.
