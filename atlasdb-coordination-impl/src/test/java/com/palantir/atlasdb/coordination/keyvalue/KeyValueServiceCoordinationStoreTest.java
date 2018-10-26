@@ -24,6 +24,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.ImmutableSequenceAndBound;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -40,8 +41,8 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
 
-    private final KeyValueServiceCoordinationStore coordinationStore
-            = new KeyValueServiceCoordinationStore(new InMemoryKeyValueService(true), COORDINATION_KEY);
+    private final CoordinationStore coordinationStore
+            = KeyValueServiceCoordinationStore.create(new InMemoryKeyValueService(true), COORDINATION_KEY);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -53,10 +54,8 @@ public class KeyValueServiceCoordinationStoreTest {
         coordinationStore.putValue(SEQUENCE_NUMBER_1, VALUE_1);
         coordinationStore.putValue(SEQUENCE_NUMBER_2, VALUE_2);
         assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_1))
-                .isPresent()
                 .contains(VALUE_1);
         assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_2))
-                .isPresent()
                 .contains(VALUE_2);
     }
 
@@ -84,7 +83,6 @@ public class KeyValueServiceCoordinationStoreTest {
         assertThat(coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1))
                 .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
         assertThat(coordinationStore.getCoordinationValue())
-                .isPresent()
                 .contains(SEQUENCE_AND_BOUND_1);
     }
 

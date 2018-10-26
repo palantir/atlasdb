@@ -85,11 +85,15 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
     private final KeyValueService kvs;
     private final byte[] coordinationSequence;
 
-    public KeyValueServiceCoordinationStore(KeyValueService kvs, byte[] coordinationSequence) {
+    private KeyValueServiceCoordinationStore(KeyValueService kvs, byte[] coordinationSequence) {
         this.kvs = kvs;
-        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
-
         this.coordinationSequence = coordinationSequence;
+    }
+
+    public static CoordinationStore create(KeyValueService kvs, byte[] coordinationSequence) {
+        CoordinationStore coordinationStore = new KeyValueServiceCoordinationStore(kvs, coordinationSequence);
+        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
+        return coordinationStore;
     }
 
     @Override
@@ -141,7 +145,6 @@ public class KeyValueServiceCoordinationStore implements CoordinationStore {
 
         try {
             kvs.checkAndSet(request);
-            // success
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
             return ImmutableCheckAndSetResult.of(false, e.getActualValues()

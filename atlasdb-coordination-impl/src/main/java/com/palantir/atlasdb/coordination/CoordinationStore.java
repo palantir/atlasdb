@@ -21,7 +21,7 @@ import java.util.Optional;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 /**
- * A CoordinationStore stores data that a CoordinationService may use.
+ * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
  */
 public interface CoordinationStore {
     /**
@@ -43,19 +43,19 @@ public interface CoordinationStore {
     void putValue(long sequenceNumber, byte[] value);
 
     /**
-     * Gets the current value of the {@link SequenceAndBound} that a CoordinationService may have stored.
+     * Gets the current value of the {@link SequenceAndBound} that a {@link CoordinationService} may have stored.
      *
      * @return available sequence and bound; empty if no sequence and bound has ever been stored
      */
     Optional<SequenceAndBound> getCoordinationValue();
 
     /**
-     * Attempts to atomically update the {@link SequenceAndBound} associated with the relevant CoordinationService.
+     * Attempts to atomically update the {@link SequenceAndBound} associated with the relevant
+     * {@link CoordinationService}.
      *
      * @param oldValue old value of the sequence and bound
      * @param newValue new value of the sequence and bound
-     * @return the value that is now present after this check-and-set operation. Note that a successful CAS and a
-     *         failed CAS where the value was set to our value are indistinguishable, but this is fine.
+     * @return a {@link CheckAndSetResult} indicating success or failure of the operation, and the current value
      */
     CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue);
