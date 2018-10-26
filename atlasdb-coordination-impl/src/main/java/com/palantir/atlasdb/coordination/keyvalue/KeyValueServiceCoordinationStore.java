@@ -54,6 +54,21 @@ import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 import okio.ByteString;
 
+/**
+ * An implementation of {@link CoordinationStore} that persists its state in a {@link KeyValueService}.
+ *
+ * Specifically, a {@link KeyValueServiceCoordinationStore} stores its data in a single row in the
+ * {@link AtlasDbConstants#COORDINATION_TABLE}. This specific row is identified by the store's
+ * {@link KeyValueServiceCoordinationStore#coordinationSequence}; the reason for doing this is that it allows
+ * for multiple distinct sequences to coexist in one table.
+ *
+ * Within a single identified row, values are written with dynamic column keys as sequence numbers, which are
+ * positive longs. Furthermore, a {@link SequenceAndBound} which controls which of the values is considered to be
+ * the most recent in the coordination sequence and how long it is valid for is written at dynamic column key zero.
+ * This {@link SequenceAndBound} should contain the ID of the value that is considered to be the most current
+ * in the sequence.
+ */
+// TODO (jkong): Coordination stores should be able to clean up old values.
 public class KeyValueServiceCoordinationStore implements CoordinationStore {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
