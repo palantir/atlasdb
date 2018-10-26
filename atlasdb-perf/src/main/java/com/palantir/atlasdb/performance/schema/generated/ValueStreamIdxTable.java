@@ -8,18 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -203,9 +206,10 @@ public final class ValueStreamIdxTable implements
                 return false;
             }
             ValueStreamIdxRow other = (ValueStreamIdxRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -485,26 +489,6 @@ public final class ValueStreamIdxTable implements
         }
     }
 
-    public void putUnlessExists(ValueStreamIdxRow rowName, Iterable<ValueStreamIdxColumnValue> values) {
-        putUnlessExists(ImmutableMultimap.<ValueStreamIdxRow, ValueStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    public void putUnlessExists(ValueStreamIdxRow rowName, ValueStreamIdxColumnValue... values) {
-        putUnlessExists(ImmutableMultimap.<ValueStreamIdxRow, ValueStreamIdxColumnValue>builder().putAll(rowName, values).build());
-    }
-
-    public void putUnlessExists(Multimap<ValueStreamIdxRow, ? extends ValueStreamIdxColumnValue> rows) {
-        Multimap<ValueStreamIdxRow, ValueStreamIdxColumn> toGet = Multimaps.transformValues(rows, ValueStreamIdxColumnValue.getColumnNameFun());
-        Multimap<ValueStreamIdxRow, ValueStreamIdxColumnValue> existing = get(toGet);
-        Multimap<ValueStreamIdxRow, ValueStreamIdxColumnValue> toPut = HashMultimap.create();
-        for (Entry<ValueStreamIdxRow, ? extends ValueStreamIdxColumnValue> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
-    }
-
     @Override
     public void touch(Multimap<ValueStreamIdxRow, ValueStreamIdxColumn> values) {
         Multimap<ValueStreamIdxRow, ValueStreamIdxColumnValue> currentValues = get(values);
@@ -653,17 +637,15 @@ public final class ValueStreamIdxTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -720,14 +702,16 @@ public final class ValueStreamIdxTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Uk3WRfkkuwM0A6C8PP/fKA==";
+    static String __CLASS_HASH = "cH7jR4yF5ffaobDqwgeAnA==";
 }

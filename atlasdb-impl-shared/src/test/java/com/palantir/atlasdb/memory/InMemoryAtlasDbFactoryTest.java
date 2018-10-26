@@ -23,7 +23,6 @@ import java.util.Optional;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.timestamp.TimestampService;
 
@@ -67,7 +66,6 @@ public class InMemoryAtlasDbFactoryTest {
                 null,
                 Optional.empty(),
                 null,
-                initializeAsync,
-                FakeQosClient.INSTANCE);
+                initializeAsync);
     }
 }

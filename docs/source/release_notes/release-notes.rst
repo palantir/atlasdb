@@ -51,8 +51,12 @@ develop
          - Change
 
     *    - |improved|
-         - Introduced runtime checks on client side for timestamps retrieved from timelock; aiming to prevent data corruption in case of timestamps going back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and do not provide absolute protection.
+         - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
+    *    - |userbreak|
+         - Qos Service: The experimental QosService for rate-limiting clients has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
 
     *    - |fixed|
          - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
@@ -62,6 +66,12 @@ develop
          - Targeted sweep now deletes certain sweep queue rows faster than before, which should
            reduce table bloat (particularly on space constrained systems).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
+    *    - |improved| |fixed|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, all reachable nodes must agree and at least a quorum of nodes must be reachable, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
     *    - |devbreak|
          - The AutoDelegate annotation no longer supports a typeToExtend parameter.
@@ -89,6 +99,12 @@ develop
            (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
+    *    - |improved|
+         - The HikariConnectionClientPool now allows specification of a use-case.
+           If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
+           This may be useful for debugging when users run multiple such pools.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3588>`__)
+
     *    - |new|
          - Old deprecated tables can now be added to a schema to be cleaned up on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3569>`__)
@@ -97,6 +113,21 @@ develop
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |devbreak|
+         - The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.
+           If you were consuming this service, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3605>`__)
+
+    *    - |improved|
+         - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
+           Previously, puts would instead fail at runtime when the column did not exist.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
+ 
+    *    - |improved|
+         - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
+           Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
+ 
 ========
 v0.106.0
 ========
