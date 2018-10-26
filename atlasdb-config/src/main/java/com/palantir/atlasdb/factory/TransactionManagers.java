@@ -68,6 +68,7 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
+import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
@@ -645,7 +646,22 @@ public abstract class TransactionManagers {
                 invalidator,
                 userAgent);
         return withMetrics(metricsManager,
-                withRefreshingLockService(withBridgingTimelockService(lockAndTimestampServices)));
+                withCorroboratingTimestampService(
+                        withRefreshingLockService(
+                                withBridgingTimelockService(lockAndTimestampServices))));
+    }
+
+    private static LockAndTimestampServices withCorroboratingTimestampService(
+            LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockService = TimestampCorroboratingTimelockService
+                .create(lockAndTimestampServices.timelock());
+        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timelockService)
+                .timestamp(corroboratingTimestampService)
+                .build();
     }
 
     private static LockAndTimestampServices withBridgingTimelockService(

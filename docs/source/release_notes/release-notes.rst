@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
     *    - |userbreak|
          - Qos Service: The experimental QosService for rate-limiting clients has been removed.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
