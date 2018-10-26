@@ -457,12 +457,7 @@ public abstract class TransactionManagers {
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
             AsyncInitializer initializer,
             LockAndTimestampServices lockAndTimestampServices) {
-        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
-    }
-
-    @VisibleForTesting
-    static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
-        return lockAndTimestampServices.migrator().map(AsyncInitializer::isInitialized).orElse(true);
+        return initializer.isInitialized() && lockAndTimestampServices.isInitialized();
     }
 
     private static BackgroundSweeperImpl initializeSweepEndpointAndBackgroundProcess(
@@ -954,6 +949,12 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
+
+        default boolean isInitialized() {
+            return timelock().isInitialized()
+                    && timestamp().isInitialized()
+                    && migrator().map(AsyncInitializer::isInitialized).orElse(true);
+        }
 
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
