@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
     *    - |fixed|
          - Fixed a bug in Cassandra KVS that could result in issuing a request to create the same table to two different Cassandra nodes, requiring manual intervention to correct the resulting schema versions state in Cassandra.
            We now require all nodes to agree on schema versions after we obtain the schema mutation lock and before we create or drop tables.
