@@ -125,7 +125,7 @@ public class Containers extends ExternalResource {
                 .projectName(PROJECT_NAME)
                 .machine(machine)
                 .logCollector(currentLogCollector)
-                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
+                .shutdownStrategy(ShutdownStrategy.SKIP)
                 .build();
 
         dockerComposeRule.before();

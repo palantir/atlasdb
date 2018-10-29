@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
@@ -121,12 +122,30 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void testCreateTableCaseInsensitive() {
+    public void test() {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
+        CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
+        UUID res1 = kvs.doit(table1);
+        UUID res2 = kvs.doit(table2);
+        UUID res3 = kvs.doit(table3);
+        UUID res4 = kvs.doit(table1);
+        UUID res5 = kvs.doit(table2);
+        UUID res6 = kvs.doit(table3);
+    }
+
+    @Test
+    public void testCreateTableCaseInsensitive() {
+        TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
+        TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
+        keyValueService.createTables(ImmutableMap.of(table1, AtlasDbConstants.GENERIC_TABLE_METADATA, table2, AtlasDbConstants.EMPTY_TABLE_METADATA));
+        TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");
         keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(table2, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        keyValueService.dropTable(table1);
         keyValueService.createTable(table2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         keyValueService.createTable(table3, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Set<TableReference> allTables = keyValueService.getAllTableNames();
         Preconditions.checkArgument(allTables.contains(table1));

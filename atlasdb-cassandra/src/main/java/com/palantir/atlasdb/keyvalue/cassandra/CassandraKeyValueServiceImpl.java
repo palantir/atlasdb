@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -148,6 +149,8 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
+    private final CfIdTable test;
+
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -385,6 +388,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
                 wrappingQueryRunner, deleteConsistency);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+        this.test = new CfIdTable(clientPool, config, checkAndSetRunner);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -687,6 +691,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    public UUID doit(TableReference tableReference) {
+        test.createIfNotExists();
+        return test.getCfIdForTable(tableReference);
     }
 
     private Map<Cell, Value> get(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
@@ -1420,7 +1429,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     tablesToActuallyCreate.keySet());
             log.info("Grabbing schema mutation lock to create tables {} and {}",
                     safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-
+            CqlKeyValueServices cql = new CqlKeyValueServices();
+            clientPool.runWithRetry(client -> {
+            tablesToActuallyCreate.forEach((tableRef, bytes) -> {
+                try {
+                    cql.createTableWithSettings(tableRef, bytes, config, client);
+                } catch (TException e) {
+                    //ignore;
+                }
+            });
+            return null;
+            });
             runSchemaMutationTask(() ->
                     schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate)));
         }
@@ -1436,22 +1455,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableReference = entry.getKey();
             byte[] newMetadata = entry.getValue();
 
-            // if no existing table or if existing table's metadata is different
             if (metadataIsDifferent(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
                         existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
-                // completely new table, not an update
-                if (matchingTables.isEmpty()) {
+                if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
-                } else { // existing case-insensitive table, maybe an update
-                    if (Arrays.equals(
-                            existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
+                } else {
                         log.debug("Case-insensitive matched table already existed with same metadata,"
                                 + " skipping update to {}", LoggingArgs.tableRef(tableReference));
-                    } else { // existing table has different metadata, so we should perform an update
-                        tableMetadataUpdates.put(tableReference, newMetadata);
-                    }
                 }
             } else {
                 log.debug("Table already existed with same metadata, skipping update to {}",
@@ -1460,6 +1472,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return tableMetadataUpdates;
+    }
+
+    private boolean newTableOrUpdate(Map<TableReference, byte[]> existingMetadata, byte[] newMetadata,
+            Set<TableReference> matchingTables) {
+        return matchingTables.isEmpty()
+                || metadataIsDifferent(existingMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata);
     }
 
     private Map<TableReference, byte[]> filterOutExistingTables(
