@@ -69,7 +69,7 @@ import okio.ByteString;
  * in the sequence.
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
-public class KeyValueServiceCoordinationStore implements CoordinationStore {
+public final class KeyValueServiceCoordinationStore implements CoordinationStore {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
     private static final TableMetadata COORDINATION_TABLE_METADATA = new TableMetadata(
