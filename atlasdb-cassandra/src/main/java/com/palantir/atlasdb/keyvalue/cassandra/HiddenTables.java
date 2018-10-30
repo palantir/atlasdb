@@ -29,7 +29,8 @@ public final class HiddenTables {
     private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
             AtlasDbConstants.DEFAULT_METADATA_TABLE,
-            AtlasDbConstants.PERSISTED_LOCKS_TABLE);
+            AtlasDbConstants.PERSISTED_LOCKS_TABLE,
+            AtlasDbConstants.CF_ID_TABLE);
 
     public static boolean isHidden(TableReference tableReference) {
         return HIDDEN_TABLES.contains(tableReference)

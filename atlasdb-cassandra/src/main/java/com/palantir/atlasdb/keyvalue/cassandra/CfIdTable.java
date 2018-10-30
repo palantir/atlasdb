@@ -20,21 +20,18 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
 
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetResult;
@@ -45,8 +42,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 
 public class CfIdTable {
-    public static final String CF_ID_TABLE = "_cfid";
-    public static final TableReference CF_ID_TABLEREF = TableReference.createWithEmptyNamespace(CF_ID_TABLE);
     private static final byte[] DELETION_MARKER = new byte[] {0};
 
     private final CassandraClientPool clientPool;
@@ -70,7 +65,7 @@ public class CfIdTable {
     private Optional<byte[]> getExistingEntry(TableReference tableRef) {
         CassandraKeyValueServices.StartTsResultsCollector collector = new CassandraKeyValueServices.StartTsResultsCollector(metricsManager, 1);
         Cell cell = getCellForTable(tableRef);
-        cellLoader.loadWithTs("get", CF_ID_TABLEREF, ImmutableSet.of(cell), 1, false, collector, ConsistencyLevel.QUORUM);
+        cellLoader.loadWithTs("get", AtlasDbConstants.CF_ID_TABLE, ImmutableSet.of(cell), 1, false, collector, ConsistencyLevel.QUORUM);
         return Optional.ofNullable(collector.getCollectedResults().get(cell)).map(Value::getContents);
     }
 
@@ -79,7 +74,7 @@ public class CfIdTable {
             try {
                 boolean alreadyExists = client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
                         .map(CfDef::getName)
-                        .anyMatch(table -> table.equals(CF_ID_TABLE));
+                        .anyMatch(table -> table.equals(AtlasDbConstants.CF_ID_TABLE.getTablename()));
                 if (!alreadyExists) {
                     createCfIdTable(client);
                 }
@@ -115,7 +110,7 @@ public class CfIdTable {
     private boolean deleteIfNecessary(byte[] existing, TableReference tableRef) {
         if (!deletionMarker(existing)) {
             CheckAndSetRequest request = new CheckAndSetRequest.Builder()
-                    .table(CF_ID_TABLEREF)
+                    .table(AtlasDbConstants.CF_ID_TABLE)
                     .cell(getCellForTable(tableRef))
                     .oldValueNullable(existing)
                     .newValue(DELETION_MARKER)
@@ -141,7 +136,7 @@ public class CfIdTable {
     private UUID checkAndSetAndReturnCurrent(TableReference tableRef, byte[] oldValue) {
         UUID newId = UUID.randomUUID();
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
-                .table(CF_ID_TABLEREF)
+                .table(AtlasDbConstants.CF_ID_TABLE)
                 .cell(getCellForTable(tableRef))
                 .oldValueNullable(oldValue)
                 .newValue(EncodingUtils.encodeUUID(newId))
@@ -173,7 +168,7 @@ public class CfIdTable {
     }
 
     private void createCfIdTable(CassandraClient client) throws TException {
-        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(CF_ID_TABLEREF);
+        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(AtlasDbConstants.CF_ID_TABLE);
         String keyspace = config.getKeyspaceOrThrow();
         String fullTableNameForUuid = keyspace + "." + internalTableName;
         UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
@@ -197,6 +192,6 @@ public class CfIdTable {
         client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM);
 
         CassandraKeyValueServices.waitForSchemaVersions(config, client,
-                "creating the lock table " + CF_ID_TABLEREF.getQualifiedName());
+                "creating the lock table " + AtlasDbConstants.CF_ID_TABLE.getQualifiedName());
     }
 }

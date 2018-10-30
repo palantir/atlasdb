@@ -694,11 +694,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    public UUID doit(TableReference tableReference) {
-        cfIdTable.createIfNotExists();
-        return cfIdTable.getCfIdForTable(tableReference);
-    }
-
     private Map<Cell, Value> get(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
             long maxTimestampExclusive) {
         StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
