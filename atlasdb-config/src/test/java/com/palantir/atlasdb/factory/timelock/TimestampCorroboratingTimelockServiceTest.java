@@ -124,7 +124,7 @@ public class TimestampCorroboratingTimelockServiceTest {
                 .doesNotThrowAnyException();
     }
 
-    private static class BlockingTimestamp implements Answer<Long> {
+    private static final class BlockingTimestamp implements Answer<Long> {
         private final CountDownLatch returnTimestampLatch = new CountDownLatch(1);
         private final CountDownLatch blockingLatch = new CountDownLatch(1);
         private final long timestampToReturn;
