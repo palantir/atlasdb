@@ -83,13 +83,6 @@ public class TimestampCorroboratingTimelockServiceTest {
     }
 
     @Test
-    public void lockImmutableTimestampShouldFail() {
-        when(rawTimelockService.lockImmutableTimestamp(any())).thenReturn(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE);
-
-        assertThrowsOnSecondCall(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
-    }
-
-    @Test
     public void startIdentifiedAtlasDbTransactionShouldFail() {
         StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
                 StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,

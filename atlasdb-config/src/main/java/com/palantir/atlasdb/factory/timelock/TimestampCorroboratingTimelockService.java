@@ -72,13 +72,6 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return checkAndUpdateLowerBound(() -> delegate.lockImmutableTimestamp(request),
-                LockImmutableTimestampResponse::getImmutableTimestamp,
-                LockImmutableTimestampResponse::getImmutableTimestamp);
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransaction(request),
