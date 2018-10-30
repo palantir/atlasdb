@@ -53,7 +53,7 @@ develop
     *    - |fixed|
          - Cassandra KVS no longer uses the schema mutation lock and instead creates tables using an id guaranteed to be consistent across all nodes.
            This fixes a bug where it was possible to create two instances of the same table on two different Cassandra nodes, resulting in schema version inconsistency that required manual intervention.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3619>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3620>`__)
 
 
     *    - |improved|
