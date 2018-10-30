@@ -46,8 +46,13 @@ public interface CoordinationService<T> {
 
     /**
      * Updates the value that this coordination service stores, marking this value as valid up to a certain timestamp.
+     * It may transpire that the value in the coordination service is already acceptable - if so, the provided
+     * transformation should simply return the original input. If the transformation returns a value with a bound
+     * less than or equal to the bound of the input, the results of the transformation will not be stored.
      *
      * Evolutions of the value must be compatible in terms of backwards consistency as defined in the class docs.
+     *
+     * The {@link ValueAndBound} returned by the transform must contain a value.
      *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
      * @return true if and only if the transformation was applied

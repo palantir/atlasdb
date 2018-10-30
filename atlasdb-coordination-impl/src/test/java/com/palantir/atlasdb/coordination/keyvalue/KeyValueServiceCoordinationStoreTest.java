@@ -43,8 +43,9 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
 
+    private final InMemoryKeyValueService kvs = new InMemoryKeyValueService(true);
     private final CoordinationStore coordinationStore
-            = KeyValueServiceCoordinationStore.create(new InMemoryKeyValueService(true), COORDINATION_KEY);
+            = KeyValueServiceCoordinationStore.create(kvs, COORDINATION_KEY);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -102,5 +103,14 @@ public class KeyValueServiceCoordinationStoreTest {
         assertThat(coordinationStore.checkAndSetCoordinationValue(
                 Optional.empty(), SEQUENCE_AND_BOUND_2))
                 .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
+    }
+
+    @Test
+    public void multipleStoresCanCoexist() {
+        byte[] alternateCoordinationKey = PtBytes.toBytes("bbbbb");
+        CoordinationStore alternateCoordinationStore
+                = KeyValueServiceCoordinationStore.create(kvs, alternateCoordinationKey);
+        alternateCoordinationStore.putValue(SEQUENCE_NUMBER_1, VALUE_1);
+        assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_1)).isEmpty();
     }
 }
