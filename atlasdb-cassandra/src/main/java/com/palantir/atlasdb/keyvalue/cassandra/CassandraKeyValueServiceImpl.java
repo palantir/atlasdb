@@ -149,7 +149,7 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
-    private final CfIdTable test;
+    private final CfIdTable cfIdTable;
 
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
@@ -385,10 +385,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 wrappingQueryRunner,
                 writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, deleteConsistency);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
-        this.test = new CfIdTable(clientPool, config, checkAndSetRunner);
+        this.cfIdTable = new CfIdTable(clientPool, config, checkAndSetRunner, metricsManager, cellLoader);
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
+                wrappingQueryRunner, cfIdTable, deleteConsistency);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -428,6 +428,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         writeConsistency),
                 SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
 
+        cfIdTable.createIfNotExists();
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
@@ -694,8 +695,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     public UUID doit(TableReference tableReference) {
-        test.createIfNotExists();
-        return test.getCfIdForTable(tableReference);
+        cfIdTable.createIfNotExists();
+        return cfIdTable.getCfIdForTable(tableReference);
     }
 
     private Map<Cell, Value> get(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
@@ -1368,8 +1369,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        runSchemaMutationTask(() ->
-                schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop)));
+        cassandraTableDropper.dropTables(tablesToDrop);
     }
 
     /**
@@ -1433,15 +1433,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             clientPool.runWithRetry(client -> {
             tablesToActuallyCreate.forEach((tableRef, bytes) -> {
                 try {
-                    cql.createTableWithSettings(tableRef, bytes, config, client);
+                    cql.createTableWithSettings(tableRef, bytes, config, client, cfIdTable);
                 } catch (TException e) {
                     //ignore;
                 }
             });
             return null;
             });
-            runSchemaMutationTask(() ->
-                    schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate)));
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1729,7 +1727,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
 
         final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
-        final Set<CfDef> updatedCfs = Sets.newHashSet();
+        Set<CfDef> updatedCfs = Sets.newHashSet();
 
         tableRefToNewCell.forEach((tableRef, newCell) -> {
             if (existingMetadataAtNewName.containsKey(newCell)) {

@@ -29,6 +29,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.cassandra.thrift.Compression;
+import org.apache.thrift.EncodingUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -251,8 +253,15 @@ public final class CqlKeyValueServices {
 //        throw new IllegalStateException(sb.toString());
 //    }
 
+    public static UUID getUuid(TableReference tableRef, byte[] rawMetadata, CassandraKeyValueServiceConfig config) {
+        String keyspace = config.getKeyspaceOrThrow();
+        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(tableRef);
+        String fullTableNameForUuid = keyspace + "." + internalTableName;
+        return UUID.nameUUIDFromBytes(Bytes.concat(fullTableNameForUuid.getBytes(), rawMetadata));
+    }
+
     void createTableWithSettings(TableReference tableRef, byte[] rawMetadata, CassandraKeyValueServiceConfig config,
-            CassandraClient client) throws TException {
+            CassandraClient client, CfIdTable cfIdTable) throws TException {
         StringBuilder queryBuilder = new StringBuilder();
 
         int explicitCompressionBlockSizeKb = 0;
@@ -309,72 +318,73 @@ public final class CqlKeyValueServices {
                 + provider.timestamp() + " ASC) ");
 
         queryBuilder.append("AND id = '%s'");
-        String keyspace = config.getKeyspaceOrThrow();
-        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(tableRef);
-        String fullTableNameForUuid = keyspace + "." + internalTableName;
-        UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
         CqlQuery query = CqlQuery.builder()
                 .safeQueryFormat(queryBuilder.toString())
                 .addArgs(
-                        SafeArg.of("keyspace", keyspace),
-                        SafeArg.of("internalTableName", internalTableName),
-                        SafeArg.of("cfId", uuid))
+                        SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                        SafeArg.of("internalTableName", CassandraKeyValueServiceImpl.internalTableName(tableRef)),
+                        SafeArg.of("cfId", cfIdTable.getCfIdForTable(tableRef)))
                 .build();
 
         client.execute_cql3_query(query, Compression.NONE, org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
         CassandraKeyValueServices.waitForSchemaVersions(config, client, "test");
     }
 
-//    static void setSettingsForTable(TableReference tableRef, byte[] rawMetadata, CqlKeyValueService kvs) {
-//        int explicitCompressionBlockSizeKb = 0;
-//        boolean negativeLookups = false;
-//        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-//        boolean appendHeavyAndReadLight = false;
-//
-//        if (rawMetadata != null && rawMetadata.length != 0) {
-//            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-//            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-//            negativeLookups = tableMetadata.hasNegativeLookups();
-//            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-//        }
-//
-//        if (negativeLookups) {
-//            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
-//        } else if (appendHeavyAndReadLight) {
-//            falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-//        }
-//
-//        int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
-//        if (explicitCompressionBlockSizeKb != 0) {
-//            chunkLength = explicitCompressionBlockSizeKb;
-//        }
-//
-//        StringBuilder sb = new StringBuilder();
-//        sb.append("ALTER TABLE " + kvs.getFullTableName(tableRef) + " WITH "
-//                + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
-//
-//        sb.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
-//
-//        if (appendHeavyAndReadLight) {
-//            sb.append("AND compaction = { 'class': '" + CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY + "'} ");
-//        } else {
-//            sb.append("AND compaction = {'sstable_size_in_mb': '80', 'class': '"
-//                    + CassandraConstants.LEVELED_COMPACTION_STRATEGY + "'} ");
-//        }
-//        sb.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
-//                + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
-//
-//        BoundStatement alterTableStatement =
-//                kvs.getPreparedStatement(tableRef, sb.toString(), kvs.longRunningQuerySession)
-//                        .setConsistencyLevel(ConsistencyLevel.ALL)
-//                        .bind();
-//        try {
-//            kvs.longRunningQuerySession.execute(alterTableStatement);
-//        } catch (Throwable t) {
-//            throw Throwables.throwUncheckedException(t);
-//        }
-//    }
-//
+    static void alterTableWithSettings(TableReference tableRef, byte[] rawMetadata, CassandraKeyValueServiceConfig config,
+            CassandraClient client) throws TException {
+        int explicitCompressionBlockSizeKb = 0;
+        boolean negativeLookups = false;
+        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        boolean appendHeavyAndReadLight = false;
+
+        if (rawMetadata != null && rawMetadata.length != 0) {
+            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
+            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
+            negativeLookups = tableMetadata.hasNegativeLookups();
+            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
+        }
+
+        if (negativeLookups) {
+            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
+        } else if (appendHeavyAndReadLight) {
+            falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
+        }
+
+        int chunkLength = AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
+        if (explicitCompressionBlockSizeKb != 0) {
+            chunkLength = explicitCompressionBlockSizeKb;
+        }
+
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append("ALTER TABLE "
+                + "\"%s\".\"%s\""
+                + " WITH "
+                + "bloom_filter_fp_chance = " + falsePositiveChance + " ");
+
+        queryBuilder.append("AND caching = '{\"keys\":\"ALL\", \"rows_per_partition\":\"ALL\"}' ");
+
+        if (appendHeavyAndReadLight) {
+            queryBuilder.append("AND compaction = { 'class': '" + CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY + "'} ");
+        } else {
+            queryBuilder.append("AND compaction = {'sstable_size_in_mb': '80', 'class': '"
+                    + CassandraConstants.LEVELED_COMPACTION_STRATEGY + "'} ");
+        }
+        queryBuilder.append("AND compression = {'chunk_length_kb': '" + chunkLength + "', "
+                + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}");
+
+        queryBuilder.append("AND id = '%s'");
+        CqlQuery query = CqlQuery.builder()
+                .safeQueryFormat(queryBuilder.toString())
+                .addArgs(
+                        SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
+                        SafeArg.of("internalTableName", CassandraKeyValueServiceImpl.internalTableName(tableRef)),
+                        SafeArg.of("cfId", getUuid(tableRef, rawMetadata, config)))
+                .build();
+
+        client.execute_cql3_query(query, Compression.NONE, org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
+        CassandraKeyValueServices.waitForSchemaVersions(config, client, "test");
+    }
+
 //
 //    interface ThreadSafeCqlResultVisitor extends Visitor<Multimap<Cell, Value>> {
 //        // marker

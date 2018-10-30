@@ -41,6 +41,6 @@ public abstract class TableRefAndUuid implements Persistable {
     }
 
     public static TableRefAndUuid of(TableReference tableRef, UUID uuid) {
-        return null;
+        return ImmutableTableRefAndUuid.builder().tableRef(tableRef).uuid(uuid).build();
     }
 }

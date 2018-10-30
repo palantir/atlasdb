@@ -41,16 +41,19 @@ class CassandraTableDropper {
     private CellValuePutter cellValuePutter;
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
+    private CfIdTable cfIdTable;
 
     CassandraTableDropper(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CellValuePutter cellValuePutter,
             WrappingQueryRunner wrappingQueryRunner,
+            CfIdTable cfIdTable,
             ConsistencyLevel deleteConsistency) {
         this.config = config;
         this.clientPool = clientPool;
         this.cellValuePutter = cellValuePutter;
         this.wrappingQueryRunner = wrappingQueryRunner;
+        this.cfIdTable = cfIdTable;
         this.deleteConsistency = deleteConsistency;
     }
 
@@ -69,6 +72,7 @@ class CassandraTableDropper {
                         for (TableReference table : tablesToDrop) {
                             CassandraVerifier.sanityCheckTableName(table);
                             if (existingTables.contains(table)) {
+                                cfIdTable.deleteCfIdForTable(table);
                                 client.system_drop_column_family(
                                         CassandraKeyValueServiceImpl.internalTableName(table));
                                 putMetadataWithoutChangingSettings(table,

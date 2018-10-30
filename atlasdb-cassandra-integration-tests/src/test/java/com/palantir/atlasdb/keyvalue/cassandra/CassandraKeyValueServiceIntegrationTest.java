@@ -138,6 +138,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void testCreateTableCaseInsensitive() {
         TableReference table1 = TableReference.createFromFullyQualifiedName("ns.tAbLe");
+        keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(table1, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        keyValueService.dropTable(table1);
+        keyValueService.createTable(table1, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
         TableReference table2 = TableReference.createFromFullyQualifiedName("ns.table");
         keyValueService.createTables(ImmutableMap.of(table1, AtlasDbConstants.GENERIC_TABLE_METADATA, table2, AtlasDbConstants.EMPTY_TABLE_METADATA));
         TableReference table3 = TableReference.createFromFullyQualifiedName("ns.TABle");

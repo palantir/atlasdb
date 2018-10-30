@@ -78,10 +78,12 @@ public final class CassandraSchemaLockCleaner {
                 ConsistencyLevel.QUORUM,
                 System::currentTimeMillis); // CassandraTableDropper also uses wall clock time
 
+        // todo(gmaretic): fix
         return new CassandraTableDropper(config,
                 clientPool,
                 cellValuePutter,
                 wrappingQueryRunner,
+                null,
                 ConsistencyLevel.ALL);
     }
 
