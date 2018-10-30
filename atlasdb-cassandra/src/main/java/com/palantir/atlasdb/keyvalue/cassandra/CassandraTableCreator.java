@@ -48,7 +48,7 @@ class CassandraTableCreator {
     void createTables(Map<TableReference, byte[]> tableRefToMetadata) {
         try {
             clientPool.runWithRetry(client -> {
-                for (Map.Entry<TableReference, byte[]> entry: tableRefToMetadata.entrySet()) {
+                for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
                     createTable(entry.getKey(), entry.getValue(), client);
                 }
                 CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for "
