@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.thrift.TException;
@@ -34,15 +33,19 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
+import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetQueries;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 
-public class CfIdTable {
+class CfIdTable {
     private static final byte[] DELETION_MARKER = new byte[] {0};
+    private static final long READ_TS = CheckAndSetQueries.CASSANDRA_TIMESTAMP + 1;
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
@@ -50,11 +53,8 @@ public class CfIdTable {
     private final MetricsManager metricsManager;
     private final CellLoader cellLoader;
 
-
-
-    public CfIdTable(CassandraClientPool clientPool,
-            CassandraKeyValueServiceConfig config, CheckAndSetRunner checkAndSetRunner,
-            MetricsManager metricsManager, CellLoader cellLoader) {
+    CfIdTable(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config,
+            CheckAndSetRunner checkAndSetRunner, MetricsManager metricsManager, CellLoader cellLoader) {
         this.clientPool = clientPool;
         this.config = config;
         this.checkAndSetRunner = checkAndSetRunner;
@@ -62,109 +62,16 @@ public class CfIdTable {
         this.cellLoader = cellLoader;
     }
 
-    private Optional<byte[]> getExistingEntry(TableReference tableRef) {
-        CassandraKeyValueServices.StartTsResultsCollector collector = new CassandraKeyValueServices.StartTsResultsCollector(metricsManager, 1);
-        Cell cell = getCellForTable(tableRef);
-        cellLoader.loadWithTs("get", AtlasDbConstants.CF_ID_TABLE, ImmutableSet.of(cell), 1, false, collector, ConsistencyLevel.QUORUM);
-        return Optional.ofNullable(collector.getCollectedResults().get(cell)).map(Value::getContents);
-    }
-
-    public void createIfNotExists() {
-        clientPool.runWithRetry(client -> {
-            try {
-                boolean alreadyExists = client.describe_keyspace(config.getKeyspaceOrThrow()).getCf_defs().stream()
-                        .map(CfDef::getName)
-                        .anyMatch(table -> table.equals(AtlasDbConstants.CF_ID_TABLE.getTablename()));
-                if (!alreadyExists) {
-                    createCfIdTable(client);
-                }
-            } catch (TException e) {
-                throw new RuntimeException();
-            }
-            return null;
-        });
-    }
-
-    public UUID getCfIdForTable(TableReference tableRef) {
-        return getExistingEntry(tableRef)
-                .map(existing -> replaceIfDeleted(existing, tableRef))
-                .orElseGet(() -> insertNew(tableRef));
-    }
-
-    private UUID replaceIfDeleted(byte[] existing, TableReference tableRef) {
-        if (deletionMarker(existing)) {
-            return checkAndSetAndReturnCurrent(tableRef, DELETION_MARKER);
-        } else {
-            return EncodingUtils.decodeUUID(existing, 0);
-        }
-    }
-
-    private UUID insertNew(TableReference tableRef) {
-        return checkAndSetAndReturnCurrent(tableRef, null);
-    }
-
-    public boolean deleteCfIdForTable(TableReference tableRef) {
-        return getExistingEntry(tableRef).map(existing -> deleteIfNecessary(existing, tableRef)).orElse(true);
-    }
-
-    private boolean deleteIfNecessary(byte[] existing, TableReference tableRef) {
-        if (!deletionMarker(existing)) {
-            CheckAndSetRequest request = new CheckAndSetRequest.Builder()
-                    .table(AtlasDbConstants.CF_ID_TABLE)
-                    .cell(getCellForTable(tableRef))
-                    .oldValueNullable(existing)
-                    .newValue(DELETION_MARKER)
-                    .build();
-            return clientPool.runWithRetry(client -> {
-                try {
-                    CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
-                    if (checkAndSetResult.successful()) {
-                        return true;
-                    } else {
-                        return deletionMarker(Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray());
-                    }
-                } catch (TException e) {
-                    // todo(gmaretic): make unsketchy
-                    throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-                }
+    void create() {
+        try {
+            clientPool.runWithRetry(client -> {
+                createCfIdTable(client);
+                CassandraKeyValueServices.waitForSchemaVersions(config, client, "after creating the _cfId table");
+                return null;
             });
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
-        return true;
-    }
-
-
-    private UUID checkAndSetAndReturnCurrent(TableReference tableRef, byte[] oldValue) {
-        UUID newId = UUID.randomUUID();
-        CheckAndSetRequest request = new CheckAndSetRequest.Builder()
-                .table(AtlasDbConstants.CF_ID_TABLE)
-                .cell(getCellForTable(tableRef))
-                .oldValueNullable(oldValue)
-                .newValue(EncodingUtils.encodeUUID(newId))
-                .build();
-        return clientPool.runWithRetry(client -> {
-            try {
-                CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
-                if (checkAndSetResult.successful()) {
-                    return newId;
-                } else {
-                    return EncodingUtils.decodeUUID(
-                            Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray(), 0);
-                }
-            } catch (TException e) {
-                // todo(gmaretic): make unsketchy
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
-        });
-    }
-
-
-
-    private boolean deletionMarker(byte[] existing) {
-        return Arrays.equals(existing, DELETION_MARKER);
-    }
-
-    private static Cell getCellForTable(TableReference tableRef) {
-        return Cell.create(PtBytes.toBytes(tableRef.toString()), PtBytes.toBytes("c"));
     }
 
     private void createCfIdTable(CassandraClient client) throws TException {
@@ -173,14 +80,9 @@ public class CfIdTable {
         String fullTableNameForUuid = keyspace + "." + internalTableName;
         UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
 
-        String createTableStatement = "CREATE TABLE \"%s\".\"%s\" (\n"
-                + "    key blob,\n"
-                + "    column1 blob,\n"
-                + "    column2 bigint,\n"
-                + "    value blob,\n"
-                + "    PRIMARY KEY (key, column1, column2)\n"
-                + ") WITH COMPACT STORAGE\n"
-                + "    AND id = '%s'";
+        String createTableStatement = "CREATE TABLE \"%s\".\"%s\" "
+                + "(key blob, column1 blob, column2 bigint, value blob, PRIMARY KEY (key, column1, column2)) "
+                + "WITH COMPACT STORAGE AND id = '%s'";
         CqlQuery query = CqlQuery.builder()
                 .safeQueryFormat(createTableStatement)
                 .addArgs(
@@ -193,5 +95,94 @@ public class CfIdTable {
 
         CassandraKeyValueServices.waitForSchemaVersions(config, client,
                 "creating the lock table " + AtlasDbConstants.CF_ID_TABLE.getQualifiedName());
+    }
+
+    UUID getCfIdForTable(TableReference tableRef) {
+        return getExistingEntry(tableRef)
+                .map(existing -> replaceIfDeleted(existing, tableRef))
+                .orElseGet(() -> insertNew(tableRef));
+    }
+
+    void deleteCfIdForTable(TableReference tableRef) throws TException {
+        Optional<byte[]> existing = getExistingEntry(tableRef);
+        if (existing.isPresent()) {
+            boolean success = deleteIfExists(existing.get(), tableRef);
+            if (!success) {
+                throw new AtlasDbDependencyException("Failed to mark cfId for table " + tableRef + " as deleted.");
+            }
+        }
+    }
+
+    private Optional<byte[]> getExistingEntry(TableReference tableRef) {
+        StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, READ_TS);
+        Cell cell = getCellForTable(tableRef);
+        cellLoader.loadWithTs("get", AtlasDbConstants.CF_ID_TABLE, ImmutableSet.of(cell), READ_TS, false, collector,
+                ConsistencyLevel.QUORUM);
+        return Optional.ofNullable(collector.getCollectedResults().get(cell)).map(Value::getContents);
+    }
+
+    private static Cell getCellForTable(TableReference tableRef) {
+        return Cell.create(PtBytes.toBytes(tableRef.toString()), PtBytes.toBytes("c"));
+    }
+
+    private UUID replaceIfDeleted(byte[] existing, TableReference tableRef) {
+        if (markedAsDeleted(existing)) {
+            return attemptCasToNewUuidAndReturnPersistedValue(tableRef, DELETION_MARKER);
+        } else {
+            return EncodingUtils.decodeUUID(existing, 0);
+        }
+    }
+
+    private UUID insertNew(TableReference tableRef) {
+        return attemptCasToNewUuidAndReturnPersistedValue(tableRef, null);
+    }
+
+    private boolean deleteIfExists(byte[] existing, TableReference tableRef) throws TException {
+        if (markedAsDeleted(existing)) {
+            return true;
+        }
+
+        CheckAndSetRequest request = new CheckAndSetRequest.Builder()
+                .table(AtlasDbConstants.CF_ID_TABLE)
+                .cell(getCellForTable(tableRef))
+                .oldValueNullable(existing)
+                .newValue(DELETION_MARKER)
+                .build();
+        return clientPool.runWithRetry(client -> {
+            CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
+            if (checkAndSetResult.successful()) {
+                return true;
+            } else {
+                return markedAsDeleted(Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray());
+            }
+        });
+
+    }
+
+    private UUID attemptCasToNewUuidAndReturnPersistedValue(TableReference tableRef, byte[] oldValue) {
+        UUID newId = UUID.randomUUID();
+        CheckAndSetRequest request = new CheckAndSetRequest.Builder()
+                .table(AtlasDbConstants.CF_ID_TABLE)
+                .cell(getCellForTable(tableRef))
+                .oldValueNullable(oldValue)
+                .newValue(EncodingUtils.encodeUUID(newId))
+                .build();
+        try {
+            return clientPool.runWithRetry(client -> {
+                CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
+                if (checkAndSetResult.successful()) {
+                    return newId;
+                } else {
+                    return EncodingUtils.decodeUUID(
+                            Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray(), 0);
+                }
+            });
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    private boolean markedAsDeleted(byte[] existing) {
+        return Arrays.equals(existing, DELETION_MARKER);
     }
 }

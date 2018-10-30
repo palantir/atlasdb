@@ -73,7 +73,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -187,8 +186,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private static final long SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS = 120;
-
     private final Logger log;
 
     private final MetricsManager metricsManager;
@@ -206,6 +203,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CellLoader cellLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
+    private final CassandraTableCreator cassandraTableCreator;
     private final CassandraTableDropper cassandraTableDropper;
     private final CheckAndSetRunner checkAndSetRunner;
 
@@ -375,6 +373,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
         this.cfIdTable = new CfIdTable(clientPool, config, checkAndSetRunner, metricsManager, cellLoader);
+        this.cassandraTableCreator = new CassandraTableCreator(clientPool, config, cfIdTable);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
                 wrappingQueryRunner, cfIdTable, deleteConsistency);
     }
@@ -398,7 +397,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        cfIdTable.createIfNotExists();
+        cfIdTable.create();
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
@@ -1387,45 +1386,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
             log.info("Creating tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-            CqlKeyValueServices cql = new CqlKeyValueServices();
-            clientPool.runWithRetry(client -> {
-            tablesToActuallyCreate.forEach((tableRef, bytes) -> {
-                try {
-                    cql.createTableWithSettings(tableRef, bytes, config, client, cfIdTable);
-                } catch (TException e) {
-                    //ignore;
-                }
-            });
-            return null;
-            });
+            try {
+                cassandraTableCreator.createTables(tablesToActuallyCreate);
+            } catch (TException e) {
+                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            }
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
-    }
-
-    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        clientPool.runWithRetry(client -> {
-            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
-                try {
-                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            config.getKeyspaceOrThrow(),
-                            tableEntry.getKey(),
-                            config.gcGraceSeconds(),
-                            tableEntry.getValue()));
-                } catch (UnavailableException e) {
-                    throw new InsufficientConsistencyException(
-                            "Creating tables requires all Cassandra nodes to be up and available.");
-                } catch (TException thriftException) {
-                    if (thriftException.getMessage() != null
-                            && !thriftException.getMessage().contains("already existing table")) {
-                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
-                    }
-                }
-            }
-
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
-                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
-            return null;
-        });
     }
 
     private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
@@ -1444,8 +1411,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
                 } else {
-                        log.debug("Case-insensitive matched table already existed with same metadata,"
-                                + " skipping update to {}", LoggingArgs.tableRef(tableReference));
+                    log.debug("Case-insensitive matched table already existed with same metadata,"
+                            + " skipping update to {}", LoggingArgs.tableRef(tableReference));
                 }
             } else {
                 log.debug("Table already existed with same metadata, skipping update to {}",

@@ -46,6 +46,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.Throwables;
@@ -382,6 +383,14 @@ public final class CassandraKeyValueServices {
             return true;
         }
         return false;
+    }
+
+    public static TableMetadata getMetadataOrDefaultToGeneric(byte[] metadata) {
+        if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA);
+        } else {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
+        }
     }
 
 }
