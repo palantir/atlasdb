@@ -72,7 +72,7 @@ class CassandraTableDropper {
                         for (TableReference table : tablesToDrop) {
                             CassandraVerifier.sanityCheckTableName(table);
                             if (existingTables.contains(table)) {
-                                cfIdTable.deleteCfIdForTable(table);
+                                cfIdTable.deleteCfIdForTable(table, client);
                                 client.system_drop_column_family(
                                         CassandraKeyValueServiceImpl.internalTableName(table));
                                 putMetadataWithoutChangingSettings(table,

@@ -45,26 +45,28 @@ class CassandraTableCreator {
         this.cfIdTable = cfIdTable;
     }
 
-    void createTables(Map<TableReference, byte[]> tableRefToMetadata) throws TException {
-        clientPool.runWithRetry(client -> {
-            tableRefToMetadata.forEach((tableRef, metadata) -> createTable(tableRef, metadata, client));
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
-                    + tableRefToMetadata.keySet() + " in a call to create tables");
-            return null;
-        });
-    }
-
-    private void createTable(TableReference tableRef, byte[] metadata, CassandraClient client) {
-        CqlQuery query = constructQuery(tableRef, metadata);
+    void createTables(Map<TableReference, byte[]> tableRefToMetadata) {
         try {
-            client.execute_cql3_query(query, Compression.NONE,
-                    org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
-        } catch (TException e) {
+            clientPool.runWithRetry(client -> {
+                for (Map.Entry<TableReference, byte[]> entry: tableRefToMetadata.entrySet()) {
+                    createTable(entry.getKey(), entry.getValue(), client);
+                }
+                CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for "
+                        + "tables " + tableRefToMetadata.keySet() + " in a call to create tables");
+                return null;
+            });
+        } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
     }
 
-    private CqlQuery constructQuery(TableReference tableRef, byte[] metadata) {
+    private void createTable(TableReference tableRef, byte[] metadata, CassandraClient client) throws TException {
+        CqlQuery query = constructQuery(tableRef, metadata, client);
+        client.execute_cql3_query(query, Compression.NONE, org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
+    }
+
+    private CqlQuery constructQuery(TableReference tableRef, byte[] metadata, CassandraClient client)
+            throws TException {
         StringBuilder queryBuilder = new StringBuilder();
 
         TableMetadata tableMetadata = CassandraKeyValueServices.getMetadataOrDefaultToGeneric(metadata);
@@ -94,7 +96,7 @@ class CassandraTableCreator {
                 .addArgs(
                         SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                         SafeArg.of("internalTableName", CassandraKeyValueServiceImpl.internalTableName(tableRef)),
-                        SafeArg.of("cfId", cfIdTable.getCfIdForTable(tableRef)))
+                        SafeArg.of("cfId", cfIdTable.getCfIdForTable(tableRef, client)))
                 .build();
     }
 

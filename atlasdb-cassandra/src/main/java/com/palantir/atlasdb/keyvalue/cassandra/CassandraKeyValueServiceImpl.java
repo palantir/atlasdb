@@ -145,8 +145,6 @@ import okio.ByteString;
  */
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implements CassandraKeyValueService {
-    private final CfIdTable cfIdTable;
-
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CassandraKeyValueService {
         @Override
@@ -206,6 +204,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraTableCreator cassandraTableCreator;
     private final CassandraTableDropper cassandraTableDropper;
     private final CheckAndSetRunner checkAndSetRunner;
+    private final CfIdTable cfIdTable;
 
     private final CassandraTables cassandraTables;
 
@@ -372,7 +371,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
-        this.cfIdTable = new CfIdTable(clientPool, config, checkAndSetRunner, metricsManager, cellLoader);
+        this.cfIdTable = new CfIdTable(config, checkAndSetRunner, metricsManager, cellLoader);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config, cfIdTable);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
                 wrappingQueryRunner, cfIdTable, deleteConsistency);
@@ -397,7 +396,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        cfIdTable.create();
+        cfIdTable.create(clientPool);
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
@@ -1386,11 +1385,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
             log.info("Creating tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-            try {
-                cassandraTableCreator.createTables(tablesToActuallyCreate);
-            } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
+            cassandraTableCreator.createTables(tablesToActuallyCreate);
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1640,7 +1635,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collect(Collectors.toMap(Functions.identity(), Functions.constant(Long.MAX_VALUE))));
 
         final Map<Cell, byte[]> updatedMetadata = Maps.newHashMap();
-        Set<CfDef> updatedCfs = Sets.newHashSet();
+        final Set<CfDef> updatedCfs = Sets.newHashSet();
 
         tableRefToNewCell.forEach((tableRef, newCell) -> {
             if (existingMetadataAtNewName.containsKey(newCell)) {

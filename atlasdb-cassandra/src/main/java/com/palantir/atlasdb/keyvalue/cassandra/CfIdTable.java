@@ -47,22 +47,20 @@ class CfIdTable {
     private static final byte[] DELETION_MARKER = new byte[] {0};
     private static final long READ_TS = CheckAndSetQueries.CASSANDRA_TIMESTAMP + 1;
 
-    private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
     private final CheckAndSetRunner checkAndSetRunner;
     private final MetricsManager metricsManager;
     private final CellLoader cellLoader;
 
-    CfIdTable(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config,
-            CheckAndSetRunner checkAndSetRunner, MetricsManager metricsManager, CellLoader cellLoader) {
-        this.clientPool = clientPool;
+    CfIdTable(CassandraKeyValueServiceConfig config, CheckAndSetRunner checkAndSetRunner, MetricsManager metricsManager,
+            CellLoader cellLoader) {
         this.config = config;
         this.checkAndSetRunner = checkAndSetRunner;
         this.metricsManager = metricsManager;
         this.cellLoader = cellLoader;
     }
 
-    void create() {
+    void create(CassandraClientPool clientPool) {
         try {
             clientPool.runWithRetry(client -> {
                 createCfIdTable(client);
@@ -97,16 +95,18 @@ class CfIdTable {
                 "creating the lock table " + AtlasDbConstants.CF_ID_TABLE.getQualifiedName());
     }
 
-    UUID getCfIdForTable(TableReference tableRef) {
-        return getExistingEntry(tableRef)
-                .map(existing -> replaceIfDeleted(existing, tableRef))
-                .orElseGet(() -> insertNew(tableRef));
-    }
-
-    void deleteCfIdForTable(TableReference tableRef) throws TException {
+    UUID getCfIdForTable(TableReference tableRef, CassandraClient client) throws TException {
         Optional<byte[]> existing = getExistingEntry(tableRef);
         if (existing.isPresent()) {
-            boolean success = deleteIfExists(existing.get(), tableRef);
+            return replaceIfDeleted(existing.get(), tableRef, client);
+        }
+        return insertNew(tableRef, client);
+    }
+
+    void deleteCfIdForTable(TableReference tableRef, CassandraClient client) throws TException {
+        Optional<byte[]> existing = getExistingEntry(tableRef);
+        if (existing.isPresent()) {
+            boolean success = deleteIfExists(existing.get(), tableRef, client);
             if (!success) {
                 throw new AtlasDbDependencyException("Failed to mark cfId for table " + tableRef + " as deleted.");
             }
@@ -125,19 +125,19 @@ class CfIdTable {
         return Cell.create(PtBytes.toBytes(tableRef.toString()), PtBytes.toBytes("c"));
     }
 
-    private UUID replaceIfDeleted(byte[] existing, TableReference tableRef) {
+    private UUID replaceIfDeleted(byte[] existing, TableReference tableRef, CassandraClient client) throws TException {
         if (markedAsDeleted(existing)) {
-            return attemptCasToNewUuidAndReturnPersistedValue(tableRef, DELETION_MARKER);
+            return attemptCasToNewUuidAndReturnPersistedValue(tableRef, DELETION_MARKER, client);
         } else {
             return EncodingUtils.decodeUUID(existing, 0);
         }
     }
 
-    private UUID insertNew(TableReference tableRef) {
-        return attemptCasToNewUuidAndReturnPersistedValue(tableRef, null);
+    private UUID insertNew(TableReference tableRef, CassandraClient client) throws TException {
+        return attemptCasToNewUuidAndReturnPersistedValue(tableRef, null, client);
     }
 
-    private boolean deleteIfExists(byte[] existing, TableReference tableRef) throws TException {
+    private boolean deleteIfExists(byte[] existing, TableReference tableRef, CassandraClient client) throws TException {
         if (markedAsDeleted(existing)) {
             return true;
         }
@@ -148,18 +148,16 @@ class CfIdTable {
                 .oldValueNullable(existing)
                 .newValue(DELETION_MARKER)
                 .build();
-        return clientPool.runWithRetry(client -> {
-            CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
-            if (checkAndSetResult.successful()) {
-                return true;
-            } else {
-                return markedAsDeleted(Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray());
-            }
-        });
-
+        CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
+        if (checkAndSetResult.successful()) {
+            return true;
+        } else {
+            return markedAsDeleted(Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray());
+        }
     }
 
-    private UUID attemptCasToNewUuidAndReturnPersistedValue(TableReference tableRef, byte[] oldValue) {
+    private UUID attemptCasToNewUuidAndReturnPersistedValue(TableReference tableRef, byte[] oldValue,
+            CassandraClient client) throws TException {
         UUID newId = UUID.randomUUID();
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                 .table(AtlasDbConstants.CF_ID_TABLE)
@@ -167,18 +165,13 @@ class CfIdTable {
                 .oldValueNullable(oldValue)
                 .newValue(EncodingUtils.encodeUUID(newId))
                 .build();
-        try {
-            return clientPool.runWithRetry(client -> {
-                CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
-                if (checkAndSetResult.successful()) {
-                    return newId;
-                } else {
-                    return EncodingUtils.decodeUUID(
-                            Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray(), 0);
-                }
-            });
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+
+        CheckAndSetResult checkAndSetResult = checkAndSetRunner.executeCheckAndSet(client, request);
+        if (checkAndSetResult.successful()) {
+            return newId;
+        } else {
+            return EncodingUtils.decodeUUID(
+                    Iterables.getOnlyElement(checkAndSetResult.existingValues()).toByteArray(), 0);
         }
     }
 
