@@ -27,7 +27,6 @@ import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
@@ -60,14 +59,6 @@ public abstract class LeaderConfig {
     public abstract Set<String> leaders();
 
     public abstract Optional<SslConfiguration> sslConfiguration();
-
-    @Value.Default
-    public String lockCreator() {
-        return leaders().stream()
-                .sorted()
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("The leaders block cannot be empty"));
-    }
 
     @Value.Default
     public long pingRateMs() {
@@ -111,11 +102,5 @@ public abstract class LeaderConfig {
             log.error("Could not create the directory {}", SafeArg.of("dirName", directory.getPath()), t);
             return false;
         }
-    }
-
-    @JsonIgnore
-    @Value.Derived
-    public LockLeader whoIsTheLockLeader() {
-        return LockLeader.fromBoolean(lockCreator().equals(localServer()));
     }
 }

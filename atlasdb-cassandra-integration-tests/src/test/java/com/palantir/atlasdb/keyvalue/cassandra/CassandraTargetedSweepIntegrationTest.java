@@ -16,8 +16,6 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
@@ -25,9 +23,6 @@ import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 public class CassandraTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();
-
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     public CassandraTargetedSweepIntegrationTest() {
         super(CASSANDRA, CASSANDRA);

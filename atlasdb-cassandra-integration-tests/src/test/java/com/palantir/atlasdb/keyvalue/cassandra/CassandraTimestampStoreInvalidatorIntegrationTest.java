@@ -23,9 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -45,9 +43,6 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
     private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
 
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
-
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     @Before
     public void setUp() {

@@ -18,9 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -34,9 +32,6 @@ public class CassandraTimestampIntegrationTest {
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
-
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(CASSANDRA);
 
     @Before
     public void setUp() {

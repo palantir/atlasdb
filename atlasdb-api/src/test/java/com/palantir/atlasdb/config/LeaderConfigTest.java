@@ -15,49 +15,11 @@
  */
 package com.palantir.atlasdb.config;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
 import java.util.Collections;
 
 import org.junit.Test;
 
 public class LeaderConfigTest {
-    @Test
-    public void shouldBeTheLockLeaderIfLocalServerMatchesLockLeader() {
-        ImmutableLeaderConfig config = ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .addLeaders("not me", "me")
-                .quorumSize(2)
-                .lockCreator("me")
-                .build();
-
-        assertThat(config.whoIsTheLockLeader(), is(LockLeader.I_AM_THE_LOCK_LEADER));
-    }
-
-    @Test
-    public void shouldNotBeTheLockLeaderIfLocalServerDoesNotMatchLockLeader() {
-        ImmutableLeaderConfig config = ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .addLeaders("not me", "me")
-                .quorumSize(2)
-                .lockCreator("not me")
-                .build();
-
-        assertThat(config.whoIsTheLockLeader(), is(LockLeader.SOMEONE_ELSE_IS_THE_LOCK_LEADER));
-    }
-
-    @Test
-    public void lockLeaderDefaultsToBeTheFirstSortedLeader() {
-        ImmutableLeaderConfig config = ImmutableLeaderConfig.builder()
-                .localServer("me")
-                .addLeaders("not me", "me")
-                .quorumSize(2)
-                .build();
-
-        assertThat(config.lockCreator(), is("me"));
-    }
-
     @Test(expected = IllegalStateException.class)
     public void cannotCreateALeaderConfigWithNoLeaders() {
         ImmutableLeaderConfig.builder()

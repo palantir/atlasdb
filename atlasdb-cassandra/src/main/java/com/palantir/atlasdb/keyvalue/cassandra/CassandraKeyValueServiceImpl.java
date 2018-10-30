@@ -27,10 +27,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,7 +65,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -197,10 +194,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
-
-    private SchemaMutationLock schemaMutationLock;
-    private final ExecutorService schemaMutationExecutor;
-    private final UniqueSchemaMutationLockTable schemaMutationLockTable;
 
     private final Optional<LeaderConfig> leaderConfig;
 
@@ -368,11 +361,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.leaderConfig = leaderConfig;
         this.mutationTimestampProvider = mutationTimestampProvider;
-
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
-        this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
-        this.schemaMutationExecutor = createFixedThreadPool("schemaMutation", 1);
-
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
@@ -410,24 +398,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        boolean supportsCas = clientPool.runWithRetry(
-                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-
-        schemaMutationLock = new SchemaMutationLock(
-                supportsCas,
-                config,
-                clientPool,
-                queryRunner,
-                writeConsistency,
-                schemaMutationLockTable::getOnlyTable,
-                new HeartbeatService(
-                        clientPool,
-                        queryRunner,
-                        HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
-                        schemaMutationLockTable.getOnlyTable(),
-                        writeConsistency),
-                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
-
         cfIdTable.createIfNotExists();
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
@@ -435,12 +405,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 config);
-    }
-
-    private LockLeader whoIsTheLockCreator() {
-        return leaderConfig
-                .map(LeaderConfig::whoIsTheLockLeader)
-                .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     @VisibleForTesting
@@ -1422,8 +1386,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (!tablesToActuallyCreate.isEmpty()) {
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
-            log.info("Grabbing schema mutation lock to create tables {} and {}",
-                    safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
+            log.info("Creating tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
             CqlKeyValueServices cql = new CqlKeyValueServices();
             clientPool.runWithRetry(client -> {
             tablesToActuallyCreate.forEach((tableRef, bytes) -> {
@@ -1437,6 +1400,32 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             });
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
+    }
+
+    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
+        clientPool.runWithRetry(client -> {
+            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
+                try {
+                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
+                            config.getKeyspaceOrThrow(),
+                            tableEntry.getKey(),
+                            config.gcGraceSeconds(),
+                            tableEntry.getValue()));
+                } catch (UnavailableException e) {
+                    throw new InsufficientConsistencyException(
+                            "Creating tables requires all Cassandra nodes to be up and available.");
+                } catch (TException thriftException) {
+                    if (thriftException.getMessage() != null
+                            && !thriftException.getMessage().contains("already existing table")) {
+                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
+                    }
+                }
+            }
+
+            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
+                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
+            return null;
+        });
     }
 
     private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
@@ -1500,44 +1489,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return filteredTables;
-    }
-
-    private void runSchemaMutationTask(Runnable task) {
-        try {
-            Futures.getUnchecked(schemaMutationExecutor.submit(task));
-        } catch (UncheckedExecutionException e) {
-            // If this wraps an AtlasDbDependencyException, rewrap and throw
-            if (e.getCause() instanceof AtlasDbDependencyException) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
-            throw e;
-        }
-    }
-
-    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        clientPool.runWithRetry(client -> {
-            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
-                try {
-                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            config.getKeyspaceOrThrow(),
-                            tableEntry.getKey(),
-                            config.gcGraceSeconds(),
-                            tableEntry.getValue()));
-                } catch (UnavailableException e) {
-                    throw new InsufficientConsistencyException(
-                            "Creating tables requires all Cassandra nodes to be up and available.");
-                } catch (TException thriftException) {
-                    if (thriftException.getMessage() != null
-                            && !thriftException.getMessage().contains("already existing table")) {
-                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
-                    }
-                }
-            }
-
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
-                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
-            return null;
-        });
     }
 
     /**
@@ -1843,13 +1794,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void close() {
-        schemaMutationExecutor.shutdown();
-        try {
-            schemaMutationExecutor.awaitTermination(SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            // Continue with further transaction manager clean-up
-            Thread.currentThread().interrupt();
-        }
         clientPool.shutdown();
         super.close();
     }
