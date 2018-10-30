@@ -80,7 +80,7 @@ class CfIdTable {
         String fullTableNameForUuid = keyspace + "." + internalTableName;
         UUID uuid = UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
 
-        String createTableStatement = "CREATE TABLE \"%s\".\"%s\" "
+        String createTableStatement = "CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" "
                 + "(key blob, column1 blob, column2 bigint, value blob, PRIMARY KEY (key, column1, column2)) "
                 + "WITH COMPACT STORAGE AND id = '%s'";
         CqlQuery query = CqlQuery.builder()
