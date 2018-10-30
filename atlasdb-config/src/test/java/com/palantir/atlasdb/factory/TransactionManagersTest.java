@@ -378,26 +378,26 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void lockAndTimestampServicesInitializedIfTimeLockMigrationDone() {
+    public void timeLockMigrationReportsReadyIfMigrationDone() {
         when(migrator.isInitialized()).thenReturn(true);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertTrue(lockAndTimestampServices.isInitialized());
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
     }
 
     @Test
-    public void lockAndTimestampServicesNotInitializedIfMigrationNotDone() {
+    public void timeLockMigrationReportsNotReadyIfMigrationNotDone() {
         when(migrator.isInitialized()).thenReturn(false);
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.of(migrator));
 
-        assertFalse(lockAndTimestampServices.isInitialized());
+        assertFalse(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
     }
 
     @Test
-    public void lockAndTimestampServicesInitializedIfTimeLockMigrationNotNeeded() {
+    public void timeLockMigrationReportsReadyIfMigrationNotNeeded() {
         when(lockAndTimestampServices.migrator()).thenReturn(Optional.empty());
 
-        assertTrue(lockAndTimestampServices.isInitialized());
+        assertTrue(TransactionManagers.timeLockMigrationCompleteIfNeeded(lockAndTimestampServices));
     }
 
     @Test

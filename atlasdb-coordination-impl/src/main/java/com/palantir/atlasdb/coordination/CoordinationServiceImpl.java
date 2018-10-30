@@ -93,16 +93,12 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         if (casResult.successful()) {
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(target));
         }
+        // This may look unperformant, but in our store implementation there won't be more than one existing value.
         return ImmutableCheckAndSetResult.of(
                 false,
                 casResult.existingValues().stream()
                         .map(this::getCorrespondingValueFromStore)
                         .collect(Collectors.toList()));
-    }
-
-    private static <T> SequenceAndValueAndBound<T> getInitialCacheValue() {
-        return ImmutableSequenceAndValueAndBound.of(
-                SequenceAndValueAndBound.INVALID_SEQUENCE, Optional.empty(), SequenceAndValueAndBound.INVALID_BOUND);
     }
 
     private ValueAndBound<T> getCorrespondingValueFromStore(SequenceAndBound sequenceAndBound) {
@@ -129,7 +125,12 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         });
     }
 
-    private ByteString serializeByteString(T object) {
+    private static <T> SequenceAndValueAndBound<T> getInitialCacheValue() {
+        return ImmutableSequenceAndValueAndBound.of(
+                SequenceAndValueAndBound.INVALID_SEQUENCE, Optional.empty(), SequenceAndValueAndBound.INVALID_BOUND);
+    }
+
+    private static <T> ByteString serializeByteString(T object) {
         try {
             return ByteString.of(OBJECT_MAPPER.writeValueAsBytes(object));
         } catch (JsonProcessingException e) {
