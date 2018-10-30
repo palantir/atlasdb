@@ -92,9 +92,9 @@ public class CoordinationServiceImplTest {
     }
 
     @Test
-    public void tryTransformReturnsTrueIfChangeWasApplied() {
+    public void tryTransformSucceedsIfChangeWasApplied() {
         assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED))
-                .isTrue();
+                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
     }
 
     @Test
@@ -106,23 +106,23 @@ public class CoordinationServiceImplTest {
     }
 
     @Test
-    public void tryTransformThrowsIfChangeWasNotApplied() {
+    public void tryTransformReturnsUnsuccessfulIfChangeWasNotApplied() {
         CoordinationStore casFailingStore = mock(CoordinationStore.class);
         when(casFailingStore.checkAndSetCoordinationValue(any(), any())).thenReturn(
                 ImmutableCheckAndSetResult.of(false, ImmutableList.of()));
 
         CoordinationService<String> testCoordinationService
                 = new CoordinationServiceImpl<>(casFailingStore, String.class, timestamp::incrementAndGet);
-        assertThat(testCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED))
+        assertThat(testCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED).successful())
                 .isFalse();
     }
 
     @Test
     public void tryTransformDoesNotApplyTransformIfBoundDoesNotAdvance() {
         assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED))
-                .isTrue();
+                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
         assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> ANOTHER_STRING_AND_ONE_HUNDRED))
-                .isFalse();
+                .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
         assertThat(stringCoordinationService.getValueForTimestamp(100)).contains(STRING_AND_ONE_HUNDRED);
     }
 }

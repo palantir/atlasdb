@@ -19,6 +19,8 @@ package com.palantir.atlasdb.coordination;
 import java.util.Optional;
 import java.util.function.Function;
 
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+
 /**
  * A {@link CoordinationService} is used to agree on values being relevant or correct at a given timestamp.
  * The sequence of values being agreed should evolve in a backwards consistent manner; that is, if I read a value
@@ -55,7 +57,8 @@ public interface CoordinationService<T> {
      * The {@link ValueAndBound} returned by the transform must contain a value.
      *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
-     * @return true if and only if the transformation was applied
+     * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
      */
-    boolean tryTransformCurrentValue(Function<Optional<ValueAndBound<T>>, ValueAndBound<T>> transform);
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(
+            Function<Optional<ValueAndBound<T>>, ValueAndBound<T>> transform);
 }
