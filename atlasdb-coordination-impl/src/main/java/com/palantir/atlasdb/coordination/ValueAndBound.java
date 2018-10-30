@@ -33,4 +33,8 @@ public interface ValueAndBound<T> {
     static <T> ValueAndBound<T> of(Optional<T> value, long bound) {
         return ImmutableValueAndBound.of(value, bound);
     }
+
+    static <T> ValueAndBound<T> of(T value, long bound) {
+        return ImmutableValueAndBound.of(Optional.of(value), bound);
+    }
 }
