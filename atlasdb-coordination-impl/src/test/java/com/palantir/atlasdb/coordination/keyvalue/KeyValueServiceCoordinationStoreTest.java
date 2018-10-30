@@ -119,4 +119,13 @@ public class KeyValueServiceCoordinationStoreTest {
                 Optional.empty(), SEQUENCE_AND_BOUND_2))
                 .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
     }
+
+    @Test
+    public void multipleStoresCanCoexist() {
+        byte[] alternateCoordinationKey = PtBytes.toBytes("bbbbb");
+        CoordinationStore alternateCoordinationStore
+                = KeyValueServiceCoordinationStore.create(kvs, alternateCoordinationKey);
+        alternateCoordinationStore.putValue(SEQUENCE_NUMBER_1, VALUE_1);
+        assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_1)).isEmpty();
+    }
 }
