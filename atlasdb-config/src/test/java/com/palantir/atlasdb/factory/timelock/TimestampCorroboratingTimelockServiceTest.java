@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -23,9 +25,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -93,6 +100,53 @@ public class TimestampCorroboratingTimelockServiceTest {
 
         assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(UUID.randomUUID())));
+    }
+
+    @Test
+    public void resilientUnderMultipleThreads() throws InterruptedException {
+        BlockingTimestamp blockingTimestampReturning1 = new BlockingTimestamp(1);
+        when(rawTimelockService.getFreshTimestamp())
+                .thenAnswer(blockingTimestampReturning1)
+                .thenReturn(2L);
+
+        Future<Void> blockingGetFreshTimestampCall =
+                CompletableFuture.runAsync(timelockService::getFreshTimestamp);
+
+        blockingTimestampReturning1.waitForFirstCallToBlock();
+
+        assertThat(timelockService.getFreshTimestamp())
+                .as("This should have updated the lower bound to 2")
+                .isEqualTo(2L);
+
+        // we want to now resume the blocked call, which will return timestamp of 1 and not throw
+        blockingTimestampReturning1.countdown();
+        assertThatCode(blockingGetFreshTimestampCall::get)
+                .doesNotThrowAnyException();
+    }
+
+    private static final class BlockingTimestamp implements Answer<Long> {
+        private final CountDownLatch returnTimestampLatch = new CountDownLatch(1);
+        private final CountDownLatch blockingLatch = new CountDownLatch(1);
+        private final long timestampToReturn;
+
+        private BlockingTimestamp(long timestampToReturn) {
+            this.timestampToReturn = timestampToReturn;
+        }
+
+        @Override
+        public Long answer(InvocationOnMock invocation) throws Throwable {
+            blockingLatch.countDown();
+            returnTimestampLatch.await();
+            return timestampToReturn;
+        }
+
+        void countdown() {
+            returnTimestampLatch.countDown();
+        }
+
+        void waitForFirstCallToBlock() throws InterruptedException {
+            blockingLatch.await();
+        }
     }
 
     private void assertThrowsOnSecondCall(Runnable runnable) {
