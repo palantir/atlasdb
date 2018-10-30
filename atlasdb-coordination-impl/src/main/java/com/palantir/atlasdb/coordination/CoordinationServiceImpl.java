@@ -21,11 +21,15 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 import okio.ByteString;
@@ -58,25 +62,42 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     }
 
     @Override
-    public boolean tryTransformCurrentValue(
+    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(
             Function<Optional<ValueAndBound<T>>, ValueAndBound<T>> transform) {
         Optional<SequenceAndBound> sequenceAndBound = store.getCoordinationValue();
         Optional<ValueAndBound<T>> valueAndBound = sequenceAndBound.map(this::getCorrespondingValueFromStore);
 
         ValueAndBound<T> target = transform.apply(valueAndBound);
         if (shouldUpdateStore(valueAndBound, target)) {
-            long sequenceNumber = sequenceNumberSupplier.getAsLong();
-            store.putValue(sequenceNumber, serializeByteString(
-                    target.value().orElseThrow(() -> new IllegalStateException("Cannot put an empty value"))));
-            return store.checkAndSetCoordinationValue(sequenceAndBound,
-                    ImmutableSequenceAndBound.of(sequenceNumber, target.bound()))
-                    .successful();
+            return tryUpdateStore(sequenceAndBound, target);
         }
-        return false;
+        return ImmutableCheckAndSetResult.of(false, valueAndBound.map(ImmutableList::of).orElse(ImmutableList.of()));
     }
 
     private boolean shouldUpdateStore(Optional<ValueAndBound<T>> existing, ValueAndBound<T> target) {
         return existing.map(valueAndBound -> target.bound() > valueAndBound.bound()).orElse(true);
+    }
+
+    private CheckAndSetResult<ValueAndBound<T>> tryUpdateStore(Optional<SequenceAndBound> sequenceAndBound,
+            ValueAndBound<T> target) {
+        long sequenceNumber = sequenceNumberSupplier.getAsLong();
+        store.putValue(sequenceNumber, serializeByteString(
+                target.value().orElseThrow(() -> new IllegalStateException("Cannot put an empty value"))));
+        CheckAndSetResult<SequenceAndBound> casResult = store.checkAndSetCoordinationValue(sequenceAndBound,
+                ImmutableSequenceAndBound.of(sequenceNumber, target.bound()));
+        return getValueForExtantSequence(target, casResult);
+    }
+
+    private CheckAndSetResult<ValueAndBound<T>> getValueForExtantSequence(ValueAndBound<T> target,
+            CheckAndSetResult<SequenceAndBound> casResult) {
+        if (casResult.successful()) {
+            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(target));
+        }
+        return ImmutableCheckAndSetResult.of(
+                false,
+                casResult.existingValues().stream()
+                        .map(this::getCorrespondingValueFromStore)
+                        .collect(Collectors.toList()));
     }
 
     private static <T> SequenceAndValueAndBound<T> getInitialCacheValue() {
