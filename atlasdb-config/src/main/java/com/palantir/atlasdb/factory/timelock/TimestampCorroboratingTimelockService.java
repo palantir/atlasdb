@@ -97,8 +97,8 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return timestampContainer;
     }
 
-    private void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
-        if (freshTimestamp <= lowerBound.get()) {
+    private static void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
+        if (freshTimestamp <= timestampLowerBound) {
             throw clocksWentBackwards(timestampLowerBound, freshTimestamp);
         }
     }
