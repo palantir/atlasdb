@@ -24,8 +24,8 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-public final class CheckAndSetQueries {
-    public static final long CASSANDRA_TIMESTAMP = -1L;
+final class CheckAndSetQueries {
+    private static final long CASSANDRA_TIMESTAMP = -1L;
     private static final String CASSANDRA_PREFIX = "0x";
 
     private CheckAndSetQueries() {

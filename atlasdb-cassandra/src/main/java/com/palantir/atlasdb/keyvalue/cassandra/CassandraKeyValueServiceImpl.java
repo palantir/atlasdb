@@ -203,8 +203,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CellValuePutter cellValuePutter;
     private final CassandraTableCreator cassandraTableCreator;
     private final CassandraTableDropper cassandraTableDropper;
+    private final CassandraTableTruncator cassandraTableTruncator;
     private final CheckAndSetRunner checkAndSetRunner;
-    private final CfIdTable cfIdTable;
 
     private final CassandraTables cassandraTables;
 
@@ -371,10 +371,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
-        this.cfIdTable = new CfIdTable(config, checkAndSetRunner, metricsManager, cellLoader);
-        this.cassandraTableCreator = new CassandraTableCreator(clientPool, config, cfIdTable);
+        this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
+        this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, cfIdTable, deleteConsistency);
+                wrappingQueryRunner, cassandraTableTruncator, deleteConsistency);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -396,7 +396,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        cfIdTable.create(clientPool);
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
@@ -1087,36 +1086,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
-        if (!tablesToTruncate.isEmpty()) {
-            try {
-                runTruncateInternal(tablesToTruncate);
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes"
-                        + " to be up and available.");
-            } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
-        }
-    }
-
-    private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
-        clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Void, TException>() {
-            @Override
-            public Void apply(CassandraClient client) throws TException {
-                for (TableReference tableRef : tablesToTruncate) {
-                    queryRunner.run(client, tableRef, () -> {
-                        client.truncate(internalTableName(tableRef));
-                        return true;
-                    });
-                }
-                return null;
-            }
-
-            @Override
-            public String toString() {
-                return "truncateTables(" + tablesToTruncate.size() + " tables)";
-            }
-        });
+        cassandraTableTruncator.truncateTables(tablesToTruncate);
     }
 
     /**
@@ -1707,8 +1677,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void deleteRange(final TableReference tableRef, final RangeRequest range) {
         if (range.equals(RangeRequest.all())) {
             try {
-                runTruncateInternal(ImmutableSet.of(tableRef));
-            } catch (TException e) {
+                cassandraTableTruncator.truncateTables(ImmutableSet.of(tableRef));
+            } catch (AtlasDbDependencyException e) {
                 log.info("Tried to make a deleteRange({}, RangeRequest.all())"
                                 + " into a more garbage-cleanup friendly truncate(), but this failed.",
                         LoggingArgs.tableRef(tableRef), e);

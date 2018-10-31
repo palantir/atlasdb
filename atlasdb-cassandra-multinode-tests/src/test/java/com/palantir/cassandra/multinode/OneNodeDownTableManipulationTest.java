@@ -57,21 +57,15 @@ public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTes
     }
 
     @Test
-    public void canDropTable() {
-        getTestKvs().dropTable(TABLE_TO_DROP);
-
-        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP);
-        assertKvsReturnsEmptyMetadata(TABLE_TO_DROP);
-        assertCassandraSchemaChanged();
+    public void cannotDropTable() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().truncateTable(TABLE_TO_DROP));
     }
 
     @Test
-    public void canDropTables() {
-        getTestKvs().dropTables(ImmutableSet.of(TABLE_TO_DROP_2));
-
-        assertThat(getTestKvs().getAllTableNames()).doesNotContain(TABLE_TO_DROP_2);
-        assertKvsReturnsEmptyMetadata(TABLE_TO_DROP_2);
-        assertCassandraSchemaChanged();
+    public void cannotDropTables() {
+        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+                getTestKvs().truncateTable(TABLE_TO_DROP_2));
     }
 
     @Test

@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -39,21 +40,21 @@ class CassandraTableDropper {
     private CassandraKeyValueServiceConfig config;
     private CassandraClientPool clientPool;
     private CellValuePutter cellValuePutter;
+    private CassandraTableTruncator cassandraTableTruncator;
     private WrappingQueryRunner wrappingQueryRunner;
     private ConsistencyLevel deleteConsistency;
-    private CfIdTable cfIdTable;
 
     CassandraTableDropper(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CellValuePutter cellValuePutter,
             WrappingQueryRunner wrappingQueryRunner,
-            CfIdTable cfIdTable,
+            CassandraTableTruncator cassandraTableTruncator,
             ConsistencyLevel deleteConsistency) {
         this.config = config;
         this.clientPool = clientPool;
         this.cellValuePutter = cellValuePutter;
         this.wrappingQueryRunner = wrappingQueryRunner;
-        this.cfIdTable = cfIdTable;
+        this.cassandraTableTruncator = cassandraTableTruncator;
         this.deleteConsistency = deleteConsistency;
     }
 
@@ -72,7 +73,7 @@ class CassandraTableDropper {
                         for (TableReference table : tablesToDrop) {
                             CassandraVerifier.sanityCheckTableName(table);
                             if (existingTables.contains(table)) {
-                                cfIdTable.deleteCfIdForTable(table, client);
+                                cassandraTableTruncator.runTruncateOnClient(ImmutableSet.of(table), client);
                                 client.system_drop_column_family(
                                         CassandraKeyValueServiceImpl.internalTableName(table));
                                 putMetadataWithoutChangingSettings(table,

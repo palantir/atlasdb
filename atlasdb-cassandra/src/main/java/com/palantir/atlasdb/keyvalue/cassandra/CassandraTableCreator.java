@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.thrift.TException;
@@ -37,12 +38,10 @@ class CassandraTableCreator {
 
     private final CassandraClientPool clientPool;
     private final CassandraKeyValueServiceConfig config;
-    private final CfIdTable cfIdTable;
 
-    CassandraTableCreator(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config, CfIdTable cfIdTable) {
+    CassandraTableCreator(CassandraClientPool clientPool, CassandraKeyValueServiceConfig config) {
         this.clientPool = clientPool;
         this.config = config;
-        this.cfIdTable = cfIdTable;
     }
 
     void createTables(Map<TableReference, byte[]> tableRefToMetadata) {
@@ -61,12 +60,11 @@ class CassandraTableCreator {
     }
 
     private void createTable(TableReference tableRef, byte[] metadata, CassandraClient client) throws TException {
-        CqlQuery query = constructQuery(tableRef, metadata, client);
+        CqlQuery query = constructQuery(tableRef, metadata);
         client.execute_cql3_query(query, Compression.NONE, org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
     }
 
-    private CqlQuery constructQuery(TableReference tableRef, byte[] metadata, CassandraClient client)
-            throws TException {
+    private CqlQuery constructQuery(TableReference tableRef, byte[] metadata) {
         StringBuilder queryBuilder = new StringBuilder();
 
         TableMetadata tableMetadata = CassandraKeyValueServices.getMetadataOrDefaultToGeneric(metadata);
@@ -96,7 +94,7 @@ class CassandraTableCreator {
                 .addArgs(
                         SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                         SafeArg.of("internalTableName", CassandraKeyValueServiceImpl.internalTableName(tableRef)),
-                        SafeArg.of("cfId", cfIdTable.getCfIdForTable(tableRef, client)))
+                        SafeArg.of("cfId", getUuidForTable(tableRef)))
                 .build();
     }
 
@@ -128,5 +126,12 @@ class CassandraTableCreator {
     private String cachePriorityIsHottest(TableMetadata tableMetadata) {
         return Boolean.toString(tableMetadata.getCachePriority()
                 .equals(TableMetadataPersistence.CachePriority.HOTTEST));
+    }
+
+    private UUID getUuidForTable(TableReference tableRef) {
+        String internalTableName = CassandraKeyValueServiceImpl.internalTableName(tableRef);
+        String keyspace = config.getKeyspaceOrThrow();
+        String fullTableNameForUuid = keyspace + "." + internalTableName;
+        return UUID.nameUUIDFromBytes(fullTableNameForUuid.getBytes());
     }
 }
