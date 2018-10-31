@@ -23,7 +23,6 @@ import java.util.function.LongSupplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Mutation;
 
 import com.google.common.base.Function;
@@ -51,19 +50,16 @@ public class CellValuePutter {
     private CassandraClientPool clientPool;
     private TaskRunner taskRunner;
     private WrappingQueryRunner queryRunner;
-    private ConsistencyLevel writeConsistency;
 
     public CellValuePutter(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
-            ConsistencyLevel writeConsistency,
             LongSupplier timestampOverrideSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
-        this.writeConsistency = writeConsistency;
         this.timestampOverrideSupplier = timestampOverrideSupplier;
     }
 
@@ -82,7 +78,7 @@ public class CellValuePutter {
     private void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
-            boolean overwriteTimestamps) throws Exception {
+            boolean overwriteTimestamps) {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -144,7 +140,7 @@ public class CellValuePutter {
                             }
 
                             queryRunner.batchMutate(kvsMethodName, client, ImmutableSet.of(tableRef), map,
-                                    writeConsistency);
+                                    CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
                         }
                         return null;
                     }

@@ -184,6 +184,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
+    static final ConsistencyLevel WRITE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
+    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.ALL;
+
     private final Logger log;
 
     private final MetricsManager metricsManager;
@@ -193,8 +196,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Optional<LeaderConfig> leaderConfig;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
-    private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
-    private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
@@ -368,13 +369,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 taskRunner,
                 wrappingQueryRunner,
-                writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
         this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, cassandraTableTruncator, deleteConsistency);
+                wrappingQueryRunner, cassandraTableTruncator);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -1027,7 +1027,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 return wrappingQueryRunner.batchMutate("multiPut", client, tableRefs, mutationMap,
-                        writeConsistency);
+                        WRITE_CONSISTENCY);
             }
 
             @Override
@@ -1103,7 +1103,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         new CellDeleter(clientPool,
                 wrappingQueryRunner,
-                deleteConsistency,
+                DELETE_CONSISTENCY,
                 mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete()).delete(tableRef, keys);
     }
 
@@ -1690,7 +1690,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 long timestamp = mutationTimestampProvider.getRemoveTimestamp();
                 byte[] row = range.getStartInclusive();
                 clientPool.runWithRetry(client -> {
-                    client.remove("deleteRange", tableRef, row, timestamp, deleteConsistency);
+                    client.remove("deleteRange", tableRef, row, timestamp, DELETE_CONSISTENCY);
                     return null;
                 });
             } catch (UnavailableException e) {
@@ -1716,7 +1716,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean deleteSentinels) {
         new CellRangeDeleter(clientPool,
                 wrappingQueryRunner,
-                deleteConsistency,
+                DELETE_CONSISTENCY,
                 mutationTimestampProvider::getRangeTombstoneTimestamp)
                 .deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
@@ -1769,7 +1769,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
-        return cellLoader.getAllTimestamps(tableRef, cells, ts, deleteConsistency);
+        return cellLoader.getAllTimestamps(tableRef, cells, ts, DELETE_CONSISTENCY);
     }
 
     /**
