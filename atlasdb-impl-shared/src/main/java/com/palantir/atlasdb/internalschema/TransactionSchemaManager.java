@@ -18,9 +18,6 @@ package com.palantir.atlasdb.internalschema;
 
 import java.util.Optional;
 
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ImmutableValueAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
@@ -28,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionSchemaManager {
-    private static final int ADVANCEMENT_QUANTUM = 5_000_000;
+    private static final long ADVANCEMENT_QUANTUM = 5_000_000;
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
     private final TimestampService timestampService;
@@ -54,21 +51,14 @@ public class TransactionSchemaManager {
         return possibleVersion.get();
     }
 
-    public void putInitialState() {
-        long timestamp = timestampService.getFreshTimestamp();
-        while (!coordinationService.getValueForTimestamp(timestamp).isPresent()) {
-            coordinationService.tryTransformCurrentValue(optionalValueAndBound -> {
-                if (!optionalValueAndBound.isPresent()) {
-                    return ValueAndBound.of(
-                            ImmutableInternalSchemaMetadata.builder().timestampToTransactionsTableSchemaVersion(
-                                    ImmutableRangeMap.of(
-                                            Range.range(0L, BoundType.OPEN, timestamp, BoundType.CLOSED), 1))
-                                    .build(),
-                            timestamp);
-                }
-                return optionalValueAndBound.get();
-            });
-        }
+    public void installNewTransactionsSchemaVersion(int newVersion) {
+        coordinationService.tryTransformCurrentValue(optionalValueAndBound -> {
+            if (!optionalValueAndBound.isPresent()) {
+                throw new IllegalStateException("Cannot install a new transactions schema version"
+                        + " if we don't have any old versions known.");
+            }
+
+        });
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState(long timestamp) {
