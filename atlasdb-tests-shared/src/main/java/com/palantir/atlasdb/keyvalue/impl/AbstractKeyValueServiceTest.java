@@ -1506,6 +1506,15 @@ public abstract class AbstractKeyValueServiceTest {
         verifyCheckAndSet(TEST_CELL, val(0, 0));
     }
 
+    @Test
+    public void testCheckAndSetLargeValue() {
+        byte[] megabyteValue = new byte[1048756];
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, megabyteValue);
+
+        keyValueService.checkAndSet(request);
+        verifyCheckAndSet(TEST_CELL, megabyteValue);
+    }
+
     private void verifyCheckAndSet(Cell key, byte[] expectedValue) {
         Multimap<Cell, Long> timestamps = keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(key), 1L);
 

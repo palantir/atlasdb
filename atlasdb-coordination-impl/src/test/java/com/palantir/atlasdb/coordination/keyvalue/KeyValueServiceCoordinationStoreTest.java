@@ -20,45 +20,63 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.coordination.CoordinationStore;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.ImmutableSequenceAndBound;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
+import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-
-import okio.ByteString;
 
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_KEY = PtBytes.toBytes("aaaaa");
 
     private static final long SEQUENCE_NUMBER_1 = 1L;
-    private static final long SEQUENCE_NUMBER_2 = 111L;
-    private static final ByteString VALUE_1 = ByteString.of(PtBytes.toBytes("blabla"));
-    private static final ByteString VALUE_2 = ByteString.of(PtBytes.toBytes("testtest"));
+    private static final String VALUE_1 = "oneunoeinyi1";
+    private static final String VALUE_2 = "twodoszweier2";
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
 
-    private final CoordinationStore coordinationStore
-            = KeyValueServiceCoordinationStore.create(new InMemoryKeyValueService(true), COORDINATION_KEY);
+    private final AtomicLong timestampSequence = new AtomicLong();
+    private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
+            new InMemoryKeyValueService(true),
+            COORDINATION_KEY,
+            timestampSequence::incrementAndGet,
+            String.class);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
-        assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_1)).isEmpty();
+        assertThat(coordinationStore.getAgreedValue()).isEmpty();
     }
 
     @Test
-    public void retrievesCorrectStoredKeys() {
-        coordinationStore.putValue(SEQUENCE_NUMBER_1, VALUE_1);
-        coordinationStore.putValue(SEQUENCE_NUMBER_2, VALUE_2);
-        assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_1))
-                .contains(VALUE_1);
-        assertThat(coordinationStore.getValue(SEQUENCE_NUMBER_2))
-                .contains(VALUE_2);
+    public void canStoreAndRetrieveValues() {
+        CheckAndSetResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        assertThat(casResult.successful()).isTrue();
+        assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_1);
+        assertThat(coordinationStore.getAgreedValue()).hasValueSatisfying(
+                valueAndBound -> {
+                    assertThat(valueAndBound.value()).contains(VALUE_1);
+                    assertThat(valueAndBound.bound()).isGreaterThanOrEqualTo(0);
+                });
+    }
+
+    @Test
+    public void canApplyMultipleTransformations() {
+        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        coordinationStore.transformAgreedValue(unused -> VALUE_2);
+        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+
+        assertThat(firstValueAndBound.value()).contains(VALUE_1);
+        assertThat(secondValueAndBound.value()).contains(VALUE_2);
+        assertThat(firstValueAndBound.bound()).isLessThan(secondValueAndBound.bound());
     }
 
     @Test
@@ -70,22 +88,18 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void throwsIfAttemptingToPutAtNegativeSequenceNumber() {
-        assertThatThrownBy(() -> coordinationStore.putValue(-1, VALUE_1))
+        assertThatThrownBy(() -> coordinationStore.putUnlessValueExists(-1, VALUE_1))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Only positive sequence numbers are supported");
     }
 
     @Test
-    public void getCoordinationValueReturnsEmptyIfNotSet() {
-        assertThat(coordinationStore.getCoordinationValue()).isEmpty();
-    }
-
-    @Test
-    public void storesAndRetrievesCoordinationValues() {
-        assertThat(coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1))
-                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
-        assertThat(coordinationStore.getCoordinationValue())
-                .contains(SEQUENCE_AND_BOUND_1);
+    public void throwsIfAttemptingToPutTwice() {
+        coordinationStore.putUnlessValueExists(SEQUENCE_NUMBER_1, VALUE_1);
+        assertThatThrownBy(() -> coordinationStore.putUnlessValueExists(SEQUENCE_NUMBER_1, VALUE_2))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("The coordination store failed a putUnlessExists. This is unexpected"
+                        + " as it implies timestamps may have been reused, or a writer to the store behaved badly.");
     }
 
     @Test

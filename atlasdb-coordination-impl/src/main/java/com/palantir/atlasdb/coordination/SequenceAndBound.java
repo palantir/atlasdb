@@ -33,4 +33,8 @@ public interface SequenceAndBound {
 
     @Value.Parameter
     long bound();
+
+    static SequenceAndBound of(long sequence, long bound) {
+        return ImmutableSequenceAndBound.of(sequence, bound);
+    }
 }

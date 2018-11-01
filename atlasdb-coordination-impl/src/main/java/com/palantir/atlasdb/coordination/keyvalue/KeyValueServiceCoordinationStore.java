@@ -18,8 +18,9 @@ package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -27,15 +28,18 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
+import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
@@ -52,14 +56,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
-import okio.ByteString;
-
 /**
  * An implementation of {@link CoordinationStore} that persists its state in a {@link KeyValueService}.
  *
  * Specifically, a {@link KeyValueServiceCoordinationStore} stores its data in a single row in the
  * {@link AtlasDbConstants#COORDINATION_TABLE}. This specific row is identified by the store's
- * {@link KeyValueServiceCoordinationStore#coordinationSequence}; the reason for doing this is that it allows
+ * {@link KeyValueServiceCoordinationStore#coordinationRow}; the reason for doing this is that it allows
  * for multiple distinct sequences to coexist in one table.
  *
  * Within a single identified row, values are written with dynamic column keys as sequence numbers, which are
@@ -69,96 +71,128 @@ import okio.ByteString;
  * in the sequence.
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
-public final class KeyValueServiceCoordinationStore implements CoordinationStore {
+public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
-    private static final TableMetadata COORDINATION_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder()
-                            .componentName("sequence")
-                            .type(ValueType.BLOB)
-                            .logSafety(TableMetadataPersistence.LogSafety.SAFE)
-                            .build())),
-            new ColumnMetadataDescription(new DynamicColumnDescription(
-                    NameMetadataDescription.create(
-                            ImmutableList.of(
-                                    new NameComponentDescription.Builder()
-                                            .componentName("sequenceNumber")
-                                            .logSafety(TableMetadataPersistence.LogSafety.SAFE)
-                                            .type(ValueType.VAR_LONG)
-                                            .build())),
-                    ColumnValueDescription.forType(ValueType.VAR_LONG))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.CachePriority.WARM,
-            false,
-            0,
-            false,
-            TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
-            false,
-            TableMetadataPersistence.LogSafety.SAFE);
-    private static final long WRITE_TIMESTAMP = 0L;
+    private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
+
+    private static final long ADVANCEMENT_QUANTUM = 5_000_000L;
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
-    private final KeyValueService kvs;
-    private final byte[] coordinationSequence;
+    private static final String COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION = "coordination sequence and bound";
+    private static final String VALUE_DESCRIPTION = "value for coordination service";
 
-    private KeyValueServiceCoordinationStore(KeyValueService kvs, byte[] coordinationSequence) {
+    private final KeyValueService kvs;
+    private final byte[] coordinationRow;
+    private final LongSupplier sequenceNumberSupplier;
+    private final Class<T> clazz;
+
+    private KeyValueServiceCoordinationStore(
+            KeyValueService kvs,
+            byte[] coordinationRow,
+            LongSupplier sequenceNumberSupplier,
+            Class<T> clazz) {
         this.kvs = kvs;
-        this.coordinationSequence = coordinationSequence;
+        this.coordinationRow = coordinationRow;
+        this.sequenceNumberSupplier = sequenceNumberSupplier;
+        this.clazz = clazz;
     }
 
-    public static CoordinationStore create(KeyValueService kvs, byte[] coordinationSequence) {
-        CoordinationStore coordinationStore = new KeyValueServiceCoordinationStore(kvs, coordinationSequence);
+    public static <T> KeyValueServiceCoordinationStore<T> create(
+            KeyValueService kvs,
+            byte[] coordinationSequence,
+            LongSupplier sequenceNumberSupplier,
+            Class<T> clazz) {
+        KeyValueServiceCoordinationStore<T> coordinationStore
+                = new KeyValueServiceCoordinationStore<>(kvs, coordinationSequence, sequenceNumberSupplier, clazz);
         kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
         return coordinationStore;
     }
 
+    // TODO (jkong): Since apart from the coordination value all other entries are immutable, we can perform
+    // some caching.
     @Override
-    public Optional<ByteString> getValue(long sequenceNumber) {
+    public Optional<ValueAndBound<T>> getAgreedValue() {
+        return getCoordinationValue()
+                .map(sequenceAndBound -> ValueAndBound.of(
+                        getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
+    }
+
+    @Override
+    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform) {
+        Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
+        T targetValue = transform.apply(coordinationValue.flatMap(
+                sequenceAndBound -> getValue(sequenceAndBound.sequence())));
+
+        long sequenceNumber = sequenceNumberSupplier.getAsLong();
+        putUnlessValueExists(sequenceNumber, targetValue);
+
+        long newBound = getNewBound(sequenceNumber);
+        CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
+                coordinationValue, SequenceAndBound.of(sequenceNumber, newBound));
+        return extractRelevantValues(targetValue, newBound, casResult);
+    }
+
+    private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
+            CheckAndSetResult<SequenceAndBound> casResult) {
+        if (casResult.successful()) {
+            return CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(Optional.of(targetValue), newBound)));
+        }
+        return CheckAndSetResult.of(
+                casResult.successful(),
+                casResult.existingValues()
+                        .stream()
+                        .map(value -> ValueAndBound.of(getValue(value.sequence()), value.bound()))
+                        .collect(Collectors.toList()));
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private long getNewBound(long sequenceNumber) {
+        return sequenceNumber + ADVANCEMENT_QUANTUM;
+    }
+
+    @VisibleForTesting
+    Optional<T> getValue(long sequenceNumber) {
         Preconditions.checkState(
                 sequenceNumber > 0,
                 "Only positive sequence numbers are supported, but found %s",
                 sequenceNumber);
-        Cell targetCell = getCellForSequence(sequenceNumber);
-        Map<Cell, Value> response = kvs.get(AtlasDbConstants.COORDINATION_TABLE,
-                ImmutableMap.of(targetCell, Long.MAX_VALUE));
-        return Optional.ofNullable(response.get(targetCell)).map(Value::getContents).map(ByteString::of);
+        return readFromCoordinationTable(getCellForSequence(sequenceNumber))
+                .map(Value::getContents)
+                .map(contents -> KeyValueServiceCoordinationStore.deserializeData(contents, clazz, VALUE_DESCRIPTION));
     }
 
-    @Override
-    public void putValue(long sequenceNumber, ByteString value) {
+    @VisibleForTesting
+    void putUnlessValueExists(long sequenceNumber, T value) {
         Preconditions.checkState(
                 sequenceNumber > 0,
                 "Only positive sequence numbers are supported, but found %s",
                 sequenceNumber);
-        kvs.put(AtlasDbConstants.COORDINATION_TABLE,
-                ImmutableMap.of(getCellForSequence(sequenceNumber), value.toByteArray()),
-                WRITE_TIMESTAMP);
+        try {
+            kvs.putUnlessExists(AtlasDbConstants.COORDINATION_TABLE,
+                    ImmutableMap.of(getCellForSequence(sequenceNumber), serializeData(value, VALUE_DESCRIPTION)));
+        } catch (KeyAlreadyExistsException e) {
+            throw new IllegalStateException("The coordination store failed a putUnlessExists. This is unexpected"
+                    + " as it implies timestamps may have been reused, or a writer to the store behaved badly.", e);
+        }
     }
 
-    @Override
-    public Optional<SequenceAndBound> getCoordinationValue() {
-        Cell targetCell = getCoordinationValueCell();
-        Map<Cell, Value> response
-                = kvs.get(AtlasDbConstants.COORDINATION_TABLE, ImmutableMap.of(targetCell, Long.MAX_VALUE));
-        return Optional.ofNullable(response.get(targetCell))
+    private Optional<SequenceAndBound> getCoordinationValue() {
+        return readFromCoordinationTable(getCoordinationValueCell())
                 .map(Value::getContents)
                 .map(KeyValueServiceCoordinationStore::deserializeSequenceAndBound);
     }
 
-    @Override
-    public CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    @VisibleForTesting
+    CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
-        CheckAndSetRequest request = oldValue
-                .map(value -> CheckAndSetRequest.singleCell(
-                        AtlasDbConstants.COORDINATION_TABLE,
-                        getCoordinationValueCell(),
-                        serializeSequenceAndBound(value),
-                        serializeSequenceAndBound(newValue)))
-                .orElseGet(() -> CheckAndSetRequest.newCell(
-                        AtlasDbConstants.COORDINATION_TABLE,
-                        getCoordinationValueCell(),
-                        serializeSequenceAndBound(newValue)));
+        CheckAndSetRequest request = new CheckAndSetRequest.Builder()
+                .table(AtlasDbConstants.COORDINATION_TABLE)
+                .cell(getCoordinationValueCell())
+                .oldValue(oldValue.map(KeyValueServiceCoordinationStore::serializeSequenceAndBound))
+                .newValue(serializeSequenceAndBound(newValue))
+                .build();
 
         try {
             kvs.checkAndSet(request);
@@ -172,21 +206,31 @@ public final class KeyValueServiceCoordinationStore implements CoordinationStore
     }
 
     private static SequenceAndBound deserializeSequenceAndBound(byte[] contents) {
+        return deserializeData(contents, SequenceAndBound.class, "coordination sequence and bound");
+    }
+
+    private static <T> T deserializeData(byte[] data, Class<T> clazz, String safeDescriptionOfItemToDeserialize) {
         try {
-            return OBJECT_MAPPER.readValue(contents, SequenceAndBound.class);
+            return OBJECT_MAPPER.readValue(data, clazz);
         } catch (IOException e) {
-            log.error("Error encountered when deserializing sequence and bound: {}",
-                    SafeArg.of("sequenceAndBound", Arrays.toString(contents)));
+            log.error("Error encountered when deserializing {}: {}",
+                    SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
+                    SafeArg.of("coordinationData", Arrays.toString(data)));
             throw new RuntimeException(e);
         }
     }
 
     private static byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
+        return serializeData(sequenceAndBound, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
+    }
+
+    private static <T> byte[] serializeData(T object, String safeDescriptionOfItemToSerialize) {
         try {
-            return OBJECT_MAPPER.writeValueAsBytes(sequenceAndBound);
+            return OBJECT_MAPPER.writeValueAsBytes(object);
         } catch (JsonProcessingException e) {
-            log.error("Error encountered when serializing sequence and bound: {}",
-                    SafeArg.of("sequenceAndBound", sequenceAndBound));
+            log.error("Error encountered when serializing {}: {}",
+                    SafeArg.of("safeDescriptionOfItemToSerialize", safeDescriptionOfItemToSerialize),
+                    SafeArg.of("coordinationData", object));
             throw new RuntimeException(e);
         }
     }
@@ -196,6 +240,38 @@ public final class KeyValueServiceCoordinationStore implements CoordinationStore
     }
 
     private Cell getCellForSequence(long sequenceNumber) {
-        return Cell.create(coordinationSequence, ValueType.VAR_LONG.convertFromJava(sequenceNumber));
+        return Cell.create(coordinationRow, ValueType.VAR_LONG.convertFromJava(sequenceNumber));
+    }
+
+    private Optional<Value> readFromCoordinationTable(Cell cell) {
+        return Optional.ofNullable(kvs.get(AtlasDbConstants.COORDINATION_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE))
+                .get(cell));
+    }
+
+    private static TableMetadata getCoordinationTableMetadata() {
+        return new TableMetadata(
+                NameMetadataDescription.create(ImmutableList.of(
+                        new NameComponentDescription.Builder()
+                                .componentName("sequence")
+                                .type(ValueType.BLOB)
+                                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
+                                .build())),
+                new ColumnMetadataDescription(new DynamicColumnDescription(
+                        NameMetadataDescription.create(
+                                ImmutableList.of(
+                                        new NameComponentDescription.Builder()
+                                                .componentName("sequenceNumber")
+                                                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
+                                                .type(ValueType.VAR_LONG)
+                                                .build())),
+                        ColumnValueDescription.forType(ValueType.BLOB))),
+                ConflictHandler.IGNORE_ALL,
+                TableMetadataPersistence.CachePriority.WARM,
+                false,
+                0,
+                false,
+                TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
+                false,
+                TableMetadataPersistence.LogSafety.SAFE);
     }
 }

@@ -103,7 +103,8 @@ public final class AtlasDbConstants {
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            COORDINATION_TABLE);
 
     public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(
             TableReference.createWithEmptyNamespace("resync_object"));

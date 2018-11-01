@@ -17,48 +17,29 @@
 package com.palantir.atlasdb.coordination;
 
 import java.util.Optional;
+import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-
-import okio.ByteString;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
  */
-public interface CoordinationStore {
+public interface CoordinationStore<T> {
     /**
-     * Gets the value associated with a given sequence number.
-     * Sequence numbers are expected to be strictly positive.
+     * Gets the value stored in this {@link CoordinationStore}. This value may not be the most recent value; however,
+     * it is guaranteed that any value returned by this method will be at least as current as any value returned by
+     * a call that returned prior to this method being invoked.
      *
-     * @param sequenceNumber sequence number to read a value for
-     * @return value stored at that sequence number; empty if none is present
+     * @return available value and bound; empty if none has ever been stored.
      */
-    Optional<ByteString> getValue(long sequenceNumber);
+    Optional<ValueAndBound<T>> getAgreedValue();
 
     /**
-     * Stores a value for a given sequence number.
-     * Sequence numbers are expected to be strictly positive.
+     * Proposes a new value to be stored in this {@link CoordinationStore} based on applying the transform passed
+     * to an existing bound. It is the responsibility of users to confirm whether their transform succeeded or not.
      *
-     * @param sequenceNumber sequence number to store a value for
-     * @param value value to be stored
+     * @param transform transformation of the original value passed
+     * @return a {@link CheckAndSetResult} indicating if the proposal was successful and the current value
      */
-    void putValue(long sequenceNumber, ByteString value);
-
-    /**
-     * Gets the current value of the {@link SequenceAndBound} that a {@link CoordinationService} may have stored.
-     *
-     * @return available sequence and bound; empty if no sequence and bound has ever been stored
-     */
-    Optional<SequenceAndBound> getCoordinationValue();
-
-    /**
-     * Attempts to atomically update the {@link SequenceAndBound} associated with the relevant
-     * {@link CoordinationService}.
-     *
-     * @param oldValue old value of the sequence and bound
-     * @param newValue new value of the sequence and bound
-     * @return a {@link CheckAndSetResult} indicating success or failure of the operation, and the current value
-     */
-    CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
-            Optional<SequenceAndBound> oldValue, SequenceAndBound newValue);
+    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform);
 }

@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.coordination;
 
-import java.util.List;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface CheckAndSetResult<T> {
+public interface ValueAndBound<T> {
     @Value.Parameter
-    boolean successful();
-
+    Optional<T> value();
     @Value.Parameter
-    List<T> existingValues();
+    long bound();
 
-    static <T> CheckAndSetResult<T> of(boolean successful, List<T> existingValues) {
-        return ImmutableCheckAndSetResult.of(successful, existingValues);
+    static <T> ValueAndBound<T> of(Optional<T> value, long bound) {
+        return ImmutableValueAndBound.of(value, bound);
     }
 }
