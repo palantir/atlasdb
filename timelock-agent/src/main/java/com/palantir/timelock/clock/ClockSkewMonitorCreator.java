@@ -19,25 +19,24 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
 import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.TrustContext;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.PaxosRemotingUtils;
 
 public class ClockSkewMonitorCreator {
     private final MetricsManager metricsManager;
     private final Set<String> remoteServers;
-    private final Optional<SSLSocketFactory> optionalSecurity;
+    private final Optional<TrustContext> optionalSecurity;
     private final Consumer<Object> registrar;
 
     @VisibleForTesting
     ClockSkewMonitorCreator(MetricsManager metricsManager, Set<String> remoteServers,
-            Optional<SSLSocketFactory> optionalSecurity,
+            Optional<TrustContext> optionalSecurity,
             Consumer<Object> registrar) {
         this.metricsManager = metricsManager;
         this.remoteServers = remoteServers;
@@ -48,8 +47,8 @@ public class ClockSkewMonitorCreator {
     public static ClockSkewMonitorCreator create(
             MetricsManager metricsManager, TimeLockInstallConfiguration install, Consumer<Object> registrar) {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
-        Optional<SSLSocketFactory> optionalSecurity =
-                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory);
+        Optional<TrustContext> optionalSecurity =
+                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createTrustContext);
 
         return new ClockSkewMonitorCreator(metricsManager, remoteServers, optionalSecurity, registrar);
     }
