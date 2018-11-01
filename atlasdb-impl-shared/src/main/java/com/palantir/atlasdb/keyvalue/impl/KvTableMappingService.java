@@ -46,18 +46,19 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 public class KvTableMappingService extends AbstractTableMappingService {
-    public static final TableMetadata NAMESPACE_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
+    public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.builder()
+            .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
                     new NameComponentDescription.Builder()
                             .componentName("namespace").type(ValueType.VAR_STRING).build(),
-                    new NameComponentDescription.Builder().componentName("table_name").type(ValueType.STRING).build())),
-            new ColumnMetadataDescription(ImmutableList.of(
+                    new NameComponentDescription.Builder().componentName("table_name").type(ValueType.STRING).build())))
+            .columns(new ColumnMetadataDescription(ImmutableList.of(
                     new NamedColumnDescription(
                             AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME,
                             "short_name",
-                            ColumnValueDescription.forType(ValueType.STRING)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
+                            ColumnValueDescription.forType(ValueType.STRING)))))
+            .conflictHandler(ConflictHandler.IGNORE_ALL)
+            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .build();
 
     private final KeyValueService kv;
     private final Supplier<Long> uniqueLongSupplier;

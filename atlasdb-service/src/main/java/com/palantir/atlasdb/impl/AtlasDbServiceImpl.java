@@ -44,6 +44,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
@@ -62,15 +63,15 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
-    private static final TableMetadata RAW_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                    .componentName("row").type(ValueType.STRING).build())),
-            new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(
+    private static final TableMetadata RAW_METADATA = TableMetadata.builder()
+            .rowMetadata(NameMetadataDescription.create("row", ValueType.STRING, ValueByteOrder.ASCENDING))
+            .columns(new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(
                     ImmutableList.of(new NameComponentDescription.Builder()
                             .componentName("col").type(ValueType.STRING).build())),
-                    ColumnValueDescription.forType(ValueType.STRING))),
-            ConflictHandler.SERIALIZABLE,
-            TableMetadataPersistence.LogSafety.SAFE);
+                    ColumnValueDescription.forType(ValueType.STRING))))
+            .conflictHandler(ConflictHandler.SERIALIZABLE)
+            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .build();
 
     private final KeyValueService kvs;
     private final TransactionManager txManager;

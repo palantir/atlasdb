@@ -277,7 +277,7 @@ public final class TableFactoryRenderer {
             ClassName tableType = ClassName.get(packageName, tableName);
             TypeName rowType = tableType.nestedClass(name + "Row");
             TypeName columnType = tableType.nestedClass(name + "ColumnValue");
-            if (!tableDefinition.toTableMetadata().getColumns().hasDynamicColumns()) {
+            if (!tableDefinition.toTableMetadata().columns().hasDynamicColumns()) {
                 columnType = ParameterizedTypeName.get(
                         ClassName.get(packageName, tableName + "." + name + "NamedColumnValue"),
                         WildcardTypeName.subtypeOf(Object.class));

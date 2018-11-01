@@ -196,10 +196,10 @@ public final class Cells {
             return cell.toString();
         }
         try {
-            String rowName = metadata.getRowMetadata().renderToJson(cell.getRowName());
+            String rowName = metadata.rowMetadata().renderToJson(cell.getRowName());
             String colName;
-            if (metadata.getColumns().hasDynamicColumns()) {
-                colName = metadata.getColumns().getDynamicColumn().getColumnNameDesc().renderToJson(
+            if (metadata.columns().hasDynamicColumns()) {
+                colName = metadata.columns().getDynamicColumn().getColumnNameDesc().renderToJson(
                         cell.getColumnName());
             } else {
                 colName = PtBytes.toString(cell.getColumnName());

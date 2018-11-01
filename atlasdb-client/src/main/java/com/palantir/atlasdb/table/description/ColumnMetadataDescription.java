@@ -48,6 +48,11 @@ public class ColumnMetadataDescription {
         this.dynamicColumn = dynamicColumn;
     }
 
+    public static ColumnMetadataDescription singleNamed(String shortName, String longName, ValueType valueType) {
+        return new ColumnMetadataDescription(ImmutableList.of(
+                new NamedColumnDescription(shortName, longName, ColumnValueDescription.forType(valueType))));
+    }
+
     public Set<NamedColumnDescription> getNamedColumns() {
         return namedColumns;
     }

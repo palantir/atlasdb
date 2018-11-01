@@ -147,8 +147,8 @@ public final class AtlasDeserializers {
 
     private static Cell deserializeCell(TableMetadata metadata,
             JsonNode node) {
-        byte[] row = deserializeRow(metadata.getRowMetadata(), node.get("row"));
-        byte[] col = deserializeCol(metadata.getColumns(), node.get("col"));
+        byte[] row = deserializeRow(metadata.rowMetadata(), node.get("row"));
+        byte[] col = deserializeCol(metadata.columns(), node.get("col"));
         return Cell.create(row, col);
     }
 
@@ -159,8 +159,8 @@ public final class AtlasDeserializers {
 
     private static Iterable<Entry<Cell, byte[]>> deserializeCellVal(TableMetadata metadata,
             JsonNode node) {
-        byte[] row = deserializeRow(metadata.getRowMetadata(), node.get("row"));
-        ColumnMetadataDescription colDescription = metadata.getColumns();
+        byte[] row = deserializeRow(metadata.rowMetadata(), node.get("row"));
+        ColumnMetadataDescription colDescription = metadata.columns();
         if (colDescription.hasDynamicColumns()) {
             byte[] col = deserializeDynamicCol(colDescription.getDynamicColumn(), node.get("col"));
             byte[] val = deserializeVal(colDescription.getDynamicColumn().getValue(), node.get("val"));

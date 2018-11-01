@@ -63,7 +63,7 @@ public class SweepStrategyManagers {
     private static Map<TableReference, SweepStrategy> getSweepStrategies(KeyValueService kvs) {
         return ImmutableMap.copyOf(Maps.transformEntries(kvs.getMetadataForTables(), (tableRef, tableMetadata) -> {
             if (tableMetadata != null && tableMetadata.length > 0) {
-                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).getSweepStrategy();
+                return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata).sweepStrategy();
             } else {
                 return SweepStrategy.CONSERVATIVE;
             }
@@ -73,7 +73,7 @@ public class SweepStrategyManagers {
     private static Map<TableReference, SweepStrategy> getSweepStrategies(Schema schema) {
         Map<TableReference, SweepStrategy> ret = Maps.newHashMap();
         for (Map.Entry<TableReference, TableMetadata> e : schema.getAllTablesAndIndexMetadata().entrySet()) {
-            ret.put(e.getKey(), e.getValue().getSweepStrategy());
+            ret.put(e.getKey(), e.getValue().sweepStrategy());
         }
         return ret;
     }

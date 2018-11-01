@@ -117,7 +117,7 @@ public class Renderers {
     }
 
     public static List<NameComponentDescription> getRowComponents(TableMetadata tableMetadata) {
-        NameMetadataDescription rowMetadata = tableMetadata.getRowMetadata();
+        NameMetadataDescription rowMetadata = tableMetadata.rowMetadata();
         List <NameComponentDescription> rowParts = rowMetadata.getRowParts();
         return rowMetadata.numberOfComponentsHashed() == 0 ? rowParts : rowParts.subList(1, rowParts.size());
     }

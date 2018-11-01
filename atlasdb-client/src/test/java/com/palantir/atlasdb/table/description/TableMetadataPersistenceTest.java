@@ -71,7 +71,7 @@ public class TableMetadataPersistenceTest {
     @Test
     public void testMetadataHasExpectedCompressionBlockSize() {
         TableMetadata metadata = tableDefinition.toTableMetadata();
-        Assert.assertEquals(compressionBlockSizeKB, metadata.getExplicitCompressionBlockSizeKB());
+        Assert.assertEquals(compressionBlockSizeKB, metadata.explicitCompressionBlockSizeKB());
     }
 
     private static TableDefinition getRangeScanWithoutCompression() {

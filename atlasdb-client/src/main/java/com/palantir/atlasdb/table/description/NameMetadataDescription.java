@@ -31,6 +31,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
@@ -83,6 +84,15 @@ public class NameMetadataDescription {
             withHashRowComponent.addAll(components);
             return new NameMetadataDescription(withHashRowComponent, numberOfComponentsHashed);
         }
+    }
+
+    public static NameMetadataDescription create(String name, ValueType value, ValueByteOrder byteOrder) {
+        return create(ImmutableList.of(
+                new NameComponentDescription.Builder()
+                        .componentName(name)
+                        .type(value)
+                        .byteOrder(byteOrder)
+                        .build()));
     }
 
     public List<NameComponentDescription> getRowParts() {

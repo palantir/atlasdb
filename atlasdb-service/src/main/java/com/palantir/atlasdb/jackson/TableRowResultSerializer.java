@@ -60,8 +60,8 @@ public class TableRowResultSerializer extends StdSerializer<TableRowResult> {
                                   TableMetadata metadata,
                                   RowResult<byte[]> result) throws IOException {
         jgen.writeStartObject();
-        AtlasSerializers.serializeRow(jgen, metadata.getRowMetadata(), result.getRowName());
-        ColumnMetadataDescription columns = metadata.getColumns();
+        AtlasSerializers.serializeRow(jgen, metadata.rowMetadata(), result.getRowName());
+        ColumnMetadataDescription columns = metadata.columns();
         if (columns.hasDynamicColumns()) {
             jgen.writeArrayFieldStart("cols");
             for (Entry<byte[], byte[]> colVal : result.getColumns().entrySet()) {

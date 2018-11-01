@@ -44,8 +44,8 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
     @Override
     public void serialize(TableMetadata value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
         jgen.writeStartObject();
-        NameMetadataDescription rowMetadata = value.getRowMetadata();
-        ColumnMetadataDescription columnMetadata = value.getColumns();
+        NameMetadataDescription rowMetadata = value.rowMetadata();
+        ColumnMetadataDescription columnMetadata = value.columns();
         boolean isDynamic = columnMetadata.hasDynamicColumns();
         jgen.writeBooleanField("is_dynamic", isDynamic);
         jgen.writeArrayFieldStart("row");
@@ -73,14 +73,14 @@ public class TableMetadataSerializer extends StdSerializer<TableMetadata> {
             }
             jgen.writeEndArray();
         }
-        jgen.writeStringField("sweepStrategy", value.getSweepStrategy().name());
-        jgen.writeStringField("conflictHandler", value.getConflictHandler().name());
-        jgen.writeStringField("cachePriority", value.getCachePriority().name());
-        jgen.writeBooleanField("rangeScanAllowed", value.isRangeScanAllowed());
-        jgen.writeNumberField("explicitCompressionBlockSizeKB", value.getExplicitCompressionBlockSizeKB());
-        jgen.writeBooleanField("negativeLookups", value.hasNegativeLookups());
-        jgen.writeBooleanField("appendHeavyAndReadLight", value.isAppendHeavyAndReadLight());
-        jgen.writeStringField("nameLogSafety", value.getNameLogSafety().name());
+        jgen.writeStringField("sweepStrategy", value.sweepStrategy().name());
+        jgen.writeStringField("conflictHandler", value.conflictHandler().name());
+        jgen.writeStringField("cachePriority", value.cachePriority().name());
+        jgen.writeBooleanField("rangeScanAllowed", value.rangeScanAllowed());
+        jgen.writeNumberField("explicitCompressionBlockSizeKB", value.explicitCompressionBlockSizeKB());
+        jgen.writeBooleanField("negativeLookups", value.negativeLookups());
+        jgen.writeBooleanField("appendHeavyAndReadLight", value.appendHeavyAndReadLight());
+        jgen.writeStringField("nameLogSafety", value.nameLogSafety().name());
         jgen.writeEndObject();
     }
 

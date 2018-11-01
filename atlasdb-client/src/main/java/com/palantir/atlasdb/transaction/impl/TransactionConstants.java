@@ -16,19 +16,14 @@
 package com.palantir.atlasdb.transaction.impl;
 
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 
 public class TransactionConstants {
@@ -53,15 +48,9 @@ public class TransactionConstants {
         return EncodingUtils.decodeVarLong(encodedTimestamp);
     }
 
-    public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                    .componentName("write_ts")
-                    .type(ValueType.VAR_LONG)
-                    .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(COMMIT_TS_COLUMN_STRING, "commit_ts",
-                            ColumnValueDescription.forType(ValueType.VAR_LONG)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
+    public static final TableMetadata TRANSACTION_TABLE_METADATA = TableMetadata.internal()
+            .rowMetadata(NameMetadataDescription.create("write_ts", ValueType.VAR_LONG, ValueByteOrder.ASCENDING))
+            .columns(ColumnMetadataDescription.singleNamed(COMMIT_TS_COLUMN_STRING, "commit_ts",ValueType.VAR_LONG))
+            .build();
 
 }

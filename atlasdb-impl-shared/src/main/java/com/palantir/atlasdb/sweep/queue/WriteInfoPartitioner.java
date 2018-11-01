@@ -87,7 +87,7 @@ public class WriteInfoPartitioner {
 
     private TableMetadataPersistence.SweepStrategy getStrategyFromKvs(TableReference tableRef) {
         try {
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).getSweepStrategy();
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(kvs.getMetadataForTable(tableRef)).sweepStrategy();
         } catch (Exception e) {
             log.warn("Failed to obtain sweep strategy for table {}.",
                     LoggingArgs.tableRef(tableRef), e);

@@ -188,7 +188,7 @@ public class TableClassRendererV2 {
         results.add(renderGetTableRef());
         results.add(renderGetTableName());
         results.add(renderGetNamespace());
-        if (!tableMetadata.getColumns().hasDynamicColumns()) {
+        if (!tableMetadata.columns().hasDynamicColumns()) {
             results.addAll(renderNamedGet());
             results.addAll(renderNamedDelete());
             results.addAll(renderNamedPutAndUpdate());
@@ -232,16 +232,16 @@ public class TableClassRendererV2 {
         List<MethodSpec> getterResults = new ArrayList<>();
         for (NamedColumnDescription col : ColumnRenderers.namedColumns(tableMetadata)) {
             getterResults.add(renderNamedGetColumn(col));
-            if (tableMetadata.getRowMetadata().getRowParts().size() == 1) {
+            if (tableMetadata.rowMetadata().getRowParts().size() == 1) {
                 getterResults.add(renderNamedGetSeveralRows(col));
-                if (tableMetadata.isRangeScanAllowed()) {
+                if (tableMetadata.rangeScanAllowed()) {
                     getterResults.add(renderNamedGetRangeColumn(col));
                     getterResults.add(renderNamedGetRangeStartEnd(col));
                     getterResults.add(renderNamedGetRangeColumnLimit(col));
                 }
             } else {
                 getterResults.add(renderNamedGetSeveralRowObjects(col));
-                if (tableMetadata.isRangeScanAllowed()) {
+                if (tableMetadata.rangeScanAllowed()) {
                     getterResults.add(renderNamedGetRangeColumnRowObjects(col));
                     getterResults.add(renderNamedGetRangeColumnRowObjectsLimit(col));
                 }
@@ -283,9 +283,9 @@ public class TableClassRendererV2 {
 
 
     private MethodSpec renderNamedGetSeveralRows(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        Preconditions.checkArgument(tableMetadata.rowMetadata().getRowParts().size() == 1);
 
-        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        NameComponentDescription rowComponent = tableMetadata.rowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("get" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the specified row keys to their value at column $L.\n"
@@ -367,9 +367,9 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeColumn(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        Preconditions.checkArgument(tableMetadata.rowMetadata().getRowParts().size() == 1);
 
-        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        NameComponentDescription rowComponent = tableMetadata.rowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a rangeRequest to their value at column $L\n"
@@ -408,9 +408,9 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeStartEnd(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        Preconditions.checkArgument(tableMetadata.rowMetadata().getRowParts().size() == 1);
 
-        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        NameComponentDescription rowComponent = tableMetadata.rowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from all the row keys in a range to their value at column $L\n"
@@ -435,9 +435,9 @@ public class TableClassRendererV2 {
     }
 
     private MethodSpec renderNamedGetRangeColumnLimit(NamedColumnDescription col) {
-        Preconditions.checkArgument(tableMetadata.getRowMetadata().getRowParts().size() == 1);
+        Preconditions.checkArgument(tableMetadata.rowMetadata().getRowParts().size() == 1);
 
-        NameComponentDescription rowComponent = tableMetadata.getRowMetadata().getRowParts().get(0);
+        NameComponentDescription rowComponent = tableMetadata.rowMetadata().getRowParts().get(0);
         MethodSpec.Builder getterBuilder = MethodSpec.methodBuilder("getSmallRowRange" + VarName(col))
                 .addModifiers(Modifier.PUBLIC)
                 .addJavadoc("Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value\n"

@@ -32,40 +32,18 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampUtils.class);
 
-    public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder().componentName("timestamp_name").type(ValueType.STRING)
-                            .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(
-                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            "current_max_ts",
-                            ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
-
-    public static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String ROW_AND_COLUMN_NAME = CassandraTimestampBoundStore.ROW_AND_COLUMN_NAME;
     public static final String BACKUP_COLUMN_NAME = "oldTs";
     public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
     public static final long INITIAL_VALUE = 10000;

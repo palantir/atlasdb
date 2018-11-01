@@ -41,8 +41,8 @@ public class TableRowSelectionDeserializer extends StdDeserializer<TableRowSelec
         JsonNode node = jp.readValueAsTree();
         String tableName = node.get("table").textValue();
         TableMetadata metadata = metadataCache.getMetadata(tableName);
-        Iterable<byte[]> rows = AtlasDeserializers.deserializeRows(metadata.getRowMetadata(), node.get("rows"));
-        Iterable<byte[]> columns = AtlasDeserializers.deserializeNamedCols(metadata.getColumns(), node.get("cols"));
+        Iterable<byte[]> rows = AtlasDeserializers.deserializeRows(metadata.rowMetadata(), node.get("rows"));
+        Iterable<byte[]> columns = AtlasDeserializers.deserializeNamedCols(metadata.columns(), node.get("cols"));
         if (Iterables.isEmpty(columns)) {
             return new TableRowSelection(tableName, rows, ColumnSelection.all());
         } else {

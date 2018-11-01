@@ -226,7 +226,7 @@ public class KeyValueServiceMigrator {
         try {
             byte[] metadata = kvs.getMetadataForTable(table);
             TableMetadata tableMeta = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
-            return tableMeta.getRowMetadata().getPartitionersForRow();
+            return tableMeta.rowMetadata().getPartitionersForRow();
         } catch (RuntimeException e) {
             processMessage(
                     "Could not resolve partitioners from table metadata for "

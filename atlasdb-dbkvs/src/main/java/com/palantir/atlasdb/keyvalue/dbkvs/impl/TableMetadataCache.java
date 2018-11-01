@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableMetadataCache {
-    private static final TableMetadata EMPTY = new TableMetadata();
+    private static final TableMetadata EMPTY = TableMetadata.allDefault();
 
     private final Cache<TableReference, TableMetadata> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)

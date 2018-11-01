@@ -211,17 +211,17 @@ public class IndexMetadata {
         } else {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
-        return new TableMetadata(
-                NameMetadataDescription.create(rowDescList, numberOfComponentsHashed),
-                column,
-                conflictHandler,
-                cachePriority,
-                rangeScanAllowed,
-                explicitCompressionBlockSizeKB,
-                negativeLookups,
-                sweepStrategy,
-                appendHeavyAndReadLight,
-                nameLogSafety);
+        return TableMetadata.builder()
+                .rowMetadata(NameMetadataDescription.create(rowDescList, numberOfComponentsHashed))
+                .columns(column)
+                .conflictHandler(conflictHandler)
+                .cachePriority(cachePriority)
+                .rangeScanAllowed(rangeScanAllowed)
+                .explicitCompressionBlockSizeKB(explicitCompressionBlockSizeKB)
+                .sweepStrategy(sweepStrategy)
+                .appendHeavyAndReadLight(appendHeavyAndReadLight)
+                .nameLogSafety(nameLogSafety)
+                .build();
     }
 
     public boolean isDynamicIndex() {

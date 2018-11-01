@@ -251,7 +251,7 @@ public class Schema {
                 Schemas.isTableNameValid(idxName),
                 "Invalid table name %s", idxName);
         Preconditions.checkArgument(
-                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().getColumns().hasDynamicColumns()
+                !tableDefinitions.get(definition.getSourceTable()).toTableMetadata().columns().hasDynamicColumns()
                         || !definition.getIndexType().equals(IndexType.CELL_REFERENCING),
                 "Cell referencing indexes not implemented for tables with dynamic columns.");
     }
@@ -288,7 +288,7 @@ public class Schema {
         for (Entry<String, String> e : indexesByTable.entries()) {
             TableMetadata tableMetadata = tableDefinitions.get(e.getKey()).toTableMetadata();
 
-            Collection<String> rowNames = Collections2.transform(tableMetadata.getRowMetadata().getRowParts(),
+            Collection<String> rowNames = Collections2.transform(tableMetadata.rowMetadata().getRowParts(),
                     input -> input.getComponentName());
 
             IndexMetadata indexMetadata = indexDefinitions.get(e.getValue()).toIndexMetadata(e.getValue());
@@ -301,16 +301,16 @@ public class Schema {
             }
 
             if (indexMetadata.getColumnNameToAccessData() != null) {
-                Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null,
+                Validate.isTrue(tableMetadata.columns().getDynamicColumn() == null,
                         "Indexes accessing columns not supported for tables with dynamic columns.");
-                Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
-                        input -> input.getLongName());
+                Collection<String> columnNames = Collections2.transform(tableMetadata.columns().getNamedColumns(),
+                        NamedColumnDescription::getLongName);
                 Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
                         "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.conflictHandler),
+                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.conflictHandler()),
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
@@ -326,7 +326,7 @@ public class Schema {
         SetMultimap<LogSafety, TableReference> referencesByLogSafety = KeyedStream.stream(
                 allTablesAndIndexMetadata)
                 .filterKeys(invalidTables::contains)
-                .mapEntries((reference, metadata) -> immutableEntry(metadata.getNameLogSafety(), reference))
+                .mapEntries((reference, metadata) -> immutableEntry(metadata.nameLogSafety(), reference))
                 .collectToSetMultimap();
 
         checkState(invalidTables.isEmpty(),
@@ -337,18 +337,12 @@ public class Schema {
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {
         return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
     }
 
     public Namespace getNamespace() {

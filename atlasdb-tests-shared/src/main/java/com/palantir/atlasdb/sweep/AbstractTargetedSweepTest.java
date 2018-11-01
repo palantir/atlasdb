@@ -80,7 +80,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     @Test
     public void targetedSweepIgnoresDroppedTables() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        kvs.createTable(TABLE_TO_BE_DROPPED, new TableMetadata().persistToBytes());
+        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
 
         put(TABLE_NAME, TEST_CELL, OLD_VALUE, 50);
         put(TABLE_NAME, TEST_CELL, NEW_VALUE, 150);

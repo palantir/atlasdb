@@ -35,12 +35,9 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -89,36 +86,28 @@ public abstract class TransactionTestSetup {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
-                new TableMetadata(
-                        new NameMetadataDescription(),
-                        new ColumnMetadataDescription(),
-                        ConflictHandler.RETRY_ON_WRITE_WRITE,
-                        TableMetadataPersistence.CachePriority.WARM,
-                        true,
-                        4,
-                        true,
-                        TableMetadataPersistence.SweepStrategy.THOROUGH,
-                        false,
-                        TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes(),
+                TableMetadata.builder()
+                        .rangeScanAllowed(true)
+                        .explicitCompressionBlockSizeKB(4)
+                        .negativeLookups(true)
+                        .sweepStrategy(SweepStrategy.THOROUGH)
+                        .build()
+                        .persistToBytes(),
                 TEST_TABLE,
-                new TableMetadata(
-                        new NameMetadataDescription(),
-                        new ColumnMetadataDescription(),
-                        ConflictHandler.RETRY_ON_WRITE_WRITE,
-                        TableMetadataPersistence.CachePriority.WARM,
-                        true,
-                        4,
-                        true,
-                        TableMetadataPersistence.SweepStrategy.NOTHING,
-                        false,
-                        TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes(),
+                TableMetadata.builder()
+                        .rangeScanAllowed(true)
+                        .explicitCompressionBlockSizeKB(4)
+                        .negativeLookups(true)
+                        .sweepStrategy(SweepStrategy.NOTHING)
+                        .build()
+                        .persistToBytes(),
                 TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
         keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));

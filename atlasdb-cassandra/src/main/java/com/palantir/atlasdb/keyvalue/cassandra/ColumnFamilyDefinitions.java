@@ -60,10 +60,10 @@ final class ColumnFamilyDefinitions {
 
         if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
             TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-            cachePriority = tableMetadata.getCachePriority();
+            negativeLookups = tableMetadata.negativeLookups();
+            explicitCompressionBlockSizeKb = tableMetadata.explicitCompressionBlockSizeKB();
+            appendHeavyAndReadLight = tableMetadata.appendHeavyAndReadLight();
+            cachePriority = tableMetadata.cachePriority();
         }
 
         if (explicitCompressionBlockSizeKb != 0) {
