@@ -57,6 +57,7 @@ public class TransactionSchemaManager {
                 throw new IllegalStateException("Cannot install a new transactions schema version"
                         + " if we don't have any old versions known.");
             }
+            ValueAndBound<InternalSchemaMetadata> existingSchema = optionalValueAndBound.get();
 
         });
     }
