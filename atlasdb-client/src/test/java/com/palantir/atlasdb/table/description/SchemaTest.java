@@ -232,7 +232,7 @@ public class SchemaTest {
 
         assertThatExceptionOfType(SafeIllegalStateException.class)
                 .isThrownBy(schema::validate)
-                .withMessage("A deprecated table cannot also be part of your schema. "
+                .withMessageStartingWith("A deprecated table cannot also be part of your schema. "
                         + "Check logs for any unsafe table names.")
                 .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
                         "invalidDeprecatedTables_unsafe",
