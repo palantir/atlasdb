@@ -57,10 +57,9 @@ public class SafeLoggableDataUtilsTest {
             .rowMetadata(NameMetadataDescription.create(
                     ImmutableList.of(new NameComponentDescription.Builder()
                             .componentName(ROW_COMPONENT_NAME).type(ValueType.VAR_LONG).build()), 0))
-            .columns(new ColumnMetadataDescription(
-                    ImmutableList.of(new NamedColumnDescription("bar", "barrrr",
-                            ColumnValueDescription.forType(ValueType.VAR_LONG)))))
+            .columns(ColumnMetadataDescription.singleNamed("bar", COLUMN_LONG_NAME, ValueType.VAR_LONG))
             .build();
+
     private static final TableMetadata TABLE_METADATA_2 = TableMetadata.builder()
             .rowMetadata(NAME_METADATA_DESCRIPTION)
             .columns(COLUMN_METADATA_DESCRIPTION)

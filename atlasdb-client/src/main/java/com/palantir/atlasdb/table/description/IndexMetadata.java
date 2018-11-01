@@ -218,6 +218,7 @@ public class IndexMetadata {
                 .cachePriority(cachePriority)
                 .rangeScanAllowed(rangeScanAllowed)
                 .explicitCompressionBlockSizeKB(explicitCompressionBlockSizeKB)
+                .negativeLookups(negativeLookups)
                 .sweepStrategy(sweepStrategy)
                 .appendHeavyAndReadLight(appendHeavyAndReadLight)
                 .nameLogSafety(nameLogSafety)
@@ -258,14 +259,6 @@ public class IndexMetadata {
 
     public IndexType getIndexType() {
         return indexType;
-    }
-
-    public String getIndexTable() {
-        String indexTable = getJavaIndexName();
-        if (indexTable == null) {
-            indexTable = Renderers.CamelCase(getIndexName());
-        }
-        return indexTable;
     }
 
     private static ColumnMetadataDescription getAdditiveIndexColumn() {

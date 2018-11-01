@@ -33,31 +33,22 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 public class KvTableMappingService extends AbstractTableMappingService {
-    public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.builder()
+    public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
                     new NameComponentDescription.Builder()
                             .componentName("namespace").type(ValueType.VAR_STRING).build(),
                     new NameComponentDescription.Builder().componentName("table_name").type(ValueType.STRING).build())))
-            .columns(new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(
-                            AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME,
-                            "short_name",
-                            ColumnValueDescription.forType(ValueType.STRING)))))
-            .conflictHandler(ConflictHandler.IGNORE_ALL)
-            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .columns(ColumnMetadataDescription
+                    .singleNamed(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ValueType.STRING))
             .build();
 
     private final KeyValueService kv;
