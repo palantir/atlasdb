@@ -376,21 +376,17 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
-        if (metadata == null
+    static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
+        return metadata == null
                 || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)
-                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
-            return true;
-        }
-        return false;
+                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
-    public static TableMetadata getMetadataOrDefaultToGeneric(byte[] metadata) {
+    static TableMetadata getMetadataOrDefaultToGeneric(byte[] metadata) {
         if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
             return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA);
-        } else {
-            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
         }
+        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
     }
 
 }

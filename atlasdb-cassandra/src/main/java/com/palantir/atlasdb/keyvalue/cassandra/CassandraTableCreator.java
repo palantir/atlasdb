@@ -15,17 +15,20 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.cassandra.thrift.Compression;
 import org.apache.thrift.TException;
 
+import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.schemabuilder.SchemaBuilder;
+import com.datastax.driver.core.schemabuilder.TableOptions.CompactionOptions;
+import com.datastax.driver.core.schemabuilder.TableOptions.CompressionOptions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -61,71 +64,65 @@ class CassandraTableCreator {
 
     private void createTable(TableReference tableRef, byte[] metadata, CassandraClient client) throws TException {
         CqlQuery query = constructQuery(tableRef, metadata);
-        client.execute_cql3_query(query, Compression.NONE, org.apache.cassandra.thrift.ConsistencyLevel.QUORUM);
+        client.execute_cql3_query(query, Compression.NONE, CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
     }
 
     private CqlQuery constructQuery(TableReference tableRef, byte[] metadata) {
-        StringBuilder queryBuilder = new StringBuilder();
-
         TableMetadata tableMetadata = CassandraKeyValueServices.getMetadataOrDefaultToGeneric(metadata);
         boolean appendHeavyReadLight = tableMetadata.isAppendHeavyAndReadLight();
+        String keyspace = wrapInQuotes(config.getKeyspaceOrThrow());
+        String internalTableName = wrapInQuotes(CassandraKeyValueServiceImpl.internalTableName(tableRef));
 
-        Map<String, String> settings = new HashMap<>();
-        settings.put("bloom_filter_fp_chance", falsePositive(tableMetadata.hasNegativeLookups(), appendHeavyReadLight));
-        settings.put("caching", "'KEYS_ONLY'");
-        settings.put("compaction", getCompaction(appendHeavyReadLight));
-        settings.put("compression", getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()));
-        settings.put("gc_grace_seconds", Integer.toString(config.gcGraceSeconds()));
-        settings.put("id", "'%s'");
-        settings.put("populate_io_cache_on_flush", cachePriorityIsHottest(tableMetadata));
-        settings.put("speculative_retry", "'NONE'");
-
-        queryBuilder.append("CREATE TABLE IF NOT EXISTS \"%s\".\"%s\""
-                + " ( " + ROW + " blob, " + COLUMN + " blob, " + TIMESTAMP + " bigint, " + VALUE + " blob, "
-                + "PRIMARY KEY (" + ROW + ", " + COLUMN + ", " + TIMESTAMP + ")) "
-                + "WITH COMPACT STORAGE ");
-
-        settings.forEach((option, value) -> queryBuilder.append("AND " + option + " = " + value + " "));
-
-        queryBuilder.append("AND CLUSTERING ORDER BY (" + COLUMN + " ASC, " + TIMESTAMP + " ASC) ");
+        String query = SchemaBuilder.createTable(keyspace, internalTableName)
+                .ifNotExists()
+                .addPartitionKey(ROW, DataType.blob())
+                .addClusteringColumn(COLUMN, DataType.blob())
+                .addClusteringColumn(TIMESTAMP, DataType.bigint())
+                .addColumn(VALUE, DataType.blob())
+                .withOptions()
+                .bloomFilterFPChance(falsePositive(tableMetadata.hasNegativeLookups(), appendHeavyReadLight))
+                .caching(SchemaBuilder.Caching.KEYS_ONLY)
+                .comment("")
+                .compactionOptions(getCompaction(appendHeavyReadLight))
+                .compactStorage()
+                .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
+                .dcLocalReadRepairChance(0.1)
+                .gcGraceSeconds(config.gcGraceSeconds())
+                .minIndexInterval(128)
+                .maxIndexInterval(2048)
+                .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
+                .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
+                .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
+                .clusteringOrder(TIMESTAMP, SchemaBuilder.Direction.ASC)
+                .buildInternal();
 
         return CqlQuery.builder()
-                .safeQueryFormat(queryBuilder.toString())
-                .addArgs(
-                        SafeArg.of("keyspace", config.getKeyspaceOrThrow()),
-                        SafeArg.of("internalTableName", CassandraKeyValueServiceImpl.internalTableName(tableRef)),
-                        SafeArg.of("cfId", getUuidForTable(tableRef)))
+                .safeQueryFormat(query + " AND id = '%s'")
+                .addArgs(SafeArg.of("cfId", getUuidForTable(tableRef)))
                 .build();
     }
 
-    private String falsePositive(boolean negativeLookups, boolean appendHeavyAndReadLight) {
-        double result;
+    private String wrapInQuotes(String string) {
+        return "\"" + string + "\"";
+    }
+
+    private double falsePositive(boolean negativeLookups, boolean appendHeavyAndReadLight) {
         if (appendHeavyAndReadLight) {
-            result = negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE
+            return negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE
                     : CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        } else {
-            result = negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE
-                    : CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
         }
-        return Double.toString(result);
+        return negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE
+                : CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
     }
 
-    private String getCompaction(boolean appendHeavyReadLight) {
-        String compactionStrategy = appendHeavyReadLight ? CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY
-                : CassandraConstants.LEVELED_COMPACTION_STRATEGY;
-        return "{ 'class': '" + compactionStrategy + "'}";
+    private CompactionOptions<?> getCompaction(boolean appendHeavyReadLight) {
+        return appendHeavyReadLight ? SchemaBuilder.sizedTieredStategy().minThreshold(4).maxThreshold(32)
+                : SchemaBuilder.leveledStrategy();
     }
 
-    private String getCompression(int explicitCompressionBlockSizeKb) {
-        int chunkLength = explicitCompressionBlockSizeKb != 0 ? explicitCompressionBlockSizeKb
-                : AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
-        return "{'chunk_length_kb': '" + chunkLength + "', "
-                + "'sstable_compression': '" + CassandraConstants.DEFAULT_COMPRESSION_TYPE + "'}";
-    }
-
-    private String cachePriorityIsHottest(TableMetadata tableMetadata) {
-        return Boolean.toString(tableMetadata.getCachePriority()
-                .equals(TableMetadataPersistence.CachePriority.HOTTEST));
+    private CompressionOptions getCompression(int blockSize) {
+        int chunkLength = blockSize != 0 ? blockSize : AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB;
+        return SchemaBuilder.lz4().withChunkLengthInKb(chunkLength);
     }
 
     private UUID getUuidForTable(TableReference tableRef) {

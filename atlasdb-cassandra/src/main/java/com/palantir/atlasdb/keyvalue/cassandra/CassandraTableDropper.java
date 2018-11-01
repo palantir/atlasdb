@@ -68,7 +68,7 @@ class CassandraTableDropper {
                     if (existingTables.contains(table)) {
                         cassandraTableTruncator.runTruncateOnClient(ImmutableSet.of(table), client);
                         client.system_drop_column_family(CassandraKeyValueServiceImpl.internalTableName(table));
-                        updateMetadataForTable(table);
+                        deleteAtlasMetadataForTable(table);
                     } else {
                         log.warn("Ignored call to drop a table ({}) that did not exist.", LoggingArgs.tableRef(table));
                     }
@@ -82,7 +82,7 @@ class CassandraTableDropper {
         }
     }
 
-    private void updateMetadataForTable(final TableReference tableRef) {
+    private void deleteAtlasMetadataForTable(final TableReference tableRef) {
         long ts = System.currentTimeMillis();
 
         try {

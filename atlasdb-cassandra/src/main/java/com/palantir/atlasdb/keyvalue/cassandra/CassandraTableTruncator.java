@@ -68,7 +68,7 @@ class CassandraTableTruncator {
 
             @Override
             public String toString() {
-                return "truncateTables(" + tablesToTruncate.size() + " tables)";
+                return "truncateTables(" + tablesToTruncate + ")";
             }
         };
     }

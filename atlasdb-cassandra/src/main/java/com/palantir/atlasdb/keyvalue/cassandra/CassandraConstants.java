@@ -20,8 +20,6 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 
 public final class CassandraConstants {
-    static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
-
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
     static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
@@ -55,11 +53,6 @@ public final class CassandraConstants {
     static final String LEVELED_COMPACTION_STRATEGY = "org.apache.cassandra.db.compaction.LeveledCompactionStrategy";
     static final String SIZE_TIERED_COMPACTION_STRATEGY =
             "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
-
-    public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
-    public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
-
-    static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
 
     public static final int DEFAULT_FETCH_BATCH_COUNT = 5000;
     public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
