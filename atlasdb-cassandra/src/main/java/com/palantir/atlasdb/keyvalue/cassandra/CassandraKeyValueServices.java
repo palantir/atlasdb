@@ -49,6 +49,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
@@ -116,6 +117,17 @@ public final class CassandraKeyValueServices {
                 schemaVersions.toString(),
                 configNodes);
         throw new IllegalStateException(errorMessage);
+    }
+
+    static void runWithWaitingForSchemas(
+            RunnableCheckedException<TException> task,
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        task.run();
+        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
     static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(

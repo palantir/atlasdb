@@ -51,10 +51,10 @@ class CassandraTableCreator {
         try {
             clientPool.runWithRetry(client -> {
                 for (Map.Entry<TableReference, byte[]> entry : tableRefToMetadata.entrySet()) {
-                    createTable(entry.getKey(), entry.getValue(), client);
+                    CassandraKeyValueServices.runWithWaitingForSchemas(
+                            () -> createTable(entry.getKey(), entry.getValue(), client), config, client,
+                            "adding the column family for table " + entry.getKey() + " in a call to create tables");
                 }
-                CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for "
-                        + "tables " + tableRefToMetadata.keySet() + " in a call to create tables");
                 return null;
             });
         } catch (Exception e) {

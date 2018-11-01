@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,20 +67,24 @@ class CassandraTableDropper {
                 for (TableReference table : tablesToDrop) {
                     CassandraVerifier.sanityCheckTableName(table);
                     if (existingTables.contains(table)) {
-                        cassandraTableTruncator.runTruncateOnClient(ImmutableSet.of(table), client);
-                        client.system_drop_column_family(CassandraKeyValueServiceImpl.internalTableName(table));
+                        CassandraKeyValueServices.runWithWaitingForSchemas(
+                                () -> truncateThenDrop(table, client), config, client,
+                                "dropping the column family for table " + table + " in a call to drop tables");
                         deleteAtlasMetadataForTable(table);
                     } else {
                         log.warn("Ignored call to drop a table ({}) that did not exist.", LoggingArgs.tableRef(table));
                     }
                 }
-                CassandraKeyValueServices.waitForSchemaVersions(config, client, "after dropping the column "
-                        + "family for tables " + tablesToDrop + " in a call to drop tables");
                 return null;
             });
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    private void truncateThenDrop(TableReference tableRef, CassandraClient client) throws TException {
+        cassandraTableTruncator.runTruncateOnClient(ImmutableSet.of(tableRef), client);
+        client.system_drop_column_family(CassandraKeyValueServiceImpl.internalTableName(tableRef));
     }
 
     private void deleteAtlasMetadataForTable(final TableReference tableRef) {
