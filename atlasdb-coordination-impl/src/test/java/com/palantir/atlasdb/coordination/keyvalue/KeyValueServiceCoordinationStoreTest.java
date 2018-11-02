@@ -33,6 +33,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_KEY = PtBytes.toBytes("aaaaa");
@@ -45,6 +46,7 @@ public class KeyValueServiceCoordinationStoreTest {
 
     private final AtomicLong timestampSequence = new AtomicLong();
     private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
+            ObjectMappers.newServerObjectMapper(),
             new InMemoryKeyValueService(true),
             COORDINATION_KEY,
             timestampSequence::incrementAndGet,
