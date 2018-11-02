@@ -30,7 +30,7 @@ public interface CoordinationStore<T> {
      * it is guaranteed that any value returned by this method will be at least as current as any value returned by
      * a call that returned prior to this method being invoked.
      *
-     * @return available value and bound; empty if none has ever been stored.
+     * @return available value and bound; empty if none has ever been stored
      */
     Optional<ValueAndBound<T>> getAgreedValue();
 

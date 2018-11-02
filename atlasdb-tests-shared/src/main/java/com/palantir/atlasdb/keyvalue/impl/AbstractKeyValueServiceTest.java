@@ -1508,7 +1508,8 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetLargeValue() {
-        byte[] megabyteValue = new byte[1048756];
+        Assume.assumeTrue(checkAndSetSupported());
+        byte[] megabyteValue = new byte[1048576];
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, megabyteValue);
 
         keyValueService.checkAndSet(request);
