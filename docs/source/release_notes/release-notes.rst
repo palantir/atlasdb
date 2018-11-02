@@ -51,7 +51,7 @@ develop
          - Change
     
     *    - |Improved|
-         - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, passes in X509TrustManager too.
+         - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, now passes in X509TrustManager.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
     
     *    - |fixed|
