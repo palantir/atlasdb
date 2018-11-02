@@ -54,7 +54,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * An implementation of {@link CoordinationStore} that persists its state in a {@link KeyValueService}.
@@ -77,21 +77,23 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
 
     private static final long ADVANCEMENT_QUANTUM = 5_000_000L;
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private static final String COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION = "coordination sequence and bound";
     private static final String VALUE_DESCRIPTION = "value for coordination service";
 
+    private final ObjectMapper objectMapper;
     private final KeyValueService kvs;
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
 
     private KeyValueServiceCoordinationStore(
+            ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
             Class<T> clazz) {
+        this.objectMapper = objectMapper;
         this.kvs = kvs;
         this.coordinationRow = coordinationRow;
         this.sequenceNumberSupplier = sequenceNumberSupplier;
@@ -99,12 +101,14 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     public static <T> KeyValueServiceCoordinationStore<T> create(
+            ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationSequence,
             LongSupplier sequenceNumberSupplier,
             Class<T> clazz) {
         KeyValueServiceCoordinationStore<T> coordinationStore
-                = new KeyValueServiceCoordinationStore<>(kvs, coordinationSequence, sequenceNumberSupplier, clazz);
+                = new KeyValueServiceCoordinationStore<>(
+                        objectMapper, kvs, coordinationSequence, sequenceNumberSupplier, clazz);
         kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
         return coordinationStore;
     }
@@ -139,14 +143,13 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             return CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(Optional.of(targetValue), newBound)));
         }
         return CheckAndSetResult.of(
-                casResult.successful(),
+                false,
                 casResult.existingValues()
                         .stream()
                         .map(value -> ValueAndBound.of(getValue(value.sequence()), value.bound()))
                         .collect(Collectors.toList()));
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private long getNewBound(long sequenceNumber) {
         return sequenceNumber + ADVANCEMENT_QUANTUM;
     }
@@ -159,7 +162,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 sequenceNumber);
         return readFromCoordinationTable(getCellForSequence(sequenceNumber))
                 .map(Value::getContents)
-                .map(contents -> KeyValueServiceCoordinationStore.deserializeData(contents, clazz, VALUE_DESCRIPTION));
+                .map(this::deserializeValue);
     }
 
     @VisibleForTesting
@@ -170,17 +173,21 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 sequenceNumber);
         try {
             kvs.putUnlessExists(AtlasDbConstants.COORDINATION_TABLE,
-                    ImmutableMap.of(getCellForSequence(sequenceNumber), serializeData(value, VALUE_DESCRIPTION)));
+                    ImmutableMap.of(getCellForSequence(sequenceNumber), serializeValue(value)));
         } catch (KeyAlreadyExistsException e) {
-            throw new IllegalStateException("The coordination store failed a putUnlessExists. This is unexpected"
-                    + " as it implies timestamps may have been reused, or a writer to the store behaved badly.", e);
+            throw new SafeIllegalStateException("The coordination store failed a putUnlessExists. This is unexpected"
+                    + " as it implies timestamps may have been reused, or a writer to the store behaved badly."
+                    + " The offending sequence number was {}. "
+                    + " Please contact support - DO NOT ATTEMPT TO FIX THIS YOURSELF.",
+                    e,
+                    SafeArg.of("sequenceNumber", sequenceNumber));
         }
     }
 
     private Optional<SequenceAndBound> getCoordinationValue() {
         return readFromCoordinationTable(getCoordinationValueCell())
                 .map(Value::getContents)
-                .map(KeyValueServiceCoordinationStore::deserializeSequenceAndBound);
+                .map(this::deserializeSequenceAndBound);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -190,7 +197,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                 .table(AtlasDbConstants.COORDINATION_TABLE)
                 .cell(getCoordinationValueCell())
-                .oldValue(oldValue.map(KeyValueServiceCoordinationStore::serializeSequenceAndBound))
+                .oldValue(oldValue.map(this::serializeSequenceAndBound))
                 .newValue(serializeSequenceAndBound(newValue))
                 .build();
 
@@ -200,18 +207,22 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         } catch (CheckAndSetException e) {
             return ImmutableCheckAndSetResult.of(false, e.getActualValues()
                     .stream()
-                    .map(KeyValueServiceCoordinationStore::deserializeSequenceAndBound)
+                    .map(this::deserializeSequenceAndBound)
                     .collect(Collectors.toList()));
         }
     }
 
-    private static SequenceAndBound deserializeSequenceAndBound(byte[] contents) {
-        return deserializeData(contents, SequenceAndBound.class, "coordination sequence and bound");
+    private SequenceAndBound deserializeSequenceAndBound(byte[] contents) {
+        return deserializeData(contents, SequenceAndBound.class, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
     }
 
-    private static <T> T deserializeData(byte[] data, Class<T> clazz, String safeDescriptionOfItemToDeserialize) {
+    private T deserializeValue(byte[] contents) {
+        return deserializeData(contents, clazz, VALUE_DESCRIPTION);
+    }
+
+    private <T1> T1 deserializeData(byte[] data, Class<T1> valueClass, String safeDescriptionOfItemToDeserialize) {
         try {
-            return OBJECT_MAPPER.readValue(data, clazz);
+            return objectMapper.readValue(data, valueClass);
         } catch (IOException e) {
             log.error("Error encountered when deserializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
@@ -220,13 +231,17 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private static byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
+    private byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
         return serializeData(sequenceAndBound, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
     }
 
-    private static <T> byte[] serializeData(T object, String safeDescriptionOfItemToSerialize) {
+    private byte[] serializeValue(T value) {
+        return serializeData(value, VALUE_DESCRIPTION);
+    }
+
+    private <T1> byte[] serializeData(T1 object, String safeDescriptionOfItemToSerialize) {
         try {
-            return OBJECT_MAPPER.writeValueAsBytes(object);
+            return objectMapper.writeValueAsBytes(object);
         } catch (JsonProcessingException e) {
             log.error("Error encountered when serializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToSerialize", safeDescriptionOfItemToSerialize),
