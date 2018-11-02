@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Cassandra KVS no longer uses the schema mutation lock and instead creates tables using an id deterministically generated from the Cassandra keyspace and the table name.
+           As part of this change, table deletion now truncates the table before dropping it in Cassandra, therefore requiring all Cassandra nodes to be available to drop tables.
+           This fixes a bug where it was possible to create two instances of the same table on two different Cassandra nodes, resulting in schema version inconsistency that required manual intervention.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3620>`__)
+
+
     *    - |improved|
          - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
