@@ -50,6 +50,9 @@ develop
     *    - Type
          - Change
 
+    *    - |Improved|
+         - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, passes in X509TrustManager too.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
     *    - |improved|
          - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
