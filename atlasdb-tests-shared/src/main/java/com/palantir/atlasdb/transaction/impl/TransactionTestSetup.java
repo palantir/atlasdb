@@ -89,7 +89,7 @@ public abstract class TransactionTestSetup {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         lockClient = LockClient.of("test_client");
 

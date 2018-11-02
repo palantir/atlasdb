@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,7 +65,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -75,7 +73,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -187,7 +184,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private static final long SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS = 120;
+    static final ConsistencyLevel WRITE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
+    static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.ALL;
 
     private final Logger log;
 
@@ -195,22 +193,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
 
-    private SchemaMutationLock schemaMutationLock;
-    private final ExecutorService schemaMutationExecutor;
-    private final UniqueSchemaMutationLockTable schemaMutationLockTable;
-
     private final Optional<LeaderConfig> leaderConfig;
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
-    private final ConsistencyLevel writeConsistency = ConsistencyLevel.EACH_QUORUM;
-    private final ConsistencyLevel deleteConsistency = ConsistencyLevel.ALL;
 
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
+    private final CassandraTableCreator cassandraTableCreator;
     private final CassandraTableDropper cassandraTableDropper;
+    private final CassandraTableTruncator cassandraTableTruncator;
     private final CheckAndSetRunner checkAndSetRunner;
 
     private final CassandraTables cassandraTables;
@@ -365,11 +359,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.leaderConfig = leaderConfig;
         this.mutationTimestampProvider = mutationTimestampProvider;
-
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(clientPool, config);
-        this.schemaMutationLockTable = new UniqueSchemaMutationLockTable(lockTables, whoIsTheLockCreator());
-        this.schemaMutationExecutor = createFixedThreadPool("schemaMutation", 1);
-
         this.queryRunner = new TracingQueryRunner(log, tracingPrefs);
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
@@ -380,11 +369,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 taskRunner,
                 wrappingQueryRunner,
-                writeConsistency,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, deleteConsistency);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+        this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
+        this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
+                wrappingQueryRunner, cassandraTableTruncator);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -406,36 +396,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private void tryInitialize() {
-        boolean supportsCas = clientPool.runWithRetry(
-                CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-
-        schemaMutationLock = new SchemaMutationLock(
-                supportsCas,
-                config,
-                clientPool,
-                queryRunner,
-                writeConsistency,
-                schemaMutationLockTable::getOnlyTable,
-                new HeartbeatService(
-                        clientPool,
-                        queryRunner,
-                        HeartbeatService.DEFAULT_HEARTBEAT_TIME_PERIOD_MILLIS,
-                        schemaMutationLockTable.getOnlyTable(),
-                        writeConsistency),
-                SchemaMutationLock.DEFAULT_DEAD_HEARTBEAT_TIMEOUT_THRESHOLD_MILLIS);
-
         createTable(AtlasDbConstants.DEFAULT_METADATA_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
         lowerConsistencyWhenSafe();
         upgradeFromOlderInternalSchema();
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 config);
-    }
-
-    private LockLeader whoIsTheLockCreator() {
-        return leaderConfig
-                .map(LeaderConfig::whoIsTheLockLeader)
-                .orElse(LockLeader.I_AM_THE_LOCK_LEADER);
     }
 
     @VisibleForTesting
@@ -1061,7 +1027,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             @Override
             public Void apply(CassandraClient client) throws Exception {
                 return wrappingQueryRunner.batchMutate("multiPut", client, tableRefs, mutationMap,
-                        writeConsistency);
+                        WRITE_CONSISTENCY);
             }
 
             @Override
@@ -1120,36 +1086,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void truncateTables(final Set<TableReference> tablesToTruncate) {
-        if (!tablesToTruncate.isEmpty()) {
-            try {
-                runTruncateInternal(tablesToTruncate);
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException("Truncating tables requires all Cassandra nodes"
-                        + " to be up and available.");
-            } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
-        }
-    }
-
-    private void runTruncateInternal(final Set<TableReference> tablesToTruncate) throws TException {
-        clientPool.runWithRetry(new FunctionCheckedException<CassandraClient, Void, TException>() {
-            @Override
-            public Void apply(CassandraClient client) throws TException {
-                for (TableReference tableRef : tablesToTruncate) {
-                    queryRunner.run(client, tableRef, () -> {
-                        client.truncate(internalTableName(tableRef));
-                        return true;
-                    });
-                }
-                return null;
-            }
-
-            @Override
-            public String toString() {
-                return "truncateTables(" + tablesToTruncate.size() + " tables)";
-            }
-        });
+        cassandraTableTruncator.truncateTables(tablesToTruncate);
     }
 
     /**
@@ -1166,7 +1103,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
         new CellDeleter(clientPool,
                 wrappingQueryRunner,
-                deleteConsistency,
+                DELETE_CONSISTENCY,
                 mutationTimestampProvider.getDeletionTimestampOperatorForBatchDelete()).delete(tableRef, keys);
     }
 
@@ -1359,8 +1296,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void dropTables(final Set<TableReference> tablesToDrop) {
-        runSchemaMutationTask(() ->
-                schemaMutationLock.runWithLock(() -> cassandraTableDropper.dropTables(tablesToDrop)));
+        cassandraTableDropper.dropTables(tablesToDrop);
     }
 
     /**
@@ -1418,11 +1354,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         if (!tablesToActuallyCreate.isEmpty()) {
             LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
                     tablesToActuallyCreate.keySet());
-            log.info("Grabbing schema mutation lock to create tables {} and {}",
-                    safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-
-            runSchemaMutationTask(() ->
-                    schemaMutationLock.runWithLock(() -> createTablesInternal(tablesToActuallyCreate)));
+            log.info("Creating tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
+            cassandraTableCreator.createTables(tablesToActuallyCreate);
         }
         internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
     }
@@ -1436,22 +1369,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableReference = entry.getKey();
             byte[] newMetadata = entry.getValue();
 
-            // if no existing table or if existing table's metadata is different
             if (metadataIsDifferent(existingTableMetadata.get(tableReference), newMetadata)) {
                 Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
                         existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
 
-                // completely new table, not an update
-                if (matchingTables.isEmpty()) {
+                if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
-                } else { // existing case-insensitive table, maybe an update
-                    if (Arrays.equals(
-                            existingTableMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata)) {
-                        log.debug("Case-insensitive matched table already existed with same metadata,"
-                                + " skipping update to {}", LoggingArgs.tableRef(tableReference));
-                    } else { // existing table has different metadata, so we should perform an update
-                        tableMetadataUpdates.put(tableReference, newMetadata);
-                    }
+                } else {
+                    log.debug("Case-insensitive matched table already existed with same metadata,"
+                            + " skipping update to {}", LoggingArgs.tableRef(tableReference));
                 }
             } else {
                 log.debug("Table already existed with same metadata, skipping update to {}",
@@ -1460,6 +1386,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return tableMetadataUpdates;
+    }
+
+    private boolean newTableOrUpdate(Map<TableReference, byte[]> existingMetadata, byte[] newMetadata,
+            Set<TableReference> matchingTables) {
+        return matchingTables.isEmpty()
+                || metadataIsDifferent(existingMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata);
     }
 
     private Map<TableReference, byte[]> filterOutExistingTables(
@@ -1489,44 +1421,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
 
         return filteredTables;
-    }
-
-    private void runSchemaMutationTask(Runnable task) {
-        try {
-            Futures.getUnchecked(schemaMutationExecutor.submit(task));
-        } catch (UncheckedExecutionException e) {
-            // If this wraps an AtlasDbDependencyException, rewrap and throw
-            if (e.getCause() instanceof AtlasDbDependencyException) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-            }
-            throw e;
-        }
-    }
-
-    private void createTablesInternal(final Map<TableReference, byte[]> tableNamesToTableMetadata) throws Exception {
-        clientPool.runWithRetry(client -> {
-            for (Entry<TableReference, byte[]> tableEntry : tableNamesToTableMetadata.entrySet()) {
-                try {
-                    client.system_add_column_family(ColumnFamilyDefinitions.getCfDef(
-                            config.getKeyspaceOrThrow(),
-                            tableEntry.getKey(),
-                            config.gcGraceSeconds(),
-                            tableEntry.getValue()));
-                } catch (UnavailableException e) {
-                    throw new InsufficientConsistencyException(
-                            "Creating tables requires all Cassandra nodes to be up and available.");
-                } catch (TException thriftException) {
-                    if (thriftException.getMessage() != null
-                            && !thriftException.getMessage().contains("already existing table")) {
-                        throw Throwables.unwrapAndThrowAtlasDbDependencyException(thriftException);
-                    }
-                }
-            }
-
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, "after adding the column family for tables "
-                    + tableNamesToTableMetadata.keySet() + " in a call to create tables");
-            return null;
-        });
     }
 
     /**
@@ -1783,8 +1677,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public void deleteRange(final TableReference tableRef, final RangeRequest range) {
         if (range.equals(RangeRequest.all())) {
             try {
-                runTruncateInternal(ImmutableSet.of(tableRef));
-            } catch (TException e) {
+                cassandraTableTruncator.truncateTables(ImmutableSet.of(tableRef));
+            } catch (AtlasDbDependencyException e) {
                 log.info("Tried to make a deleteRange({}, RangeRequest.all())"
                                 + " into a more garbage-cleanup friendly truncate(), but this failed.",
                         LoggingArgs.tableRef(tableRef), e);
@@ -1796,7 +1690,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 long timestamp = mutationTimestampProvider.getRemoveTimestamp();
                 byte[] row = range.getStartInclusive();
                 clientPool.runWithRetry(client -> {
-                    client.remove("deleteRange", tableRef, row, timestamp, deleteConsistency);
+                    client.remove("deleteRange", tableRef, row, timestamp, DELETE_CONSISTENCY);
                     return null;
                 });
             } catch (UnavailableException e) {
@@ -1822,7 +1716,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean deleteSentinels) {
         new CellRangeDeleter(clientPool,
                 wrappingQueryRunner,
-                deleteConsistency,
+                DELETE_CONSISTENCY,
                 mutationTimestampProvider::getRangeTombstoneTimestamp)
                 .deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
     }
@@ -1832,13 +1726,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public void close() {
-        schemaMutationExecutor.shutdown();
-        try {
-            schemaMutationExecutor.awaitTermination(SCHEMA_MUTATION_TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            // Continue with further transaction manager clean-up
-            Thread.currentThread().interrupt();
-        }
         clientPool.shutdown();
         super.close();
     }
@@ -1882,7 +1769,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts) {
-        return cellLoader.getAllTimestamps(tableRef, cells, ts, deleteConsistency);
+        return cellLoader.getAllTimestamps(tableRef, cells, ts, DELETE_CONSISTENCY);
     }
 
     /**
