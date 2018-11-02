@@ -82,7 +82,6 @@ class CassandraTableCreator {
                 .withOptions()
                 .bloomFilterFPChance(falsePositive(tableMetadata.hasNegativeLookups(), appendHeavyReadLight))
                 .caching(SchemaBuilder.Caching.KEYS_ONLY)
-                .comment("")
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
