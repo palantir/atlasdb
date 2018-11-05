@@ -134,7 +134,12 @@ develop
          - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
            Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
- 
+
+    *    - |fixed|
+         - Live-reloading HTTP proxies and HTTP proxies with failover now refresh themselves after encountering a large number of cumulative requests or consecutive exceptions.
+           This was previously implemented to work around several issues with our usage of OkHttp, but was not implemented for the failover proxies.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/qqqq>`__)
+
 ========
 v0.106.0
 ========
