@@ -1,0 +1,22 @@
+apply from: "../gradle/publish-jars.gradle"
+apply plugin: 'org.inferred.processors'
+
+apply from: "../gradle/shared.gradle"
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+  compile project(":atlasdb-client")
+
+  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+
+  processor group: 'org.immutables', name: 'value'
+
+  testCompile group: 'org.assertj', name: 'assertj-core'
+  testCompile group: 'org.mockito', name: 'mockito-core'
+}
