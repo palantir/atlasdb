@@ -244,6 +244,8 @@ We suppose that your clients have the keyspace <code class="docutils literal not
 the timestamp table to remove all entries, and then add a single entry with row and column names <code class="docutils literal notranslate"><span class="pre">0x7473</span></code>
 (case-sensitive) and a blob value indicating the actual timestamp.</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cqlsh&gt; USE client;
+cqlsh:client&gt; CONSISTENCY QUORUM;
+Consistency level set to QUORUM.
 cqlsh:client&gt; SELECT * FROM &quot;_timestamp&quot; ;
 
  key    | column1      | column2 | value
