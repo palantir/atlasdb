@@ -17,112 +17,103 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.CoordinationStore;
-import com.palantir.atlasdb.coordination.ImmutableValueAndBound;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 public class CoordinationServiceImplTest {
-    private static final ImmutableValueAndBound<String> STRING_AND_ONE_HUNDRED
-            = ImmutableValueAndBound.of(Optional.of("string"), 100);
-    private static final ImmutableValueAndBound<String> OTHER_STRING_AND_ONE_THOUSAND
-            = ImmutableValueAndBound.of(Optional.of("otherstring"), 1000);
-    private static final ImmutableValueAndBound<String> ANOTHER_STRING_AND_ONE_HUNDRED
-            = ImmutableValueAndBound.of(Optional.of("anotherstring"), 100);
+    private static final String STRING = "string";
+    private static final ValueAndBound<String> STRING_AND_ONE_HUNDRED
+            = ValueAndBound.of(Optional.of(STRING), 100);
+    private static final ValueAndBound<String> OTHER_STRING_AND_ONE_THOUSAND
+            = ValueAndBound.of(Optional.of("otherstring"), 1000);
+    private static final ValueAndBound<String> ANOTHER_STRING_AND_ONE_HUNDRED
+            = ValueAndBound.of(Optional.of("anotherstring"), 100);
 
-    private final AtomicLong timestamp = new AtomicLong();
-    private final KeyValueService kvs = new InMemoryKeyValueService(true);
-    private final CoordinationStore coordinationStore = spy(KeyValueServiceCoordinationStore.create(
-            kvs, PtBytes.toBytes("coordination")));
+    @SuppressWarnings("unchecked") // Known to be safe in context of this test.
+    private final CoordinationStore<String> coordinationStore = mock(CoordinationStore.class);
     private final CoordinationService<String> stringCoordinationService
-            = new CoordinationServiceImpl<>(coordinationStore, String.class, timestamp::incrementAndGet);
+            = new CoordinationServiceImpl<>(coordinationStore);
 
     @Test
     public void getValueWithNoValuesStoredReturnsEmpty() {
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.empty());
         assertThat(stringCoordinationService.getValueForTimestamp(42)).isEmpty();
     }
 
     @Test
-    public void canStoreAndRetrieveValues() {
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED);
+    public void canRetrieveValues() {
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(STRING_AND_ONE_HUNDRED));
         assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
     }
 
     @Test
     public void getValueForWhichNoRecentValueExistsReturnsEmpty() {
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED);
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(STRING_AND_ONE_HUNDRED));
         assertThat(stringCoordinationService.getValueForTimestamp(142)).isEmpty();
     }
 
     @Test
     public void canCacheValues() {
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED);
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(STRING_AND_ONE_HUNDRED));
         assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
         assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
         assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
-        verify(coordinationStore, times(1)).getValue(anyLong());
+        verify(coordinationStore, times(1)).getAgreedValue();
     }
 
     @Test
     public void canLookUpNewValueIfCacheOutOfDate() {
-        stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED);
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(STRING_AND_ONE_HUNDRED));
         assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
         assertThat(stringCoordinationService.getValueForTimestamp(742)).isEmpty();
-        stringCoordinationService.tryTransformCurrentValue(unused -> OTHER_STRING_AND_ONE_THOUSAND);
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(OTHER_STRING_AND_ONE_THOUSAND));
         assertThat(stringCoordinationService.getValueForTimestamp(742)).contains(OTHER_STRING_AND_ONE_THOUSAND);
     }
 
     @Test
-    public void tryTransformSucceedsIfChangeWasApplied() {
-        assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED))
-                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+    public void delegatesTransformationToStore() {
+        when(coordinationStore.transformAgreedValue(any())).thenReturn(
+                CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+        CheckAndSetResult<ValueAndBound<String>> casResult
+                = stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+        assertThat(casResult.successful()).isTrue();
+        assertThat(Iterables.getOnlyElement(casResult.existingValues()))
+                .isEqualTo(STRING_AND_ONE_HUNDRED);
     }
 
     @Test
-    public void tryTransformThrowsIfValuePutIsEmpty() {
-        assertThatThrownBy(() -> stringCoordinationService.tryTransformCurrentValue(
-                unused -> ImmutableValueAndBound.of(Optional.empty(), 12345678)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Cannot put an empty value");
+    public void successfulUpdateUpdatesCache() {
+        when(coordinationStore.transformAgreedValue(any())).thenReturn(
+                CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+        stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+        stringCoordinationService.getValueForTimestamp(56);
+        stringCoordinationService.getValueForTimestamp(88);
+        verify(coordinationStore, never()).getAgreedValue();
     }
 
     @Test
-    public void tryTransformReturnsUnsuccessfulIfChangeWasNotApplied() {
-        CoordinationStore casFailingStore = mock(CoordinationStore.class);
-        when(casFailingStore.checkAndSetCoordinationValue(any(), any())).thenReturn(
-                ImmutableCheckAndSetResult.of(false, ImmutableList.of()));
-
-        CoordinationService<String> testCoordinationService
-                = new CoordinationServiceImpl<>(casFailingStore, String.class, timestamp::incrementAndGet);
-        assertThat(testCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED).successful())
-                .isFalse();
-    }
-
-    @Test
-    public void tryTransformDoesNotApplyTransformIfBoundDoesNotAdvance() {
-        assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> STRING_AND_ONE_HUNDRED))
-                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
-        assertThat(stringCoordinationService.tryTransformCurrentValue(unused -> ANOTHER_STRING_AND_ONE_HUNDRED))
-                .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
-        assertThat(stringCoordinationService.getValueForTimestamp(100)).contains(STRING_AND_ONE_HUNDRED);
+    public void failedUpdateUpdatesCache() {
+        when(coordinationStore.transformAgreedValue(any())).thenReturn(
+                CheckAndSetResult.of(false, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+        stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
+        stringCoordinationService.getValueForTimestamp(56);
+        stringCoordinationService.getValueForTimestamp(88);
+        verify(coordinationStore, never()).getAgreedValue();
     }
 }

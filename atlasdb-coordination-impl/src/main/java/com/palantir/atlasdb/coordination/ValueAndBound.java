@@ -22,11 +22,14 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface ValueAndBound<T> {
+    long INVALID_BOUND = -1;
+
     @Value.Parameter
     Optional<T> value();
     @Value.Parameter
     long bound();
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     static <T> ValueAndBound<T> of(Optional<T> value, long bound) {
         return ImmutableValueAndBound.of(value, bound);
     }

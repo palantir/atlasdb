@@ -16,146 +16,62 @@
 
 package com.palantir.atlasdb.coordination;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
-import org.immutables.value.Value;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
-
-import okio.ByteString;
 
 public class CoordinationServiceImpl<T> implements CoordinationService<T> {
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
+    private final CoordinationStore<T> store;
+    private final AtomicReference<ValueAndBound<T>> cache = new AtomicReference<>(getInitialCacheValue());
 
-    private final CoordinationStore store;
-    private final AtomicReference<SequenceAndValueAndBound<T>> cache = new AtomicReference<>(getInitialCacheValue());
-
-    private final Class<T> clazz;
-    private final LongSupplier sequenceNumberSupplier;
-
-    public CoordinationServiceImpl(CoordinationStore store, Class<T> clazz, LongSupplier sequenceNumberSupplier) {
+    public CoordinationServiceImpl(CoordinationStore<T> store) {
         this.store = store;
-        this.clazz = clazz;
-        this.sequenceNumberSupplier = sequenceNumberSupplier;
     }
 
     @Override
     public Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp) {
-        SequenceAndValueAndBound<T> cachedReference = cache.get();
-        if (cachedReference == null || cachedReference.bound() < timestamp) {
-            return store.getCoordinationValue()
-                    .filter(sequenceAndBound -> sequenceAndBound.bound() >= timestamp)
-                    .map(this::getCorrespondingValueFromStore);
+        ValueAndBound<T> cachedReference = cache.get();
+        if (cachedReference.bound() < timestamp) {
+            return readLatestValueFromStore()
+                    .filter(valueAndBound -> valueAndBound.bound() >= timestamp);
         }
-        // TODO (jkong): Intern if performance is bad
-        return Optional.of(ImmutableValueAndBound.of(cachedReference.value(), cachedReference.bound()));
+        return Optional.of(cachedReference);
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(
-            Function<Optional<ValueAndBound<T>>, ValueAndBound<T>> transform) {
-        Optional<SequenceAndBound> sequenceAndBound = store.getCoordinationValue();
-        Optional<ValueAndBound<T>> valueAndBound = sequenceAndBound.map(this::getCorrespondingValueFromStore);
+    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform) {
+        CheckAndSetResult<ValueAndBound<T>> transformResult = store.transformAgreedValue(transform);
+        ValueAndBound<T> existingValue = Iterables.getOnlyElement(transformResult.existingValues());
+        accumulateCachedValue(Optional.of(existingValue));
+        return transformResult;
+    }
 
-        ValueAndBound<T> target = transform.apply(valueAndBound);
-        if (shouldUpdateStore(valueAndBound, target)) {
-            return tryUpdateStore(sequenceAndBound, target);
+    private Optional<ValueAndBound<T>> readLatestValueFromStore() {
+        Optional<ValueAndBound<T>> storedValueAndBound = store.getAgreedValue();
+        accumulateCachedValue(storedValueAndBound);
+        return storedValueAndBound;
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private void accumulateCachedValue(Optional<ValueAndBound<T>> valueAndBound) {
+        valueAndBound.ifPresent(presentValue ->
+                cache.accumulateAndGet(presentValue, this::chooseValueWithGreaterBound)
+        );
+    }
+
+    private ValueAndBound<T> chooseValueWithGreaterBound(
+            ValueAndBound<T> valueAndBound1,
+            ValueAndBound<T> valueAndBound2) {
+        if (valueAndBound1.bound() > valueAndBound2.bound()) {
+            return valueAndBound1;
         }
-        return ImmutableCheckAndSetResult.of(false, valueAndBound.map(ImmutableList::of).orElse(ImmutableList.of()));
+        return valueAndBound2;
     }
 
-    private boolean shouldUpdateStore(Optional<ValueAndBound<T>> existing, ValueAndBound<T> target) {
-        return existing.map(valueAndBound -> target.bound() > valueAndBound.bound()).orElse(true);
-    }
-
-    private CheckAndSetResult<ValueAndBound<T>> tryUpdateStore(Optional<SequenceAndBound> sequenceAndBound,
-            ValueAndBound<T> target) {
-        long sequenceNumber = sequenceNumberSupplier.getAsLong();
-        store.putValue(sequenceNumber, serializeByteString(
-                target.value().orElseThrow(() -> new IllegalStateException("Cannot put an empty value"))));
-        CheckAndSetResult<SequenceAndBound> casResult = store.checkAndSetCoordinationValue(sequenceAndBound,
-                ImmutableSequenceAndBound.of(sequenceNumber, target.bound()));
-        return getValueForExtantSequence(target, casResult);
-    }
-
-    private CheckAndSetResult<ValueAndBound<T>> getValueForExtantSequence(ValueAndBound<T> target,
-            CheckAndSetResult<SequenceAndBound> casResult) {
-        if (casResult.successful()) {
-            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(target));
-        }
-        // This may look unperformant, but in our store implementation there won't be more than one existing value.
-        return ImmutableCheckAndSetResult.of(
-                false,
-                casResult.existingValues().stream()
-                        .map(this::getCorrespondingValueFromStore)
-                        .collect(Collectors.toList()));
-    }
-
-    private ValueAndBound<T> getCorrespondingValueFromStore(SequenceAndBound sequenceAndBound) {
-        return ImmutableValueAndBound.of(readValueFromStore(sequenceAndBound), sequenceAndBound.bound());
-    }
-
-    private Optional<T> readValueFromStore(SequenceAndBound presentSequenceAndBound) {
-        Optional<T> valueOptional = store.getValue(presentSequenceAndBound.sequence()).map(this::deserializeByteString);
-        accumulateCachedValue(presentSequenceAndBound, valueOptional);
-        return valueOptional;
-    }
-
-    private void accumulateCachedValue(SequenceAndBound presentSequenceAndBound, Optional<T> valueOptional) {
-        ImmutableSequenceAndValueAndBound<T> newCacheValue =
-                ImmutableSequenceAndValueAndBound.of(
-                        presentSequenceAndBound.sequence(),
-                        valueOptional,
-                        presentSequenceAndBound.bound());
-        cache.accumulateAndGet(newCacheValue, (svb1, svb2) -> {
-            if (svb1.bound() > svb2.bound()) {
-                return svb1;
-            }
-            return svb2;
-        });
-    }
-
-    private static <T> SequenceAndValueAndBound<T> getInitialCacheValue() {
-        return ImmutableSequenceAndValueAndBound.of(
-                SequenceAndValueAndBound.INVALID_SEQUENCE, Optional.empty(), SequenceAndValueAndBound.INVALID_BOUND);
-    }
-
-    private static <T> ByteString serializeByteString(T object) {
-        try {
-            return ByteString.of(OBJECT_MAPPER.writeValueAsBytes(object));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private T deserializeByteString(ByteString byteString) {
-        try {
-            return OBJECT_MAPPER.readValue(byteString.toByteArray(), clazz);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Value.Immutable
-    interface SequenceAndValueAndBound<T> {
-        long INVALID_SEQUENCE = -1;
-        long INVALID_BOUND = -1;
-
-        @Value.Parameter
-        long sequence();
-        @Value.Parameter
-        Optional<T> value();
-        @Value.Parameter
-        long bound();
+    private static <T> ValueAndBound<T> getInitialCacheValue() {
+        return ValueAndBound.of(Optional.empty(), ValueAndBound.INVALID_BOUND);
     }
 }

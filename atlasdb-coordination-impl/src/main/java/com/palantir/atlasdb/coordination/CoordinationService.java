@@ -23,12 +23,16 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 /**
  * A {@link CoordinationService} is used to agree on values being relevant or correct at a given timestamp.
- * The sequence of values being agreed should evolve in a backwards consistent manner; that is, if I read a value
- * for some timestamp TS and make a decision at TS, all future values written to the {@link CoordinationService} should
- * also ensure that no decision that would be inconsistent with the decision made at TS would be made at TS. In general,
- * this means that one should avoid changes that affect behaviour of values below the validity bound.
+ * The sequence of values being agreed should evolve in a backwards consistent manner. This means that one should
+ * avoid changes that may affect behaviour for decisions taken at timestamps below the validity bound.
  *
- * It is the responsibility of the caller to preserve the above property.
+ * More formally, suppose we read a value for some timestamp TS. (In relation to AtlasDB transactions, this may be
+ * a start or commit timestamp, as long as we are consistent.) All future values written to the
+ * {@link CoordinationService} must then ensure that decisions made at TS would be done in a way consistent with our
+ * initial read.
+ *
+ * It is the responsibility of the caller to provide transforms that preserve the above property; the addition of a
+ * value at a given timestamp implies that it is OK for readers at all previous timestamps to read that value.
  */
 public interface CoordinationService<T> {
     /**
@@ -47,18 +51,12 @@ public interface CoordinationService<T> {
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
     /**
-     * Updates the value that this coordination service stores, marking this value as valid up to a certain timestamp.
-     * It may transpire that the value in the coordination service is already acceptable - if so, the provided
-     * transformation should simply return the original input. If the transformation returns a value with a bound
-     * less than or equal to the bound of the input, the results of the transformation will not be stored.
+     * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform.
      *
      * Evolutions of the value must be compatible in terms of backwards consistency as defined in the class docs.
-     *
-     * The {@link ValueAndBound} returned by the transform must contain a value.
      *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
      * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(
-            Function<Optional<ValueAndBound<T>>, ValueAndBound<T>> transform);
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform);
 }
