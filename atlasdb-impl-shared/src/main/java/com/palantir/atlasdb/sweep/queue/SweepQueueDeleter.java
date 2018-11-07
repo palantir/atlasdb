@@ -50,8 +50,8 @@ public class SweepQueueDeleter {
      * Executes targeted sweep, by inserting ranged tombstones corresponding to the given writes, using the sweep
      * strategy determined by the sweeper.
      *
-     * @param writes individual writes to sweep for. Depending on the strategy, we will insert a ranged tombstone for
-     * each write at either the write's timestamp - 1, or at its timestamp.
+     * @param unfilteredWrites individual writes to sweep for. Depending on the strategy, we will insert a ranged
+     * tombstone for each write at either the write's timestamp - 1, or at its timestamp.
      * @param sweeper supplies the strategy-specific behaviour: the timestamp for the tombstone and whether we must use
      * sentinels or not.
      */

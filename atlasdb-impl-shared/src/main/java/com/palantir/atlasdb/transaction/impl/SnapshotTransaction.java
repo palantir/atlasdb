@@ -225,7 +225,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to
      *                           grab a read lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
-     * @param orphanedSentinelCleaner
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
