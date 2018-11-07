@@ -8,7 +8,6 @@ ext.libVersions =
     trove:   '3.0.3-p5',
     logback: '1.2.3',
     mockito: '1.10.17',
-    assertj: '3.5.2',
     dropwizard:   '0.8.2',
     commons_codec: '1.10',
     commons_lang: '2.6',

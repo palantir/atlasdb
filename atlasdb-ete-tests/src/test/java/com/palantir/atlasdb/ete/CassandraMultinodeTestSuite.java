@@ -28,7 +28,6 @@ import com.palantir.atlasdb.containers.CassandraEnvironment;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
-        SchemaMetadataServiceEteTest.class,
         ServiceExposureEteTest.class,
         TimestampManagementEteTest.class
         })

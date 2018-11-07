@@ -146,7 +146,7 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+                FeignOkHttpClients.newRefreshingOkHttpClient(sslSocketFactory, proxySelector, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)

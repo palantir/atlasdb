@@ -40,6 +40,7 @@ public final class AtlasDbConstants {
     public static final TableReference TIMELOCK_TIMESTAMP_TABLE = TableReference.createWithEmptyNamespace("pt_metropolis_ts");
     public static final TableReference PERSISTED_LOCKS_TABLE = TableReference.createWithEmptyNamespace(
             "_persisted_locks");
+    public static final TableReference COORDINATION_TABLE = TableReference.createWithEmptyNamespace("_coordination");
 
     public static final TableReference DEFAULT_METADATA_TABLE = TableReference.createWithEmptyNamespace("_metadata");
     public static final TableReference DEFAULT_ORACLE_METADATA_TABLE = TableReference.createWithEmptyNamespace(
@@ -50,6 +51,7 @@ public final class AtlasDbConstants {
     // Deprecated tables
     public static final TableReference SWEEP_PROGRESS_V1_5 = TableReference.createWithEmptyNamespace("_sweep_progress1_5");
     public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
+    public static final String LOCK_TABLE_PREFIX = "_locks";
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 
@@ -91,6 +93,7 @@ public final class AtlasDbConstants {
             PARTITION_MAP_TABLE,
             PERSISTED_LOCKS_TABLE,
             SWEEP_PROGRESS_TABLE,
+            COORDINATION_TABLE,
             DEFAULT_SCHEMA_METADATA_TABLE,
             SWEEP_PROGRESS_V2,
             SWEEP_PROGRESS_V1_5);
@@ -101,7 +104,8 @@ public final class AtlasDbConstants {
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
             NAMESPACE_TABLE,
-            PERSISTED_LOCKS_TABLE);
+            PERSISTED_LOCKS_TABLE,
+            COORDINATION_TABLE);
 
     public static final Set<TableReference> TABLES_KNOWN_TO_BE_POORLY_DESIGNED = ImmutableSet.of(
             TableReference.createWithEmptyNamespace("resync_object"));

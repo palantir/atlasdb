@@ -15,14 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,17 +36,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
-import org.apache.cassandra.thrift.CqlRow;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -60,12 +52,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
-import com.palantir.atlasdb.config.LockLeader;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -74,7 +63,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TracingPrefsConfig;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
@@ -223,57 +211,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         int garbageAfterTest = getAmountOfGarbageInMetadataTable(keyValueService, NEVER_SEEN);
 
         assertThat(garbageAfterTest, lessThanOrEqualTo(preExistingGarbageBeforeTest));
-    }
-
-    @Test
-    public void testLockTablesStateCleanUp() throws Exception {
-        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
-        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
-                ckvs.getClientPool(),
-                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
-
-        createExtraLocksTable(lockTables, ckvs);
-
-        TracingQueryRunner queryRunner = new TracingQueryRunner(
-                LoggerFactory.getLogger(CassandraKeyValueServiceIntegrationTest.class), new TracingPrefsConfig());
-        CassandraSchemaLockCleaner cleaner = CassandraSchemaLockCleaner.create(CASSANDRA.getConfig(),
-                ckvs.getClientPool(), lockTables, queryRunner);
-
-        cleaner.cleanLocksState();
-
-        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
-        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
-        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
-        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
-        if (resultRows.size() == 1) {
-            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
-            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
-            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
-        }
-    }
-
-    @Test
-    public void testCleanCassLocksStateCli() throws Exception {
-        CassandraKeyValueServiceImpl ckvs = (CassandraKeyValueServiceImpl) keyValueService;
-        SchemaMutationLockTables lockTables = new SchemaMutationLockTables(ckvs.getClientPool(), CASSANDRA.getConfig());
-        SchemaMutationLockTestTools lockTestTools = new SchemaMutationLockTestTools(
-                ckvs.getClientPool(),
-                new UniqueSchemaMutationLockTable(lockTables, LockLeader.I_AM_THE_LOCK_LEADER));
-
-        createExtraLocksTable(lockTables, ckvs);
-
-        new CleanCassLocksStateCommand().runWithConfig(CASSANDRA.getConfig());
-
-        // depending on which table we pick when running cleanup on multiple lock tables, we might have a table with
-        // no rows or a table with a single row containing the cleared lock value (both are valid clean states).
-        List<CqlRow> resultRows = lockTestTools.readLocksTable().getRows();
-        assertThat(resultRows, either(is(empty())).or(hasSize(1)));
-        if (resultRows.size() == 1) {
-            Column resultColumn = Iterables.getOnlyElement(Iterables.getOnlyElement(resultRows).getColumns());
-            long lockId = SchemaMutationLock.getLockIdFromColumn(resultColumn);
-            assertThat(lockId, is(SchemaMutationLock.GLOBAL_DDL_LOCK_CLEARED_ID));
-        }
     }
 
     @Test
@@ -460,20 +397,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
     private String convertBytesToHexString(byte[] bytes) {
         return "0x" + BaseEncoding.base16().lowerCase().encode(bytes);
-    }
-
-    private void createExtraLocksTable(SchemaMutationLockTables lockTables,
-            CassandraKeyValueServiceImpl kvs) throws TException {
-        TableReference originalTable = Iterables.getOnlyElement(lockTables.getAllLockTables());
-
-        try {
-            kvs.createTable(TableReference.create(originalTable.getNamespace(),
-                    "_locks_other"), AtlasDbConstants.EMPTY_TABLE_METADATA);
-        } catch (UncheckedExecutionException ex) {
-            // expected - we just created another locks table
-        }
-
-        assertThat(lockTables.getAllLockTables(), hasItem(not(originalTable)));
     }
 
     private static int getAmountOfGarbageInMetadataTable(KeyValueService keyValueService, TableReference tableRef) {

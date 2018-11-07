@@ -15,10 +15,15 @@ Automated Migration
 -------------------
 
 .. warning::
-    Automated migrations are only implemented for Cassandra.
+    Automated migrations are only implemented for Cassandra. If you are using any other KVS, please follow the
+    instructions at :ref:`manual-timelock-migration`.
 
-1. If you are using the Cassandra key value service and have added the :ref:`Timelock client configuration <timelock-client-configuration>`, then starting/re-starting the service will automatically migrate the service.
-2. If you are using any other KVS, please follow the instructions at :ref:`manual-timelock-migration`.
+1. Confirm that your AtlasDB installation is backed by Cassandra KVS.
+2. (Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
+   ``/timestamp/fresh-timestamp`` endpoint. This step is not strictly required, but may be useful for verification.
+3. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.
+4. Starting/re-starting the service will automatically migrate the service.
+   Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.
 
 Verification
 ~~~~~~~~~~~~

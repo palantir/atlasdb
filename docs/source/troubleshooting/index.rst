@@ -12,7 +12,12 @@ Troubleshooting
 Clearing the schema mutation lock
 =================================
 
-While performing schema mutations (e.g. creating or dropping tables) in Cassandra, we hold a :ref:`schema mutation lock <schema-mutation-lock>`.
+.. tip::
+
+   The schema mutation lock is no longer used from Atlas 0.108.0 onwards.
+   These steps are maintained here for reference for users of AtlasDB on older versions.
+
+In versions of AtlasDB prior to 0.108.0, we hold a :ref:`schema mutation lock <schema-mutation-lock>` while performing schema mutations (e.g. creating or dropping tables) in Cassandra.
 If an AtlasDB client dies while holding the lock, the lock must be manually cleared or clients will not be able to perform schema mutations.
 Prior to AtlasDB 0.19, we would always grab the schema mutation lock on startup, and thus would fail to start until the lock had been cleared.
 

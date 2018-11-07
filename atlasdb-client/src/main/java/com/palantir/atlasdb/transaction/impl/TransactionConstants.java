@@ -43,6 +43,8 @@ public class TransactionConstants {
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
+    public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
+
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
     }

@@ -26,7 +26,6 @@ import org.awaitility.Awaitility;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.qos.FakeQosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
@@ -86,7 +85,6 @@ public class InMemoryAsyncAtlasDbFactoryTest {
                 null,
                 Optional.empty(),
                 null,
-                initializeAsync,
-                FakeQosClient.INSTANCE);
+                initializeAsync);
     }
 }
