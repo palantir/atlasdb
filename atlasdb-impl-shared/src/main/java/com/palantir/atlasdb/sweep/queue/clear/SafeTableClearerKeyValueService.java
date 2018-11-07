@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.queue;
+package com.palantir.atlasdb.sweep.queue.clear;
 
 import java.util.Set;
 
@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
 
 public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
     private final KeyValueService delegate;
@@ -57,6 +58,7 @@ public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
         tableClearer.truncateTables(tables);
     }
 
+    // Some people use delete(RangeRequest.all()) instead of truncate because truncates negatively affect Oracle backups
     @Override
     public void deleteRange(TableReference table, RangeRequest range) {
         if (range.equals(RangeRequest.all())) {

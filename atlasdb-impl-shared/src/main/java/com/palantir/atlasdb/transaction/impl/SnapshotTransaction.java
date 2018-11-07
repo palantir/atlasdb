@@ -1064,8 +1064,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * and where it was truncated. In this case, there is a chance that we end up with a sentinel with no
      * valid AtlasDB cell covering it. In this case, we ignore it.
      */
-    private Set<Cell> findOrphanedSentinels(TableReference table, Map<Cell, Value> rawResults) {
-        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::atDeletionSentinel).keySet();
+    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
+        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel).keySet();
         if (sweepSentinels.isEmpty()) {
             return Collections.emptySet();
         }
@@ -1075,7 +1075,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return Maps.filterValues(atMaxTimestamp, ts -> Value.INVALID_VALUE_TIMESTAMP == ts).keySet();
     }
 
-    private static boolean atDeletionSentinel(Value value) {
+    private static boolean isSweepSentinel(Value value) {
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 
@@ -1094,12 +1094,12 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
-        Set<Cell> orphanedSentinels = findOrphanedSentinels(tableRef, rawResults);
+        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (atDeletionSentinel(value)) {
+            if (isSweepSentinel(value)) {
                 getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
 
                 // This means that this transaction started too long ago. When we do garbage collection,

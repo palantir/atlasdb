@@ -14,29 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.queue;
+package com.palantir.atlasdb.sweep.queue.clear;
 
+import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface TableClearer {
-    void deleteAllRowsInTables(Set<TableReference> tables);
-
-    default void deleteAllRowsInTables(TableReference... tables) {
-        deleteAllRowsInTables(ImmutableSet.copyOf(tables));
-    }
-
-    void truncateTables(Set<TableReference> tables);
-
-    default void truncateTables(TableReference... tables) {
-        truncateTables(ImmutableSet.copyOf(tables));
-    }
-
-    void dropTables(Set<TableReference> tables);
-
-    default void dropTables(TableReference... tables) {
-        dropTables(ImmutableSet.copyOf(tables));
-    }
+public interface ConservativeSweepWatermarkStore {
+    void updateWatermarks(long newWatermark, Set<TableReference> conservativeTables);
+    Map<TableReference, Long> getWatermarks(Set<TableReference> tableReferences);
 }

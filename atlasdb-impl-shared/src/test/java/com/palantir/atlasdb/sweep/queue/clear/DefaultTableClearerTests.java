@@ -14,46 +14,53 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.queue;
+package com.palantir.atlasdb.sweep.queue.clear;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
+@RunWith(MockitoJUnitRunner.class)
 public final class DefaultTableClearerTests {
     private static final TableReference TABLE = TableReference.create(Namespace.create("foo"), "bar");
     private static final Cell CELL = Cell.create(new byte[1], new byte[2]);
-    private final KeyValueService kvs = new InMemoryKeyValueService(false);
     private long immutableTimestamp = 0;
 
-    private DefaultTableClearer clearer = new DefaultTableClearer(kvs, () -> immutableTimestamp);
+    @Mock private KeyValueService kvs;
+    @Mock private ConservativeSweepWatermarkStore watermarkStore;
+
+    private DefaultTableClearer clearer;
 
     @Before
     public void before() {
-        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+        clearer = new DefaultTableClearer(watermarkStore, kvs, () -> immutableTimestamp);
     }
 
     @Test
     public void testFilter_ignoresIfThorough() {
         createTable(SweepStrategy.THOROUGH);
-        clearer.updateWatermarksForTables(2, ImmutableSet.of(TABLE));
         WriteInfo write = writeInfo(1);
         assertThat(clearer.filter(ImmutableList.of(write))).containsExactly(write);
     }
@@ -61,7 +68,6 @@ public final class DefaultTableClearerTests {
     @Test
     public void testFilter_ignoresIfNoSweep() {
         createTable(SweepStrategy.NOTHING);
-        clearer.updateWatermarksForTables(2, ImmutableSet.of(TABLE));
         WriteInfo write = writeInfo(1);
         assertThat(clearer.filter(ImmutableList.of(write))).containsExactly(write);
     }
@@ -69,7 +75,7 @@ public final class DefaultTableClearerTests {
     @Test
     public void testFilter_filtersIfConservativeSweepAndBehindWatermark() {
         createTable(SweepStrategy.CONSERVATIVE);
-        clearer.updateWatermarksForTables(2, ImmutableSet.of(TABLE));
+        when(watermarkStore.getWatermarks(ImmutableSet.of(TABLE))).thenReturn(ImmutableMap.of(TABLE, 2L));
         WriteInfo write = writeInfo(1);
         assertThat(clearer.filter(ImmutableList.of(write))).isEmpty();
     }
@@ -77,31 +83,17 @@ public final class DefaultTableClearerTests {
     @Test
     public void testFilter_doesNotFilterIfAheadOfWatermark() {
         createTable(SweepStrategy.CONSERVATIVE);
-        clearer.updateWatermarksForTables(2, ImmutableSet.of(TABLE));
+        when(watermarkStore.getWatermarks(ImmutableSet.of(TABLE))).thenReturn(ImmutableMap.of(TABLE, 2L));
         WriteInfo write = writeInfo(3);
         assertThat(clearer.filter(ImmutableList.of(write))).containsExactly(write);
-    }
-
-    @Test
-    public void testWatermarkUpdates_newWatermark() {
-        clearer.updateWatermarksForTables(2, ImmutableSet.of(TABLE));
-        assertThat(clearer.getWatermarks(ImmutableSet.of(TABLE))).containsEntry(TABLE, 2L);
-    }
-
-    @Test
-    public void testWatermarkUpdates_laterWatermarkUnchanged() {
-        clearer.updateWatermarksForTables(4, ImmutableSet.of(TABLE));
-        clearer.updateWatermarksForTables(3, ImmutableSet.of(TABLE));
-        assertThat(clearer.getWatermarks(ImmutableSet.of(TABLE))).containsEntry(TABLE, 4L);
     }
 
     @Test
     public void testDestructiveAction_watermarkUpdateIfConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         immutableTimestamp = 4;
-        assertThat(clearer.getWatermarks(ImmutableSet.of(TABLE))).isEmpty();
         clearer.truncateTables(ImmutableSet.of(TABLE));
-        assertThat(clearer.getWatermarks(ImmutableSet.of(TABLE))).containsEntry(TABLE, 4L);
+        verify(watermarkStore).updateWatermarks(4, ImmutableSet.of(TABLE));
     }
 
     @Test
@@ -109,7 +101,7 @@ public final class DefaultTableClearerTests {
         createTable(SweepStrategy.THOROUGH);
         immutableTimestamp = 4;
         clearer.truncateTables(ImmutableSet.of(TABLE));
-        assertThat(clearer.getWatermarks(ImmutableSet.of(TABLE))).isEmpty();
+        verifyZeroInteractions(watermarkStore);
     }
 
     private static WriteInfo writeInfo(long timestamp) {
@@ -127,6 +119,6 @@ public final class DefaultTableClearerTests {
                 false,
                 sweepStrategy,
                 false);
-        kvs.createTable(TABLE, metadata.persistToBytes());
+        when(kvs.getMetadataForTable(TABLE)).thenReturn(metadata.persistToBytes());
     }
 }
