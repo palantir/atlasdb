@@ -49,6 +49,20 @@ develop
 
     *    - Type
          - Change
+         
+    *    -
+         -
+
+=======
+0.108.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Targeted sweep now handles table truncations with conservative sweeps correctly.
@@ -59,7 +73,6 @@ develop
            As part of this change, table deletion now truncates the table before dropping it in Cassandra, therefore requiring all Cassandra nodes to be available to drop tables.
            This fixes a bug where it was possible to create two instances of the same table on two different Cassandra nodes, resulting in schema version inconsistency that required manual intervention.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3620>`__)
-
 
     *    - |improved|
          - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
@@ -101,16 +114,6 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3570>`__)
 
     *    - |improved|
-         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
-
-    *    - |improved|
-         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
-           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
-
-    *    - |improved|
          - The HikariConnectionClientPool now allows specification of a use-case.
            If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
            This may be useful for debugging when users run multiple such pools.
@@ -143,6 +146,27 @@ develop
          - Live-reloading HTTP proxies and HTTP proxies with failover now refresh themselves after encountering a large number of cumulative requests or consecutive exceptions.
            This was previously implemented to work around several issues with our usage of OkHttp, but was not implemented for the proxies with failover (which includes proxies to TimeLock).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3629>`__)
+
+=======
+0.107.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
+
+    *    - |improved|
+         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
+           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
 ========
 v0.106.0
