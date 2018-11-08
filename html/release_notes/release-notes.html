@@ -186,6 +186,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently  across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3631">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id1">
+<h2>0.108.0<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Cassandra KVS no longer uses the schema mutation lock and instead creates tables using an id deterministically generated from the Cassandra keyspace and the table name.
 As part of this change, table deletion now truncates the table before dropping it in Cassandra, therefore requiring all Cassandra nodes to be available to drop tables.
@@ -232,16 +252,6 @@ Also, the above mentioned metric will now consistently report falling behind if 
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3570">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The legacy lock service’s lock state logger now logs additional information about the lock service’s internal synchronization state.
-This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
-<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The HikariConnectionClientPool now allows specification of a use-case.
 If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
 This may be useful for debugging when users run multiple such pools.
@@ -274,6 +284,32 @@ Previously, we would fetch the entire row which is unnecessary and causes read p
 <td>Live-reloading HTTP proxies and HTTP proxies with failover now refresh themselves after encountering a large number of cumulative requests or consecutive exceptions.
 This was previously implemented to work around several issues with our usage of OkHttp, but was not implemented for the proxies with failover (which includes proxies to TimeLock).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3629">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id2">
+<h2>0.107.0<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3533">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The legacy lock service’s lock state logger now logs additional information about the lock service’s internal synchronization state.
+This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3554">Pull Request 1</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3565">Pull Request 2</a>)</td>
 </tr>
 </tbody>
 </table>
