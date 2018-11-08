@@ -82,7 +82,7 @@ dependencies {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
-  compile group: 'com.squareup', name:'javapoet', version: '1.9.0'
+  compile group: 'com.squareup', name:'javapoet'
   compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
