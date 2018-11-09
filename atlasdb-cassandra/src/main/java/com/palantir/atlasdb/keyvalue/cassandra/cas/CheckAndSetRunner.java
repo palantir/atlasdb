@@ -26,6 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+
+import okio.ByteString;
 
 public class CheckAndSetRunner {
     private final TracingQueryRunner queryRunner;
@@ -35,7 +38,8 @@ public class CheckAndSetRunner {
         this.queryRunner = queryRunner;
     }
 
-    public CheckAndSetResult executeCheckAndSet(CassandraClient client, CheckAndSetRequest request) throws TException {
+    public CheckAndSetResult<ByteString> executeCheckAndSet(CassandraClient client, CheckAndSetRequest request)
+            throws TException {
         try {
             TableReference table = request.table();
             CqlResult result = queryRunner.run(

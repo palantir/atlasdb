@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -60,15 +59,6 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import com.palantir.atlasdb.schema.ImmutableSchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.ImmutableSchemaMetadata;
-import com.palantir.atlasdb.schema.SchemaDependentTableMetadata;
-import com.palantir.atlasdb.schema.SchemaMetadata;
-import com.palantir.atlasdb.schema.cleanup.ArbitraryCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.CleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.ImmutableStreamStoreCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.NullCleanupMetadata;
-import com.palantir.atlasdb.schema.cleanup.StreamStoreCleanupMetadata;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinition;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
 import com.palantir.atlasdb.table.description.render.StreamStoreRenderer;
@@ -107,10 +97,6 @@ public class Schema {
     // N.B., the following is a list multimap because we want to preserve order
     // for code generation purposes.
     private final ListMultimap<String, String> indexesByTable = ArrayListMultimap.create();
-
-    // Used to determine cleanup metadata.
-    private final Set<String> tablesWithCustomCleanupTasks = Sets.newHashSet();
-    private final Map<String, StreamStoreCleanupMetadata> streamStoreCleanupMetadata = Maps.newHashMap();
 
     private final Set<String> deprecatedTableNames = Sets.newHashSet();
 
@@ -243,13 +229,6 @@ public class Schema {
         StreamStoreRenderer renderer = streamStoreDefinition.getRenderer(packageName, name);
         Multimap<String, Supplier<OnCleanupTask>> streamStoreCleanupTasks = streamStoreDefinition.getCleanupTasks(
                 packageName, name, renderer, namespace);
-
-        StreamStoreCleanupMetadata metadata = ImmutableStreamStoreCleanupMetadata.builder()
-                .numHashedRowComponents(streamStoreDefinition.getNumberOfRowComponentsHashed())
-                .streamIdType(streamStoreDefinition.getIdType())
-                .build();
-        streamStoreDefinition.getTables().forEach(
-                (tableName, definition) -> streamStoreCleanupMetadata.put(tableName, metadata));
 
         cleanupTasks.putAll(streamStoreCleanupTasks);
         streamStoreRenderers.add(renderer);
@@ -463,7 +442,6 @@ public class Schema {
     }
 
     public void addCleanupTask(String rawTableName, Supplier<OnCleanupTask> task) {
-        tablesWithCustomCleanupTasks.add(rawTableName);
         cleanupTasks.put(rawTableName, task);
     }
 
@@ -477,38 +455,5 @@ public class Schema {
 
     public void ignoreTableNameLengthChecks() {
         ignoreTableNameLengthChecks = true;
-    }
-
-    public SchemaMetadata getSchemaMetadata() {
-        ImmutableSchemaMetadata.Builder builder = ImmutableSchemaMetadata.builder();
-
-        Map<TableReference, SchemaDependentTableMetadata> tableMetadatas =
-                Stream.of(tableDefinitions, indexDefinitions)
-                        .map(Map::keySet)
-                        .map(Set::stream)
-                        .flatMap(x -> x)
-                        .collect(Collectors.toMap(
-                                tableName -> TableReference.create(namespace, tableName),
-                                this::constructSchemaDependentTableMetadata));
-        builder.putAllSchemaDependentTableMetadata(tableMetadatas);
-
-        return builder.build();
-    }
-
-    private SchemaDependentTableMetadata constructSchemaDependentTableMetadata(String tableName) {
-        return ImmutableSchemaDependentTableMetadata.builder()
-                .cleanupMetadata(getCleanupMetadata(tableName))
-                .build();
-    }
-
-    private CleanupMetadata getCleanupMetadata(String tableName) {
-        if (!cleanupTasks.containsKey(tableName)) {
-            return new NullCleanupMetadata();
-        }
-        if (!tablesWithCustomCleanupTasks.contains(tableName) && streamStoreCleanupMetadata.containsKey(tableName)) {
-            // Stream store Index or Metadata table with no custom cleanup task.
-            return streamStoreCleanupMetadata.get(tableName);
-        }
-        return new ArbitraryCleanupMetadata();
     }
 }

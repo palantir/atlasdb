@@ -27,7 +27,7 @@ public class ValueMetadataCleanupTask implements OnCleanupTask {
         ValueStreamMetadataTable metaTable = tables.getValueStreamMetadataTable(t);
         Collection<ValueStreamMetadataTable.ValueStreamMetadataRow> rows = Lists.newArrayListWithCapacity(cells.size());
         for (Cell cell : cells) {
-            rows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.of((Long) ValueType.VAR_LONG.convertToJava(cell.getRowName(), 0)));
+            rows.add(ValueStreamMetadataTable.ValueStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));
         }
         Map<ValueStreamMetadataTable.ValueStreamMetadataRow, StreamMetadata> currentMetadata = metaTable.getMetadatas(rows);
         Set<Long> toDelete = Sets.newHashSet();

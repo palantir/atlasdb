@@ -19,7 +19,6 @@ dependencies {
   compile project(":timestamp-api")
   compile project(":timestamp-client")
   compile project(":atlasdb-client")
-  compile project(":qos-service-api")
 
   compile 'com.palantir.patches.sourceforge:trove3:' + libVersions.trove
   compile group: 'com.palantir.common', name: 'streams'

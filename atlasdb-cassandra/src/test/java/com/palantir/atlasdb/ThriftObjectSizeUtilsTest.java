@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.cassandra.qos.ThriftObjectSizeUtils;
+import com.palantir.atlasdb.keyvalue.cassandra.thrift.ThriftObjectSizeUtils;
 
 public class ThriftObjectSizeUtilsTest {
     private static final String TEST_NAME = "foo";

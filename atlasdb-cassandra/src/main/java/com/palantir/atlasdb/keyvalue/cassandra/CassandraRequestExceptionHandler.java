@@ -16,10 +16,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
@@ -29,10 +29,10 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.helpers.MessageFormatter;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -43,6 +43,7 @@ class CassandraRequestExceptionHandler {
     private final Supplier<Integer> maxTriesTotal;
     private final Supplier<Boolean> useConservativeHandler;
     private final Blacklist blacklist;
+    private final Optional<RequestExceptionHandlerStrategy> overrideStrategyForTest;
 
     CassandraRequestExceptionHandler(
             Supplier<Integer> maxTriesSameHost,
@@ -53,6 +54,25 @@ class CassandraRequestExceptionHandler {
         this.maxTriesTotal = maxTriesTotal;
         this.useConservativeHandler = useConservativeHandler;
         this.blacklist = blacklist;
+        this.overrideStrategyForTest = Optional.empty();
+    }
+
+    private CassandraRequestExceptionHandler(
+            Supplier<Integer> maxTriesSameHost,
+            Supplier<Integer> maxTriesTotal,
+            Blacklist blacklist) {
+        this.maxTriesSameHost = maxTriesSameHost;
+        this.maxTriesTotal = maxTriesTotal;
+        this.useConservativeHandler = () -> true;
+        this.blacklist = blacklist;
+        this.overrideStrategyForTest = Optional.of(NoBackoffForTesting.INSTANCE);
+    }
+
+    static CassandraRequestExceptionHandler withNoBackoffForTest(
+            Supplier<Integer> maxTriesSameHost,
+            Supplier<Integer> maxTriesTotal,
+            Blacklist blacklist) {
+        return new CassandraRequestExceptionHandler(maxTriesSameHost, maxTriesTotal, blacklist);
     }
 
     @SuppressWarnings("unchecked")
@@ -68,11 +88,12 @@ class CassandraRequestExceptionHandler {
         RequestExceptionHandlerStrategy strategy = getStrategy();
 
         req.triedOnHost(hostTried);
+        req.registerException(ex);
         int numberOfAttempts = req.getNumberOfAttempts();
         int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(hostTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
-            logAndThrowException(numberOfAttempts, ex);
+            throw logAndThrowException(numberOfAttempts, ex, req);
         }
 
         if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
@@ -86,6 +107,10 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     RequestExceptionHandlerStrategy getStrategy() {
+        return overrideStrategyForTest.orElse(resolveStrategy());
+    }
+
+    private RequestExceptionHandlerStrategy resolveStrategy() {
         if (useConservativeHandler.get()) {
             return Conservative.INSTANCE;
         } else {
@@ -93,28 +118,16 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <K extends Exception> void logAndThrowException(int numberOfAttempts, Exception ex) throws K {
-        if (ex instanceof TTransportException
-                && ex.getCause() != null
-                && (ex.getCause().getClass() == SocketException.class)) {
-            log.warn(CONNECTION_FAILURE_MSG_WITH_EXCEPTION_INFO,
-                    SafeArg.of("numTries", numberOfAttempts),
-                    SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                    UnsafeArg.of("exceptionMessage", ex.getMessage()));
-            String errorMsg = MessageFormatter.format(CONNECTION_FAILURE_MSG, numberOfAttempts).getMessage();
-            throw (K) new TTransportException(((TTransportException) ex).getType(), errorMsg, ex);
-        } else {
-            log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
-                    SafeArg.of("numTries", numberOfAttempts),
-                    SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
-                    UnsafeArg.of("exceptionMessage", ex.getMessage()));
-            throw (K) ex;
-        }
+    private AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
+            RetryableCassandraRequest<?, ?> req) {
+        log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
+                SafeArg.of("numTries", numberOfAttempts),
+                SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
+                UnsafeArg.of("exceptionMessage", ex.getMessage()));
+        throw req.throwLimitReached();
     }
 
-    @SuppressWarnings("unchecked")
-    private <K extends Exception> void logNumberOfAttempts(Exception ex, int numberOfAttempts) throws K {
+    private void logNumberOfAttempts(Exception ex, int numberOfAttempts) {
         // Only log the actual exception the first time
         if (numberOfAttempts > 1) {
             log.debug("Error occurred talking to cassandra. Attempt {} of {}. Exception message was: {} : {}",
@@ -130,7 +143,6 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    // TODO(gmaretic): figure out if this needs to be changed
     @VisibleForTesting
     boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
         return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
@@ -224,13 +236,6 @@ class CassandraRequestExceptionHandler {
                 || isFastFailoverException(ex.getCause()));
     }
 
-    private static final String CONNECTION_FAILURE_MSG = "Tried to connect to cassandra {} times."
-            + " Error writing to Cassandra socket."
-            + " Likely cause: Exceeded maximum thrift frame size;"
-            + " unlikely cause: network issues.";
-    private static final String CONNECTION_FAILURE_MSG_WITH_EXCEPTION_INFO = CONNECTION_FAILURE_MSG
-            + " Exception message was: {} : {}";
-
     @VisibleForTesting
     interface RequestExceptionHandlerStrategy {
         boolean shouldBackoff(Exception ex);
@@ -288,6 +293,15 @@ class CassandraRequestExceptionHandler {
         public boolean shouldRetryOnDifferentHost(Exception ex, int maxTriesSameHost, int numberOfAttempts) {
             return isFastFailoverException(ex) || isIndicativeOfCassandraLoad(ex)
                     || numberOfAttempts >= maxTriesSameHost;
+        }
+    }
+
+    private static class NoBackoffForTesting extends Conservative {
+        private static final RequestExceptionHandlerStrategy INSTANCE = new NoBackoffForTesting();
+
+        @Override
+        public long getBackoffPeriod(int numberOfAttempts) {
+            return 0;
         }
     }
 }

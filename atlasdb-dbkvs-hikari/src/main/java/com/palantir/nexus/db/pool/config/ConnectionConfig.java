@@ -105,6 +105,21 @@ public abstract class ConnectionConfig {
         return 45;
     }
 
+    @Value.Default
+    public String getConnectionPoolIdentifier() {
+        return "db-pool";
+    }
+
+    @JsonIgnore
+    @Value.Derived
+    public String getConnectionPoolName() {
+        return String.format(
+                "%s-%s-%s",
+                getConnectionPoolIdentifier(),
+                getConnId(),
+                getDbLogin());
+    }
+
     /**
      * This is JsonIgnore'd because it doesn't serialise. Serialisation is needed for atlasdb-dropwizard-bundle.
      */
@@ -127,7 +142,7 @@ public abstract class ConnectionConfig {
 
         Properties props = getHikariProperties();
 
-        config.setPoolName("db-pool-" + getConnId() + "-" + getDbLogin());
+        config.setPoolName(getConnectionPoolName());
         config.setRegisterMbeans(true);
         config.setMetricRegistry(SharedMetricRegistries.getOrCreate("com.palantir.metrics"));
 
