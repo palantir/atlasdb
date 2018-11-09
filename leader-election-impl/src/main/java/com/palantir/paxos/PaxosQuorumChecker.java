@@ -58,6 +58,7 @@ public final class PaxosQuorumChecker {
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
 
+    private static final Meter requestExecutionRejection = new Meter();
     private static final Meter cancelOutstandingRequestNoOp =  new Meter();
     private static final Meter cancelOutstandingRequestSuccess = new Meter();
 
@@ -179,8 +180,11 @@ public final class PaxosQuorumChecker {
             try {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
             } catch (RejectedExecutionException e) {
+                requestExecutionRejection.mark();
                 if (shouldLogDiagnosticInformation()) {
-                    log.warn("Quorum checker executor rejected task", e);
+                    log.info("Quorum checker executor rejected task", e);
+                    log.info("Rate of execution rejections: {}",
+                            SafeArg.of("rate1m", requestExecutionRejection.getOneMinuteRate()));
                 }
             }
         }
@@ -313,6 +317,6 @@ public final class PaxosQuorumChecker {
     }
 
     private static boolean shouldLogDiagnosticInformation() {
-        return Math.random() < 0.01;
+        return Math.random() < 0.001;
     }
 }
