@@ -190,6 +190,16 @@
 <td>The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently  across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3631">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Re-introduced the distinct bounded thread pools to PaxosLeaderElectionService for communication with other PaxosLearners and PingableLeaders.
+Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+This change also improves visibility as to which specific communication workflows may be suffering from issues.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3596">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3596">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
