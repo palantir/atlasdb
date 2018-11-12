@@ -96,7 +96,7 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(trustContext, Optional.empty(),  userAgent))
+                .client(FeignOkHttpClients.newOkHttpClient(trustContext, Optional.empty(), userAgent))
                 .target(type, uri);
     }
 
@@ -145,7 +145,7 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-            FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent));
+                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent));
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
