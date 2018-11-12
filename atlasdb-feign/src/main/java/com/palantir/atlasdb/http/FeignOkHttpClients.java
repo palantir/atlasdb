@@ -106,8 +106,10 @@ public final class FeignOkHttpClients {
     }
 
     /**
-     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}, which re-creates
-     * itself periodically (by default, every ScheduledRefreshingClient.STANDARD_REFRESH_INTERVAL time).
+     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}. This {@link Client} recreates
+     * itself in the event that either {@link CounterBackedRefreshingClient#DEFAULT_REQUEST_COUNT_BEFORE_REFRESH}
+     * requests have been made, or if {@link ExceptionCountingRefreshingClient#DEFAULT_EXCEPTION_COUNT_BEFORE_REFRESH}
+     * consecutive exceptions have been thrown by the underlying client.
      */
     public static Client newRefreshingOkHttpClient(
             Optional<TrustContext> trustContext,
