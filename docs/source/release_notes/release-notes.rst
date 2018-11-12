@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
          
-    *    -
-         -
+    *    - |improved|
+         - Sha256Hash now caches its Java hashCode method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3633>`__)
 
 =======
 0.108.0
