@@ -96,7 +96,6 @@ public class FlakeRetryingRule implements TestRule {
                 if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> type.isInstance(t))) {
                     logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, t);
                 } else {
-                    // This covers other Errors, where it generally doesn't make sense to retry.
                     throw Throwables.propagate(t);
                 }
             }
