@@ -50,8 +50,27 @@ develop
     *    - Type
          - Change
          
-    *    -
-         -
+    *    - |Improved|
+         - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, now passes in X509TrustManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
+         
+    *    - |improved|
+         - Sha256Hash now caches its Java hashCode method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3633>`__)
+
+    *    - |improved|
+         - The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently  across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3631>`__)
+
+    *    - |fixed|
+         - Re-introduced the distinct bounded thread pools to PaxosLeaderElectionService for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
 
 =======
 0.108.0
