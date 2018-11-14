@@ -37,22 +37,26 @@ public class SweepQueueDeleter {
 
     private final KeyValueService kvs;
     private final TargetedSweepFollower follower;
+    private final TargetedSweepFilter filter;
 
-    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower) {
+    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower,
+            TargetedSweepFilter filter) {
         this.kvs = kvs;
         this.follower = follower;
+        this.filter = filter;
     }
 
     /**
      * Executes targeted sweep, by inserting ranged tombstones corresponding to the given writes, using the sweep
      * strategy determined by the sweeper.
      *
-     * @param writes individual writes to sweep for. Depending on the strategy, we will insert a ranged tombstone for
-     * each write at either the write's timestamp - 1, or at its timestamp.
+     * @param unfilteredWrites individual writes to sweep for. Depending on the strategy, we will insert a ranged
+     * tombstone for each write at either the write's timestamp - 1, or at its timestamp.
      * @param sweeper supplies the strategy-specific behaviour: the timestamp for the tombstone and whether we must use
      * sentinels or not.
      */
-    public void sweep(Collection<WriteInfo> writes, Sweeper sweeper) {
+    public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
+        Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
         Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
         for (Map.Entry<TableReference, Map<Cell, Long>> entry : maxTimestampByCell.entrySet()) {
             try {
