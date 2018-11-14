@@ -55,6 +55,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
          
     *    - |improved|
+         - Sha256Hash now caches its Java hashCode method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3633>`__)
+
+    *    - |improved|
          - The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently  across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3631>`__)
 
