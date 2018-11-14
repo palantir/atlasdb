@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.net.ssl.SSLSocketFactory;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -56,9 +55,10 @@ import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 public class AtlasDbHttpClientsTest {
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
+    private static final Optional<TrustContext> NO_SSL = Optional.empty();
     private static final String TEST_ENDPOINT = "/number";
     private static final MappingBuilder ENDPOINT_MAPPING = get(urlEqualTo(TEST_ENDPOINT));
     private static final int TEST_NUMBER = 12;
@@ -165,7 +165,7 @@ public class AtlasDbHttpClientsTest {
                 () -> ImmutableServerListConfig.builder()
                         .servers(servers)
                         .build(),
-                SslSocketFactories::createSslSocketFactory,
+                SslSocketFactories::createTrustContext,
                 unused -> ProxySelector.getDefault(),
                 TestResource.class,
                 "user (123)");
@@ -187,7 +187,7 @@ public class AtlasDbHttpClientsTest {
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
                 () -> ImmutableServerListConfig.builder().build(),
-                SslSocketFactories::createSslSocketFactory,
+                SslSocketFactories::createTrustContext,
                 proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
@@ -202,7 +202,7 @@ public class AtlasDbHttpClientsTest {
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
                 config::get,
-                SslSocketFactories::createSslSocketFactory,
+                SslSocketFactories::createTrustContext,
                 proxyConfiguration -> ProxySelector.getDefault(),
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
