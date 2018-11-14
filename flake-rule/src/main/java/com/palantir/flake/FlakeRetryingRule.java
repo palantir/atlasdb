@@ -93,13 +93,17 @@ public class FlakeRetryingRule implements TestRule {
                         retryAnnotation.numAttempts());
                 return;
             } catch (Throwable t) {
-                if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> type.isInstance(t))) {
+                if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> causeHasType(t, type))) {
                     logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, t);
                 } else {
                     throw Throwables.propagate(t);
                 }
             }
         }
+    }
+
+    private static boolean causeHasType(Throwable cause, Class<? extends Throwable> type) {
+        return cause != null && (type.isInstance(cause) || causeHasType(cause.getCause(), type));
     }
 
     private static void logFailureAndThrowIfNeeded(
