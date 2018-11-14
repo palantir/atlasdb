@@ -84,6 +84,10 @@ develop
          - Change
 
     *    - |fixed|
+         - Targeted sweep now handles table truncations with conservative sweeps correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3610>`__)
+
+    *    - |fixed|
          - Cassandra KVS no longer uses the schema mutation lock and instead creates tables using an id deterministically generated from the Cassandra keyspace and the table name.
            As part of this change, table deletion now truncates the table before dropping it in Cassandra, therefore requiring all Cassandra nodes to be available to drop tables.
            This fixes a bug where it was possible to create two instances of the same table on two different Cassandra nodes, resulting in schema version inconsistency that required manual intervention.
