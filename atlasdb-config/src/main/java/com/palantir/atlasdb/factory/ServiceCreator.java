@@ -23,10 +23,10 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -71,15 +71,16 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     /**
      * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
      */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Just mapping
     public static Optional<TrustContext> createTrustContext(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.map(config -> SslSocketFactories.createTrustContext(config));
+        return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
     private static <T> T createService(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            java.util.function.Function<SslConfiguration, TrustContext> trustContextCreator,
-            java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Function<SslConfiguration, TrustContext> trustContextCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
