@@ -22,8 +22,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
@@ -31,6 +29,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
@@ -44,27 +43,30 @@ public final class AtlasDbHttpClients {
      * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
      * default Feign HTTP client.
      */
-    public static <T> T createProxy(MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory, String uri, Class<T> type) {
-        return createProxy(metricRegistry, sslSocketFactory, uri, type, UserAgents.DEFAULT_USER_AGENT);
+    public static <T> T createProxy(
+            MetricRegistry metricRegistry,
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type) {
+        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> T createProxy(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
             String userAgent) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(trustContext, uri, type, userAgent),
                 MetricRegistry.name(type));
     }
 
     public static <T> T createProxy(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             String uri,
             boolean refreshingHttpClient,
             Class<T> type,
@@ -72,7 +74,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(sslSocketFactory, uri, refreshingHttpClient, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(trustContext, uri, refreshingHttpClient, type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -82,33 +84,35 @@ public final class AtlasDbHttpClients {
      */
     public static <T> List<T> createProxies(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory, Collection<String> endpointUris, Class<T> type) {
-        return createProxies(metricRegistry, sslSocketFactory, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
+            Optional<TrustContext> trustContext,
+            Collection<String> endpointUris,
+            Class<T> type) {
+        return createProxies(metricRegistry, trustContext, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
     }
 
     public static <T> List<T> createProxies(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, sslSocketFactory, uri, type, userAgent));
+            ret.add(createProxy(metricRegistry, trustContext, uri, type, userAgent));
         }
         return ret;
     }
 
     public static <T> List<T> createProxies(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Collection<String> endpointUris,
             boolean refreshingHttpClient,
             Class<T> type,
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, sslSocketFactory, uri, refreshingHttpClient, type, userAgent));
+            ret.add(createProxy(metricRegistry, trustContext, uri, refreshingHttpClient, type, userAgent));
         }
         return ret;
     }
@@ -120,12 +124,12 @@ public final class AtlasDbHttpClients {
     @Deprecated
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Collection<String> endpointUris,
             Class<T> type) {
         return createProxyWithFailover(
                 metricRegistry,
-                sslSocketFactory,
+                trustContext,
                 Optional.empty(),
                 endpointUris,
                 type,
@@ -139,13 +143,13 @@ public final class AtlasDbHttpClients {
     @Deprecated
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Collection<String> endpointUris,
             Class<T> type,
             String userAgent) {
         return createProxyWithFailover(
                 metricRegistry,
-                sslSocketFactory,
+                trustContext,
                 Optional.empty(),
                 endpointUris,
                 type,
@@ -161,13 +165,13 @@ public final class AtlasDbHttpClients {
      */
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type) {
         return createProxyWithFailover(
                 metricRegistry,
-                sslSocketFactory,
+                trustContext,
                 proxySelector,
                 endpointUris,
                 type,
@@ -176,7 +180,7 @@ public final class AtlasDbHttpClients {
 
     public static <T> T createProxyWithFailover(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type,
@@ -185,14 +189,14 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        sslSocketFactory, proxySelector, endpointUris, type, userAgent),
+                        trustContext, proxySelector, endpointUris, type, userAgent),
                 MetricRegistry.name(type));
     }
 
     public static <T> T createLiveReloadingProxyWithFailover(
             MetricRegistry metricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
@@ -200,7 +204,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent),
+                        serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -208,7 +212,7 @@ public final class AtlasDbHttpClients {
     static <T> T createLiveReloadingProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
+            Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
@@ -217,7 +221,7 @@ public final class AtlasDbHttpClients {
                 type,
                 AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
                         serverListConfigSupplier,
-                        sslSocketFactoryCreator,
+                        trustContextCreator,
                         proxySelectorCreator,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
                         QUICK_FEIGN_TIMEOUT_MILLIS,
@@ -230,13 +234,15 @@ public final class AtlasDbHttpClients {
     @VisibleForTesting
     static <T> T createProxyWithQuickFailoverForTesting(
             MetricRegistry metricRegistry,
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector, Collection<String> endpointUris, Class<T> type) {
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            Collection<String> endpointUris,
+            Class<T> type) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        sslSocketFactory,
+                        trustContext,
                         proxySelector,
                         endpointUris,
                         QUICK_FEIGN_TIMEOUT_MILLIS,

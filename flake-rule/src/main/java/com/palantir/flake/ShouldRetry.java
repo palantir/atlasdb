@@ -38,4 +38,10 @@ public @interface ShouldRetry {
      * Values provided should be strictly positive; behaviour when this value is zero or negative is undefined.
      */
     int numAttempts() default 5;
+
+    /**
+     * Array specifying which types of Throwables should be retried. The default value throws a very wide net, and
+     * should ideally be replaced by a more specific list.
+     */
+    Class<? extends Throwable>[] retryableExceptions() default {AssertionError.class, Exception.class};
 }

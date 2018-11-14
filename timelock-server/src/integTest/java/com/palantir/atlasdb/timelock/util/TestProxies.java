@@ -21,8 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -32,11 +30,12 @@ import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 public class TestProxies {
 
-    public static final SSLSocketFactory SSL_SOCKET_FACTORY =
-            SslSocketFactories.createSslSocketFactory(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
+    public static final TrustContext TRUST_CONTEXT =
+            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     private final String baseUri;
     private final List<TimeLockServerHolder> servers;
@@ -61,7 +60,7 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(SSL_SOCKET_FACTORY),
+                Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));
@@ -75,7 +74,7 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                Optional.of(SSL_SOCKET_FACTORY),
+                Optional.of(TRUST_CONTEXT),
                 uris,
                 serviceInterface,
                 getClass().toString()));
