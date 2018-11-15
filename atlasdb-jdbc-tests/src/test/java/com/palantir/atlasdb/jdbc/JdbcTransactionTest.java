@@ -15,13 +15,17 @@
  */
 package com.palantir.atlasdb.jdbc;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import org.junit.ClassRule;
+
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 
 public class JdbcTransactionTest extends AbstractTransactionTest {
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return JdbcTests.createEmptyKvs();
+    @ClassRule
+    public static final TestResourceManager TRM = new TestResourceManager(JdbcTests::createEmptyKvs);
+
+    public JdbcTransactionTest() {
+        super(TRM, TRM);
     }
 
     @Override

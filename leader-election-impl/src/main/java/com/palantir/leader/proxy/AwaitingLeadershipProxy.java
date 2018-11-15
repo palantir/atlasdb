@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -48,6 +49,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
 
     private static final long MAX_NO_QUORUM_RETRIES = 10;
+    private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
 
     public static <U> U newProxyInstance(Class<U> interfaceClass,
                                          Supplier<U> delegateSupplier,
@@ -116,7 +118,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipBlocking);
+            executor.submit(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);
@@ -124,16 +126,28 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
     }
 
-    private void gainLeadershipBlocking() {
+    private void gainLeadershipWithRetry() {
+        while (!gainLeadershipBlocking()) {
+            try {
+                Thread.sleep(GAIN_LEADERSHIP_BACKOFF.toMillis());
+            } catch (InterruptedException e) {
+                log.warn("gain leadership backoff interrupted");
+            }
+        }
+    }
+
+    private boolean gainLeadershipBlocking() {
         log.debug("Block until gained leadership");
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             onGainedLeadership(leadershipToken);
+            return true;
         } catch (InterruptedException e) {
             log.warn("attempt to gain leadership interrupted", e);
         } catch (Throwable e) {
             log.error("problem blocking on leadership", e);
         }
+        return false;
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
@@ -176,8 +190,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
-        final LeadershipToken leadershipToken = getLeadershipToken();
-
         if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;
@@ -185,6 +197,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             clearDelegate();
             return null;
         }
+
+        final LeadershipToken leadershipToken = getLeadershipToken();
 
         Object delegate = delegateRef.get();
         StillLeadingStatus leading = null;

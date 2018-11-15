@@ -24,17 +24,14 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 
 public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
-    public static final CassandraResource CASSANDRA = new CassandraResource(
-            CassandraKeyValueServiceIntegrationTest.class);
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @Override
-    protected KeyValueService createKeyValueService() {
-        return CASSANDRA.getDefaultKvs();
+    public CassandraGetCandidateCellsForSweepingTest() {
+        super(CASSANDRA);
     }
 
     @Test
@@ -58,5 +55,4 @@ public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandid
                         .isLatestValueEmpty(false)
                         .build());
     }
-
 }

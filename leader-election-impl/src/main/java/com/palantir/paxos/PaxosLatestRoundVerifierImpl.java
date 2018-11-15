@@ -16,6 +16,7 @@
 package com.palantir.paxos;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
@@ -30,15 +31,15 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
 
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
-    private final ExecutorService executor;
+    private final Map<PaxosAcceptor, ExecutorService> executors;
     private final Supplier<Boolean> onlyLogOnQuorumFailure;
 
     public PaxosLatestRoundVerifierImpl(
             List<PaxosAcceptor> acceptors, int quorumSize,
-            ExecutorService executor, Supplier<Boolean> onlyLogOnQuorumFailure) {
+            Map<PaxosAcceptor, ExecutorService> executors, Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
-        this.executor = executor;
+        this.executors = executors;
         this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
     }
 
@@ -54,7 +55,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
                 acceptors,
                 acceptor -> new PaxosResponseImpl(acceptorAgreesIsLatestRound(acceptor, round)),
                 quorumSize,
-                executor,
+                executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
                 onlyLogOnQuorumFailure.get());
     }

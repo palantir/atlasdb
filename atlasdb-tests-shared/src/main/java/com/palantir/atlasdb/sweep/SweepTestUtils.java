@@ -26,6 +26,7 @@ import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.schema.SweepSchema;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -96,20 +97,22 @@ public final class SweepTestUtils {
         }
     }
 
-    private static void setupTables(KeyValueService kvs) {
+    static void setupTables(KeyValueService kvs) {
         tearDownTables(kvs);
         TransactionTables.createTables(kvs);
         Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 
     private static void tearDownTables(KeyValueService kvs) {
+        // do not truncate the targeted sweep table identifier tables
+        Schemas.truncateTablesAndIndexes(TargetedSweepSchema.schemaWithoutTableIdentifierTables(), kvs);
         Awaitility.await()
                 .timeout(Duration.FIVE_MINUTES)
                 .until(() -> {
-                    kvs.getAllTableNames().forEach(kvs::dropTable);
+                    kvs.getAllTableNames().stream()
+                            .filter(ref -> !TargetedSweepSchema.INSTANCE.getLatestSchema().getAllTables().contains(ref))
+                            .forEach(kvs::truncateTable);
                     return true;
                 });
-        TransactionTables.deleteTables(kvs);
-        Schemas.deleteTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), kvs);
     }
 }

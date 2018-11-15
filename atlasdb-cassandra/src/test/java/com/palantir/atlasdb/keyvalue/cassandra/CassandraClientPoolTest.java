@@ -50,6 +50,7 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -184,7 +185,7 @@ public class CassandraClientPoolTest {
         setConditionalTimeoutFailureForHost(container, unused -> fail.get());
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool))
-                .isInstanceOf(SocketTimeoutException.class);
+                .isInstanceOf(AtlasDbDependencyException.class);
         assertThat(blacklist.contains(HOST_1), is(true));
 
         fail.set(false);

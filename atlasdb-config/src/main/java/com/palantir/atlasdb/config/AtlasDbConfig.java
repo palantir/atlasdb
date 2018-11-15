@@ -20,6 +20,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -35,6 +37,8 @@ import com.palantir.exception.NotInitializedException;
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
 @Value.Immutable
 public abstract class AtlasDbConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbConfig.class);
 
     @VisibleForTesting
     static final String UNSPECIFIED_NAMESPACE = "unspecified";
@@ -273,6 +277,18 @@ public abstract class AtlasDbConfig {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
         checkNamespaceConfigAndGetNamespace();
+        checkSweepConfigs();
+    }
+
+    private void checkSweepConfigs() {
+        if (getSweepBatchSize() != null
+                || getSweepCellBatchSize() != null
+                || getSweepReadLimit() != null
+                || getSweepCandidateBatchHint() != null
+                || getSweepDeleteBatchHint() != null) {
+            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
+                    + " Please use the runtime config to specify them.");
+        }
     }
 
     private void checkLeaderAndTimelockBlocks() {

@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTimestampStoreInvalidator;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
@@ -58,8 +57,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
-            boolean initializeAsync,
-            QosClient qosClient) {
+            boolean initializeAsync) {
         AtlasDbVersion.ensureVersionReported();
         CassandraKeyValueServiceConfig preprocessedConfig = preprocessKvsConfig(config, runtimeConfig, namespace);
         Supplier<CassandraKeyValueServiceRuntimeConfig> cassandraRuntimeConfig = preprocessKvsRuntimeConfig(
@@ -70,8 +68,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 cassandraRuntimeConfig,
                 leaderConfig,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
-                initializeAsync,
-                qosClient);
+                initializeAsync);
     }
 
     @VisibleForTesting

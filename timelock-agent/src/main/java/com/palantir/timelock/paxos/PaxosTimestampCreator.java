@@ -22,8 +22,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -41,6 +39,7 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.remoting3.config.ssl.TrustContext;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
@@ -50,12 +49,12 @@ public class PaxosTimestampCreator implements TimestampCreator {
     private final MetricRegistry metricRegistry;
     private final PaxosResource paxosResource;
     private final Set<String> remoteServers;
-    private final Optional<SSLSocketFactory> optionalSecurity;
+    private final Optional<TrustContext> optionalSecurity;
     private final Supplier<PaxosRuntimeConfiguration> paxosRuntime;
 
     public PaxosTimestampCreator(MetricRegistry metricRegistry, PaxosResource paxosResource,
             Set<String> remoteServers,
-            Optional<SSLSocketFactory> optionalSecurity,
+            Optional<TrustContext> optionalSecurity,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
         this.metricRegistry = metricRegistry;
         this.paxosResource = paxosResource;

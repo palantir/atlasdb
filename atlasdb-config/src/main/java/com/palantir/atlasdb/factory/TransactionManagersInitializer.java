@@ -17,35 +17,33 @@ package com.palantir.atlasdb.factory;
 
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.common.annotation.Idempotent;
 
 public final class TransactionManagersInitializer extends AsyncInitializer {
+
     private KeyValueService keyValueService;
     private Set<Schema> schemas;
-    private SchemaMetadataService schemaMetadataService;
 
-    public static TransactionManagersInitializer createInitialTables(KeyValueService keyValueService,
+    public static TransactionManagersInitializer createInitialTables(
+            KeyValueService keyValueService,
             Set<Schema> schemas,
-            SchemaMetadataService schemaMetadataService,
             boolean initializeAsync) {
-        TransactionManagersInitializer initializer = new TransactionManagersInitializer(
-                keyValueService, schemas, schemaMetadataService);
+        TransactionManagersInitializer initializer = new TransactionManagersInitializer(keyValueService, schemas);
         initializer.initialize(initializeAsync);
         return initializer;
     }
 
-    private TransactionManagersInitializer(
-            KeyValueService keyValueService, Set<Schema> schemas, SchemaMetadataService schemaMetadataService) {
+    @VisibleForTesting
+    TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas) {
         this.keyValueService = keyValueService;
         this.schemas = schemas;
-        this.schemaMetadataService = schemaMetadataService;
     }
 
     @Override
@@ -53,12 +51,17 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     public synchronized void tryInitialize() {
         TransactionTables.createTables(keyValueService);
 
+        createTablesAndIndexes();
+        populateLoggingContext();
+    }
+
+    private void createTablesAndIndexes() {
         for (Schema schema : schemas) {
             Schemas.createTablesAndIndexes(schema, keyValueService);
-            schemaMetadataService.putSchemaMetadata(schema.getName(), schema.getSchemaMetadata());
         }
+    }
 
-        // Prime the key value service with logging information.
+    private void populateLoggingContext() {
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         LoggingArgs.hydrate(keyValueService.getMetadataForTables());
     }

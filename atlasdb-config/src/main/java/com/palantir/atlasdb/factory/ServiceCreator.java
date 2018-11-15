@@ -23,12 +23,10 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -38,6 +36,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final MetricsManager metricsManager;
@@ -63,29 +62,30 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return createService(
                 metricsManager,
                 input,
-                SslSocketFactories::createSslSocketFactory,
+                SslSocketFactories::createTrustContext,
                 ServiceCreator::createProxySelector,
                 serviceClass,
                 userAgent);
     }
 
     /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
+     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
      */
-    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.map(config -> SslSocketFactories.createSslSocketFactory(config));
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Just mapping
+    public static Optional<TrustContext> createTrustContext(Optional<SslConfiguration> sslConfiguration) {
+        return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
     private static <T> T createService(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            java.util.function.Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
-            java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Function<SslConfiguration, TrustContext> trustContextCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
+                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

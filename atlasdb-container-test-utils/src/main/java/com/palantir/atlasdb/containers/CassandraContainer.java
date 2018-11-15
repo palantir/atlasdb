@@ -37,7 +37,7 @@ public class CassandraContainer extends Container {
     private static final String CONTAINER_NAME = "cassandra";
     private static final String THROWAWAY_CONTAINER_NAME = "cassandra2";
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
+    static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
             .builder()
             .quorumSize(1)
             .localServer("localhost")

@@ -37,10 +37,9 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    private final ScheduledExecutorService singleThreadedExecutor = getExecutorService();
+    private final ScheduledExecutorService singleThreadedExecutor = createExecutorService();
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
-    private volatile boolean initialized = false;
-    private volatile boolean canceledInitialization = false;
+    private AsyncInitializationState state = new AsyncInitializationState();
     private int numberOfInitializationAttempts = 1;
     private Long initializationStartTime;
 
@@ -83,7 +82,6 @@ public abstract class AsyncInitializer {
                         SafeArg.of("initializationDuration", System.currentTimeMillis() - initializationStartTime),
                         cleanupThrowable);
             }
-
             scheduleInitialization();
         }
     }
@@ -91,7 +89,8 @@ public abstract class AsyncInitializer {
     // Not final for tests.
     void scheduleInitialization() {
         singleThreadedExecutor.schedule(() -> {
-            if (canceledInitialization) {
+            if (state.isCancelled()) {
+                singleThreadedExecutor.shutdown();
                 return;
             }
 
@@ -100,7 +99,7 @@ public abstract class AsyncInitializer {
     }
 
     // Not final for tests
-    ScheduledExecutorService getExecutorService() {
+    ScheduledExecutorService createExecutorService() {
         return PTExecutors.newSingleThreadScheduledExecutor(
                 new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
     }
@@ -119,20 +118,16 @@ public abstract class AsyncInitializer {
     }
 
     /**
-     * Cancels future initializations and registers a callback to be called if the initialization is happening.
+     * Cancels future initializations and registers a callback to be called if the initialization is happening and
+     * succeeds. If the initialization has already successfully completed, runs the cleanup task synchronously.
+     *
      * If the instance is closeable, it's recommended that the this method is invoked in a close call, and the callback
      * contains a call to the instance's close method.
      */
     protected final void cancelInitialization(Runnable handler) {
-        canceledInitialization = true;
-
-        singleThreadedExecutor.submit(() -> {
-            if (isInitialized()) {
-                handler.run();
-            }
-        });
-
-        singleThreadedExecutor.shutdown();
+        if (state.initToCancelWithCleanupTask(handler) == AsyncInitializationState.State.DONE) {
+            handler.run();
+        }
     }
 
     protected final void checkInitialized() {
@@ -143,17 +138,15 @@ public abstract class AsyncInitializer {
 
     private void tryInitializeInternal() {
         tryInitialize();
-        initialized = true;
-
-        // Close calls after this point will be handled by the object itself.
-        // There might be a close call already scheduled, so we need to schedule this shutdown to run after this
-        // possible close call.
-        singleThreadedExecutor.schedule(singleThreadedExecutor::shutdown, 0, TimeUnit.MILLISECONDS);
+        if (state.initToDone() == AsyncInitializationState.State.CANCELLED) {
+            state.performCleanupTask();
+        }
+        singleThreadedExecutor.shutdown();
     }
 
     // Not final for tests.
     public boolean isInitialized() {
-        return initialized;
+        return state.isDone();
     }
 
     /**

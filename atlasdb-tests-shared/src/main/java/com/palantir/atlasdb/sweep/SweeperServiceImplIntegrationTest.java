@@ -39,7 +39,6 @@ public class SweeperServiceImplIntegrationTest extends AbstractBackgroundSweeper
         putManyCells(TABLE_1, 100, 110);
         putManyCells(TABLE_1, 103, 113);
         putManyCells(TABLE_1, 105, 115);
-        sweepTimestamp.set(150);
         sweeperService.sweepTableFully(TABLE_1.getQualifiedName());
         verifyTableSwept(TABLE_1, 75, true);
     }

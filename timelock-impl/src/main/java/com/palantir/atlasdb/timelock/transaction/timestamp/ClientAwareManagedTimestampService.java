@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.transaction.timestamp;
 import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.lock.v2.TimestampAndPartition;
 
 /**
  * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client
@@ -36,5 +37,5 @@ public interface ClientAwareManagedTimestampService extends ManagedTimestampServ
      * @param clientIdentifier UUID identifying the client; should be consistent across the client's lifetime
      * @return a suitable timestamp
      */
-    long getFreshTimestampForClient(UUID clientIdentifier);
+    TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier);
 }

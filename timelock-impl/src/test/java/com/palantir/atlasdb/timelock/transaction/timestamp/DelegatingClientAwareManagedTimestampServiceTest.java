@@ -34,6 +34,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampRange;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
@@ -47,10 +48,10 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
     private static final TimestampRange TIMESTAMP_RANGE = TimestampRange.createInclusiveRange(
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS,
             DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 3);
-    private static final long RESIDUE_ONE_TIMESTAMP_IN_RANGE
-            = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1;
-    private static final long RESIDUE_TWO_TIMESTAMP_IN_RANGE
-            = DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2;
+    private static final TimestampAndPartition RESIDUE_ONE_TIMESTAMP_IN_RANGE
+            = TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 1, 1);
+    private static final TimestampAndPartition RESIDUE_TWO_TIMESTAMP_IN_RANGE
+            = TimestampAndPartition.of(DelegatingClientAwareManagedTimestampService.NUM_PARTITIONS + 2, 2);
 
     private static final TimestampRange TIMESTAMP_SEVEN = TimestampRange.createInclusiveRange(7, 7);
 

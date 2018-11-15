@@ -1158,6 +1158,32 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
     }
 
+    @Test
+    public void testThrowsIfSweepSentinelSeen() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+        t1.getTimestamp();
+        t2.getTimestamp();
+
+        t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+        t1.commit();
+
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+
+        assertThatExceptionOfType(TransactionFailedRetriableException.class)
+                .isThrownBy(() -> t2.get(TABLE, ImmutableSet.of(cell)))
+                .withMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void testIgnoresOrphanedSweepSentinel() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+        Transaction txn = txManager.createNewTransaction();
+        assertThat(txn.get(TABLE, ImmutableSet.of(cell)), is(ImmutableMap.of()));
+    }
+
     private SnapshotTransaction getSnapshotTransactionWith(
             TimelockService timelockService,
             Supplier<Long> startTs,

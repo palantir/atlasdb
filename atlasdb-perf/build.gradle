@@ -47,36 +47,3 @@ distZip {
     }
 }
 
-task postgresBenchmarkTest(type:Exec) {
-    logging.captureStandardOutput LogLevel.LIFECYCLE
-    dependsOn(installDist)
-    commandLine project.buildDir.toString() + "/install/atlasdb-perf/bin/atlasdb-perf", "--test-run", "--backend", "POSTGRES"
-}
-
-task cassandraBenchmarkTest(type:Exec) {
-    logging.captureStandardOutput LogLevel.LIFECYCLE
-    dependsOn(installDist)
-    commandLine project.buildDir.toString() + "/install/atlasdb-perf/bin/atlasdb-perf", "SweepBenchmarks.batchedSingleSweepRun", "--test-run", "--backend", "CASSANDRA"
-}
-
-test.dependsOn postgresBenchmarkTest
-test.dependsOn cassandraBenchmarkTest
-
-gradle.taskGraph.beforeTask { Task task ->
-    if (task.name.contains("BenchmarkTest")) {
-        logger.lifecycle("")
-        logger.lifecycle(task.name + " STARTED")
-    }
-}
-
-gradle.taskGraph.afterTask { Task task, TaskState state ->
-    if (task.name.contains("BenchmarkTest")) {
-        logger.lifecycle("")
-        if (state.failure) {
-            logger.lifecycle(task.name + " FAILED")
-            logger.error(state.failure.printStackTrace())
-        } else {
-            logger.lifecycle(task.name + " PASSED")
-        }
-    }
-}

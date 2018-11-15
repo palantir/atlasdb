@@ -8,18 +8,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import javax.annotation.Generated;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -205,9 +208,10 @@ public final class ValueStreamMetadataTable implements
                 return false;
             }
             ValueStreamMetadataRow other = (ValueStreamMetadataRow) obj;
-            return Objects.equal(id, other.id);
+            return Objects.equals(id, other.id);
         }
 
+        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -435,18 +439,6 @@ public final class ValueStreamMetadataTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putMetadataUnlessExists(ValueStreamMetadataRow row, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata value) {
-        putUnlessExists(ImmutableMultimap.of(row, Metadata.of(value)));
-    }
-
-    public void putMetadataUnlessExists(Map<ValueStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> map) {
-        Map<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<ValueStreamMetadataRow, com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata> e : map.entrySet()) {
-            toPut.put(e.getKey(), Metadata.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<ValueStreamMetadataRow, ? extends ValueStreamMetadataNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -454,17 +446,6 @@ public final class ValueStreamMetadataTable implements
         for (ValueStreamMetadataTrigger trigger : triggers) {
             trigger.putValueStreamMetadata(rows);
         }
-    }
-
-    public void putUnlessExists(Multimap<ValueStreamMetadataRow, ? extends ValueStreamMetadataNamedColumnValue<?>> rows) {
-        Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<ValueStreamMetadataRow, ValueStreamMetadataNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<ValueStreamMetadataRow, ? extends ValueStreamMetadataNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteMetadata(ValueStreamMetadataRow row) {
@@ -624,17 +605,15 @@ public final class ValueStreamMetadataTable implements
      * {@link Arrays}
      * {@link AssertUtils}
      * {@link AtlasDbConstraintCheckingMode}
-     * {@link AtlasDbDynamicMutableExpiringTable}
      * {@link AtlasDbDynamicMutablePersistentTable}
-     * {@link AtlasDbMutableExpiringTable}
      * {@link AtlasDbMutablePersistentTable}
-     * {@link AtlasDbNamedExpiringSet}
      * {@link AtlasDbNamedMutableTable}
      * {@link AtlasDbNamedPersistentSet}
      * {@link BatchColumnRangeSelection}
      * {@link BatchingVisitable}
      * {@link BatchingVisitableView}
      * {@link BatchingVisitables}
+     * {@link BiFunction}
      * {@link Bytes}
      * {@link Callable}
      * {@link Cell}
@@ -691,14 +670,16 @@ public final class ValueStreamMetadataTable implements
      * {@link Sets}
      * {@link Sha256Hash}
      * {@link SortedMap}
+     * {@link Stream}
      * {@link Supplier}
      * {@link TableReference}
      * {@link Throwables}
      * {@link TimeUnit}
      * {@link Transaction}
      * {@link TypedRowResult}
+     * {@link UUID}
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kEK3lzUCQ/RYFvGU6Ry0oQ==";
+    static String __CLASS_HASH = "1HU/TIwFyvu660P9AsggnA==";
 }

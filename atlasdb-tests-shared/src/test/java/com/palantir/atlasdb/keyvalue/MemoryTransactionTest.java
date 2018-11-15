@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import org.junit.ClassRule;
+
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class MemoryTransactionTest extends AbstractTransactionTest {
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return new InMemoryKeyValueService(false,
-                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(false)));
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+
+    public MemoryTransactionTest() {
+        super(TRM, TRM);
     }
 }

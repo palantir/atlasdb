@@ -30,6 +30,6 @@ class SweepQueueReader {
     SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
                 .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElse(SweepBatch.of(ImmutableList.of(), sweepTs - 1L));
+                .orElse(SweepBatch.of(ImmutableList.of(), DedicatedRows.of(ImmutableList.of()), sweepTs - 1L));
     }
 }

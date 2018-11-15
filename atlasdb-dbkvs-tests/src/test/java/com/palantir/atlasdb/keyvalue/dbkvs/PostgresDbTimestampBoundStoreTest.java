@@ -24,7 +24,7 @@ import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 
 public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
-    ConnectionManagerAwareDbKvs kvs;
+    private ConnectionManagerAwareDbKvs kvs;
 
     @After
     public void tearDown() throws Exception {
@@ -33,7 +33,7 @@ public class PostgresDbTimestampBoundStoreTest extends AbstractDbTimestampBoundS
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = ConnectionManagerAwareDbKvs.create(DbkvsPostgresTestSuite.getKvsConfig());
+        kvs = DbkvsPostgresTestSuite.createKvs();
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,

@@ -39,12 +39,17 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.common.base.ClosableIterator;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
     protected static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     protected static final String TEST_LONG_TABLE_NAME =
             "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";
+
+    public AbstractDbKvsKeyValueServiceTest(KvsManager kvsManager) {
+        super(kvsManager);
+    }
 
     @After
     public void resetMaxBatch() {
