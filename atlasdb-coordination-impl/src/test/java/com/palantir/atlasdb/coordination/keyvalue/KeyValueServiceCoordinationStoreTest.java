@@ -26,17 +26,19 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.ImmutableSequenceAndBound;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public class KeyValueServiceCoordinationStoreTest {
-    private static final byte[] COORDINATION_KEY = PtBytes.toBytes("aaaaa");
+    private static final byte[] COORDINATION_ROW = PtBytes.toBytes("aaaaa");
 
     private static final long SEQUENCE_NUMBER_1 = 1L;
     private static final String VALUE_1 = "oneunoeinyi1";
@@ -44,11 +46,12 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
 
+    private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
     private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
             ObjectMappers.newServerObjectMapper(),
-            new InMemoryKeyValueService(true),
-            COORDINATION_KEY,
+            keyValueService,
+            COORDINATION_ROW,
             timestampSequence::incrementAndGet,
             String.class);
 
@@ -118,5 +121,21 @@ public class KeyValueServiceCoordinationStoreTest {
         assertThat(coordinationStore.checkAndSetCoordinationValue(
                 Optional.empty(), SEQUENCE_AND_BOUND_2))
                 .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
+    }
+
+    @Test
+    public void multipleStoresCanCoexist() {
+        byte[] otherCoordinationKey = PtBytes.toBytes("bbbbb");
+        CoordinationStore<String> otherCoordinationStore
+                = KeyValueServiceCoordinationStore.create(
+                        ObjectMappers.newServerObjectMapper(),
+                        keyValueService,
+                        otherCoordinationKey,
+                        timestampSequence::incrementAndGet,
+                        String.class);
+        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
+        assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);
+        assertThat(otherCoordinationStore.getAgreedValue().get().value()).contains(VALUE_2);
     }
 }
