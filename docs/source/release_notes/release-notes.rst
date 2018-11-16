@@ -49,8 +49,14 @@ develop
 
     *    - Type
          - Change
-         
-    *    - |Improved|
+
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
+    *    - |improved|
          - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, now passes in X509TrustManager.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
          
