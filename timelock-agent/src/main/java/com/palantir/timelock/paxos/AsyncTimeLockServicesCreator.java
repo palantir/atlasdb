@@ -70,14 +70,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
-        AsyncOrLegacyTimelockService asyncOrLegacyTimelockService;
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 metricsManager.getTaggedRegistry(),
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
                 client);
-        asyncOrLegacyTimelockService = AsyncOrLegacyTimelockService.createFromAsyncTimelock(
-                new AsyncTimelockResource(lockLog, asyncTimelockService));
+        AsyncOrLegacyTimelockService asyncOrLegacyTimelockService =
+                AsyncOrLegacyTimelockService.createFromAsyncTimelock(
+                        new AsyncTimelockResource(lockLog, asyncTimelockService));
 
         LockService lockService = instrumentInLeadershipProxy(
                 metricsManager.getTaggedRegistry(),
