@@ -20,7 +20,6 @@ import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.timestamp.TimestampService;
 
 /**
@@ -46,11 +45,9 @@ public class InternalSchemaMetadataInitializer {
      * value.
      */
     public void ensureInternalSchemaMetadataInitialized() {
-        long initialTimestamp = timestampService.getFreshTimestamp() + ADVANCEMENT_QUANTUM;
         while (!coordinationService.getValueForTimestamp(ZERO_TIMESTAMP).isPresent()) {
-            coordinationService.tryTransformCurrentValue(optionalValueAndBound ->
-                    optionalValueAndBound
-                            .orElseGet(() -> ValueAndBound.of(getDefaultInternalSchemaMetadata(), initialTimestamp)));
+            coordinationService.tryTransformCurrentValue(valueAndBound -> valueAndBound.value()
+                    .orElseGet(this::getDefaultInternalSchemaMetadata));
         }
     }
 

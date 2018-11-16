@@ -58,5 +58,5 @@ public interface CoordinationService<T> {
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
      * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
 }

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.internalschema;
 import java.util.Optional;
 
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.ImmutableValueAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.timestamp.TimestampService;
@@ -41,7 +40,7 @@ public class TransactionSchemaManager {
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
         while (!possibleVersion.isPresent()) {
-            CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> casResult = tryPerpetuateExistingState(timestamp);
+            CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> casResult = tryPerpetuateExistingState();
             possibleVersion = extractTimestampVersion(casResult.existingValues()
                     .stream()
                     .filter(valueAndBound -> valueAndBound.bound() >= timestamp)
@@ -52,32 +51,21 @@ public class TransactionSchemaManager {
     }
 
     public void installNewTransactionsSchemaVersion(int newVersion) {
-        coordinationService.tryTransformCurrentValue(optionalValueAndBound -> {
-            if (!optionalValueAndBound.isPresent()) {
-                throw new IllegalStateException("Cannot install a new transactions schema version"
-                        + " if we don't have any old versions known.");
-            }
-            ValueAndBound<InternalSchemaMetadata> existingSchema = optionalValueAndBound.get();
-
-            if (!existingSchema.value().isPresent()) {
-                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
-            }
-
-            InternalSchemaMetadata presentMetadata = existingSchema.value().get();
-        });
+//        coordinationService.tryTransformCurrentValue(valueAndBound -> {
+//            if (!valueAndBound.value().isPresent()) {
+//                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
+//            }
+//
+//            InternalSchemaMetadata presentMetadata = valueAndBound.value().get();
+//
+//
+//        });
     }
 
-    private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState(long timestamp) {
-        return coordinationService.tryTransformCurrentValue(optionalValueAndBound -> {
-            if (!optionalValueAndBound.isPresent()) {
-                throw new IllegalStateException("Cannot perpetuate an existing state when none was available!");
-            }
-            ValueAndBound<InternalSchemaMetadata> valueAndBound = optionalValueAndBound.get();
-            if (valueAndBound.bound() >= timestamp) {
-                return valueAndBound;
-            }
-            return ImmutableValueAndBound.of(valueAndBound.value(), timestamp + ADVANCEMENT_QUANTUM);
-        });
+    private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
+        return coordinationService.tryTransformCurrentValue(valueAndBound ->
+                valueAndBound.value().orElseThrow(
+                        () -> new IllegalStateException("Cannot perpetuate an existing state that didn't exist!")));
     }
 
     private static Optional<Integer> extractTimestampVersion(

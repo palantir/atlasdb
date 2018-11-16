@@ -123,10 +123,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform) {
+    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        T targetValue = transform.apply(coordinationValue.flatMap(
-                sequenceAndBound -> getValue(sequenceAndBound.sequence())));
+        T targetValue = transform.apply(
+                ValueAndBound.of(coordinationValue.flatMap(
+                        sequenceAndBound -> getValue(sequenceAndBound.sequence())),
+                        coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND)));
 
         long sequenceNumber = sequenceNumberSupplier.getAsLong();
         putUnlessValueExists(sequenceNumber, targetValue);
