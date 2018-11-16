@@ -755,10 +755,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
-        return validateLocksOnReads && isValidationNecessary(tableRef);
+        return validateLocksOnReads && isThoroughSwept(tableRef);
     }
 
-    private boolean isValidationNecessary(TableReference tableRef) {
+    private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
+        return !validateLocksOnReads && isThoroughSwept(tableRef);
+    }
+
+    private boolean isThoroughSwept(TableReference tableRef) {
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
@@ -2058,7 +2062,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean validationNecessaryForInvolvedTables() {
-        return involvedTables.stream().anyMatch(this::isValidationNecessary);
+        return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
     }
 
     private long getStartTimestamp() {
