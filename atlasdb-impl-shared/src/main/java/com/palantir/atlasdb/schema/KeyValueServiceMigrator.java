@@ -21,9 +21,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -108,11 +108,12 @@ public class KeyValueServiceMigrator {
      * Drop and create tables before starting migration.
      */
     public void setup() {
-        processMessage("dropping tables: " + getCreatableTableNames(toKvs), KvsMigrationMessageLevel.INFO);
-        toKvs.dropTables(getCreatableTableNames(toKvs));
+        Set<TableReference> creatableTableNames = getCreatableTableNames(toKvs);
+        processMessage("dropping tables: " + creatableTableNames, KvsMigrationMessageLevel.INFO);
+        toKvs.dropTables(creatableTableNames);
 
         Map<TableReference, byte[]> metadataByTableName = Maps.newHashMap();
-        for (TableReference tableRef : getCreatableTableNames(fromKvs)) {
+        for (TableReference tableRef : creatableTableNames) {
             processMessage("retrieving metadata for table " + tableRef, KvsMigrationMessageLevel.INFO);
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
@@ -145,7 +146,7 @@ public class KeyValueServiceMigrator {
         try {
             internalMigrate();
         } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
@@ -153,10 +154,8 @@ public class KeyValueServiceMigrator {
      * On success, delete the checkpoint table.
      */
     public void cleanup() {
-        TransactionManager txManager = toTransactionManager;
-
         GeneralTaskCheckpointer checkpointer =
-                new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
+                new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
 
         processMessage("Deleting checkpoint table...", KvsMigrationMessageLevel.INFO);
         checkpointer.deleteCheckpoints();
@@ -166,19 +165,16 @@ public class KeyValueServiceMigrator {
 
     private void internalMigrate() throws InterruptedException {
         Set<TableReference> tables = KeyValueServiceMigrators.getMigratableTableNames(fromKvs, unmigratableTables);
-        TransactionManager txManager = toTransactionManager;
-
-        TransactionManager readTxManager = fromTransactionManager;
 
         GeneralTaskCheckpointer checkpointer =
-                new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
+                new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
         try {
             migrateTables(
                     tables,
-                    readTxManager,
-                    txManager,
+                    fromTransactionManager,
+                    toTransactionManager,
                     toKvs,
                     migrationTimestampSupplier.get(),
                     executor,
@@ -186,7 +182,7 @@ public class KeyValueServiceMigrator {
             processMessage("Data migration complete.", KvsMigrationMessageLevel.INFO);
         } catch (Throwable t) {
             processMessage("Migration failed.", t, KvsMigrationMessageLevel.ERROR);
-            Throwables.throwUncheckedException(t);
+            throw Throwables.throwUncheckedException(t);
         } finally {
             executor.shutdown();
             executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);
