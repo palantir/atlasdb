@@ -298,7 +298,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
-        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
@@ -1037,7 +1037,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
-        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+        if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
@@ -1190,7 +1190,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
-        Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 
         if (values.isEmpty()) {

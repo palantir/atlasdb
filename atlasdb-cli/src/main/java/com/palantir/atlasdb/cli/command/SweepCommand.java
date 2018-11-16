@@ -156,7 +156,7 @@ public class SweepCommand extends SingleBackendCommand {
         } else if (sweepAllTables) {
             tableToStartRow.putAll(Maps.asMap(
                     Sets.difference(
-                            services.getKeyValueService().getAllTableNames(), AtlasDbConstants.hiddenTables),
+                            services.getKeyValueService().getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES),
                     Functions.constant(new byte[0])));
         }
 

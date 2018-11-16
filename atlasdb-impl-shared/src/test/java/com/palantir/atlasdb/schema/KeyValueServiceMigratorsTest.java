@@ -44,24 +44,24 @@ public class KeyValueServiceMigratorsTest {
         when(fromKvs.getAllTableNames())
                 .thenReturn(ImmutableSet.of(AtlasDbConstants.OLD_SCRUB_TABLE, TABLE_TO_MIGRATE));
 
-        Set<TableReference> creatableTableNames = KeyValueServiceMigrators.getMigratableTableNames(fromKvs,
-                ImmutableSet.of());
+        Set<TableReference> creatableTableNames = KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs,
+                ImmutableSet.of(), null);
 
         assertThat(creatableTableNames).containsExactly(TABLE_TO_MIGRATE);
     }
 
     @Test
-    public void skipsOldCheckpointTables() {
+    public void skipsSpecifiedCheckpointTable() {
         TableReference noNamespaceCheckpoint =
-                TableReference.createWithEmptyNamespace(KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
+                TableReference.createWithEmptyNamespace(KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
         TableReference defaultNamespaceCheckpoint = TableReference.create(
-                Namespace.create("old_namespace"), KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
+                Namespace.create("old_namespace"), KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
         when(fromKvs.getAllTableNames())
                 .thenReturn(ImmutableSet.of(noNamespaceCheckpoint, defaultNamespaceCheckpoint, TABLE_TO_MIGRATE));
 
-        Set<TableReference> creatableTableNames = KeyValueServiceMigrators.getMigratableTableNames(fromKvs,
-                ImmutableSet.of());
+        Set<TableReference> creatableTableNames = KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs,
+                ImmutableSet.of(), defaultNamespaceCheckpoint);
 
-        assertThat(creatableTableNames).containsExactly(TABLE_TO_MIGRATE);
+        assertThat(creatableTableNames).containsExactlyInAnyOrder(TABLE_TO_MIGRATE, noNamespaceCheckpoint);
     }
 }

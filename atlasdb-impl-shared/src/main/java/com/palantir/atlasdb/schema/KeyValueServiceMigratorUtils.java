@@ -27,20 +27,35 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLevel;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
 
-public final class KeyValueServiceMigrators {
+public final class KeyValueServiceMigratorUtils {
 
     public static final String CHECKPOINT_TABLE_NAME = "tmp_migrate_progress";
 
-    private KeyValueServiceMigrators() {
+    private KeyValueServiceMigratorUtils() {
         // Utility class
+    }
+
+    /**
+     * Tables that are eligible for dropping and creating.
+     */
+    public static Set<TableReference> getCreatableTables(KeyValueService kvs, Set<TableReference> skipTables) {
+        /*
+         * Tables that cannot be migrated because they are not controlled by the transaction table,
+         * but that don't necessarily live on the legacy DB KVS, should still be created on the new
+         * KVS, even if they don't get populated. That's why this method is subtly different from
+         * getMigratableTableNames().
+         */
+        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
+        tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
+        tableNames.removeAll(skipTables);
+        return tableNames;
     }
 
     /**
      * Tables that are eligible for migration.
      */
-    public static Set<TableReference> getMigratableTableNames(
-            KeyValueService kvs,
-            Set<TableReference> unmigratableTables) {
+    public static Set<TableReference> getMigratableTableNames(KeyValueService kvs, Set<TableReference> skipTables,
+            TableReference checkpointTable) {
         /*
          * Not all tables can be migrated. We run by default with a table-splitting KVS that pins
          * certain tables to always be in the legacy DB KVS (because that one supports
@@ -50,10 +65,10 @@ public final class KeyValueServiceMigrators {
          * since that would corrupt the current migration. Since the namespace might have changed, we
          * remove all table names that match the internal checkpoint table name.
          */
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
-        tableNames.removeAll(AtlasDbConstants.hiddenTables);
-        tableNames.removeAll(unmigratableTables);
-        tableNames.removeIf(tableRef -> tableRef.getTablename().equals(CHECKPOINT_TABLE_NAME));
+        Set<TableReference> tableNames = getCreatableTables(kvs, skipTables);
+        tableNames.removeAll(TargetedSweepSchema.INSTANCE.getLatestSchema().getTableDefinitions().keySet());
+        tableNames.removeAll(AtlasDbConstants.HIDDEN_TABLES);
+        tableNames.removeIf(tableRef -> tableRef.equals(checkpointTable));
         return tableNames;
     }
 

@@ -35,7 +35,7 @@ public final class KeyValueServiceMigrators {
     private static final OutputPrinter printer
             = new OutputPrinter(LoggerFactory.getLogger(KeyValueServiceMigrator.class));
 
-    private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
+    static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
     private KeyValueServiceMigrators() {
         // utility

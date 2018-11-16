@@ -26,8 +26,6 @@ import java.util.function.Supplier;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -82,7 +80,7 @@ public class KeyValueServiceMigrator {
                                    TaskProgress taskProgress,
                                    Set<TableReference> unmigratableTables) {
         this.checkpointTable =
-                TableReference.create(checkpointNamespace, KeyValueServiceMigrators.CHECKPOINT_TABLE_NAME);
+                TableReference.create(checkpointNamespace, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
         this.fromTransactionManager = fromTransactionManager;
         this.toTransactionManager = toTransactionManager;
         this.fromKvs = fromKvs;
@@ -97,23 +95,23 @@ public class KeyValueServiceMigrator {
     }
 
     private void processMessage(String string, KvsMigrationMessageLevel level) {
-        KeyValueServiceMigrators.processMessage(messageProcessor, string, level);
+        KeyValueServiceMigratorUtils.processMessage(messageProcessor, string, level);
     }
 
     private void processMessage(String string, Throwable ex, KvsMigrationMessageLevel level) {
-        KeyValueServiceMigrators.processMessage(messageProcessor, string, ex, level);
+        KeyValueServiceMigratorUtils.processMessage(messageProcessor, string, ex, level);
     }
 
     /**
      * Drop and create tables before starting migration.
      */
     public void setup() {
-        Set<TableReference> creatableTableNames = getCreatableTableNames(toKvs);
-        processMessage("dropping tables: " + creatableTableNames, KvsMigrationMessageLevel.INFO);
-        toKvs.dropTables(creatableTableNames);
+        Set<TableReference> tablesToDrop = KeyValueServiceMigratorUtils.getCreatableTables(toKvs, unmigratableTables);
+        processMessage("dropping tables: " + tablesToDrop, KvsMigrationMessageLevel.INFO);
+        toKvs.dropTables(tablesToDrop);
 
         Map<TableReference, byte[]> metadataByTableName = Maps.newHashMap();
-        for (TableReference tableRef : creatableTableNames) {
+        for (TableReference tableRef : KeyValueServiceMigratorUtils.getCreatableTables(fromKvs, unmigratableTables)) {
             processMessage("retrieving metadata for table " + tableRef, KvsMigrationMessageLevel.INFO);
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
@@ -124,22 +122,6 @@ public class KeyValueServiceMigrator {
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
         toKvs.createTables(metadataByTableName);
         processMessage("setup complete", KvsMigrationMessageLevel.INFO);
-    }
-
-    /**
-     * Tables that are eligible for dropping and creating.
-     */
-    private Set<TableReference> getCreatableTableNames(KeyValueService kvs) {
-        /*
-         * Tables that cannot be migrated because they are not controlled by the transaction table,
-         * but that don't necessarily live on the legacy DB KVS, should still be created on the new
-         * KVS, even if they don't get populated. That's why this method is subtly different from
-         * getMigratableTableNames().
-         */
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
-        tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
-        tableNames.removeAll(unmigratableTables);
-        return tableNames;
     }
 
     public void migrate() {
@@ -164,7 +146,8 @@ public class KeyValueServiceMigrator {
     }
 
     private void internalMigrate() throws InterruptedException {
-        Set<TableReference> tables = KeyValueServiceMigrators.getMigratableTableNames(fromKvs, unmigratableTables);
+        Set<TableReference> tables = KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs, unmigratableTables,
+                checkpointTable);
 
         GeneralTaskCheckpointer checkpointer =
                 new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
