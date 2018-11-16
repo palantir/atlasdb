@@ -51,15 +51,26 @@ public class TransactionSchemaManager {
     }
 
     public void installNewTransactionsSchemaVersion(int newVersion) {
-//        coordinationService.tryTransformCurrentValue(valueAndBound -> {
-//            if (!valueAndBound.value().isPresent()) {
-//                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
-//            }
-//
-//            InternalSchemaMetadata presentMetadata = valueAndBound.value().get();
-//
-//
-//        });
+        coordinationService.tryTransformCurrentValue(valueAndBound -> {
+            if (!valueAndBound.value().isPresent()) {
+                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
+            }
+
+            InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
+            return InternalSchemaMetadata.builder()
+                    .from(internalSchemaMetadata)
+                    .timestampToTransactionsTableSchemaVersion(
+                            installNewVersionInMap(
+                                    internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
+                                    valueAndBound.bound() + 1,
+                                    newVersion))
+                    .build();
+        });
+    }
+
+    private TimestampToTransactionSchemaMap installNewVersionInMap(
+            TimestampToTransactionSchemaMap sourceMap, long bound, int newVersion) {
+        return sourceMap.copyInstallingNewVersion(bound, newVersion);
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
@@ -73,6 +84,6 @@ public class TransactionSchemaManager {
         return valueAndBound
                 .flatMap(ValueAndBound::value)
                 .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                .map(rangeMap -> rangeMap.get(timestamp));
+                .map(versionMap -> versionMap.getVersionForTimestamp(timestamp));
     }
 }

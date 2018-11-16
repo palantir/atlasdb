@@ -21,7 +21,6 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.RangeMap;
 
 /**
  * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
@@ -37,5 +36,9 @@ public interface InternalSchemaMetadata {
     /**
      * Mapping of ranges of timestamps to schema versions for the transactions table.
      */
-    RangeMap<Long, Integer> timestampToTransactionsTableSchemaVersion();
+    TimestampToTransactionSchemaMap timestampToTransactionsTableSchemaVersion();
+
+    static ImmutableInternalSchemaMetadata.Builder builder() {
+        return ImmutableInternalSchemaMetadata.builder();
+    }
 }

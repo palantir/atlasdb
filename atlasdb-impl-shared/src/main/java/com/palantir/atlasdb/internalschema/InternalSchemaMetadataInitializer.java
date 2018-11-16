@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.timestamp.TimestampService;
 
@@ -53,8 +50,7 @@ public class InternalSchemaMetadataInitializer {
 
     private InternalSchemaMetadata getDefaultInternalSchemaMetadata() {
         return ImmutableInternalSchemaMetadata.builder()
-                .timestampToTransactionsTableSchemaVersion(
-                        ImmutableRangeMap.of(Range.range(0L, BoundType.OPEN, Long.MAX_VALUE, BoundType.CLOSED), 1))
+                .timestampToTransactionsTableSchemaVersion(TimestampToTransactionSchemaMap.initialValue())
                 .build();
     }
 }
