@@ -103,12 +103,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     public static <T> KeyValueServiceCoordinationStore<T> create(
             ObjectMapper objectMapper,
             KeyValueService kvs,
-            byte[] coordinationSequence,
+            byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
             Class<T> clazz) {
         KeyValueServiceCoordinationStore<T> coordinationStore
                 = new KeyValueServiceCoordinationStore<>(
-                        objectMapper, kvs, coordinationSequence, sequenceNumberSupplier, clazz);
+                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
         kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
         return coordinationStore;
     }
