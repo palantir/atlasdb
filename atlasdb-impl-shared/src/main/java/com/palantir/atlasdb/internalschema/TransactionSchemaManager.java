@@ -59,6 +59,11 @@ public class TransactionSchemaManager {
             }
             ValueAndBound<InternalSchemaMetadata> existingSchema = optionalValueAndBound.get();
 
+            if (!existingSchema.value().isPresent()) {
+                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
+            }
+
+            InternalSchemaMetadata presentMetadata = existingSchema.value().get();
         });
     }
 
