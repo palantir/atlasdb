@@ -21,19 +21,13 @@ import java.util.Optional;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class TransactionSchemaManager {
-    private static final long ADVANCEMENT_QUANTUM = 5_000_000;
-
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
-    private final TimestampService timestampService;
 
-    public TransactionSchemaManager(
-            CoordinationService<InternalSchemaMetadata> coordinationService,
-            TimestampService timestampService) {
+    public TransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
-        this.timestampService = timestampService;
     }
 
     public int getTransactionsSchemaVersion(long timestamp) {
@@ -53,7 +47,7 @@ public class TransactionSchemaManager {
     public void installNewTransactionsSchemaVersion(int newVersion) {
         coordinationService.tryTransformCurrentValue(valueAndBound -> {
             if (!valueAndBound.value().isPresent()) {
-                throw new IllegalStateException("Persisted value is empty, which is unexpected.");
+                throw new SafeIllegalStateException("Persisted value is empty, which is unexpected.");
             }
 
             InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
@@ -76,7 +70,7 @@ public class TransactionSchemaManager {
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
         return coordinationService.tryTransformCurrentValue(valueAndBound ->
                 valueAndBound.value().orElseThrow(
-                        () -> new IllegalStateException("Cannot perpetuate an existing state that didn't exist!")));
+                        () -> new SafeIllegalStateException("Cannot perpetuate an existing state that didn't exist!")));
     }
 
     private static Optional<Integer> extractTimestampVersion(

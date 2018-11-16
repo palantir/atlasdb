@@ -24,7 +24,6 @@ import com.palantir.timestamp.TimestampService;
  */
 public class InternalSchemaMetadataInitializer {
     private static final long ZERO_TIMESTAMP = 0;
-    private static final long ADVANCEMENT_QUANTUM = 5_000_000;
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
     private final TimestampService timestampService;
