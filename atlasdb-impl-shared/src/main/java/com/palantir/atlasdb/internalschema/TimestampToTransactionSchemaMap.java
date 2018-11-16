@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.internalschema;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -46,24 +48,37 @@ public abstract class TimestampToTransactionSchemaMap {
     private static final Range<Long> ALL_TIMESTAMPS = Range.atLeast(1L);
 
     @Value.Parameter
-    abstract RangeMap<Long, Integer> timestampToTransactionsTableSchemaVersion();
+    abstract Set<RangeAndValue> timestampToTransactionsTableSchemaVersion();
+
+    @Value.Lazy
+    RangeMap<Long, Integer> rangeMapViewOfTimestamps() {
+        ImmutableRangeMap.Builder<Long, Integer> builder = new ImmutableRangeMap.Builder<>();
+        timestampToTransactionsTableSchemaVersion()
+                .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
+        return builder.build();
+    }
 
     public static TimestampToTransactionSchemaMap initialValue() {
         return of(ImmutableRangeMap.of(ALL_TIMESTAMPS, 1));
     }
 
     public static TimestampToTransactionSchemaMap of(RangeMap<Long, Integer> initialState) {
-        return ImmutableTimestampToTransactionSchemaMap.of(initialState);
+        return ImmutableTimestampToTransactionSchemaMap.of(
+                initialState.asMapOfRanges()
+                        .entrySet()
+                        .stream()
+                        .map(entry -> RangeAndValue.of(entry.getKey(), entry.getValue()))
+                        .collect(Collectors.toList()));
     }
 
     public int getVersionForTimestamp(long timestamp) {
-        return timestampToTransactionsTableSchemaVersion().get(timestamp);
+        return rangeMapViewOfTimestamps().get(timestamp);
     }
 
     public TimestampToTransactionSchemaMap copyInstallingNewVersion(
             long lowerBoundForNewVersion,
             int newSchemaVersion) {
-        Map.Entry<Range<Long>, Integer> latestEntry = getLatestEntry();
+        RangeAndValue latestEntry = getLatestEntry();
         validateInstallationIsCurrent(lowerBoundForNewVersion, newSchemaVersion, latestEntry);
 
         ImmutableRangeMap.Builder<Long, Integer> builder = ImmutableRangeMap.builder();
@@ -73,8 +88,8 @@ public abstract class TimestampToTransactionSchemaMap {
     }
 
     private static void validateInstallationIsCurrent(long lowerBoundForNewVersion, int newSchemaVersion,
-            Map.Entry<Range<Long>, Integer> latestEntry) {
-        if (lowerBoundForNewVersion < latestEntry.getKey().lowerEndpoint()) {
+            RangeAndValue latestEntry) {
+        if (lowerBoundForNewVersion < latestEntry.longRange().lowerEndpoint()) {
             throw new SafeIllegalArgumentException("Cannot install a new schema version at an earlier timestamp;"
                     + " attempted to install version {} at {}, but the newest interval is at {}.",
                     SafeArg.of("attemptedNewVersion", newSchemaVersion),
@@ -86,35 +101,33 @@ public abstract class TimestampToTransactionSchemaMap {
     private void addNewRanges(
             long lowerBoundForNewVersion,
             int newSchemaVersion,
-            Map.Entry<Range<Long>, Integer> latestEntry,
+            RangeAndValue latestRangeAndValue,
             @Output ImmutableRangeMap.Builder<Long, Integer> builder) {
-        builder.put(Range.closedOpen(latestEntry.getKey().lowerEndpoint(), lowerBoundForNewVersion),
-                latestEntry.getValue());
+        builder.put(Range.closedOpen(latestRangeAndValue.longRange().lowerEndpoint(), lowerBoundForNewVersion),
+                latestRangeAndValue.value());
         builder.put(Range.atLeast(lowerBoundForNewVersion), newSchemaVersion);
     }
 
     private void copyOldRangesFromPreviousMap(
-            Map.Entry<Range<Long>, Integer> latestEntry,
+            RangeAndValue latestRangeAndValue,
             @Output ImmutableRangeMap.Builder<Long, Integer> builder) {
         timestampToTransactionsTableSchemaVersion()
-                .asMapOfRanges()
-                .entrySet()
                 .stream()
-                .filter(entry -> !entry.equals(latestEntry))
-                .forEach(entry -> builder.put(entry.getKey(), entry.getValue()));
+                .filter(rangeAndValue -> !rangeAndValue.equals(latestRangeAndValue))
+                .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
     }
 
-    private Map.Entry<Range<Long>, Integer> getLatestEntry() {
-        return timestampToTransactionsTableSchemaVersion()
+    private RangeAndValue getLatestEntry() {
+        return RangeAndValue.fromMapEntry(rangeMapViewOfTimestamps()
                 .asDescendingMapOfRanges()
                 .entrySet()
                 .iterator()
-                .next();
+                .next());
     }
 
     @Value.Check
     public void check() {
-        validateCoversPreciselyAllTimestamps(timestampToTransactionsTableSchemaVersion());
+        validateCoversPreciselyAllTimestamps(rangeMapViewOfTimestamps());
     }
 
     private static void validateCoversPreciselyAllTimestamps(RangeMap<Long, Integer> initialState) {
@@ -131,6 +144,24 @@ public abstract class TimestampToTransactionSchemaMap {
                     + " of the provided map were {}.",
                     SafeArg.of("timestampToTransactionSchemaMap", initialState),
                     SafeArg.of("disconnectedRanges", rangesCovered));
+        }
+    }
+
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableRangeAndValue.class)
+    @JsonDeserialize(as = ImmutableRangeAndValue.class)
+    interface RangeAndValue {
+        @Value.Parameter
+        Range<Long> longRange();
+        @Value.Parameter
+        int value();
+
+        static RangeAndValue of(Range<Long> longRange, int value) {
+            return ImmutableRangeAndValue.of(longRange, value);
+        }
+
+        static RangeAndValue fromMapEntry(Map.Entry<Range<Long>, Integer> entry) {
+            return of(entry.getKey(), entry.getValue());
         }
     }
 }
