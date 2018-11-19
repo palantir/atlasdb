@@ -64,12 +64,12 @@ public class KeyValueServiceMigratorsTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("test.table");
     private static final TableReference CHECKPOINT_TABLE_NO_NAMESPACE = TableReference
             .createWithEmptyNamespace(KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
-    private static final TableReference REAL_CHECKPOINT_TABLE = TableReference
+    private static final TableReference CHECKPOINT_TABLE = TableReference
             .create(KeyValueServiceMigrators.CHECKPOINT_NAMESPACE, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
     private static final ImmutableMap<TableReference, byte[]> TEST_AND_CHECKPOINT_TABLES = ImmutableMap.of(
             TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
             CHECKPOINT_TABLE_NO_NAMESPACE, AtlasDbConstants.GENERIC_TABLE_METADATA,
-            REAL_CHECKPOINT_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+            CHECKPOINT_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     private static final Cell TEST_CELL = Cell.create(new byte[] {1}, new byte[] {1});
     private static final Cell TEST_CELL2 = Cell.create(new byte[] {2}, new byte[] {2});
     private static final byte[] TEST_VALUE1 = {2};
@@ -151,15 +151,22 @@ public class KeyValueServiceMigratorsTest {
     public void checkpointTableIsNotMigrated() {
         fromKvs.createTables(TEST_AND_CHECKPOINT_TABLES);
         fromTxManager.runTaskThrowOnConflict(tx -> {
-            tx.put(REAL_CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1));
+            tx.put(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1));
             return null;
         });
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
+
+        // add dummy value at timestamp 0
+        toKvs.createTable(CHECKPOINT_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        toKvs.put(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE2), 0);
+
         migrator.migrate();
 
-        assertThat(toKvs.get(REAL_CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))).isEmpty();
+        // verify that the dummy value is still there, but we did not migrate the one at higher timestamp
+        assertThat(toKvs.get(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL).getContents())
+                .containsExactly(TEST_VALUE2);
     }
 
     @Test
@@ -250,10 +257,10 @@ public class KeyValueServiceMigratorsTest {
         migrator.setup();
         migrator.migrate();
 
-        verify(toKvs, never()).dropTable(REAL_CHECKPOINT_TABLE);
+        verify(toKvs, never()).dropTable(CHECKPOINT_TABLE);
 
         migrator.cleanup();
-        verify(toKvs, times(1)).dropTable(REAL_CHECKPOINT_TABLE);
+        verify(toKvs, times(1)).dropTable(CHECKPOINT_TABLE);
     }
 
     private AtlasDbServices createMock() {
