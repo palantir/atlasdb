@@ -39,7 +39,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  * reasons.
  *
  * {@link TimestampToTransactionSchemaMap#timestampToTransactionsTableSchemaVersion()} is always expected to cover
- * all timestamps. That is, it should span the range [1, +∞) and be connected.
+ * all timestamps. That is, the ranges present should span the range [1, +∞) and be connected.
  */
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampToTransactionSchemaMap.class)
@@ -47,6 +47,13 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 public abstract class TimestampToTransactionSchemaMap {
     private static final Range<Long> ALL_TIMESTAMPS = Range.atLeast(1L);
 
+    /**
+     * Mapping of timestamp ranges to transactions table schema versions, represented as a set.
+     *
+     * This representation is for serialisation, because a {@link Range} serializes to an object, so it's not
+     * permissible for them to be used as keys in a Map; {@link RangeMap} doesn't seem to be supported in Jackson at
+     * time of writing.
+     */
     @Value.Parameter
     abstract Set<RangeAndValue> timestampToTransactionsTableSchemaVersion();
 
