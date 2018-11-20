@@ -72,6 +72,9 @@ develop
          - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
 
+    *    - |fixed|
+         - Fixed a bug where lock and timestamp services were not closed when transaction managers were closed.
+
 =======
 0.108.0
 =======
