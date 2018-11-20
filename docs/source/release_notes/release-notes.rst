@@ -53,9 +53,11 @@ develop
     *    -
          -
 
-=======
-0.111.0
-=======
+========
+v0.111.0
+========
+
+20 Nov 2018
 
 .. list-table::
     :widths: 5 40
@@ -68,9 +70,11 @@ develop
          - Fixed a bug where lock and timestamp services were not closed when transaction managers were closed.
          (`Pull Request <https://github.com/palantir/atlasdb/pull/3644>`__)
 
-=======
-0.110.0
-=======
+========
+v0.110.0
+========
+
+20 Nov 2018
 
 .. list-table::
     :widths: 5 40
@@ -79,12 +83,14 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |improved|
+         - Numerous small internal improvements that did not include release notes.
 
-=======
-0.109.0
-=======
+========
+v0.109.0
+========
+
+14 Nov 2018
 
 .. list-table::
     :widths: 5 40
@@ -119,9 +125,11 @@ develop
          - The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3631>`__)
 
-=======
-0.108.0
-=======
+========
+v0.108.0
+========
+
+7 Nov 2018
 
 .. list-table::
     :widths: 5 40
@@ -209,9 +217,11 @@ develop
            This was previously implemented to work around several issues with our usage of OkHttp, but was not implemented for the proxies with failover (which includes proxies to TimeLock).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3629>`__)
 
-=======
-0.107.0
-=======
+========
+v0.107.0
+========
+
+10 Oct 2018
 
 .. list-table::
     :widths: 5 40
