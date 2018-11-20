@@ -19,6 +19,8 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.UUID;
 
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.logsafe.SafeArg;
@@ -53,6 +55,7 @@ public class ImmutableTimestampTracker {
     }
 
     public synchronized Optional<Long> getImmutableTimestamp() {
+        LoggerFactory.getLogger(ImmutableTimestampTracker.class).warn("{}", holdersByTimestamp);
         if (holdersByTimestamp.isEmpty()) {
             return Optional.empty();
         }

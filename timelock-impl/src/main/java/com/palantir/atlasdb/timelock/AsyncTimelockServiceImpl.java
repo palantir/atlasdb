@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.LoggerFactory;
+
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
@@ -83,6 +85,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public long getImmutableTimestamp() {
         long timestamp = timestampService.getFreshTimestamp();
+        LoggerFactory.getLogger(AsyncTimelockServiceImpl.class).warn("Choosing {} or {}", lockService.getImmutableTimestamp(), timestamp);
         return lockService.getImmutableTimestamp().orElse(timestamp);
     }
 
