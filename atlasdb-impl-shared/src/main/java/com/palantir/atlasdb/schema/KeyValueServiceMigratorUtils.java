@@ -36,39 +36,29 @@ public final class KeyValueServiceMigratorUtils {
     }
 
     /**
-     * Tables that are eligible for dropping and creating.
-     */
-    public static Set<TableReference> getCreatableTables(KeyValueService kvs, Set<TableReference> skipTables) {
-        /*
-         * Tables that cannot be migrated because they are not controlled by the transaction table,
-         * but that don't necessarily live on the legacy DB KVS, should still be created on the new
-         * KVS, even if they don't get populated. That's why this method is subtly different from
-         * getMigratableTableNames().
-         */
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
-        tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
-        tableNames.removeAll(skipTables);
-        return tableNames;
-    }
-
-    /**
-     * Tables that are eligible for migration.
+     * Tables that are eligible for migration. Non-transactional tables and potential old checkpoint tables cannot be
+     * migrated since the migrator reads and writes data transactionally, and migrating a checkpoint table would
+     * interfere with the migration. We still want to drop and recreate these tables to enable manual migration.
      */
     public static Set<TableReference> getMigratableTableNames(KeyValueService kvs, Set<TableReference> skipTables,
             TableReference checkpointTable) {
-        /*
-         * Not all tables can be migrated. We run by default with a table-splitting KVS that pins
-         * certain tables to always be in the legacy DB KVS (because that one supports
-         * putUnlessExists), and those tables cannot and should not be migrated. Also, special
-         * tables that are not controlled by the transaction table should not be
-         * migrated. Lastly, we never migrate any checkpoints from previous KVS migration attempts,
-         * since that would corrupt the current migration. Since the namespace might have changed, we
-         * remove all table names that match the internal checkpoint table name.
-         */
         Set<TableReference> tableNames = getCreatableTables(kvs, skipTables);
         tableNames.removeAll(TargetedSweepSchema.INSTANCE.getLatestSchema().getTableDefinitions().keySet());
         tableNames.removeAll(AtlasDbConstants.HIDDEN_TABLES);
         tableNames.removeIf(tableRef -> tableRef.equals(checkpointTable));
+        return tableNames;
+    }
+
+    /**
+     * We must not drop and recreate atomic tables or any of the tables that should specifically be skipped. This is
+     * because large internal product uses a {@link com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService}
+     * that delegates all interactions with these tables to the source KVS as the target KVS, so dropping them would
+     * cause us to drop them in the source KVS.
+     */
+    public static Set<TableReference> getCreatableTables(KeyValueService kvs, Set<TableReference> skipTables) {
+        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
+        tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
+        tableNames.removeAll(skipTables);
         return tableNames;
     }
 

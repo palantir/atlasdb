@@ -68,17 +68,17 @@ public class KeyValueServiceMigrator {
     private final TaskProgress taskProgress;
 
     public KeyValueServiceMigrator(Namespace checkpointNamespace,
-                                   TransactionManager fromTransactionManager,
-                                   TransactionManager toTransactionManager,
-                                   KeyValueService fromKvs,
-                                   KeyValueService toKvs,
-                                   Supplier<Long> migrationTimestampSupplier,
-                                   int threads,
-                                   int defaultBatchSize,
-                                   Map<TableReference, Integer> readBatchSizeOverrides,
-                                   KvsMigrationMessageProcessor messageProcessor,
-                                   TaskProgress taskProgress,
-                                   Set<TableReference> unmigratableTables) {
+            TransactionManager fromTransactionManager,
+            TransactionManager toTransactionManager,
+            KeyValueService fromKvs,
+            KeyValueService toKvs,
+            Supplier<Long> migrationTimestampSupplier,
+            int threads,
+            int defaultBatchSize,
+            Map<TableReference, Integer> readBatchSizeOverrides,
+            KvsMigrationMessageProcessor messageProcessor,
+            TaskProgress taskProgress,
+            Set<TableReference> unmigratableTables) {
         this.checkpointTable =
                 TableReference.create(checkpointNamespace, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
         this.fromTransactionManager = fromTransactionManager;
@@ -122,6 +122,9 @@ public class KeyValueServiceMigrator {
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
         toKvs.createTables(metadataByTableName);
         processMessage("setup complete", KvsMigrationMessageLevel.INFO);
+
+
+
     }
 
     public void migrate() {

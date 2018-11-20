@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cli.command;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +33,6 @@ import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -112,16 +112,13 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
-        if (!setup && !migrate && !validate) {
-            printer.error("At least one of --setup, --migrate, or --validate should be specified.");
+        if (Stream.of(setup, migrate, validate).filter(Boolean::booleanValue).count() != 1) {
+            printer.error("Exactly one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
+
         KeyValueServiceMigrator migrator;
-        try {
-            migrator = getMigrator(fromServices, toServices);
-        } catch (IOException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        migrator = getMigrator(fromServices, toServices);
         if (setup) {
             migrator.setup();
         }
@@ -169,8 +166,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
-            throws IOException {
+    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) {
         return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toServices)

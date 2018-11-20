@@ -17,6 +17,10 @@ package com.palantir.atlasdb.cli.command;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -29,14 +33,17 @@ import java.util.Map;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceMigratorUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -70,13 +77,14 @@ public class KeyValueServiceMigratorsTest {
             TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA,
             CHECKPOINT_TABLE_NO_NAMESPACE, AtlasDbConstants.GENERIC_TABLE_METADATA,
             CHECKPOINT_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    private static final TableReference FAKE_ATOMIC_TABLE = TableReference.createFromFullyQualifiedName("fake.atomic");
     private static final Cell TEST_CELL = Cell.create(new byte[] {1}, new byte[] {1});
     private static final Cell TEST_CELL2 = Cell.create(new byte[] {2}, new byte[] {2});
     private static final byte[] TEST_VALUE1 = {2};
     private static final byte[] TEST_VALUE2 = {3};
 
-    private final AtlasDbServices fromServices = createMock();
-    private final AtlasDbServices toServices = createMock();
+    private final AtlasDbServices fromServices = createMock(spy(new InMemoryKeyValueService(false)));
+    private final AtlasDbServices toServices = createMock(spy(new InMemoryKeyValueService(false)));
     private final KeyValueService fromKvs = fromServices.getKeyValueService();
     private final TransactionManager fromTxManager = fromServices.getTransactionManager();
     private final KeyValueService toKvs = toServices.getKeyValueService();
@@ -148,25 +156,19 @@ public class KeyValueServiceMigratorsTest {
     }
 
     @Test
-    public void checkpointTableIsNotMigrated() {
+    public void checkpointTableOnSourceKvsIsIgnored() {
         fromKvs.createTables(TEST_AND_CHECKPOINT_TABLES);
-        fromTxManager.runTaskThrowOnConflict(tx -> {
-            tx.put(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1));
-            return null;
-        });
 
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
-
-        // add dummy value at timestamp 0
-        toKvs.createTable(CHECKPOINT_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        toKvs.put(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE2), 0);
-
         migrator.migrate();
 
-        // verify that the dummy value is still there, but we did not migrate the one at higher timestamp
-        assertThat(toKvs.get(CHECKPOINT_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL).getContents())
-                .containsExactly(TEST_VALUE2);
+        verify(fromKvs, never()).get(eq(CHECKPOINT_TABLE), any());
+        verify(fromKvs, never()).getRange(eq(CHECKPOINT_TABLE), any(), anyLong());
+        verify(fromKvs, never()).getRows(eq(CHECKPOINT_TABLE), any(), any(), anyLong());
+        verify(fromKvs, never()).getRowsColumnRange(eq(CHECKPOINT_TABLE), any(), any(), anyLong());
+        verify(fromKvs, never()).getRowsColumnRange(eq(CHECKPOINT_TABLE), any(), any(), anyInt(), anyLong());
+        verify(fromKvs, never()).getFirstBatchForRanges(eq(CHECKPOINT_TABLE), any(), anyLong());
     }
 
     @Test
@@ -263,8 +265,53 @@ public class KeyValueServiceMigratorsTest {
         verify(toKvs, times(1)).dropTable(CHECKPOINT_TABLE);
     }
 
-    private AtlasDbServices createMock() {
-        KeyValueService kvs = spy(new InMemoryKeyValueService(false));
+    @Test
+    public void tablesDelegatedToSourceKvsGetDroppedFromSourceKvsIfMigratable() {
+        fromKvs.createTable(FAKE_ATOMIC_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        fromKvs.putUnlessExists(FAKE_ATOMIC_TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE1));
+
+        KeyValueService toTableSplittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(new InMemoryKeyValueService(false), fromKvs),
+                ImmutableMap.of(FAKE_ATOMIC_TABLE, fromKvs));
+
+        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
+        ImmutableMigratorSpec spec  = ImmutableMigratorSpec.builder()
+                .fromServices(fromServices)
+                .toServices(toSplittingServices)
+                .build();
+
+        assertThat(toSplittingServices.getKeyValueService()
+                .get(FAKE_ATOMIC_TABLE, ImmutableMap.of(TEST_CELL, 1L)).get(TEST_CELL).getContents())
+                .containsExactly(TEST_VALUE1);
+
+
+        KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(spec);
+        migrator.setup();
+
+        assertThat(fromKvs.getAllTableNames()).doesNotContain(FAKE_ATOMIC_TABLE);
+    }
+
+    @Test
+    public void atomicTablesDelegatedToSourceAreNotDropped() {
+        KeyValueService toTableSplittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(new InMemoryKeyValueService(false), fromKvs),
+                Maps.toMap(AtlasDbConstants.HIDDEN_TABLES, ignore -> fromKvs));
+
+        AtlasDbServices toSplittingServices = createMock(toTableSplittingKvs);
+        ImmutableMigratorSpec spec  = ImmutableMigratorSpec.builder()
+                .fromServices(fromServices)
+                .toServices(toSplittingServices)
+                .build();
+
+        fromServices.getTransactionService().putUnlessExists(100_000, 100_001);
+
+        KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(spec);
+        migrator.setup();
+
+        assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
+    }
+
+    private AtlasDbServices createMock(KeyValueService kvs) {
         TimestampService timestampService = new InMemoryTimestampService();
 
         TransactionTables.createTables(kvs);
