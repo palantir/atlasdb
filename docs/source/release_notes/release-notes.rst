@@ -54,6 +54,21 @@ develop
          -
 
 =======
+0.111.0
+=======
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug where lock and timestamp services were not closed when transaction managers were closed.
+         (`Pull Request <https://github.com/palantir/atlasdb/pull/3644>`__)
+
+=======
 0.110.0
 =======
 
