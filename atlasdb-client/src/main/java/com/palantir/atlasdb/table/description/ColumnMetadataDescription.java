@@ -53,6 +53,17 @@ public class ColumnMetadataDescription {
                 new NamedColumnDescription(shortName, longName, ColumnValueDescription.forType(valueType))));
     }
 
+    public static ColumnMetadataDescription singleDynamic(String name, ValueType colType, ValueType valType) {
+        return new ColumnMetadataDescription(
+                new DynamicColumnDescription(
+                        NameMetadataDescription.create(ImmutableList.of(
+                                new NameComponentDescription.Builder()
+                                        .componentName(name)
+                                        .type(colType)
+                                        .build())),
+                        ColumnValueDescription.forType(valType)));
+    }
+
     public Set<NamedColumnDescription> getNamedColumns() {
         return namedColumns;
     }
