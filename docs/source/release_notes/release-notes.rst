@@ -68,7 +68,7 @@ v0.111.0
 
     *    - |fixed|
          - Fixed a bug where lock and timestamp services were not closed when transaction managers were closed.
-         (`Pull Request <https://github.com/palantir/atlasdb/pull/3644>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3644>`__)
 
 ========
 v0.110.0
