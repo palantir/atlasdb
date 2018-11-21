@@ -87,7 +87,6 @@ This can be useful for improving performance if having too many dead cells is im
 The command allows you to specify a namespace or a specific set of tables.
 For more information, check out :ref:`the sweep CLI documentation <atlasdb-sweep-cli>`, or run ``./bin/atlasdb help sweep``.
 
-
 timestamp
 ---------
 
@@ -98,30 +97,7 @@ Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`
 migrate
 -------
 
-.. danger::
-
-   Ensure you have backups before attempting a KVS migration.
-   Double check that `migrateConfig` (the target KVS) is specified correctly, since all tables in that KVS will be dropped.
-
-This CLI can help you migrate your AtlasDB client product from one KVS to another.
-The source KVS (which contains the data to migrate) should be specified in the `fromConfig`.
-The target KVS (which we will migrate to) should be specified in the `migrateConfig`.
-You will need to supply two different KVS configurations to the script.
-In the general case you first call ``--setup``, which creates the necessary tables in the target KVS.
-Then, you call ``--migrate``, which writes the data. If this step fails, it can safely be resumed (with the same arguments).
-The CLI will check and skip past tables that have already been processed.
-Finally, you should call ``--validate`` to validate the migration.
-
-It is highly recommended that KVS migrations are run offline (using the ``--offline`` flag), so you should shut down your AtlasDB backed service to perform the migration.
-For more information run ``./bin/atlasdb help migrate`` for more information.
-The typical usage is given below:
-
-.. code-block:: bash
-
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
-
+Migrate data from one KVS to another. See :ref:`KVS migration<kvs-migration>` for details.
 
 read-punch-table
 ----------------
