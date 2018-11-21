@@ -28,55 +28,56 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 
 @Value.Immutable
+@Value.Style(get = {"get*", "is*", "has*"})
 public abstract class TableMetadata implements Persistable {
 
     @Value.Default
-    public NameMetadataDescription rowMetadata() {
+    public NameMetadataDescription getRowMetadata() {
         return new NameMetadataDescription();
     }
 
     @Value.Default
-    public ColumnMetadataDescription columns() {
+    public ColumnMetadataDescription getColumns() {
         return new ColumnMetadataDescription();
     }
 
     @Value.Default
-    public ConflictHandler conflictHandler() {
+    public ConflictHandler getConflictHandler() {
         return ConflictHandler.RETRY_ON_WRITE_WRITE;
     }
 
     @Value.Default
-    public CachePriority cachePriority() {
+    public CachePriority getCachePriority() {
         return CachePriority.WARM;
     }
 
     @Value.Default
-    public boolean rangeScanAllowed() {
+    public boolean isRangeScanAllowed() {
         return false;
     }
 
     @Value.Default
-    public int explicitCompressionBlockSizeKB() {
+    public int getExplicitCompressionBlockSizeKB() {
         return 0;
     }
 
     @Value.Default
-    public boolean negativeLookups() {
+    public boolean hasNegativeLookups() {
         return false;
     }
 
     @Value.Default
-    public SweepStrategy sweepStrategy() {
+    public SweepStrategy getSweepStrategy() {
         return SweepStrategy.CONSERVATIVE;
     }
 
     @Value.Default
-    public boolean appendHeavyAndReadLight() {
+    public boolean isAppendHeavyAndReadLight() {
         return false;
     }
 
     @Value.Default
-    public LogSafety nameLogSafety() {
+    public LogSafety getNameLogSafety() {
         return LogSafety.UNSAFE;
     }
 
@@ -108,16 +109,16 @@ public abstract class TableMetadata implements Persistable {
 
     public TableMetadataPersistence.TableMetadata.Builder persistToProto() {
         Builder builder = TableMetadataPersistence.TableMetadata.newBuilder();
-        builder.setConflictHandler(ConflictHandlers.persistToProto(conflictHandler()));
-        builder.setRowName(rowMetadata().persistToProto());
-        builder.setColumns(columns().persistToProto());
-        builder.setCachePriority(cachePriority());
-        builder.setRangeScanAllowed(rangeScanAllowed());
-        builder.setExplicitCompressionBlockSizeKiloBytes(explicitCompressionBlockSizeKB());
-        builder.setNegativeLookups(negativeLookups());
-        builder.setSweepStrategy(sweepStrategy());
-        builder.setAppendHeavyAndReadLight(appendHeavyAndReadLight());
-        builder.setNameLogSafety(nameLogSafety());
+        builder.setConflictHandler(ConflictHandlers.persistToProto(getConflictHandler()));
+        builder.setRowName(getRowMetadata().persistToProto());
+        builder.setColumns(getColumns().persistToProto());
+        builder.setCachePriority(getCachePriority());
+        builder.setRangeScanAllowed(isRangeScanAllowed());
+        builder.setExplicitCompressionBlockSizeKiloBytes(getExplicitCompressionBlockSizeKB());
+        builder.setNegativeLookups(hasNegativeLookups());
+        builder.setSweepStrategy(getSweepStrategy());
+        builder.setAppendHeavyAndReadLight(isAppendHeavyAndReadLight());
+        builder.setNameLogSafety(getNameLogSafety());
         return builder;
     }
 
@@ -155,16 +156,16 @@ public abstract class TableMetadata implements Persistable {
     @Override
     public String toString() {
         return "TableMetadata ["
-                + "rowMetadata=" + rowMetadata()
-                + ", columns=" + columns()
-                + ", conflictHandler=" + conflictHandler()
-                + ", rowMetadata =" + rowMetadata()
-                + ", rangeScanAllowed =" + rangeScanAllowed()
-                + ", explicitCompressionBlockSizeKB =" + explicitCompressionBlockSizeKB()
-                + ", negativeLookups = " + negativeLookups()
-                + ", sweepStrategy = " + sweepStrategy()
-                + ", appendHeavyAndReadLight = " + appendHeavyAndReadLight()
-                + ", nameLogSafety = " + nameLogSafety()
+                + "rowMetadata=" + getRowMetadata()
+                + ", columns=" + getColumns()
+                + ", conflictHandler=" + getConflictHandler()
+                + ", rowMetadata =" + getRowMetadata()
+                + ", rangeScanAllowed =" + isRangeScanAllowed()
+                + ", explicitCompressionBlockSizeKB =" + getExplicitCompressionBlockSizeKB()
+                + ", negativeLookups = " + hasNegativeLookups()
+                + ", sweepStrategy = " + getSweepStrategy()
+                + ", appendHeavyAndReadLight = " + isAppendHeavyAndReadLight()
+                + ", nameLogSafety = " + getNameLogSafety()
                 + "]";
     }
 }

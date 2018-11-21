@@ -36,7 +36,7 @@ public class TableMetadataTest {
 
     @Test
     public void nameIsNotLoggableByDefault() {
-        assertThat(DEFAULT_TABLE_METADATA.nameLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertThat(DEFAULT_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test

@@ -61,13 +61,13 @@ public final class SafeLoggableDataUtils {
             ImmutableSafeLoggableData.Builder builder,
             TableReference ref,
             TableMetadata tableMetadata) {
-        if (IS_SAFE.test(tableMetadata.nameLogSafety())) {
+        if (IS_SAFE.test(tableMetadata.getNameLogSafety())) {
             builder.addPermittedTableReferences(ref);
         }
         // this is a system table with empty metadata, but safe for logging.
         builder.addPermittedTableReferences(AtlasDbConstants.DEFAULT_METADATA_TABLE);
 
-        Set<String> loggableRowComponentNames = tableMetadata.rowMetadata()
+        Set<String> loggableRowComponentNames = tableMetadata.getRowMetadata()
                 .getRowParts()
                 .stream()
                 .filter(rowComponent -> IS_SAFE.test(rowComponent.getLogSafety()))
@@ -75,7 +75,7 @@ public final class SafeLoggableDataUtils {
                 .collect(Collectors.toSet());
         builder.putPermittedRowComponents(ref, loggableRowComponentNames);
 
-        Set<NamedColumnDescription> namedColumns = tableMetadata.columns().getNamedColumns();
+        Set<NamedColumnDescription> namedColumns = tableMetadata.getColumns().getNamedColumns();
         if (namedColumns != null) {
             Set<String> loggableColumnNames = namedColumns
                     .stream()

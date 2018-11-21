@@ -58,8 +58,8 @@ public class TableCellSerializer extends StdSerializer<TableCell> {
         byte[] col = cell.getColumnName();
 
         jgen.writeStartObject();
-        AtlasSerializers.serializeRow(jgen, metadata.rowMetadata(), row);
-        ColumnMetadataDescription columns = metadata.columns();
+        AtlasSerializers.serializeRow(jgen, metadata.getRowMetadata(), row);
+        ColumnMetadataDescription columns = metadata.getColumns();
         if (columns.hasDynamicColumns()) {
             DynamicColumnDescription dynamicColumn = columns.getDynamicColumn();
             AtlasSerializers.serializeDynamicColumn(jgen, dynamicColumn, col);

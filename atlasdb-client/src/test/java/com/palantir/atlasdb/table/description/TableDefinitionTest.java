@@ -43,7 +43,7 @@ public class TableDefinitionTest {
 
     @Test
     public void tableNameNotLoggableByDefault() {
-        assertThat(BASE_DEFINITION.toTableMetadata().nameLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertThat(BASE_DEFINITION.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
     }
 
     @Test
@@ -55,7 +55,7 @@ public class TableDefinitionTest {
             rowComponent(ROW_NAME, ValueType.STRING);
             noColumns();
         }};
-        assertThat(definition.toTableMetadata().nameLogSafety()).isEqualTo(LogSafety.SAFE);
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.SAFE);
     }
 
     @Test
@@ -167,7 +167,7 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertThat(definition.toTableMetadata().nameLogSafety()).isEqualTo(LogSafety.SAFE);
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.SAFE);
         assertRowComponentSafety(definition, LogSafety.UNSAFE);
         assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
@@ -207,7 +207,7 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertThat(definition.toTableMetadata().nameLogSafety()).isEqualTo(LogSafety.SAFE);
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.SAFE);
         assertRowComponentSafety(definition, LogSafety.UNSAFE);
         assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
@@ -250,7 +250,7 @@ public class TableDefinitionTest {
             column(COLUMN_NAME, COLUMN_SHORTNAME, ValueType.VAR_LONG);
         }};
 
-        assertThat(definition.toTableMetadata().nameLogSafety()).isEqualTo(LogSafety.UNSAFE);
+        assertThat(definition.toTableMetadata().getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
         assertRowComponentSafety(definition, LogSafety.SAFE);
         assertNamedColumnSafety(definition, LogSafety.SAFE);
     }
@@ -262,7 +262,7 @@ public class TableDefinitionTest {
      */
     private static void assertRowComponentSafety(TableDefinition tableDefinition, LogSafety expectedSafety) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
-        NameComponentDescription nameComponent = Iterables.getOnlyElement(metadata.rowMetadata().getRowParts());
+        NameComponentDescription nameComponent = Iterables.getOnlyElement(metadata.getRowMetadata().getRowParts());
         assertThat(nameComponent.getLogSafety()).isEqualTo(expectedSafety);
     }
 
@@ -273,7 +273,7 @@ public class TableDefinitionTest {
      */
     private static void assertNamedColumnSafety(TableDefinition tableDefinition, LogSafety expectedSafety) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
-        NamedColumnDescription namedColumn = Iterables.getOnlyElement(metadata.columns().getNamedColumns());
+        NamedColumnDescription namedColumn = Iterables.getOnlyElement(metadata.getColumns().getNamedColumns());
         assertThat(namedColumn.getLogSafety()).isEqualTo(expectedSafety);
     }
 }

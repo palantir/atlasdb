@@ -161,10 +161,10 @@ public class PostgresGetRange implements DbKvsGetRange {
             return rangeRequest.getColumnNames().size();
         } else {
             TableMetadata metadata = getTableMetadataUsingNewConnection(tableRef);
-            if (metadata.columns().hasDynamicColumns()) {
+            if (metadata.getColumns().hasDynamicColumns()) {
                 return 100;
             } else {
-                return Math.max(1, metadata.columns().getNamedColumns().size());
+                return Math.max(1, metadata.getColumns().getNamedColumns().size());
             }
         }
     }

@@ -106,7 +106,7 @@ public final class ConflictDetectionManagers {
 
     private static ConflictHandler getConflictHandlerFromMetadata(byte[] metadata) {
         return TableMetadata.BYTES_HYDRATOR
-                .hydrateFromBytes(metadata).conflictHandler();
+                .hydrateFromBytes(metadata).getConflictHandler();
     }
 
 }

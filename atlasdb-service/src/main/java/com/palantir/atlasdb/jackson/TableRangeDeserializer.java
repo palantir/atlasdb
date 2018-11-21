@@ -42,22 +42,22 @@ public class TableRangeDeserializer extends StdDeserializer<TableRange> {
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         JsonNode optBatchSize = node.get("batch_size");
         int batchSize = optBatchSize == null ? 2000 : optBatchSize.asInt();
-        Iterable<byte[]> columns = AtlasDeserializers.deserializeNamedCols(metadata.columns(), node.get("cols"));
+        Iterable<byte[]> columns = AtlasDeserializers.deserializeNamedCols(metadata.getColumns(), node.get("cols"));
         byte[] startRow = new byte[0];
         byte[] endRow = new byte[0];
         if (node.has("prefix")) {
-            startRow = AtlasDeserializers.deserializeRowPrefix(metadata.rowMetadata(), node.get("prefix"));
+            startRow = AtlasDeserializers.deserializeRowPrefix(metadata.getRowMetadata(), node.get("prefix"));
             endRow = RangeRequests.createEndNameForPrefixScan(startRow);
         } else {
             if (node.has("raw_start")) {
                 startRow = node.get("raw_start").binaryValue();
             } else if (node.has("start")) {
-                startRow = AtlasDeserializers.deserializeRow(metadata.rowMetadata(), node.get("start"));
+                startRow = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), node.get("start"));
             }
             if (node.has("raw_end")) {
                 endRow = node.get("raw_end").binaryValue();
             } else if (node.has("end")) {
-                endRow = AtlasDeserializers.deserializeRow(metadata.rowMetadata(), node.get("end"));
+                endRow = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), node.get("end"));
             }
         }
         return new TableRange(tableName, startRow, endRow, columns, batchSize);

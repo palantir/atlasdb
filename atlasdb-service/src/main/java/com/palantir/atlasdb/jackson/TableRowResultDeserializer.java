@@ -48,19 +48,19 @@ public class TableRowResultDeserializer extends StdDeserializer<TableRowResult> 
         Collection<RowResult<byte[]>> rowResults = Lists.newArrayList();
         TableMetadata metadata = metadataCache.getMetadata(tableName);
         for (JsonNode rowResult : node.get("data")) {
-            byte[] row = AtlasDeserializers.deserializeRow(metadata.rowMetadata(), rowResult.get("row"));
+            byte[] row = AtlasDeserializers.deserializeRow(metadata.getRowMetadata(), rowResult.get("row"));
             ImmutableSortedMap.Builder<byte[], byte[]> cols = ImmutableSortedMap.orderedBy(
                     UnsignedBytes.lexicographicalComparator());
-            if (metadata.columns().hasDynamicColumns()) {
+            if (metadata.getColumns().hasDynamicColumns()) {
                 for (JsonNode colVal : rowResult.get("cols")) {
-                    byte[] col = AtlasDeserializers.deserializeCol(metadata.columns(), colVal.get("col"));
-                    byte[] val = AtlasDeserializers.deserializeVal(metadata.columns().getDynamicColumn().getValue(),
+                    byte[] col = AtlasDeserializers.deserializeCol(metadata.getColumns(), colVal.get("col"));
+                    byte[] val = AtlasDeserializers.deserializeVal(metadata.getColumns().getDynamicColumn().getValue(),
                             colVal.get("val"));
                     cols.put(col, val);
                 }
             } else {
                 JsonNode namedCols = rowResult.get("cols");
-                for (NamedColumnDescription namedCol : metadata.columns().getNamedColumns()) {
+                for (NamedColumnDescription namedCol : metadata.getColumns().getNamedColumns()) {
                     JsonNode valNode = namedCols.get(namedCol.getLongName());
                     if (valNode != null) {
                         byte[] col = namedCol.getShortName().getBytes(StandardCharsets.UTF_8);

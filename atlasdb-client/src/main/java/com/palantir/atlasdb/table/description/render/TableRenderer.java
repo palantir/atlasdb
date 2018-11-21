@@ -232,7 +232,7 @@ public class TableRenderer {
                 line();
                 renderGetNamespace();
                 line();
-                new RowOrDynamicColumnRenderer(this, Row, table.rowMetadata(), table.rangeScanAllowed(), false).run();
+                new RowOrDynamicColumnRenderer(this, Row, table.getRowMetadata(), table.isRangeScanAllowed(), false).run();
                 line();
                 if (isDynamic(table)) {
                     renderDynamic();
@@ -240,7 +240,7 @@ public class TableRenderer {
                     renderNamed();
                 }
                 line();
-                if (table.rangeScanAllowed()) {
+                if (table.isRangeScanAllowed()) {
                     renderGetRange();
                     line();
                     renderGetRanges();
@@ -291,17 +291,17 @@ public class TableRenderer {
             line();
             renderShortNameToHydrator();
             line();
-            for (NamedColumnDescription col : table.columns().getNamedColumns()) {
+            for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
                 renderNamedGetColumn(col);
                 line();
             }
-            for (NamedColumnDescription col : table.columns().getNamedColumns()) {
+            for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
                 renderNamedPutColumn(col);
                 line();
             }
             renderNamedPut();
             line();
-            for (NamedColumnDescription col : table.columns().getNamedColumns()) {
+            for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
                 renderNamedDeleteColumn(col);
                 line();
             }
@@ -328,13 +328,13 @@ public class TableRenderer {
         }
 
         private void renderDynamic() {
-            new RowOrDynamicColumnRenderer(this, Column, table.columns().getDynamicColumn().getColumnNameDesc(), false, true).run();
+            new RowOrDynamicColumnRenderer(this, Column, table.getColumns().getDynamicColumn().getColumnNameDesc(), false, true).run();
             line();
             renderTrigger();
             line();
-            new DynamicColumnValueRenderer(this, tableName, table.columns().getDynamicColumn()).run();
+            new DynamicColumnValueRenderer(this, tableName, table.getColumns().getDynamicColumn()).run();
             line();
-            new DynamicRowResultRenderer(this, tableName, table.columns().getDynamicColumn().getValue()).run();
+            new DynamicRowResultRenderer(this, tableName, table.getColumns().getDynamicColumn().getValue()).run();
             line();
             renderDynamicDelete();
             line();
@@ -589,7 +589,7 @@ public class TableRenderer {
                     line("for (Entry<byte[], byte[]> e : rowResult.getColumns().entrySet()) {"); {
                         if (isDynamic) {
                             line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                            line(table.columns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
                             line("ret.add(", ColumnValue, ".of(col, val));");
                         } else {
                             line("ret.add(shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
@@ -613,7 +613,7 @@ public class TableRenderer {
         private void renderShortNameToHydrator() {
             line("private static final Map<String, Hydrator<? extends ", ColumnValue, ">> shortNameToHydrator =");
             line("        ImmutableMap.<String, Hydrator<? extends ", ColumnValue, ">>builder()");
-            for (NamedColumnDescription col : table.columns().getNamedColumns()) {
+            for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
                 line("            .put(", ColumnRenderers.short_name(col), ", ", ColumnRenderers.VarName(col), ".BYTES_HYDRATOR)");
             }
             line("            .build();");
@@ -1016,7 +1016,7 @@ public class TableRenderer {
                     line("if (e.getValue().length > 0) {");
                         line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
                         line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.columns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
                         line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
                     line("}");
                 line("}");
@@ -1047,7 +1047,7 @@ public class TableRenderer {
                     line("for (Entry<byte[], byte[]> e : result.getColumns().entrySet()) {"); {
                         if (isDynamic) {
                             line(Column, " col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
-                            line(table.columns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
                             line("rowMap.put(row, ", ColumnValue, ".of(col, val));");
                         } else {
                             line("rowMap.put(row, shortNameToHydrator.get(PtBytes.toString(e.getKey())).hydrateFromBytes(e.getValue()));");
@@ -1068,7 +1068,7 @@ public class TableRenderer {
                     line("BatchingVisitable<", ColumnValue, "> bv = BatchingVisitables.transform(e.getValue(), result -> {"); {
                         if (isDynamic) {
                             line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
-                            line(table.columns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
+                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
                             line("return ", ColumnValue, ".of(col, val);");
                         } else {
                             line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
@@ -1086,7 +1086,7 @@ public class TableRenderer {
                     line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getRowName());");
                     if (isDynamic) {
                         line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey().getColumnName());");
-                        line(table.columns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
+                        line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(e.getValue());");
                         line(ColumnValue, " colValue = ", ColumnValue, ".of(col, val);");
                     } else {
                         line(ColumnValue, " colValue = shortNameToHydrator.get(PtBytes.toString(e.getKey().getColumnName())).hydrateFromBytes(e.getValue());");
@@ -1157,12 +1157,12 @@ public class TableRenderer {
     // ================================================== //
 
     private static boolean isNamedSet(TableMetadata table) {
-        Set<NamedColumnDescription> namedColumns = table.columns().getNamedColumns();
+        Set<NamedColumnDescription> namedColumns = table.getColumns().getNamedColumns();
         return namedColumns != null && namedColumns.size() == 1 && Iterables.getOnlyElement(namedColumns).getLongName().equals("exists");
     }
 
     private static boolean isDynamic(TableMetadata table) {
-        return table.columns().hasDynamicColumns();
+        return table.getColumns().hasDynamicColumns();
     }
 
     private static Collection<IndexMetadata> getCellReferencingIndices(SortedSet<IndexMetadata> indices) {

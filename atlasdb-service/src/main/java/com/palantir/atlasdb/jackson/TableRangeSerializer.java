@@ -45,7 +45,7 @@ public class TableRangeSerializer extends StdSerializer<TableRange> {
         if (!Iterables.isEmpty(value.getColumns())) {
             jgen.writeArrayFieldStart("cols");
             for (byte[] column : value.getColumns()) {
-                AtlasSerializers.serializeCol(jgen, metadata.columns(), column);
+                AtlasSerializers.serializeCol(jgen, metadata.getColumns(), column);
             }
             jgen.writeEndArray();
         }

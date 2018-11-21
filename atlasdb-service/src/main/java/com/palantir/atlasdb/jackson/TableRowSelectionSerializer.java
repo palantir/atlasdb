@@ -42,7 +42,7 @@ public class TableRowSelectionSerializer extends StdSerializer<TableRowSelection
         jgen.writeStringField("table", value.getTableName());
         jgen.writeArrayFieldStart("rows");
         for (byte[] row : value.getRows()) {
-            AtlasSerializers.serializeRowish(jgen, metadata.rowMetadata(), row);
+            AtlasSerializers.serializeRowish(jgen, metadata.getRowMetadata(), row);
         }
         jgen.writeEndArray();
         if (!value.getColumnSelection().allColumnsSelected()) {
