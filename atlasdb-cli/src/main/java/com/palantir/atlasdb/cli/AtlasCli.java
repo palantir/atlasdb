@@ -20,7 +20,6 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.cli.command.CleanCassLocksStateCommand;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.ReadPunchTableCommand;
 import com.palantir.atlasdb.cli.command.ScrubQueueMigrationCommand;
@@ -45,7 +44,6 @@ public final class AtlasCli {
                 .withCommand(Help.class)
                 .withCommand(SweepCommand.class)
                 .withCommand(KvsMigrationCommand.class)
-                .withCommand(CleanCassLocksStateCommand.class)
                 .withCommand(ScrubQueueMigrationCommand.class)
                 .withCommand(ReadPunchTableCommand.class);
 

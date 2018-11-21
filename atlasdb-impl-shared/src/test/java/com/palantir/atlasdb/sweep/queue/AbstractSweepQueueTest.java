@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -75,11 +76,12 @@ public abstract class AbstractSweepQueueTest {
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
         metricsManager = MetricsManagers.createForTests();
-        spiedKvs = spy(new InMemoryKeyValueService(true));
+        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
+        spiedKvs = spy(new SafeTableClearerKeyValueService(
+                timestampsSupplier::getImmutableTimestamp, new InMemoryKeyValueService(true)));
         spiedKvs.createTable(TABLE_CONS, metadataBytes(SweepStrategy.CONSERVATIVE));
         spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
-        timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createTransactionService(spiedKvs);
     }

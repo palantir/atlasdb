@@ -15,6 +15,7 @@
  */
 package com.palantir.flake;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.junit.rules.TestRule;
@@ -91,16 +92,18 @@ public class FlakeRetryingRule implements TestRule {
                         attempt,
                         retryAnnotation.numAttempts());
                 return;
-            } catch (Exception | AssertionError e) {
-                // This includes AssertionErrors because of tests where a flaky operation takes place, and then
-                // assertions are made on the state of the world assuming that said flaky operation was successful.
-                // TODO (jkong): Make whether AssertionError is permitted configurable.
-                logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, e);
             } catch (Throwable t) {
-                // This covers other Errors, where it generally doesn't make sense to retry.
-                throw Throwables.propagate(t);
+                if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> causeHasType(t, type))) {
+                    logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, t);
+                } else {
+                    throw Throwables.propagate(t);
+                }
             }
         }
+    }
+
+    private static boolean causeHasType(Throwable cause, Class<? extends Throwable> type) {
+        return cause != null && (type.isInstance(cause) || causeHasType(cause.getCause(), type));
     }
 
     private static void logFailureAndThrowIfNeeded(

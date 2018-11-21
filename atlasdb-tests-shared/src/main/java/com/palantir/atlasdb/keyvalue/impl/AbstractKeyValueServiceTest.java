@@ -1472,6 +1472,17 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void putUnlessExistsLargeValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+        byte[] megabyteValue = new byte[1048576];
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, megabyteValue));
+
+        Value storedValue = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL);
+        assertArrayEquals(megabyteValue, storedValue.getContents());
+    }
+
+    @Test
     public void testCheckAndSetFromEmpty() {
         Assume.assumeTrue(checkAndSetSupported());
 
@@ -1502,6 +1513,16 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.checkAndSet(thirdRequest);
 
         verifyCheckAndSet(TEST_CELL, val(0, 0));
+    }
+
+    @Test
+    public void testCheckAndSetLargeValue() {
+        Assume.assumeTrue(checkAndSetSupported());
+        byte[] megabyteValue = new byte[1048576];
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, megabyteValue);
+
+        keyValueService.checkAndSet(request);
+        verifyCheckAndSet(TEST_CELL, megabyteValue);
     }
 
     private void verifyCheckAndSet(Cell key, byte[] expectedValue) {

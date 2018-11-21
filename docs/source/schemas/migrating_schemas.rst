@@ -12,6 +12,11 @@ Products using AtlasDB need to validate the existing schema, create the proper t
 Schema Mutation Lock (Cassandra only)
 =====================================
 
+.. tip::
+
+   The schema mutation lock is no longer used from Atlas 0.108.0 onwards.
+   This information is maintained here for reference for users of AtlasDB on older versions.
+
 Cassandra 2.1 introduced a race condition that allows clients to create two versions of a table with the same create table command.
 Upon restarting your Cassandra cluster, one table will be chosen arbitrarily and the other one will be deleted, corrupting your database.
 This is a known issue with Cassandra and is being tracked on `CASSANDRA-10699 <https://issues.apache.org/jira/browse/CASSANDRA-10699>`__.

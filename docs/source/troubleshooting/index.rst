@@ -12,7 +12,12 @@ Troubleshooting
 Clearing the schema mutation lock
 =================================
 
-While performing schema mutations (e.g. creating or dropping tables) in Cassandra, we hold a :ref:`schema mutation lock <schema-mutation-lock>`.
+.. tip::
+
+   The schema mutation lock is no longer used from Atlas 0.108.0 onwards.
+   These steps are maintained here for reference for users of AtlasDB on older versions.
+
+In versions of AtlasDB prior to 0.108.0, we hold a :ref:`schema mutation lock <schema-mutation-lock>` while performing schema mutations (e.g. creating or dropping tables) in Cassandra.
 If an AtlasDB client dies while holding the lock, the lock must be manually cleared or clients will not be able to perform schema mutations.
 Prior to AtlasDB 0.19, we would always grab the schema mutation lock on startup, and thus would fail to start until the lock had been cleared.
 
@@ -170,7 +175,7 @@ compare-and-set operation here.
 
 .. code-block:: none
 
-   cqlsh:keyspace> CONSISTENCY QUROUM;
+   cqlsh:keyspace> CONSISTENCY QUORUM;
    cqlsh:keyspace> UPDATE "_persisted_locks" SET value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303030222c22726561736f6e223a22417661696c61626c65227d WHERE key=0x4261636b75704c6f636b AND column1=0x6c6f636b AND column2=-1 IF value=0x7b226c6f636b4e616d65223a224261636b75704c6f636b222c22696e7374616e63654964223a2234323765623032612d663031372d343063642d386430382d306131363333313530323961222c22726561736f6e223a22666f6f227d;
 
     [applied]

@@ -19,18 +19,27 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
+import java.net.SocketTimeoutException;
+
 import org.junit.After;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.flake.FlakeRetryingRule;
+import com.palantir.flake.ShouldRetry;
 
 public class TodoEteTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+
+    @Rule
+    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @After
     public void cleanupStreamTables() {
@@ -39,12 +48,12 @@ public class TodoEteTest {
 
     @Test
     public void shouldBeAbleToWriteAndListTodos() {
-
         todoClient.addTodo(TODO);
         assertThat(todoClient.getTodoList(), hasItem(TODO));
     }
 
     @Test
+    @ShouldRetry(numAttempts = 3, retryableExceptions = {SocketTimeoutException.class})
     public void shouldSweepStreamIndices() {
         // Stores five small streams, each of which fits into a single block
         // Each time a stream is stored, the previous stream (if any) is deleted

@@ -23,8 +23,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 import org.junit.rules.ExternalResource;
@@ -44,13 +42,14 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.
 // Please don't make the setup methods private.
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
-    private static final Optional<SSLSocketFactory> NO_SSL = Optional.empty();
+    private static final Optional<TrustContext> NO_SSL = Optional.empty();
 
     private static final short SERVER_PORT = 3828;
 

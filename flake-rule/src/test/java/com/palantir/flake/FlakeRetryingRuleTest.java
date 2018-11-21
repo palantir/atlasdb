@@ -84,6 +84,29 @@ public class FlakeRetryingRuleTest {
         // pass
     }
 
+    @Test
+    @ShouldRetry(retryableExceptions = {RuntimeException.class})
+    @ExpectedFailure
+    public void doesNotRetryIfNotRetryable() {
+        runTestFailingUntilSpecifiedAttempt(2);
+    }
+
+    @Test
+    @ShouldRetry(retryableExceptions = {Throwable.class})
+    public void retriesIfSuperOfRetriable() {
+        runTestFailingUntilSpecifiedAttempt(2);
+    }
+
+    @Test
+    @ShouldRetry(retryableExceptions = {IllegalStateException.class})
+    public void retriesIfCauseIsRetryable() {
+        try {
+            runTestFailingUntilSpecifiedAttempt(2);
+        } catch (AssertionError e) {
+            throw new RuntimeException(new IllegalStateException());
+        }
+    }
+
     private void runTestFailingUntilSpecifiedAttempt(long expected) {
         AtomicLong counter = counters.getOrDefault(testName.getMethodName(), new AtomicLong());
         long value = counter.incrementAndGet();
