@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -108,7 +109,6 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
             try {
                 testConnection(conn);
-                profiler.logConnectionTest();
                 return conn;
             } catch (SQLException e) {
                 log.error("[{}] Dropping connection which failed validation",
@@ -211,14 +211,33 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
      * @throws SQLException if connection is invalid and cannot be used.
      */
     private void testConnection(Connection connection) throws SQLException {
-        try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery(connConfig.getTestQuery())) {
+        testConnection(connection, Optional.empty());
+    }
+
+    private void testConnection(
+            Connection connection, Optional<ConnectionAcquisitionProfiler> profiler) throws SQLException {
+        try (Statement stmt = createStatementAndLogTime(connection, profiler);
+                ResultSet rs = executeQueryAndLogTime(stmt, profiler)) {
             if (!rs.next()) {
                 throw new SQLException(String.format(
                         "Connection %s could not be validated as it did not return any results for test query %s",
                         connection, connConfig.getTestQuery()));
             }
         }
+    }
+
+    private Statement createStatementAndLogTime(
+            Connection connection, Optional<ConnectionAcquisitionProfiler> profiler) throws SQLException {
+        Statement statement = connection.createStatement();
+        profiler.ifPresent(ConnectionAcquisitionProfiler::logStatementCreationAndRestart);
+        return statement;
+    }
+
+    private ResultSet executeQueryAndLogTime(
+            Statement stmt, Optional<ConnectionAcquisitionProfiler> profiler) throws SQLException {
+        ResultSet resultSet = stmt.executeQuery(connConfig.getTestQuery());
+        profiler.ifPresent(ConnectionAcquisitionProfiler::logQueryExecution);
+        return resultSet;
     }
 
     @Override
@@ -347,11 +366,15 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     }
 
     private class ConnectionAcquisitionProfiler {
+        private static final String PROFILING_MESSAGE_FORMAT = "[{}] Waited {}ms for connection"
+                + " (acquisition: {}, statement creation: {}, execution: {})";
+        
         private final Stopwatch globalStopwatch;
         private final Stopwatch trialStopwatch;
 
         private long acquisitionMillis;
-        private long connectionTestMillis;
+        private long statementCreationMillis;
+        private long queryExecutionMillis;
 
         private ConnectionAcquisitionProfiler() {
             this(Stopwatch.createStarted(), Stopwatch.createStarted());
@@ -368,26 +391,34 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             trialStopwatch.reset().start();
         }
 
-        private void logConnectionTest() {
+        private void logStatementCreationAndRestart() {
             trialStopwatch.stop();
-            connectionTestMillis = trialStopwatch.elapsed(TimeUnit.MILLISECONDS);
+            statementCreationMillis = trialStopwatch.elapsed(TimeUnit.MILLISECONDS);
+            trialStopwatch.reset().start();
+        }
+
+        private void logQueryExecution() {
+            trialStopwatch.stop();
+            queryExecutionMillis = trialStopwatch.elapsed(TimeUnit.MILLISECONDS);
         }
 
         private void logQueryDuration() {
             long elapsedMillis = globalStopwatch.elapsed(TimeUnit.MILLISECONDS);
             if (elapsedMillis > 1000) {
-                log.warn("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                log.warn(PROFILING_MESSAGE_FORMAT,
                         connConfig.getConnectionPoolName(),
                         elapsedMillis,
                         acquisitionMillis,
-                        connectionTestMillis);
+                        statementCreationMillis,
+                        queryExecutionMillis);
                 logPoolStats();
             } else {
-                log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                log.warn(PROFILING_MESSAGE_FORMAT,
                         connConfig.getConnectionPoolName(),
                         elapsedMillis,
                         acquisitionMillis,
-                        connectionTestMillis);
+                        statementCreationMillis,
+                        queryExecutionMillis);
             }
         }
     }
