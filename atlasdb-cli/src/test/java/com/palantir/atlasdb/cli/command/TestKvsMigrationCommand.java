@@ -156,7 +156,7 @@ public class TestKvsMigrationCommand {
         }
     }
 
-    private TableReference getTableRef(int i) {
-        return TableReference.create(Namespace.create("ns"), "table" + i);
+    private static TableReference getTableRef(int number) {
+        return TableReference.create(Namespace.create("ns"), "table" + number);
     }
 }
