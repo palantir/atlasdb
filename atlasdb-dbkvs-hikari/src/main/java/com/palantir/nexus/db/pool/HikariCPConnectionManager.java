@@ -368,7 +368,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private class ConnectionAcquisitionProfiler {
         private static final String PROFILING_MESSAGE_FORMAT = "[{}] Waited {}ms for connection"
                 + " (acquisition: {}, statement creation: {}, execution: {})";
-        
+
         private final Stopwatch globalStopwatch;
         private final Stopwatch trialStopwatch;
 
@@ -413,7 +413,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         queryExecutionMillis);
                 logPoolStats();
             } else {
-                log.warn(PROFILING_MESSAGE_FORMAT,
+                log.debug(PROFILING_MESSAGE_FORMAT,
                         connConfig.getConnectionPoolName(),
                         elapsedMillis,
                         acquisitionMillis,
