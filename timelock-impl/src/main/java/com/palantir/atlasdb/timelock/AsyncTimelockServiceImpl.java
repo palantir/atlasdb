@@ -26,9 +26,13 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
@@ -106,6 +110,21 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         return lockService.unlock(tokens);
+    }
+
+    @Override
+    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+        return StartAtlasDbTransactionResponse.of(
+                lockImmutableTimestamp(request),
+                getFreshTimestamp());
+    }
+
+    @Override
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return StartIdentifiedAtlasDbTransactionResponse.of(
+                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
+                getFreshTimestampForClient(request.requestorId()));
     }
 
     @Override
