@@ -1363,7 +1363,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                if (validationNecessaryForInvolvedTables()) {
+                if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
                 return;
@@ -2061,7 +2061,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         involvedTables.add(tableRef);
     }
 
-    private boolean validationNecessaryForInvolvedTables() {
+    private boolean validationNecessaryForInvolvedTablesOnCommit() {
         return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
     }
 
