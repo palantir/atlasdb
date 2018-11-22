@@ -373,8 +373,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, cassandraTableTruncator);
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, wrappingQueryRunner,
+                cassandraTableTruncator);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
