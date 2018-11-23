@@ -1506,37 +1506,66 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> tableToMetadataContents = Maps.newHashMap();
+        Map<TableReference, Value> tableToMetadataContents;
+        Map<TableReference, byte[]> result = Maps.newHashMap();
+
+        Set<TableReference> allTableRefs = getAllTableReferencesWithoutFiltering();
 
         // we don't even have a metadata table yet. Return empty map.
-        if (!getAllTableReferencesWithoutFiltering().contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
+        if (!allTableRefs.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
             log.trace("getMetadata called with no _metadata table present");
-            return tableToMetadataContents;
+            return ImmutableMap.of();
         }
 
         try (ClosableIterator<RowResult<Value>> range =
                 getRange(AtlasDbConstants.DEFAULT_METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
-            while (range.hasNext()) {
-                RowResult<Value> valueRow = range.next();
-                Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
+            tableToMetadataContents = range.stream()
+                    .map(RowResult::getCells)
+                    .map(Iterables::getOnlyElement)
+                    .collect(Collectors.toMap(
+                            entry -> CassandraKeyValueServices.lowerCaseTableReferenceFromBytes(entry.getKey().getRowName()),
+                            Entry::getValue,
+                            (fst, snd) -> fst));
+        }
 
-                for (Entry<Cell, Value> entry : cells) {
-                    Value value = entry.getValue();
-                    TableReference tableRef = CassandraKeyValueServices.tableReferenceFromBytes(
-                            entry.getKey().getRowName());
-                    byte[] contents;
-                    if (value == null) {
-                        contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
-                    } else {
-                        contents = value.getContents();
-                    }
-                    if (!HiddenTables.isHidden(tableRef)) {
-                        tableToMetadataContents.put(tableRef, contents);
-                    }
-                }
+//            while (range.hasNext()) {
+//                Iterables.getOnlyElement(range.next().getCells());
+//                Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
+//
+//                for (Entry<Cell, Value> entry : cells) {
+//                    Value value = entry.getValue();
+//                    TableReference tableRef = CassandraKeyValueServices.lowerCaseTableReferenceFromBytes(
+//                            entry.getKey().getRowName());
+//                    byte[] contents;
+//                    if (value == null) {
+//                        contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
+//                    } else {
+//                        contents = value.getContents();
+//                    }
+//                    if (!HiddenTables.isHidden(tableRef)) {
+//                        tableToMetadataContents.put(tableRef, contents);
+//                    }
+//                }
+//            }
+//        }
+
+        for (TableReference tableRef: allTableRefs) {
+            if (HiddenTables.isHidden(tableRef)) {
+                continue;
+            }
+            TableReference lowercaseTableRef = TableReference.createLowerCased(tableRef);
+            if (tableToMetadataContents.containsKey(lowercaseTableRef)) {
+                result.put(tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
             }
         }
-        return tableToMetadataContents;
+
+//        allTableRefs.stream()
+//                .filter(tableRef -> !HiddenTables.isHidden(tableRef))
+//                .filter(tableRef -> tableToMetadataContents.containsKey(TableReference.createLowerCased(tableRef)))
+//                .collect(Collectors.toMap(tableRef -> tableRef, tableRef -> tableToMetadataContents.get(TableReference.createLowerCased(tableRef)).getContents()));
+
+
+        return result;
     }
 
     private Set<TableReference> getAllTableReferencesWithoutFiltering() {

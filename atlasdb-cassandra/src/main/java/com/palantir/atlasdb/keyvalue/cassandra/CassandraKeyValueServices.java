@@ -332,8 +332,8 @@ public final class CassandraKeyValueServices {
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    static TableReference tableReferenceFromBytes(byte[] name) {
-        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
+    static TableReference lowerCaseTableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()).toLowerCase());
     }
 
     static TableReference tableReferenceFromCfDef(CfDef cf) {
