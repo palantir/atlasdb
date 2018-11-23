@@ -40,7 +40,7 @@ public class PostgresTableInitializer implements DbTableInitializer {
         );
 
         executeIgnoringError(
-                "INSERT INTO dual (id) VALUES (1)",
+                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )",
                 "duplicate key"
         );
     }
