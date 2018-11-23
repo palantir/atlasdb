@@ -35,7 +35,9 @@ public class PostgresTableInitializer implements DbTableInitializer {
     @Override
     public void createUtilityTables() {
         executeIgnoringError(
-                "CREATE TABLE dual (id BIGINT, CONSTRAINT pk_dual PRIMARY KEY (id))",
+                "CREATE TABLE dual (id BIGINT, CONSTRAINT "
+                        + PrimaryKeyConstraintNames.get("dual")
+                        + " PRIMARY KEY (id))",
                 "already exists"
         );
 
