@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |fixed|
-         - Cassandra KVS `getAllTimestamps` method no longer returns entries for tables that were dropped.
+         - Cassandra KVS `getMetadataForTables` method no longer returns entries for tables that were dropped.
            Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
            Now we place a ranged tombstone deleting all historical versions of the table's metadata instead.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
