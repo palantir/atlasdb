@@ -72,6 +72,7 @@ public class TimestampToTransactionSchemaMapTest {
     public void copiesWithNewVersions() {
         TimestampToTransactionSchemaMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewVersion(TIMESTAMP_1, 2);
         assertThat(newMap.getVersionForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(1);
+        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_1)).isEqualTo(2);
         assertThat(newMap.getVersionForTimestamp(TIMESTAMP_2)).isEqualTo(2);
     }
 

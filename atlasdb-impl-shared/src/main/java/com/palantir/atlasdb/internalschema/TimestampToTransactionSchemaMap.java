@@ -40,12 +40,18 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  *
  * {@link TimestampToTransactionSchemaMap#timestampToTransactionsTableSchemaVersion()} is always expected to cover
  * all timestamps. That is, the ranges present should span the range [1, +∞) and be connected.
+ * Note that this does not mean that future behaviour is fixed, since in practice this map is often read as part of
+ * a {@link com.palantir.atlasdb.coordination.ValueAndBound}. Thus, even though the map will contain as a key some
+ * range [C, +∞) for a constant C, it should be valid up to some point V > C - and behaviour at timestamps after V
+ * may subsequently be changed.
  */
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampToTransactionSchemaMap.class)
 @JsonDeserialize(as = ImmutableTimestampToTransactionSchemaMap.class)
 public abstract class TimestampToTransactionSchemaMap {
     private static final Range<Long> ALL_TIMESTAMPS = Range.atLeast(1L);
+    private static final TimestampToTransactionSchemaMap INSTANCE_USING_VERSION_1_AT_ALL_TIMESTAMPS
+            = of(ImmutableRangeMap.of(ALL_TIMESTAMPS, 1));
 
     /**
      * Mapping of timestamp ranges to transactions table schema versions, represented as a set.
@@ -66,7 +72,7 @@ public abstract class TimestampToTransactionSchemaMap {
     }
 
     public static TimestampToTransactionSchemaMap initialValue() {
-        return of(ImmutableRangeMap.of(ALL_TIMESTAMPS, 1));
+        return INSTANCE_USING_VERSION_1_AT_ALL_TIMESTAMPS;
     }
 
     public static TimestampToTransactionSchemaMap of(RangeMap<Long, Integer> initialState) {
