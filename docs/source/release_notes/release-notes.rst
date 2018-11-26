@@ -50,8 +50,17 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Cassandra KVS `getMetadataForTables` method no longer returns entries for tables that were dropped.
+           Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
+           Now we place a ranged tombstone deleting all historical versions of the table's metadata instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
+
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           This only applies where multiple `TransactionManager` s might exist in a single VM
+           and they are created an shutdown repeatedly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
 
 ========
 v0.111.0

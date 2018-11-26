@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
@@ -51,7 +50,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -93,10 +91,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.CassandraRangePagingIterable;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -200,8 +195,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final TracingQueryRunner queryRunner;
     private final WrappingQueryRunner wrappingQueryRunner;
     private final CellLoader cellLoader;
+    private final RangeLoader rangeLoader;
     private final TaskRunner taskRunner;
     private final CellValuePutter cellValuePutter;
+    private final CassandraTableMetadata tableMetadata;
     private final CassandraTableCreator cassandraTableCreator;
     private final CassandraTableDropper cassandraTableDropper;
     private final CassandraTableTruncator cassandraTableTruncator;
@@ -364,6 +361,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = new CellLoader(clientPool, wrappingQueryRunner, taskRunner);
+        this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
                 clientPool,
@@ -371,10 +369,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 wrappingQueryRunner,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+        this.tableMetadata = new CassandraTableMetadata(rangeLoader, cassandraTables, clientPool,
+                wrappingQueryRunner);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
-        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, cellValuePutter,
-                wrappingQueryRunner, cassandraTableTruncator);
+        this.cassandraTableDropper = new CassandraTableDropper(config, clientPool, tableMetadata,
+                cassandraTableTruncator);
     }
 
     private static ExecutorService createInstrumentedFixedThreadPool(CassandraKeyValueServiceConfig config,
@@ -486,6 +486,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         if (currentRf == 2 && config.clusterMeetsNormalConsistencyGuarantees()) {
                             log.info("Setting Read Consistency to ONE, as cluster has only one datacenter at RF2.");
                             readConsistency = ConsistencyLevel.ONE;
+                            rangeLoader.setConsistencyLevel(readConsistency);
                         }
                     }
                 }
@@ -1145,8 +1146,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             TableReference tableRef,
             RangeRequest rangeRequest,
             long timestamp) {
-        return getRangeWithPageCreator(tableRef, rangeRequest, timestamp, readConsistency,
-                () -> ValueExtractor.create(metricsManager));
+        return rangeLoader.getRange(tableRef, rangeRequest, timestamp);
     }
 
     /**
@@ -1177,7 +1177,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .build();
         return getCandidateRowsForSweeping("getRangeOfTimestamps", tableRef, request)
                 .flatMap(rows -> rows)
-                .map(row -> row.toRowResult())
+                .map(CandidateRowForSweeping::toRowResult)
                 .stopWhen(rowResult -> !rangeRequest.inRange(rowResult.getRowName()));
     }
 
@@ -1211,53 +1211,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 CqlExecutor.class,
                 new CqlExecutorImpl(clientPool, ConsistencyLevel.ALL));
-    }
-
-    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            TableReference tableRef,
-            RangeRequest rangeRequest,
-            long startTs,
-            ConsistencyLevel consistency,
-            Supplier<ResultsExtractor<T>> resultsExtractor) {
-        SlicePredicate predicate;
-        if (rangeRequest.getColumnNames().size() == 1) {
-            byte[] colName = rangeRequest.getColumnNames().iterator().next();
-            predicate = SlicePredicates.latestVersionForColumn(colName, startTs);
-        } else {
-            // TODO(nziebart): optimize fetching multiple columns by performing a parallel range request for
-            // each column. note that if no columns are specified, it's a special case that means all columns
-            predicate = SlicePredicates.create(Range.ALL, Limit.NO_LIMIT);
-        }
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, consistency, tableRef);
-        ColumnGetter columnGetter = new ThriftColumnGetter();
-
-        return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);
-    }
-
-    private <T> ClosableIterator<RowResult<T>> getRangeWithPageCreator(
-            RowGetter rowGetter,
-            SlicePredicate slicePredicate,
-            ColumnGetter columnGetter,
-            RangeRequest rangeRequest,
-            Supplier<ResultsExtractor<T>> resultsExtractor,
-            long startTs) {
-        if (rangeRequest.isReverse()) {
-            throw new UnsupportedOperationException();
-        }
-        if (rangeRequest.isEmptyRange()) {
-            return ClosableIterators.wrap(ImmutableList.<RowResult<T>>of().iterator());
-        }
-
-        CassandraRangePagingIterable<T> rowResults = new CassandraRangePagingIterable<>(
-                rowGetter,
-                slicePredicate,
-                columnGetter,
-                rangeRequest,
-                resultsExtractor,
-                startTs
-        );
-
-        return ClosableIterators.wrap(rowResults.iterator());
     }
 
     /**
@@ -1304,7 +1257,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * (the table is left in its current state). Requires a quorum of Cassandra nodes to be reachable.
      *
      * @param tableRef the name of the table to create.
-     * @param tableMetadata the metadata of the table to create.
+     * @param metadata the metadata of the table to create.
      *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
@@ -1313,8 +1266,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
-    public void createTable(final TableReference tableRef, final byte[] tableMetadata) {
-        createTables(ImmutableMap.of(tableRef, tableMetadata));
+    public void createTable(final TableReference tableRef, final byte[] metadata) {
+        createTables(ImmutableMap.of(tableRef, metadata));
     }
 
     /**
@@ -1334,7 +1287,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * of existing table to have new compression block size). This does not require the schema mutation lock, as it
      * does not alter the CfId
      *
-     * @param tableNamesToTableMetadata a mapping of names of tables to create to their respective metadata.
+     * @param tablesToMetadata a mapping of names of tables to create to their respective metadata.
      *
      * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable, or the cluster
      * cannot come to an agreement on schema versions. Note that this method is not atomic: if quorum is lost during
@@ -1343,84 +1296,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      * @throws UncheckedExecutionException if there are multiple schema mutation lock tables.
      */
     @Override
-    public void createTables(final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<TableReference, byte[]> tablesToActuallyCreate = filterOutExistingTables(tableNamesToTableMetadata);
-        Map<TableReference, byte[]> tablesToUpdateMetadataFor = filterOutNoOpMetadataChanges(tableNamesToTableMetadata);
+    public void createTables(final Map<TableReference, byte[]> tablesToMetadata) {
+        Map<TableReference, byte[]> tablesToCreate = tableMetadata.filterOutExistingTables(tablesToMetadata);
+        Map<TableReference, byte[]> tablesToAlter = tableMetadata.filterOutNoOpMetadataChanges(tablesToMetadata);
 
-        boolean onlyMetadataChangesAreForNewTables =
-                tablesToUpdateMetadataFor.keySet().equals(tablesToActuallyCreate.keySet());
+        boolean onlyMetadataChangesAreForNewTables = tablesToAlter.keySet().equals(tablesToCreate.keySet());
         boolean putMetadataWillNeedASchemaChange = !onlyMetadataChangesAreForNewTables;
 
-        if (!tablesToActuallyCreate.isEmpty()) {
-            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(
-                    tablesToActuallyCreate.keySet());
+        if (!tablesToCreate.isEmpty()) {
+            LoggingArgs.SafeAndUnsafeTableReferences safeAndUnsafe = LoggingArgs.tableRefs(tablesToCreate.keySet());
             log.info("Creating tables {} and {}", safeAndUnsafe.safeTableRefs(), safeAndUnsafe.unsafeTableRefs());
-            cassandraTableCreator.createTables(tablesToActuallyCreate);
+            cassandraTableCreator.createTables(tablesToCreate);
         }
-        internalPutMetadataForTables(tablesToUpdateMetadataFor, putMetadataWillNeedASchemaChange);
-    }
-
-    private Map<TableReference, byte[]> filterOutNoOpMetadataChanges(
-            final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<TableReference, byte[]> existingTableMetadata = getMetadataForTables();
-        Map<TableReference, byte[]> tableMetadataUpdates = Maps.newHashMap();
-
-        for (Entry<TableReference, byte[]> entry : tableNamesToTableMetadata.entrySet()) {
-            TableReference tableReference = entry.getKey();
-            byte[] newMetadata = entry.getValue();
-
-            if (metadataIsDifferent(existingTableMetadata.get(tableReference), newMetadata)) {
-                Set<TableReference> matchingTables = Sets.filter(existingTableMetadata.keySet(), existingTableRef ->
-                        existingTableRef.getQualifiedName().equalsIgnoreCase(tableReference.getQualifiedName()));
-
-                if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
-                    tableMetadataUpdates.put(tableReference, newMetadata);
-                } else {
-                    log.debug("Case-insensitive matched table already existed with same metadata,"
-                            + " skipping update to {}", LoggingArgs.tableRef(tableReference));
-                }
-            } else {
-                log.debug("Table already existed with same metadata, skipping update to {}",
-                        LoggingArgs.tableRef(tableReference));
-            }
-        }
-
-        return tableMetadataUpdates;
-    }
-
-    private boolean newTableOrUpdate(Map<TableReference, byte[]> existingMetadata, byte[] newMetadata,
-            Set<TableReference> matchingTables) {
-        return matchingTables.isEmpty()
-                || metadataIsDifferent(existingMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata);
-    }
-
-    private Map<TableReference, byte[]> filterOutExistingTables(
-            final Map<TableReference, byte[]> tableNamesToTableMetadata) {
-        Map<TableReference, byte[]> filteredTables = Maps.newHashMap();
-        try {
-            Set<TableReference> existingTablesLowerCased = cassandraTables.getExistingLowerCased().stream()
-                    .map(TableReference::fromInternalTableName)
-                    .collect(Collectors.toSet());
-
-            for (Entry<TableReference, byte[]> tableAndMetadataPair : tableNamesToTableMetadata.entrySet()) {
-                TableReference table = tableAndMetadataPair.getKey();
-                byte[] metadata = tableAndMetadataPair.getValue();
-
-                CassandraVerifier.sanityCheckTableName(table);
-
-                TableReference tableRefLowerCased = TableReference.createLowerCased(table);
-                if (!existingTablesLowerCased.contains(tableRefLowerCased)) {
-                    filteredTables.put(table, metadata);
-                } else {
-                    log.debug("Filtering out existing table ({}) that already existed (case insensitive).",
-                            LoggingArgs.tableRef(table));
-                }
-            }
-        } catch (Exception e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-        }
-
-        return filteredTables;
+        internalPutMetadataForTables(tablesToAlter, putMetadataWillNeedASchemaChange);
     }
 
     /**
@@ -1436,7 +1324,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Set<TableReference> getAllTableNames() {
-        return getTableReferencesWithoutFiltering()
+        return cassandraTables.getTableReferencesWithoutFiltering()
                 .filter(tr -> !HiddenTables.isHidden(tr))
                 .collect(Collectors.toSet());
     }
@@ -1467,7 +1355,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         // if unsuccessful with fast code-path, we need to check if this table exists but was written at a key
         // before we started enforcing only writing lower-case canonicalised versions of keys
-        return getMetadataForTables().get(tableRef);
+        return Optional.ofNullable(getMetadataForTables().get(tableRef)).orElse(AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
     private boolean matchingIgnoreCase(TableReference t1, TableReference t2) {
@@ -1484,9 +1372,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Gets the metadata for all non-hidden tables. Requires a quorum of Cassandra nodes to be reachable.
      *
-     * Note that this method does not guarantee that the case of {@link TableReference}s returned matches
-     * that found in the schema. It is likely to be difficult to reconcile this without schema information.
-     *
      * @return a mapping of table names to their respective metadata in form of a byte array.  Consider
      * {@link TableMetadata#BYTES_HYDRATOR} for hydrating.
      *
@@ -1494,49 +1379,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, Value> tableToMetadataContents;
-        Map<TableReference, byte[]> result = Maps.newHashMap();
-
-        Set<TableReference> allTableRefs = getAllTableReferencesWithoutFiltering();
-
-        // we don't even have a metadata table yet. Return empty map.
-        if (!allTableRefs.contains(AtlasDbConstants.DEFAULT_METADATA_TABLE)) {
-            log.trace("getMetadata called with no _metadata table present");
-            return ImmutableMap.of();
-        }
-
-        try (ClosableIterator<RowResult<Value>> range =
-                getRange(AtlasDbConstants.DEFAULT_METADATA_TABLE, RangeRequest.all(), Long.MAX_VALUE)) {
-            tableToMetadataContents = range.stream()
-                    .map(RowResult::getCells)
-                    .map(Iterables::getOnlyElement)
-                    .collect(Collectors.toMap(
-                            entry -> CassandraKeyValueServices.lowerCaseTableReferenceFromBytes(entry.getKey().getRowName()),
-                            Entry::getValue,
-                            (fst, snd) -> fst));
-        }
-
-        for (TableReference tableRef: allTableRefs) {
-            if (HiddenTables.isHidden(tableRef)) {
-                continue;
-            }
-            TableReference lowercaseTableRef = TableReference.createLowerCased(tableRef);
-            if (tableToMetadataContents.containsKey(lowercaseTableRef)) {
-                result.put(tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
-            }
-        }
-
-        return result;
-    }
-
-    private Set<TableReference> getAllTableReferencesWithoutFiltering() {
-        return getTableReferencesWithoutFiltering()
-                .collect(Collectors.toSet());
-    }
-
-    private Stream<TableReference> getTableReferencesWithoutFiltering() {
-        return cassandraTables.getExisting().stream()
-                .map(TableReference::fromInternalTableName);
+        return tableMetadata.getMetadataForTables();
     }
 
     /**

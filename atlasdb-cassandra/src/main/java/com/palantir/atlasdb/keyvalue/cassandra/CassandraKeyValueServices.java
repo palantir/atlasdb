@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -44,6 +45,8 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -60,13 +63,14 @@ public final class CassandraKeyValueServices {
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
     public static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    public static final byte[] METADATA_COL = "m".getBytes(StandardCharsets.UTF_8);
 
     private CassandraKeyValueServices() {
         // Utility class
     }
 
     /**
-     * Attempt to wait until nodes' schema versions match.
+     * Attempt to wait until nodes' schema versions.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
@@ -316,19 +320,37 @@ public final class CassandraKeyValueServices {
 
     static Cell getMetadataCell(TableReference tableRef) {
         // would have preferred an explicit charset, but thrift uses default internally
-        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), METADATA_COL);
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static Cell getOldMetadataCell(TableReference tableRef) {
         return Cell.create(
-                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
-                "m".getBytes(StandardCharsets.UTF_8));
+                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()), METADATA_COL);
+    }
+
+    static RangeRequest metadataRangeRequest() {
+        return RangeRequest.builder().retainColumns(ImmutableSet.of(METADATA_COL)).build();
+    }
+
+    static RangeRequest metadataRangeRequestForTable(TableReference tableRef) {
+        byte[] startRow = upperCaseTableReferenceToBytes(tableRef);
+        byte[] endRow = lowerCaseTableReferenceToBytes(tableRef);
+        return RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .endRowExclusive(RangeRequests.nextLexicographicName(endRow))
+                .retainColumns(ImmutableSet.of(METADATA_COL))
+                .build();
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
+    static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
         return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static byte[] upperCaseTableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().toUpperCase().getBytes(Charset.defaultCharset());
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
@@ -338,6 +360,11 @@ public final class CassandraKeyValueServices {
 
     static TableReference tableReferenceFromCfDef(CfDef cf) {
         return TableReference.fromInternalTableName(cf.getName());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static TableReference tableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
     }
 
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
