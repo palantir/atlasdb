@@ -68,6 +68,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Supplier;
@@ -219,6 +220,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
     }
 
     @Test
@@ -603,10 +607,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() throws Exception {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() {
         List<String> successfulTasks = getThoroughTableReadTasks().stream()
                 .map(this::runTaskWithInvalidLocks)
                 .filter(Optional::isPresent)
@@ -1109,10 +1110,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnReadsIfThoroughlySwept() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
@@ -1135,10 +1132,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnlyOnCommitIfValidationFlagIsFalse() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
@@ -1156,6 +1149,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                true);
+        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+        transaction.commit();
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
     @Test
