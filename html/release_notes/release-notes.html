@@ -192,6 +192,12 @@ This only applies where multiple <cite>TransactionManager</cite> s might exist i
 and they are created an shutdown repeatedly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3653">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Wrap shutdown callback running in try-catch.
+This guards against any shutdown hooks throwing unchecked exceptions,
+which would cause other hooks to not run.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3654">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
