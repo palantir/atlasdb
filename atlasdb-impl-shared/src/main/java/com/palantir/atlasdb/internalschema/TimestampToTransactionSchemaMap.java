@@ -75,7 +75,7 @@ public abstract class TimestampToTransactionSchemaMap {
                         .entrySet()
                         .stream()
                         .map(entry -> RangeAndValue.of(entry.getKey(), entry.getValue()))
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toSet()));
     }
 
     public int getVersionForTimestamp(long timestamp) {
@@ -86,7 +86,7 @@ public abstract class TimestampToTransactionSchemaMap {
             long lowerBoundForNewVersion,
             int newSchemaVersion) {
         RangeAndValue latestEntry = getLatestEntry();
-        validateInstallationIsCurrent(lowerBoundForNewVersion, newSchemaVersion, latestEntry);
+        validateProvidedTimestampBounds(lowerBoundForNewVersion, newSchemaVersion, latestEntry);
 
         ImmutableRangeMap.Builder<Long, Integer> builder = ImmutableRangeMap.builder();
         copyOldRangesFromPreviousMap(latestEntry, builder);
@@ -94,7 +94,7 @@ public abstract class TimestampToTransactionSchemaMap {
         return ImmutableTimestampToTransactionSchemaMap.of(builder.build());
     }
 
-    private static void validateInstallationIsCurrent(long lowerBoundForNewVersion, int newSchemaVersion,
+    private static void validateProvidedTimestampBounds(long lowerBoundForNewVersion, int newSchemaVersion,
             RangeAndValue latestEntry) {
         if (lowerBoundForNewVersion < latestEntry.longRange().lowerEndpoint()) {
             throw new SafeIllegalArgumentException("Cannot install a new schema version at an earlier timestamp;"
@@ -137,19 +137,19 @@ public abstract class TimestampToTransactionSchemaMap {
         validateCoversPreciselyAllTimestamps(rangeMapViewOfTimestamps());
     }
 
-    private static void validateCoversPreciselyAllTimestamps(RangeMap<Long, Integer> initialState) {
-        if (initialState.equals(ImmutableRangeMap.of()) || !initialState.span().equals(ALL_TIMESTAMPS)) {
+    private static void validateCoversPreciselyAllTimestamps(RangeMap<Long, Integer> timestampRangeMap) {
+        if (timestampRangeMap.asMapOfRanges().isEmpty() || !timestampRangeMap.span().equals(ALL_TIMESTAMPS)) {
             throw new SafeIllegalArgumentException("Attempted to initialize a timestamp to transaction schema map"
                     + " of {}; its span does not cover precisely all timestamps.",
-                    SafeArg.of("timestampToTransactionSchemaMap", initialState));
+                    SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap));
         }
 
-        RangeSet<Long> rangesCovered = TreeRangeSet.create(initialState.asMapOfRanges().keySet());
+        RangeSet<Long> rangesCovered = TreeRangeSet.create(timestampRangeMap.asMapOfRanges().keySet());
         if (rangesCovered.asRanges().size() != 1) {
             throw new SafeIllegalArgumentException("Attempted to initialize a timestamp to transaction schema map"
                     + " of {}. While the span covers all timestamps, some are missing. The disconnected ranges"
                     + " of the provided map were {}.",
-                    SafeArg.of("timestampToTransactionSchemaMap", initialState),
+                    SafeArg.of("timestampToTransactionSchemaMap", timestampRangeMap),
                     SafeArg.of("disconnectedRanges", rangesCovered));
         }
     }

@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -35,7 +34,7 @@ public class TransactionSchemaManagerIntegrationTest {
     private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
     private final CoordinationServiceImpl<InternalSchemaMetadata> coordinationService = new CoordinationServiceImpl<>(
             KeyValueServiceCoordinationStore.create(
-                    ObjectMappers.newServerObjectMapper().registerModule(new GuavaModule()),
+                    ObjectMappers.newServerObjectMapper(),
                     new InMemoryKeyValueService(true),
                     PtBytes.toBytes("blablabla"),
                     timestamps::getFreshTimestamp,
