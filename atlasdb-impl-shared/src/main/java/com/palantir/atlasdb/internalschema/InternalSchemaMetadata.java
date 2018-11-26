@@ -18,7 +18,6 @@ package com.palantir.atlasdb.internalschema;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -31,12 +30,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 @JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
 @JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
-@JsonIgnoreProperties(ignoreUnknown = true)
 public interface InternalSchemaMetadata {
-    /**
-     * Mapping of ranges of timestamps to schema versions for the transactions table.
-     */
-    TimestampToTransactionSchemaMap timestampToTransactionsTableSchemaVersion();
+    TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
 
     static ImmutableInternalSchemaMetadata.Builder builder() {
         return ImmutableInternalSchemaMetadata.builder();

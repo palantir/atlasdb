@@ -24,30 +24,30 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 
-public class TimestampToTransactionSchemaMapTest {
-    private static final TimestampToTransactionSchemaMap DEFAULT_INITIAL_MAPPING
-            = TimestampToTransactionSchemaMap.of(ImmutableRangeMap.of(Range.atLeast(1L), 1));
+public class TimestampPartitioningMapTest {
+    private static final TimestampPartitioningMap<Integer> DEFAULT_INITIAL_MAPPING
+            = TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(1L), 1));
 
     private static final long TIMESTAMP_1 = 77L;
     private static final long TIMESTAMP_2 = 777L;
 
     @Test
     public void throwsIfInitialMapIsEmpty() {
-        assertThatThrownBy(() -> TimestampToTransactionSchemaMap.of(ImmutableRangeMap.of()))
+        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
     @Test
     public void throwsIfInitialMapDoesNotCoverFullRange() {
-        assertThatThrownBy(() -> TimestampToTransactionSchemaMap.of(ImmutableRangeMap.of(Range.atLeast(42L), 1)))
+        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(42L), 1)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
     @Test
     public void throwsIfInitialMapHasGapsInRange() {
-        assertThatThrownBy(() -> TimestampToTransactionSchemaMap.of(
+        assertThatThrownBy(() -> TimestampPartitioningMap.of(
                 ImmutableRangeMap.<Long, Integer>builder()
                         .put(Range.closed(1L, 6L), 1)
                         .put(Range.atLeast(8L), 2)
@@ -58,38 +58,38 @@ public class TimestampToTransactionSchemaMapTest {
 
     @Test
     public void throwsIfInitialMapExceedsTimestampRange() {
-        assertThatThrownBy(() -> TimestampToTransactionSchemaMap.of(ImmutableRangeMap.of(Range.atLeast(-42L), 1)))
+        assertThatThrownBy(() -> TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(-42L), 1)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("its span does not cover precisely all timestamps");
     }
 
     @Test
     public void getsVersionForTimestamp() {
-        assertThat(DEFAULT_INITIAL_MAPPING.getVersionForTimestamp(68)).isEqualTo(1);
+        assertThat(DEFAULT_INITIAL_MAPPING.getValueForTimestamp(68)).isEqualTo(1);
     }
 
     @Test
     public void copiesWithNewVersions() {
-        TimestampToTransactionSchemaMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewVersion(TIMESTAMP_1, 2);
-        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(1);
-        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_1)).isEqualTo(2);
-        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_2)).isEqualTo(2);
+        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2);
+        assertThat(newMap.getValueForTimestamp(TIMESTAMP_1 - 1)).isEqualTo(1);
+        assertThat(newMap.getValueForTimestamp(TIMESTAMP_1)).isEqualTo(2);
+        assertThat(newMap.getValueForTimestamp(TIMESTAMP_2)).isEqualTo(2);
     }
 
     @Test
     public void supportsRevertingVersions() {
-        TimestampToTransactionSchemaMap newMap = DEFAULT_INITIAL_MAPPING
-                .copyInstallingNewVersion(TIMESTAMP_1, 2)
-                .copyInstallingNewVersion(TIMESTAMP_2, 1);
-        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_2 - 1)).isEqualTo(2);
-        assertThat(newMap.getVersionForTimestamp(TIMESTAMP_2)).isEqualTo(1);
+        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING
+                .copyInstallingNewValue(TIMESTAMP_1, 2)
+                .copyInstallingNewValue(TIMESTAMP_2, 1);
+        assertThat(newMap.getValueForTimestamp(TIMESTAMP_2 - 1)).isEqualTo(2);
+        assertThat(newMap.getValueForTimestamp(TIMESTAMP_2)).isEqualTo(1);
     }
 
     @Test
     public void throwsWhenInstallingVersionInThePast() {
-        TimestampToTransactionSchemaMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewVersion(TIMESTAMP_2, 2);
-        assertThatThrownBy(() -> newMap.copyInstallingNewVersion(TIMESTAMP_1, 2))
+        TimestampPartitioningMap<Integer> newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_2, 2);
+        assertThatThrownBy(() -> newMap.copyInstallingNewValue(TIMESTAMP_1, 2))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot install a new schema version at an earlier timestamp");
+                .hasMessageContaining("Cannot install a new value at an earlier timestamp");
     }
 }

@@ -62,9 +62,9 @@ public class TransactionSchemaManager {
         });
     }
 
-    private TimestampToTransactionSchemaMap installNewVersionInMap(
-            TimestampToTransactionSchemaMap sourceMap, long bound, int newVersion) {
-        return sourceMap.copyInstallingNewVersion(bound, newVersion);
+    private TimestampPartitioningMap installNewVersionInMap(
+            TimestampPartitioningMap sourceMap, long bound, int newVersion) {
+        return sourceMap.copyInstallingNewValue(bound, newVersion);
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
@@ -78,6 +78,6 @@ public class TransactionSchemaManager {
         return valueAndBound
                 .flatMap(ValueAndBound::value)
                 .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                .map(versionMap -> versionMap.getVersionForTimestamp(timestamp));
+                .map(versionMap -> versionMap.getValueForTimestamp(timestamp));
     }
 }
