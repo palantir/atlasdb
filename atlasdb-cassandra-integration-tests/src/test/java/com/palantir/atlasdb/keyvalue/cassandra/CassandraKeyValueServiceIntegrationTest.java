@@ -28,6 +28,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.clearOutMetadataTable;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.insertMetadataIntoLegacyCell;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.originalMetadata;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -289,11 +293,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     @Test
     public void oldMixedCaseMetadataStillVisible() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.cAsEsEnSiTiVe");
-        Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
-
-        keyValueService.put(
-                AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(oldMetadataCell, originalMetadata()), System.currentTimeMillis());
+        keyValueService.createTable(userTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        clearOutMetadataTable(keyValueService);
+        insertMetadataIntoLegacyCell(keyValueService, userTable, originalMetadata());
 
         assertThat(
                 Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata()),
@@ -301,14 +303,12 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void metadataForNewTableIsLowerCased() {
+    public void metadataForNewTableIsNotLowerCased() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
 
         keyValueService.createTable(userTable, originalMetadata());
 
-        assertThat(keyValueService.getMetadataForTables().keySet().stream()
-                .anyMatch(tableRef -> tableRef.getQualifiedName().equals(userTable.getQualifiedName().toLowerCase())),
-                is(true));
+        assertThat(keyValueService.getMetadataForTables().keySet().contains(userTable), is(true));
     }
 
     @Test
@@ -424,16 +424,5 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 cachePriority(TableMetadataPersistence.CachePriority.COLD);
             }
         }.toTableMetadata().persistToBytes();
-    }
-
-    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
-    // to make sure the tests are actually exercising the correct retrieval codepaths
-    private static byte[] originalMetadata() {
-        return new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_VALUE_CHANGED,
-                TableMetadataPersistence.LogSafety.SAFE)
-                .persistToBytes();
     }
 }

@@ -19,6 +19,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.clearOutMetadataTable;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.insertMetadataIntoLegacyCell;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.originalMetadata;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,8 +38,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class CassandraStrangeBehaviourTest {
     private static final TableReference UPPER_UPPER = TableReference.createFromFullyQualifiedName("TEST.TABLE");
@@ -85,25 +87,29 @@ public class CassandraStrangeBehaviourTest {
 
     @Test
     public void getMetadataReturnsResultFromNewMetadataCellOnConflict() {
-        kvs.createTable(LOWER_UPPER, nonGenericMetadata());
-        insertMetadataIntoLegacyCell(LOWER_UPPER);
+        kvs.createTable(LOWER_UPPER, originalMetadata());
+        insertMetadataIntoLegacyCell(kvs, LOWER_UPPER);
 
-        assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(nonGenericMetadata());
-        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(nonGenericMetadata());
+        assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(originalMetadata());
+        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(originalMetadata());
     }
 
 
     @Test
     public void droppingTablesCleansUpLegacyMetadataAndDoesNotAffectOtherTables() {
-        kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        insertMetadataIntoLegacyCell(LOWER_UPPER);
-        insertMetadataIntoLegacyCell(UPPER_UPPER);
-
         TableReference longerInRange = TableReference.createFromFullyQualifiedName("test.TABLEs");
         TableReference shorterInRange = TableReference.createFromFullyQualifiedName("test.TABL");
+        kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(longerInRange, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.createTable(shorterInRange, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        createTableWithMetadataInLegacyCell(longerInRange);
-        createTableWithMetadataInLegacyCell(shorterInRange);
+        clearOutMetadataTable(kvs);
+
+        insertMetadataIntoNewCell(LOWER_UPPER);
+        insertMetadataIntoLegacyCell(kvs, LOWER_UPPER);
+        insertMetadataIntoLegacyCell(kvs, UPPER_UPPER);
+        insertMetadataIntoLegacyCell(kvs, longerInRange);
+        insertMetadataIntoLegacyCell(kvs, shorterInRange);
 
         kvs.dropTable(LOWER_UPPER);
 
@@ -173,35 +179,10 @@ public class CassandraStrangeBehaviourTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    private void createTableWithMetadataInLegacyCell(TableReference tableRef) {
-        kvs.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
-
-        Cell metadataCell = CassandraKeyValueServices.getMetadataCell(tableRef);
-        kvs.deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(metadataCell, Long.MAX_VALUE),
-                true);
-
-        insertMetadataIntoLegacyCell(tableRef);
-
-        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).isNotEmpty();
-        assertThat(kvs.getMetadataForTables()).isNotEmpty();
-    }
-
     private void insertMetadataIntoNewCell(TableReference tableRef) {
         Cell metadataCell = CassandraKeyValueServices.getMetadataCell(tableRef);
         kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 ImmutableMap.of(metadataCell, AtlasDbConstants.GENERIC_TABLE_METADATA),
                 System.currentTimeMillis());
-    }
-
-    private void insertMetadataIntoLegacyCell(TableReference tableRef) {
-        Cell legacyMetadataCell = CassandraKeyValueServices.getOldMetadataCell(tableRef);
-        kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(legacyMetadataCell, AtlasDbConstants.GENERIC_TABLE_METADATA),
-                System.currentTimeMillis());
-    }
-
-    private static byte[] nonGenericMetadata() {
-        return new TableMetadata(TableMetadataPersistence.LogSafety.UNSAFE).persistToBytes();
     }
 }
