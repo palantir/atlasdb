@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -334,15 +335,15 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         } else {
             rowBegin = Cells.createSmallestCellForRow(row);
         }
-        // Inclusive last cell.
         Cell rowEnd;
         if (columnRangeSelection.getEndCol().length > 0) {
-            rowEnd = Cell.create(row, RangeRequests.previousLexicographicName(columnRangeSelection.getEndCol()));
+            rowEnd = Cell.create(row, columnRangeSelection.getEndCol());
         } else {
             rowEnd = Cells.createLargestCellForRow(row);
         }
+
         PeekingIterator<Entry<Key, byte[]>> entries = Iterators.peekingIterator(table.subMap(
-                new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, timestamp)).entrySet().iterator());
+                new Key(rowBegin, Long.MIN_VALUE), new Key(rowEnd, Long.MIN_VALUE)).entrySet().iterator());
         Map<Cell, Value> rowResults = new LinkedHashMap<>();
         while (entries.hasNext()) {
             Entry<Key, byte[]> entry = entries.peek();
