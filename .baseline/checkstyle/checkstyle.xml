@@ -423,5 +423,11 @@
         </module>
 
         <!-- Stricter checks end -->
+
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="DoNotUseShutdownHooks"/>
+            <property name="format" value=".*addShutdownHook\("/>
+            <property name="message" value="Shutdown hooks should not be used in AtlasDB, it is a library. Products using AtlasDB might be creating and destroying many instances of AtlasDB, therefore relying on shutdown hooks for cleaning up resources can lead to memory leaks."/>
+        </module>
     </module>
 </module>
