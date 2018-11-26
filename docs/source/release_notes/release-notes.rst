@@ -57,10 +57,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
 
     *    - |fixed|
-     - Wrap shutdown callback running in try-catch.
-       This guards against any shutdown hooks throwing unchecked exceptions,
-       which would cause other hooks to not run.
-       (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+         - Wrap shutdown callback running in try-catch.
+           This guards against any shutdown hooks throwing unchecked exceptions,
+           which would cause other hooks to not run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
 
 ========
 v0.111.0
