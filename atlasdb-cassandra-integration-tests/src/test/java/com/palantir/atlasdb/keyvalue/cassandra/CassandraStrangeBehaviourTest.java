@@ -77,16 +77,16 @@ public class CassandraStrangeBehaviourTest {
         kvs.createTable(UPPER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         assertThat(kvs.getMetadataForTables().keySet())
-                .contains(LOWER_LOWER)
-                .doesNotContain(UPPER_UPPER);
+                .contains(UPPER_UPPER)
+                .doesNotContain(LOWER_LOWER);
     }
 
     @Test
-    public void droppedTableMetadataShowsUpInGetMetadataForTables() {
-        kvs.createTable(LOWER_LOWER, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.dropTable(LOWER_LOWER);
+    public void droppedTableMetadataDoesNotShowUpInGetMetadataForTables() {
+        kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.dropTable(LOWER_UPPER);
 
-        assertThat(kvs.getMetadataForTables().keySet()).contains(LOWER_LOWER);
+        assertThat(kvs.getMetadataForTables().keySet()).isEmpty();
     }
 
     @Test

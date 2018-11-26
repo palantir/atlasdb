@@ -1467,19 +1467,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
         // if unsuccessful with fast code-path, we need to check if this table exists but was written at a key
         // before we started enforcing only writing lower-case canonicalised versions of keys
-        java.util.Optional<Entry<TableReference, byte[]>> match =
-                getMetadataForTables().entrySet().stream().filter(
-                        entry -> matchingIgnoreCase(entry.getKey(), tableRef))
-                .findFirst();
-
-        if (!match.isPresent()) {
-            log.debug("Couldn't find table metadata for {}", LoggingArgs.tableRef(tableRef));
-            return AtlasDbConstants.EMPTY_TABLE_METADATA;
-        } else {
-            log.debug("Found table metadata for {} at matching name {}", LoggingArgs.tableRef(tableRef),
-                    LoggingArgs.tableRef("matchingTable", match.get().getKey()));
-            return match.get().getValue();
-        }
+        return getMetadataForTables().get(tableRef);
     }
 
     private boolean matchingIgnoreCase(TableReference t1, TableReference t2) {
@@ -1528,27 +1516,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             (fst, snd) -> fst));
         }
 
-//            while (range.hasNext()) {
-//                Iterables.getOnlyElement(range.next().getCells());
-//                Iterable<Entry<Cell, Value>> cells = valueRow.getCells();
-//
-//                for (Entry<Cell, Value> entry : cells) {
-//                    Value value = entry.getValue();
-//                    TableReference tableRef = CassandraKeyValueServices.lowerCaseTableReferenceFromBytes(
-//                            entry.getKey().getRowName());
-//                    byte[] contents;
-//                    if (value == null) {
-//                        contents = AtlasDbConstants.EMPTY_TABLE_METADATA;
-//                    } else {
-//                        contents = value.getContents();
-//                    }
-//                    if (!HiddenTables.isHidden(tableRef)) {
-//                        tableToMetadataContents.put(tableRef, contents);
-//                    }
-//                }
-//            }
-//        }
-
         for (TableReference tableRef: allTableRefs) {
             if (HiddenTables.isHidden(tableRef)) {
                 continue;
@@ -1558,12 +1525,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 result.put(tableRef, tableToMetadataContents.get(lowercaseTableRef).getContents());
             }
         }
-
-//        allTableRefs.stream()
-//                .filter(tableRef -> !HiddenTables.isHidden(tableRef))
-//                .filter(tableRef -> tableToMetadataContents.containsKey(TableReference.createLowerCased(tableRef)))
-//                .collect(Collectors.toMap(tableRef -> tableRef, tableRef -> tableToMetadataContents.get(TableReference.createLowerCased(tableRef)).getContents()));
-
 
         return result;
     }
