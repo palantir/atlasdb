@@ -70,7 +70,7 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Attempt to wait until nodes' schema versions.
+     * Attempt to wait until nodes' schema versions match.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.

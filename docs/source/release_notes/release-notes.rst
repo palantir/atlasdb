@@ -57,6 +57,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
 
     *    - |fixed|
+         - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
+           Furthermore, the table reference keys of the returned map have capitalisation matching the table names in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
+
+    *    - |fixed|
          - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
            This only applies where multiple `TransactionManager` s might exist in a single VM
            and they are created an shutdown repeatedly.
