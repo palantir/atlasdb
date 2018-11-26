@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
 
 ========
 v0.111.0
