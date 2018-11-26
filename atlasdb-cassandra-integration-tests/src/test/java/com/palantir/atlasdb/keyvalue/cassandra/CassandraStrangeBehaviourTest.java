@@ -82,11 +82,20 @@ public class CassandraStrangeBehaviourTest {
     }
 
     @Test
-    public void droppedTableMetadataShowsUpInGetMetadataForTables() {
-        kvs.createTable(LOWER_LOWER, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        kvs.dropTable(LOWER_LOWER);
+    public void droppedTableMetadataDoesNotShowUpInGetMetadataForTables() {
+        kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.dropTable(LOWER_UPPER);
 
-        assertThat(kvs.getMetadataForTables().keySet()).contains(LOWER_LOWER);
+        assertThat(kvs.getMetadataForTables()).isEmpty();
+    }
+
+    @Test
+    public void droppedTableMetadataDoesNotShowUpInGetMetadataForLegacyTables() {
+        createTableWithMetadataInLegacyCell(LOWER_UPPER);
+        kvs.dropTable(LOWER_UPPER);
+
+        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).isEmpty();
+        assertThat(kvs.getMetadataForTables()).isEmpty();
     }
 
     @Test
@@ -120,5 +129,22 @@ public class CassandraStrangeBehaviourTest {
         assertThatThrownBy(() -> kvs.createTables(
                 TABLES.stream().collect(Collectors.toMap(x -> x, no -> AtlasDbConstants.GENERIC_TABLE_METADATA))))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    private void createTableWithMetadataInLegacyCell(TableReference tableRef) {
+        kvs.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
+
+        Cell metadataCell = CassandraKeyValueServices.getMetadataCell(tableRef);
+        kvs.deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(metadataCell, Long.MAX_VALUE),
+                true);
+
+        Cell legacyMetadataCell = CassandraKeyValueServices.getOldMetadataCell(tableRef);
+        kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE,
+                ImmutableMap.of(legacyMetadataCell, AtlasDbConstants.GENERIC_TABLE_METADATA),
+                System.currentTimeMillis());
+
+        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).isNotEmpty();
+        assertThat(kvs.getMetadataForTables()).isNotEmpty();
     }
 }
