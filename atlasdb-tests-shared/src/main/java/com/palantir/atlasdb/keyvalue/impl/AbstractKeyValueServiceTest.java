@@ -238,6 +238,12 @@ public abstract class AbstractKeyValueServiceTest {
         assertEquals(0, getValuesForRow(values, row(1), 1).size());
         values = keyValueService.getRowsColumnRange(TEST_TABLE,
                 ImmutableList.of(row(1)),
+                BatchColumnRangeSelection.create(column(0), column(0), 1),
+                TEST_TIMESTAMP + 1);
+        assertEquals(1, values.size());
+        assertEquals(0, getValuesForRow(values, row(1), 1).size());
+        values = keyValueService.getRowsColumnRange(TEST_TABLE,
+                ImmutableList.of(row(1)),
                 BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, Integer.MAX_VALUE),
                 TEST_TIMESTAMP + 1);
         assertEquals(1, values.size());
