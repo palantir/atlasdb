@@ -307,7 +307,7 @@ import com.palantir.timestamp.TimestampService;
             shutdownExecutor(getRangesExecutor);
             closeLockServiceIfPossible();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                callback.run();
+                runShutdownCallbackSafely(callback);
             }
             metricsManager.deregisterMetrics();
         }
@@ -419,6 +419,14 @@ import com.palantir.timestamp.TimestampService;
             case NO_QUORUM_AVAILABLE:
             default:
                 return KeyValueServiceStatus.UNHEALTHY;
+        }
+    }
+
+    private void runShutdownCallbackSafely(Runnable callback) {
+        try {
+            callback.run();
+        } catch (Throwable exception) {
+            log.warn("Exception thrown from a shutdown hook. Swallowing to proceed.", exception);
         }
     }
 
