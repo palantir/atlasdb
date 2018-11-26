@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -39,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
@@ -148,11 +150,14 @@ import com.palantir.util.JavaSuppliers;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
-public abstract class TransactionManagers {
+@Value.Style(stagedBuilder = true, builder = "innerBuilder")
+public abstract class TransactionManagers<T> {
     private static final int LOGGING_INTERVAL = 60;
     private static final Logger log = LoggerFactory.getLogger(TransactionManagers.class);
 
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+
+    abstract Configurator<T> configurator();
 
     abstract AtlasDbConfig config();
 
@@ -162,6 +167,10 @@ public abstract class TransactionManagers {
     }
 
     abstract Set<Schema> schemas();
+
+    private Set<Schema> allSchemas() {
+        return Sets.union(schemas(), configurator().schemas());
+    }
 
     @Value.Default
     Consumer<Object> registrar() {
@@ -204,18 +213,33 @@ public abstract class TransactionManagers {
         return Callback.noOp();
     }
 
-    public interface Configurator<T extends TransactionManager> {
-        Supplier<T> configure(Builder builder);
+    @Value.Immutable
+    public interface Configurator<T> {
+        Set<Schema> schemas();
+        Function<TransactionManager, T> finalizer();
     }
 
-    public static class Builder extends ImmutableTransactionManagers.Builder {
-        <T extends TransactionManager> Supplier<T> serializable(Configurator<T> configurator) {
-            return configurator.configure(this);
+    private enum NoOpConfigurator implements Configurator<TransactionManager> {
+        INSTANCE;
+
+        @Override
+        public Set<Schema> schemas() {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        public Function<TransactionManager, TransactionManager> finalizer() {
+            return Function.identity();
         }
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static <T> ImmutableTransactionManagers.ConfigBuildStage<T> builder(Configurator<T> configurator) {
+        return ImmutableTransactionManagers.<T>innerBuilder()
+                .configurator(configurator);
+    }
+
+    public static ImmutableTransactionManagers.ConfigBuildStage<TransactionManager> builder() {
+        return builder(NoOpConfigurator.INSTANCE);
     }
 
     @VisibleForTesting
@@ -252,12 +276,12 @@ public abstract class TransactionManagers {
     }
 
     @JsonIgnore
-    @Value.Lazy
-    public TransactionManager serializable() {
+    @Value.Derived
+    public T serializable() {
         List<AutoCloseable> closeables = Lists.newArrayList();
 
         try {
-            return serializableInternal(closeables);
+            return configurator().finalizer().apply(serializableInternal(closeables));
         } catch (Throwable throwable) {
             List<String> closeablesClasses = closeables.stream()
                     .map(autoCloseable -> autoCloseable.getClass().toString())
@@ -338,7 +362,7 @@ public abstract class TransactionManagers {
         SchemaMetadataService schemaMetadataService = SchemaMetadataServiceImpl.create(keyValueService,
                 config.initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), schemaMetadataService, config.initializeAsync());
+                keyValueService, allSchemas(), schemaMetadataService, config.initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config.initializeAsync());
 
@@ -347,7 +371,7 @@ public abstract class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
-        CleanupFollower follower = CleanupFollower.create(schemas());
+        CleanupFollower follower = CleanupFollower.create(allSchemas());
 
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
