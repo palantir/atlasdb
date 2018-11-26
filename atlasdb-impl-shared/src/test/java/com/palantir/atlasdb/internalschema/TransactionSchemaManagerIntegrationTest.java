@@ -43,7 +43,7 @@ public class TransactionSchemaManagerIntegrationTest {
                     timestamps::getFreshTimestamp,
                     VersionedInternalSchemaMetadata.class));
     private final CoordinationService<InternalSchemaMetadata> actualCoordinationService
-            = CoordinationServices.wrap(rawCoordinationService);
+            = CoordinationServices.wrapHidingVersionSerialization(rawCoordinationService);
     private final TransactionSchemaManager manager = new TransactionSchemaManager(
             actualCoordinationService);
 

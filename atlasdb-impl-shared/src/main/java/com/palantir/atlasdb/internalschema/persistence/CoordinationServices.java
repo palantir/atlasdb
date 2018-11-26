@@ -25,7 +25,7 @@ public final class CoordinationServices {
         // factory
     }
 
-    public static CoordinationService<InternalSchemaMetadata> wrap(
+    public static CoordinationService<InternalSchemaMetadata> wrapHidingVersionSerialization(
             CoordinationService<VersionedInternalSchemaMetadata> rawCoordinationService) {
         return new TransformingCoordinationService<>(
                 rawCoordinationService,
