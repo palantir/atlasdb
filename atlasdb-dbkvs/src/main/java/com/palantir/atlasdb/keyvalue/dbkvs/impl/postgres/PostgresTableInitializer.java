@@ -35,12 +35,15 @@ public class PostgresTableInitializer implements DbTableInitializer {
     @Override
     public void createUtilityTables() {
         executeIgnoringError(
-                "CREATE TABLE dual (id BIGINT)",
+                "CREATE TABLE dual (id BIGINT, CONSTRAINT "
+                        + PrimaryKeyConstraintNames.get("dual")
+                        + " PRIMARY KEY (id))",
                 "already exists"
         );
 
-        connectionSupplier.get().executeUnregisteredQuery(
-                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )"
+        executeIgnoringError(
+                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )",
+                "duplicate key"
         );
     }
 

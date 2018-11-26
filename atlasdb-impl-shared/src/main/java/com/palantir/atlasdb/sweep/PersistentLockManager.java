@@ -81,12 +81,18 @@ public class PersistentLockManager implements AutoCloseable {
 
     public synchronized void shutdown() {
         log.info("Shutting down...");
-        isShutDown = true;
-        while (lockId != null) {
-            releasePersistentLock();
+
+        try {
+            isShutDown = true;
+            while (lockId != null) {
+                releasePersistentLock();
+            }
+            log.info("Shutdown completed!");
+        } catch (Exception e) {
+            logFailedShutdown(e);
         }
-        log.info("Shutdown completed!");
     }
+
 
     // We don't synchronize this method, to avoid deadlocking if {@link #shutdown} is called while attempting
     // to acquire a lock.
@@ -171,5 +177,14 @@ public class PersistentLockManager implements AutoCloseable {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
+    }
+
+    private void logFailedShutdown(Exception exception) {
+        log.warn("An exception occurred while shutting down. This means that we had the backup lock out when "
+                        + "the shutdown was triggered, but failed to release it. If this is the case, sweep "
+                        + "or backup may fail to take out the lock in future. If this happens consistently, "
+                        + "consult the following documentation on how to release the dead lock: "
+                        + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
+                exception);
     }
 }

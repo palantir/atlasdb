@@ -121,21 +121,6 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
             daemons.add(daemon);
         }
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.info("Shutting down persistent lock manager");
-            try {
-                persistentLockManager.shutdown();
-                log.info("Shutdown complete!");
-            } catch (Exception e) {
-                log.warn("An exception occurred while shutting down. This means that we had the backup lock out when"
-                         + "the shutdown was triggered, but failed to release it. If this is the case, sweep or backup"
-                         + "may fail to take out the lock in future. If this happens consistently, "
-                         + "consult the following documentation on how to release the dead lock: "
-                         + "https://palantir.github.io/atlasdb/html/troubleshooting/index.html#clearing-the-backup-lock",
-                        e);
-            }
-        }));
     }
 
     @Override
