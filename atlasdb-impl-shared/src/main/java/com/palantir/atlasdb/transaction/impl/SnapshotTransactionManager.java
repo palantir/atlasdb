@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -306,10 +307,19 @@ import com.palantir.timestamp.TimestampService;
             shutdownExecutor(deleteExecutor);
             shutdownExecutor(getRangesExecutor);
             closeLockServiceIfPossible();
+
+            List<Throwable> suppressedExceptions = new ArrayList<>();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                runShutdownCallbackSafely(callback);
+                runShutdownCallbackSafely(callback).ifPresent(suppressedExceptions::add);
             }
             metricsManager.deregisterMetrics();
+
+            if (!suppressedExceptions.isEmpty()) {
+                RuntimeException closeFailed = new RuntimeException(
+                        "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
+                suppressedExceptions.forEach(closeFailed::addSuppressed);
+                throw closeFailed;
+            }
         }
     }
 
@@ -422,11 +432,13 @@ import com.palantir.timestamp.TimestampService;
         }
     }
 
-    private void runShutdownCallbackSafely(Runnable callback) {
+    private Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
         try {
             callback.run();
+            return Optional.empty();
         } catch (Throwable exception) {
             log.warn("Exception thrown from a shutdown hook. Swallowing to proceed.", exception);
+            return Optional.of(exception);
         }
     }
 
