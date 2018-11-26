@@ -156,7 +156,8 @@ public abstract class TransactionManagers {
 
     @Value.Default
     Consumer<Object> registrar() {
-        return resource -> { };
+        return resource -> {
+        };
     }
 
     @Value.Default
@@ -181,18 +182,23 @@ public abstract class TransactionManagers {
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
 
     /**
-     * The callback Runnable will be run when the TransactionManager is successfully initialized. The
-     * TransactionManager will stay uninitialized and continue to throw for all other purposes until the callback
-     * returns at which point it will become initialized. If asynchronous initialization is disabled, the callback will
-     * be run just before the TM is returned.
-     *
+     * The callback Runnable will be run when the TransactionManager is successfully initialized. The TransactionManager
+     * will stay uninitialized and continue to throw for all other purposes until the callback returns at which point it
+     * will become initialized. If asynchronous initialization is disabled, the callback will be run just before the TM
+     * is returned.
+     * <p>
      * Note that if the callback blocks forever, the TransactionManager will never become initialized, and calling its
-     * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws,
-     * the TransactionManager will not become initialized and it will be closed.
+     * close() method will block forever as well. If the callback init() fails, and its cleanup() method throws, the
+     * TransactionManager will not become initialized and it will be closed.
      */
     @Value.Default
     Callback<TransactionManager> asyncInitializationCallback() {
         return Callback.noOp();
+    }
+
+    @Value.Default
+    ShutdownHookRunner shutdownHookRunner() {
+        return RuntimeBackedShutdownHookRunner.INSTANCE;
     }
 
     public static ImmutableTransactionManagers.ConfigBuildStage builder() {
@@ -216,9 +222,8 @@ public abstract class TransactionManagers {
     }
 
     /**
-     * Create a {@link TransactionManager} backed by an
-     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
-     * purposes only.
+     * Create a {@link TransactionManager} backed by an {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}.
+     * This should be used for testing purposes only.
      */
     public static TransactionManager createInMemory(Set<Schema> schemas) {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder().keyValueService(new InMemoryAtlasDbConfig()).build();
@@ -245,7 +250,7 @@ public abstract class TransactionManagers {
                     .collect(Collectors.toList());
 
             log.warn("Exception thrown when creating transaction manager. "
-                    + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
+                            + "Closing previously opened resources: {}", SafeArg.of("classes", closeablesClasses.toString()),
                     throwable);
 
             closeables.forEach(autoCloseable -> {
@@ -269,10 +274,10 @@ public abstract class TransactionManagers {
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
-                        config().keyValueService(),
-                        Suppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier::get),
-                        config().leader(), config().namespace(), Optional.empty(), config().initializeAsync(),
-                         adapter);
+                config().keyValueService(),
+                Suppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier::get),
+                config().leader(), config().namespace(), Optional.empty(), config().initializeAsync(),
+                adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -336,7 +341,7 @@ public abstract class TransactionManagers {
 
         Cleaner cleaner = initializeCloseable(() ->
                         new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
-                                        ImmutableList.of(follower), transactionService)
+                                ImmutableList.of(follower), transactionService)
                                 .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                                 .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                                 .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
@@ -418,6 +423,11 @@ public abstract class TransactionManagers {
                         instrumentedTransactionManager,
                         Suppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier::get)),
                 closeables);
+
+        ShutdownHookRunner.Holder holder = shutdownHookRunner().registerShutdownHook(
+                persistentLockManager::close);
+        instrumentedTransactionManager.registerClosingCallback(
+                () -> shutdownHookRunner().unregisterShutdownHook(holder));
 
         return instrumentedTransactionManager;
     }
@@ -974,7 +984,8 @@ public abstract class TransactionManagers {
         @SuppressWarnings("checkstyle:WhitespaceAround")
         @Value.Default
         default Runnable close() {
-            return () -> {};
+            return () -> {
+            };
         }
     }
 }
