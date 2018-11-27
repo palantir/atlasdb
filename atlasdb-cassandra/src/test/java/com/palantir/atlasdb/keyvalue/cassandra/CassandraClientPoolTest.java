@@ -20,26 +20,32 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.OngoingStubbing;
 
 import com.codahale.metrics.MetricRegistry;
@@ -48,6 +54,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -70,8 +77,12 @@ public class CassandraClientPoolTest {
     private final MetricRegistry metricRegistry = new MetricRegistry();
     private final TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
 
+    private DeterministicScheduler deterministicExecutor = new DeterministicScheduler();
+    private Set<InetSocketAddress> poolServers = new HashSet<>();
+
     private CassandraKeyValueServiceConfig config;
     private Blacklist blacklist;
+    private CassandraService cassandra = mock(CassandraService.class);
 
     @Before
     public void setup() {
@@ -81,6 +92,12 @@ public class CassandraClientPoolTest {
         when(config.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
 
         blacklist = new Blacklist(config);
+
+        doAnswer(invocation -> poolServers.add(getInvocationAddress(invocation))).when(cassandra).addPool(any());
+        doAnswer(invocation -> poolServers.remove(getInvocationAddress(invocation))).when(cassandra).removePool(any());
+        doAnswer(invocation -> poolServers.stream().collect(
+                Collectors.toMap(x -> x, x -> mock(CassandraClientPoolingContainer.class)))).when(cassandra).getPools();
+        when(config.socketTimeoutMillis()).thenReturn(1);
     }
 
     @Test
@@ -121,7 +138,8 @@ public class CassandraClientPoolTest {
 
         CassandraClientPoolImpl cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
-        runNoopOnHostWithRetryWithException(hostList.get(0), cassandraClientPool);
+        assertThatThrownBy(() -> runNoopWithRetryOnHost(hostList.get(0), cassandraClientPool))
+                .isInstanceOf(Exception.class);
 
         verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, cassandraClientPool.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
@@ -134,7 +152,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolImpl cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
-        runNoopOnHostWithRetryWithException(HOST_1, cassandraClientPool);
+        assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool)).isInstanceOf(Exception.class);
         verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, cassandraClientPool.getMaxTriesTotal());
     }
 
@@ -163,7 +181,7 @@ public class CassandraClientPoolTest {
         CassandraClientPoolingContainer container = cassandraClientPool.getCurrentPools().get(HOST_1);
         setFailureModeForHost(container, exception);
 
-        runNoopOnHostWithException(HOST_1, cassandraClientPool);
+        assertThatThrownBy(() -> runNoopOnHost(HOST_1, cassandraClientPool)).isInstanceOf(Exception.class);
     }
 
     @Test
@@ -230,6 +248,113 @@ public class CassandraClientPoolTest {
         assertThat(blacklist.contains(HOST_2), is(false));
     }
 
+    @Test
+    public void hostIsAutomaticallyRemovedOnStartup() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(HOST_1);
+
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1);
+    }
+
+    @Test
+    public void hostIsAutomaticallyRemovedOnRefresh() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2, HOST_3));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(HOST_1, HOST_2, HOST_3);
+
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2, HOST_3);
+
+        setCassandraServersTo(HOST_1, HOST_2);
+        deterministicExecutor.tick(config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+    }
+
+    @Test
+    public void hostIsAutomaticallyAddedOnStartup() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(HOST_1, HOST_2);
+
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+    }
+
+    @Test
+    public void hostIsAutomaticallyAddedOnRefresh() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.autoRefreshNodes()).thenReturn(true);
+
+        setCassandraServersTo(HOST_1, HOST_2);
+
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+
+        setCassandraServersTo(HOST_1, HOST_2, HOST_3);
+        deterministicExecutor.tick(config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2, HOST_3);
+    }
+
+    @Test
+    public void hostsAreNotRemovedOrAddedWhenRefreshIsDisabled() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.autoRefreshNodes()).thenReturn(false);
+
+        setCassandraServersTo(HOST_1);
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+
+        setCassandraServersTo(HOST_1, HOST_2, HOST_3);
+        deterministicExecutor.tick(config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+    }
+
+    @Test
+    public void hostsAreResetToCondigOnRefreshWhenRefreshIsDisabled() {
+        when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
+        when(config.autoRefreshNodes()).thenReturn(false);
+
+        setCassandraServersTo(HOST_1);
+        createClientPool();
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+
+        cassandra.addPool(HOST_3);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2, HOST_3);
+
+        deterministicExecutor.tick(config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+
+        setCassandraServersTo(HOST_2, HOST_3);
+        cassandra.removePool(HOST_1);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_2);
+
+        deterministicExecutor.tick(config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        assertThat(poolServers).containsExactlyInAnyOrder(HOST_1, HOST_2);
+    }
+
+    private InetSocketAddress getInvocationAddress(InvocationOnMock invocation) {
+        return (InetSocketAddress) invocation.getArguments()[0];
+    }
+
+    private void setCassandraServersTo(InetSocketAddress... hosts) {
+        when(cassandra.refreshTokenRangesAndGetServers()).thenReturn(Arrays.stream(hosts).collect(Collectors.toSet()));
+    }
+
+    private CassandraClientPoolImpl createClientPool() {
+        return CassandraClientPoolImpl.createImplForTest(
+                MetricsManagers.createForTests(),
+                config,
+                CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
+                deterministicExecutor,
+                blacklist,
+                cassandra);
+    }
+
     private HostBuilder host(InetSocketAddress address) {
         return new HostBuilder(address);
     }
@@ -245,11 +370,6 @@ public class CassandraClientPoolTest {
 
         HostBuilder throwsException(Exception ex) {
             exceptions.add(ex);
-            return this;
-        }
-
-        HostBuilder continuesToThrow() {
-            returnsValue = false;
             return this;
         }
 
@@ -355,24 +475,6 @@ public class CassandraClientPoolTest {
 
     private void runNoopWithRetryOnHost(InetSocketAddress host, CassandraClientPool pool) {
         pool.runWithRetryOnHost(host, noOp());
-    }
-
-    private void runNoopOnHostWithException(InetSocketAddress host, CassandraClientPool pool) {
-        try {
-            pool.runOnHost(host, noOp());
-            fail();
-        } catch (Exception e) {
-            // expected
-        }
-    }
-
-    private void runNoopOnHostWithRetryWithException(InetSocketAddress host, CassandraClientPool pool) {
-        try {
-            pool.runWithRetryOnHost(host, noOp());
-            fail();
-        } catch (Exception e) {
-            // expected
-        }
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {

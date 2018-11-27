@@ -118,10 +118,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
-        CassandraRequestExceptionHandler exceptionHandler = CassandraRequestExceptionHandler.withNoBackoffForTest(
-                () -> CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost(),
-                () -> CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnAllHosts(),
-                blacklist);
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
@@ -132,32 +129,32 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandraClientPool;
     }
 
-    public static CassandraClientPool create(MetricsManager metricsManager, CassandraKeyValueServiceConfig config) {
-        return create(metricsManager,
+    @VisibleForTesting
+    static CassandraClientPoolImpl createImplForTest(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            ScheduledExecutorService refreshDaemon,
+            Blacklist blacklist,
+            CassandraService cassandra) {
+        CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
+        CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
+                metricsManager,
                 config,
-                CassandraKeyValueServiceRuntimeConfig::getDefault,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                startupChecks,
+                refreshDaemon,
+                exceptionHandler,
+                blacklist,
+                cassandra);
+        cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+        return cassandraClientPool;
     }
 
     public static CassandraClientPool create(MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
-        CassandraClientPoolImpl cassandraClientPool = create(metricsManager,
-                config,
-                runtimeConfig,
-                StartupChecks.RUN,
-                initializeAsync,
-                new Blacklist(config));
-        return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
-    }
-
-    private static CassandraClientPoolImpl create(MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            StartupChecks startupChecks,
-            boolean initializeAsync,
-            Blacklist blacklist) {
+        Blacklist blacklist = new Blacklist(config);
         CassandraRequestExceptionHandler exceptionHandler = new CassandraRequestExceptionHandler(
                 () -> runtimeConfig.get().numberOfRetriesOnSameHost(),
                 () -> runtimeConfig.get().numberOfRetriesOnAllHosts(),
@@ -166,11 +163,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
                 config,
-                startupChecks,
+                StartupChecks.RUN,
                 exceptionHandler,
                 blacklist);
         cassandraClientPool.wrapper.initialize(initializeAsync);
-        return cassandraClientPool;
+        return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }
 
     private CassandraClientPoolImpl(
@@ -179,16 +176,33 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
             Blacklist blacklist) {
+        this(metricsManager,
+                config,
+                startupChecks,
+                PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
+                        .setDaemon(true)
+                        .setNameFormat("CassandraClientPoolRefresh-%d")
+                        .build()),
+                exceptionHandler,
+                blacklist,
+                new CassandraService(metricsManager, config, blacklist));
+    }
+
+    private CassandraClientPoolImpl(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            StartupChecks startupChecks,
+            ScheduledExecutorService refreshDaemon,
+            CassandraRequestExceptionHandler exceptionHandler,
+            Blacklist blacklist,
+            CassandraService cassandra) {
         this.metrics = new CassandraClientPoolMetrics(metricsManager);
         this.config = config;
         this.startupChecks = startupChecks;
-        this.refreshDaemon = PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("CassandraClientPoolRefresh-%d")
-                .build());
+        this.refreshDaemon = refreshDaemon;
         this.blacklist = blacklist;
         this.exceptionHandler = exceptionHandler;
-        cassandra = new CassandraService(metricsManager, config, blacklist);
+        this.cassandra = cassandra;
     }
 
     private void tryInitialize() {
@@ -219,6 +233,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.clearInitialCassandraHosts();
     }
 
+    private static CassandraRequestExceptionHandler testExceptionHandler(Blacklist blacklist) {
+        return CassandraRequestExceptionHandler.withNoBackoffForTest(
+                CassandraClientPoolImpl::getMaxRetriesPerHost,
+                CassandraClientPoolImpl::getMaxTriesTotal,
+                blacklist);
+    }
+
     @Override
     public void shutdown() {
         cassandra.close();
@@ -232,13 +253,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
      * that subsequent hosts we try in the same call will actually be blacklisted after one connection failure
      */
     @VisibleForTesting
-    int getMaxRetriesPerHost() {
-        return 3;
+    static int getMaxRetriesPerHost() {
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnSameHost();
     }
 
     @VisibleForTesting
-    int getMaxTriesTotal() {
-        return 6;
+    static int getMaxTriesTotal() {
+        return CassandraKeyValueServiceRuntimeConfig.getDefault().numberOfRetriesOnAllHosts();
     }
 
     @Override
@@ -254,45 +275,38 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
+        if (config.autoRefreshNodes()) {
+            setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
+        } else {
+            setServersInPoolTo(config.servers());
+        }
+
+        cassandra.debugLogStateOfPool();
+    }
+
+    private void setServersInPoolTo(Set<InetSocketAddress> desiredServers) {
         Set<InetSocketAddress> serversToRemove = Sets.newHashSet();
         Set<InetSocketAddress> serversToAdd = Sets.newHashSet();
-        Set<InetSocketAddress> currentServers = cassandra.refreshTokenRanges();
 
-        if (config.autoRefreshNodes()) {
-            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), currentServers));
-            serversToAdd.addAll(Sets.difference(currentServers, cassandra.getPools().keySet()));
-        }
-
-        if (!config.autoRefreshNodes()) {
-            serversToAdd.addAll(Sets.difference(config.servers(), cassandra.getPools().keySet()));
-            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), config.servers()));
-        }
+        Set<InetSocketAddress> cachedServers = getCachedServers();
+        serversToAdd.addAll(Sets.difference(desiredServers, cachedServers));
+        serversToRemove.addAll(Sets.difference(cachedServers, desiredServers));
 
         serversToAdd.forEach(cassandra::addPool);
         serversToRemove.forEach(cassandra::removePool);
 
         if (!(serversToAdd.isEmpty() && serversToRemove.isEmpty())) { // if we made any changes
             sanityCheckRingConsistency();
-            if (!config.autoRefreshNodes()) { // grab new token mapping, if we didn't already do this before
-                cassandra.refreshTokenRanges();
-            }
+            cassandra.refreshTokenRangesAndGetServers();
         }
 
-        //TODO(achow): Log some kind of placeholder for addresses detected in token range refresh
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
                 SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
-        cassandra.debugLogStateOfPool();
     }
 
-    @VisibleForTesting
-    void addPool(InetSocketAddress server) {
-        cassandra.addPool(server);
-    }
-
-    @VisibleForTesting
-    void removePool(InetSocketAddress server) {
-        cassandra.removePool(server);
+    private Set<InetSocketAddress> getCachedServers() {
+        return cassandra.getPools().keySet();
     }
 
     @Override
@@ -313,7 +327,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Map<InetSocketAddress, Exception> aliveButInvalidPartitionerHosts = Maps.newHashMap();
         boolean thisHostResponded = false;
         boolean atLeastOneHostResponded = false;
-        for (InetSocketAddress host : cassandra.getPools().keySet()) {
+        for (InetSocketAddress host : getCachedServers()) {
             thisHostResponded = false;
             try {
                 runOnHost(host, CassandraVerifier.healthCheck);
@@ -446,7 +460,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // acting like it does.
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
-        for (InetSocketAddress host : cassandra.getPools().keySet()) {
+        for (InetSocketAddress host : getCachedServers()) {
             CassandraClient client = null;
             try {
                 client = CassandraClientFactory.getClientInternal(host, config);
