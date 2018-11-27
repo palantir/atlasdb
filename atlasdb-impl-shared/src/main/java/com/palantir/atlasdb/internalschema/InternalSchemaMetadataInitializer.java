@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.internalschema;
 
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.timestamp.TimestampService;
 
 /**
  * Writes an initial version of the {@link InternalSchemaMetadata} to the database.
@@ -26,13 +25,10 @@ public class InternalSchemaMetadataInitializer {
     private static final long ZERO_TIMESTAMP = 0;
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
-    private final TimestampService timestampService;
 
     public InternalSchemaMetadataInitializer(
-            CoordinationService<InternalSchemaMetadata> coordinationService,
-            TimestampService timestampService) {
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
-        this.timestampService = timestampService;
     }
 
     /**
@@ -49,7 +45,7 @@ public class InternalSchemaMetadataInitializer {
 
     private InternalSchemaMetadata getDefaultInternalSchemaMetadata() {
         return InternalSchemaMetadata.builder()
-                .timestampFromWhichWeShouldUseTransactions2(Long.MIN_VALUE)
+                .timestampFromWhichWeShouldUseTransactions2(Long.MAX_VALUE)
                 .build();
     }
 }
