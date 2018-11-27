@@ -27,7 +27,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public class CassandraKeyvalueServiceTestUtils {
+public final class CassandraKeyvalueServiceTestUtils {
     private CassandraKeyvalueServiceTestUtils() {
         // utility
     }
