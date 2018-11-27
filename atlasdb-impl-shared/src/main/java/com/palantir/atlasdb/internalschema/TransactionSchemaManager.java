@@ -30,6 +30,15 @@ public class TransactionSchemaManager {
         this.coordinationService = coordinationService;
     }
 
+    /**
+     * Returns the version of the transactions schema associated with the provided timestamp.
+     *
+     * This method may perpetuate the existing state one or more times to achieve consensus. It will repeatedly
+     * attempt to perpetuate the existing state until a consensus for the provided timestamp argument is achieved.
+     *
+     * This method should only be called with timestamps that have already been given out by the timestamp service;
+     * otherwise, achieving a consensus may take a long time.
+     */
     public int getTransactionsSchemaVersion(long timestamp) {
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
@@ -44,7 +53,10 @@ public class TransactionSchemaManager {
         return possibleVersion.get();
     }
 
-    public void installNewTransactionsSchemaVersion(int newVersion) {
+    /**
+     * Installs a new transactions table schema version, by submitting a relevant transform.
+     */
+    public void tryInstallNewTransactionsSchemaVersion(int newVersion) {
         coordinationService.tryTransformCurrentValue(valueAndBound -> {
             if (!valueAndBound.value().isPresent()) {
                 throw new SafeIllegalStateException("Persisted value is empty, which is unexpected.");

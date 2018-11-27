@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.internalschema;
+package com.palantir.atlasdb.internalschema.persistence;
 
 import org.immutables.value.Value;
 
@@ -22,15 +22,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
- * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
+ * A serialized form of {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata} that includes both a
+ * version of the wire-format as well as a payload.
+ *
+ * Note that additive changes may be made to {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata}
+ * without requiring an increase in the version number; increases are only needed when wire-compatibility would be
+ * broken, or it is not possible to assign a sensible default value for events occurring in the past.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
-@JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
-public interface InternalSchemaMetadata {
-    TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
-
-    static ImmutableInternalSchemaMetadata.Builder builder() {
-        return ImmutableInternalSchemaMetadata.builder();
-    }
+@JsonSerialize(as = ImmutableVersionedInternalSchemaMetadata.class)
+@JsonDeserialize(as = ImmutableVersionedInternalSchemaMetadata.class)
+public interface VersionedInternalSchemaMetadata {
+    int version();
+    byte[] payload();
 }

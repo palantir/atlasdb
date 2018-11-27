@@ -21,9 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.internalschema.persistence.VersionedInternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.timestamp.InMemoryTimestampService;
@@ -32,18 +35,21 @@ public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
     private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
-    private final CoordinationServiceImpl<InternalSchemaMetadata> coordinationService = new CoordinationServiceImpl<>(
-            KeyValueServiceCoordinationStore.create(
+    private final CoordinationServiceImpl<VersionedInternalSchemaMetadata> rawCoordinationService
+            = new CoordinationServiceImpl<>(KeyValueServiceCoordinationStore.create(
                     ObjectMappers.newServerObjectMapper(),
                     new InMemoryKeyValueService(true),
                     PtBytes.toBytes("blablabla"),
                     timestamps::getFreshTimestamp,
-                    InternalSchemaMetadata.class));
-    private final TransactionSchemaManager manager = new TransactionSchemaManager(coordinationService);
+                    VersionedInternalSchemaMetadata.class));
+    private final CoordinationService<InternalSchemaMetadata> actualCoordinationService
+            = CoordinationServices.wrapHidingVersionSerialization(rawCoordinationService);
+    private final TransactionSchemaManager manager = new TransactionSchemaManager(
+            actualCoordinationService);
 
     @Before
     public void setUp() {
-        new InternalSchemaMetadataInitializer(coordinationService)
+        new InternalSchemaMetadataInitializer(actualCoordinationService)
                 .ensureInternalSchemaMetadataInitialized();
     }
 
@@ -54,17 +60,17 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void newSchemaVersionsCanBeInstalledWithinOneHundredMillionTimestamps() {
-        manager.installNewTransactionsSchemaVersion(2);
+        manager.tryInstallNewTransactionsSchemaVersion(2);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
     }
 
     @Test
     public void canSwitchBetweenSchemaVersions() {
-        manager.installNewTransactionsSchemaVersion(2);
+        manager.tryInstallNewTransactionsSchemaVersion(2);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
-        manager.installNewTransactionsSchemaVersion(1);
+        manager.tryInstallNewTransactionsSchemaVersion(1);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(1);
     }
