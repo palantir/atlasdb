@@ -254,17 +254,18 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        Set<InetSocketAddress> serversToAdd = Sets.newHashSet(config.servers());
-        Set<InetSocketAddress> serversToRemove = ImmutableSet.of();
+        Set<InetSocketAddress> serversToRemove = Sets.newHashSet();
+        Set<InetSocketAddress> serversToAdd = Sets.newHashSet();
+        Set<InetSocketAddress> currentServers = cassandra.refreshTokenRanges();
 
         if (config.autoRefreshNodes()) {
-            serversToAdd.addAll(cassandra.refreshTokenRanges());
+            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), currentServers));
+            serversToAdd.addAll(Sets.difference(currentServers, cassandra.getPools().keySet()));
         }
 
-        serversToAdd = Sets.difference(serversToAdd, cassandra.getPools().keySet());
-
-        if (!config.autoRefreshNodes()) { // (we would just add them back in)
-            serversToRemove = Sets.difference(cassandra.getPools().keySet(), config.servers());
+        if (!config.autoRefreshNodes()) {
+            serversToAdd.addAll(Sets.difference(config.servers(), cassandra.getPools().keySet()));
+            serversToRemove.addAll(Sets.difference(cassandra.getPools().keySet(), config.servers()));
         }
 
         serversToAdd.forEach(cassandra::addPool);
@@ -277,6 +278,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             }
         }
 
+        //TODO(achow): Log some kind of placeholder for addresses detected in token range refresh
         log.debug("Cassandra pool refresh added hosts {}, removed hosts {}.",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd)),
                 SafeArg.of("serversToRemove", CassandraLogHelper.collectionOfHosts(serversToRemove)));
