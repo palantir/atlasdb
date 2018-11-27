@@ -60,17 +60,17 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void newSchemaVersionsCanBeInstalledWithinOneHundredMillionTimestamps() {
-        manager.installNewTransactionsSchemaVersion(2);
+        manager.tryInstallNewTransactionsSchemaVersion(2);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
     }
 
     @Test
     public void canSwitchBetweenSchemaVersions() {
-        manager.installNewTransactionsSchemaVersion(2);
+        manager.tryInstallNewTransactionsSchemaVersion(2);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
-        manager.installNewTransactionsSchemaVersion(1);
+        manager.tryInstallNewTransactionsSchemaVersion(1);
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(1);
     }

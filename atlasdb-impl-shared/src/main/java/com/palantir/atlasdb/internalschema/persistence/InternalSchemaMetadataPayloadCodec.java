@@ -28,9 +28,18 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
+/**
+ * The {@link InternalSchemaMetadataPayloadCodec} controls translation between the payload of a
+ * {@link VersionedInternalSchemaMetadata} object, and an {@link InternalSchemaMetadata} object used by other
+ * parts of AtlasDB.
+ */
 public final class InternalSchemaMetadataPayloadCodec {
     public static final int LATEST_VERSION = 1;
 
+    /**
+     * Mapping of supported schema versions to transforms that are able to deserialize serialized representations of
+     * the metadata object associated with that version to a common {@link InternalSchemaMetadata} object.
+     */
     private static final Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
             ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
@@ -39,6 +48,14 @@ public final class InternalSchemaMetadataPayloadCodec {
         // utility
     }
 
+    /**
+     * Decodes a {@link VersionedInternalSchemaMetadata} object into a common {@link InternalSchemaMetadata} object,
+     * provided this instance of the codec knows how to decode the relevant
+     * {@link VersionedInternalSchemaMetadata#version()}. This method throws if the version is not recognised.
+     *
+     * @param versionedInternalSchemaMetadata internal schema metadata object to decode
+     * @return common representation of schema metadata
+     */
     static InternalSchemaMetadata decode(VersionedInternalSchemaMetadata versionedInternalSchemaMetadata) {
         Function<byte[], InternalSchemaMetadata> targetDeserializer
                 = SUPPORTED_DECODERS.get(versionedInternalSchemaMetadata.version());
@@ -52,6 +69,13 @@ public final class InternalSchemaMetadataPayloadCodec {
         return targetDeserializer.apply(versionedInternalSchemaMetadata.payload());
     }
 
+    /**
+     * Encodes an {@link InternalSchemaMetadata} object to a {@link VersionedInternalSchemaMetadata} object, always
+     * using the {@link InternalSchemaMetadataPayloadCodec#LATEST_VERSION} of the schema.
+     *
+     * @param internalSchemaMetadata common representation of schema metadata to encode
+     * @return encoded, versioned form of the schema metadata
+     */
     static VersionedInternalSchemaMetadata encode(InternalSchemaMetadata internalSchemaMetadata) {
         try {
             return ImmutableVersionedInternalSchemaMetadata.builder()
