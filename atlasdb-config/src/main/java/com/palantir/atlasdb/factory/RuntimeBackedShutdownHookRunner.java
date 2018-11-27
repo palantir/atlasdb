@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
+@SuppressWarnings("DoNotUseShutdownHooks")
 enum RuntimeBackedShutdownHookRunner implements ShutdownHookRunner {
 
     INSTANCE;
