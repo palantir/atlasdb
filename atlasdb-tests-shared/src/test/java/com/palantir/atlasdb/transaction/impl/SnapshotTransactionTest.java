@@ -1124,10 +1124,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() ->
-            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead)));
+            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
     }
 
     @Test
@@ -1145,14 +1143,13 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 false);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
     }
 
     @Test
-    public void checkImmutableTsLockOnceIfThoroughlySwept() {
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
@@ -1164,8 +1161,27 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 res,
                 PreCommitConditions.NO_OP,
                 true);
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                false);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
         transaction.commit();
         verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
