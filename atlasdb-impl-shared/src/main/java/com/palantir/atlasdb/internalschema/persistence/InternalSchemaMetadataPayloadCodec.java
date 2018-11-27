@@ -29,11 +29,11 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public final class InternalSchemaMetadataPayloadCodec {
-    public static int LATEST_VERSION = 1;
+    public static final int LATEST_VERSION = 1;
 
-    private static Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
+    private static final Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
             ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
-    private static ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private InternalSchemaMetadataPayloadCodec() {
         // utility

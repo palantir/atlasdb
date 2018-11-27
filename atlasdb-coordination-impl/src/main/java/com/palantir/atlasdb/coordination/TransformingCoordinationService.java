@@ -59,8 +59,7 @@ public class TransformingCoordinationService<T1, T2> implements CoordinationServ
                         .collect(Collectors.toList()));
     }
 
-    private static <FROM, TO> Function<ValueAndBound<FROM>, ValueAndBound<TO>> preservingBounds(
-            Function<FROM, TO> base) {
+    private static <F, T> Function<ValueAndBound<F>, ValueAndBound<T>> preservingBounds(Function<F, T> base) {
         return fromValueAndBound -> ValueAndBound.of(fromValueAndBound.value().map(base), fromValueAndBound.bound());
     }
 
