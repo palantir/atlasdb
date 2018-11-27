@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
+           This improves the read performance and reduces load on timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
+
     *    - |fixed|
          - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
            This only applies where multiple `TransactionManager` s might exist in a single VM
