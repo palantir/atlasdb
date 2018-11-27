@@ -20,7 +20,7 @@ enum RuntimeBackedShutdownHookRunner implements ShutdownHookRunner {
 
     INSTANCE;
 
-    private static class Holder implements ShutdownHookRunner.Holder {
+    private static final class Holder implements ShutdownHookRunner.Holder {
         private final Thread thread;
 
         private Holder(Thread thread) {
