@@ -22,23 +22,26 @@ There following are AtlasDB tables with special behaviour with respect to KVS mi
 
 - Hidden tables, as specified in ``AtlasDbConstants.HIDDEN_TABLES``, are internal tables that are not transactional.
 
-- Cassandra hidden tables, as specified in ``HiddenTables.HIDDEN_TABLES``, are internal tables used by Cassandra KVS and are not transactional.
+- Cassandra hidden tables, as specified in ``HiddenTables.CASSANDRA_TABLES``, are internal tables used by Cassandra KVS and are not transactional.
 
 - Targeted sweep tables, as specified in ``TargetedSweepSchema``, none of which are transactional.
 
 - Migration checkpoint table, which is a special table used for checkpointing during the migration.
 
-None of the above tables can be migrated, but due to legacy reasons the exact behaviour is more involved.
+None of the above tables can be migrated, because the migration uses transactional reads and writes.
+Transactional reads will generally skip over any data in the tables above, but it is possible that some of the data would be successfully read and then almost certainly incorrectly migrated.
+Due to legacy reasons, we still drop and create some of the non-transactional tables as described in more detail below.
 The migration is performed in three steps which must be run in order: setup, followed by migrate, and finally validate.
+If the migration needs to be restarted from scratch, running setup again will reset any previous migration state and allow a fresh migration.
 
 The first step in running any of the three commands is to take out a fresh timestamp in the source KVS, fast-forward the target KVS to a larger timestamp, and then take out two fresh timestamps on the target KVS for the migration start timestamp and the migration commit timestamp.
-Then, we immediately insert an entry into the target KVS with the above two timestamps, effectively commiting all transactions with the migration start timestamp.
+Then, we immediately insert an entry into the transactions table of the target KVS with the above two timestamps, effectively committing all transactions with the migration start timestamp.
 
 .. warning::
 
-    KVS migration must be run while AtlasDB is offline.
+    KVS migration must be run while the service using AtlasDB is offline.
     If you are using TimeLock, the TimeLock server must be running in order to do the migration.
-    Otherwise, you must use the ``--offline`` flag, which will remove the leader block from your configuration.
+    Otherwise, you must use the ``--offline`` flag, which will remove the leader block from your configuration for the purposes of migration.
 
 Setup
 -----
