@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.coordination;
+package com.palantir.atlasdb.internalschema;
 
 import org.immutables.value.Value;
 
@@ -22,21 +22,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
- * A pair of a sequence number and a bound on the validity of the value associated with that sequence number.
+ * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableSequenceAndBound.class)
-@JsonDeserialize(as = ImmutableSequenceAndBound.class)
-public interface SequenceAndBound {
-    long INVALID_BOUND = -1;
+@JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
+@JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
+public interface InternalSchemaMetadata {
+    TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
 
-    @Value.Parameter
-    long sequence();
-
-    @Value.Parameter
-    long bound();
-
-    static SequenceAndBound of(long sequence, long bound) {
-        return ImmutableSequenceAndBound.of(sequence, bound);
+    static ImmutableInternalSchemaMetadata.Builder builder() {
+        return ImmutableInternalSchemaMetadata.builder();
     }
 }

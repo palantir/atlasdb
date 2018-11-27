@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -123,10 +123,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform) {
+    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        T targetValue = transform.apply(coordinationValue.flatMap(
-                sequenceAndBound -> getValue(sequenceAndBound.sequence())));
+        T targetValue = transform.apply(
+                ValueAndBound.of(coordinationValue.flatMap(
+                        sequenceAndBound -> getValue(sequenceAndBound.sequence())),
+                        coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND)));
 
         long sequenceNumber = sequenceNumberSupplier.getAsLong();
         putUnlessValueExists(sequenceNumber, targetValue);
@@ -226,7 +228,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         } catch (IOException e) {
             log.error("Error encountered when deserializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
-                    SafeArg.of("coordinationData", Arrays.toString(data)));
+                    SafeArg.of("coordinationData", PtBytes.toString(data)));
             throw new RuntimeException(e);
         }
     }

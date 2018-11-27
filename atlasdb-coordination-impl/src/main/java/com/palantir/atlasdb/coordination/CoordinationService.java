@@ -51,12 +51,13 @@ public interface CoordinationService<T> {
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
     /**
-     * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform.
+     * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform
+     * to the existing {@link ValueAndBound} that is stored in this coordination service.
      *
      * Evolutions of the value must be compatible in terms of backwards consistency as defined in the class docs.
      *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
      * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
 }
