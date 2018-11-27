@@ -1163,6 +1163,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
         transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        
         verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
@@ -1182,6 +1184,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
         transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
         verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
