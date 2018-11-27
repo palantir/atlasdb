@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.internalschema;
+package com.palantir.atlasdb.internalschema.legacy;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 
 /**
- * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
+ * An {@link InternalSchemaMetadataV1} object controls how Atlas nodes carry out certain operations.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
-@JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
-public interface InternalSchemaMetadata {
-    long timestampFromWhichWeShouldUseTransactions2();
+@JsonSerialize(as = ImmutableInternalSchemaMetadataV1.class)
+@JsonDeserialize(as = ImmutableInternalSchemaMetadataV1.class)
+public interface InternalSchemaMetadataV1 {
+    TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
 
-    static ImmutableInternalSchemaMetadata.Builder builder() {
-        return ImmutableInternalSchemaMetadata.builder();
+    static ImmutableInternalSchemaMetadataV1.Builder builder() {
+        return ImmutableInternalSchemaMetadataV1.builder();
     }
 }

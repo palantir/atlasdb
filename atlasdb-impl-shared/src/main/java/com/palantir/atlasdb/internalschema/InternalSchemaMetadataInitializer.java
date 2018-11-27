@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.timestamp.TimestampService;
 
@@ -51,8 +49,7 @@ public class InternalSchemaMetadataInitializer {
 
     private InternalSchemaMetadata getDefaultInternalSchemaMetadata() {
         return InternalSchemaMetadata.builder()
-                .timestampToTransactionsTableSchemaVersion(
-                        TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(1L), 1)))
+                .timestampFromWhichWeShouldUseTransactions2(Long.MIN_VALUE)
                 .build();
     }
 }

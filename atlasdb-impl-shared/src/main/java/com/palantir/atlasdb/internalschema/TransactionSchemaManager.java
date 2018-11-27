@@ -51,20 +51,14 @@ public class TransactionSchemaManager {
             }
 
             InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
+            if (internalSchemaMetadata.timestampFromWhichWeShouldUseTransactions2() != Long.MAX_VALUE) {
+                throw new SafeIllegalStateException("You are trying to reinstall transactions2. No bueno.");
+            }
             return InternalSchemaMetadata.builder()
                     .from(internalSchemaMetadata)
-                    .timestampToTransactionsTableSchemaVersion(
-                            installNewVersionInMap(
-                                    internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
-                                    valueAndBound.bound() + 1,
-                                    newVersion))
+                    .timestampFromWhichWeShouldUseTransactions2(valueAndBound.bound() + 1)
                     .build();
         });
-    }
-
-    private TimestampPartitioningMap installNewVersionInMap(
-            TimestampPartitioningMap sourceMap, long bound, int newVersion) {
-        return sourceMap.copyInstallingNewValue(bound, newVersion);
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
@@ -77,7 +71,7 @@ public class TransactionSchemaManager {
             Optional<ValueAndBound<InternalSchemaMetadata>> valueAndBound, long timestamp) {
         return valueAndBound
                 .flatMap(ValueAndBound::value)
-                .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                .map(versionMap -> versionMap.getValueForTimestamp(timestamp));
+                .map(InternalSchemaMetadata::timestampFromWhichWeShouldUseTransactions2)
+                .map(threshold -> timestamp >= threshold ? 2 : 1);
     }
 }

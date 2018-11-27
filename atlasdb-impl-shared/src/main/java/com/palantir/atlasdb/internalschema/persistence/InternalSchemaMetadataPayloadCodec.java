@@ -24,15 +24,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.legacy.InternalSchemaMetadataV1;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public final class InternalSchemaMetadataPayloadCodec {
-    public static final int LATEST_VERSION = 1;
+    public static final int LATEST_VERSION = 2;
 
     private static final Map<Integer, Function<byte[], InternalSchemaMetadata>> SUPPORTED_DECODERS =
-            ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
+            ImmutableMap.of(
+                    1, InternalSchemaMetadataPayloadCodec::decodeVersion1ViaJson,
+                    LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private InternalSchemaMetadataPayloadCodec() {
@@ -59,6 +62,26 @@ public final class InternalSchemaMetadataPayloadCodec {
                     .payload(OBJECT_MAPPER.writeValueAsBytes(internalSchemaMetadata))
                     .build();
         } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static InternalSchemaMetadata decodeVersion1ViaJson(byte[] byteArray) {
+        try {
+            InternalSchemaMetadataV1 v1 = OBJECT_MAPPER.readValue(byteArray, InternalSchemaMetadataV1.class);
+            return InternalSchemaMetadata.builder()
+                    .timestampFromWhichWeShouldUseTransactions2(
+                            v1.timestampToTransactionsTableSchemaVersion()
+                                    .rangeMapView()
+                                    .asDescendingMapOfRanges()
+                                    .entrySet()
+                                    .stream()
+                                    .filter(e -> e.getValue() == 2)
+                                    .findFirst()
+                                    .map(e -> e.getKey().lowerEndpoint())
+                                    .orElse(Long.MAX_VALUE))
+                    .build();
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

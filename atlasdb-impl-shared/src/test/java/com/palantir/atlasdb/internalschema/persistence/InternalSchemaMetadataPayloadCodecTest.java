@@ -27,20 +27,13 @@ import java.util.Objects;
 
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableRangeMap;
-import com.google.common.collect.Range;
+import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 public class InternalSchemaMetadataPayloadCodecTest {
     private static final InternalSchemaMetadata INTERNAL_SCHEMA_METADATA = InternalSchemaMetadata.builder()
-            .timestampToTransactionsTableSchemaVersion(
-                    TimestampPartitioningMap.of(
-                            ImmutableRangeMap.<Long, Integer>builder()
-                                    .put(Range.closedOpen(1L, 1000L), 1)
-                                    .put(Range.atLeast(1000L), 2)
-                                    .build()))
+            .timestampFromWhichWeShouldUseTransactions2(9999)
             .build();
 
     @Test
@@ -73,7 +66,10 @@ public class InternalSchemaMetadataPayloadCodecTest {
         VersionedInternalSchemaMetadata versionedInternalSchemaMetadata
                 = ObjectMappers.newServerObjectMapper().readValue(bytes, VersionedInternalSchemaMetadata.class);
         assertThat(InternalSchemaMetadataPayloadCodec.decode(versionedInternalSchemaMetadata))
-                .isEqualTo(INTERNAL_SCHEMA_METADATA);
+                .isEqualTo(
+                        ImmutableInternalSchemaMetadata.copyOf(INTERNAL_SCHEMA_METADATA)
+                            .withTimestampFromWhichWeShouldUseTransactions2(1000)
+                );
     }
 
     private static String getResourcePath(String subPath) throws URISyntaxException {
