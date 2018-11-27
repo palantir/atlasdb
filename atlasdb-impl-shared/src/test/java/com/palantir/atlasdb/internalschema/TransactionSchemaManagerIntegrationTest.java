@@ -43,7 +43,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Before
     public void setUp() {
-        new InternalSchemaMetadataInitializer(coordinationService, timestamps)
+        new InternalSchemaMetadataInitializer(coordinationService)
                 .ensureInternalSchemaMetadataInitialized();
     }
 

@@ -19,22 +19,20 @@ package com.palantir.atlasdb.internalschema;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 /**
  * Writes an initial version of the {@link InternalSchemaMetadata} to the database.
  */
 public class InternalSchemaMetadataInitializer {
-    private static final long ZERO_TIMESTAMP = 0;
+    private static final long START_OF_TIME = 1L;
+    private static final Range<Long> ALL_TIMESTAMPS = Range.atLeast(START_OF_TIME);
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
-    private final TimestampService timestampService;
 
     public InternalSchemaMetadataInitializer(
-            CoordinationService<InternalSchemaMetadata> coordinationService,
-            TimestampService timestampService) {
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
-        this.timestampService = timestampService;
     }
 
     /**
@@ -43,7 +41,7 @@ public class InternalSchemaMetadataInitializer {
      * value.
      */
     public void ensureInternalSchemaMetadataInitialized() {
-        while (!coordinationService.getValueForTimestamp(ZERO_TIMESTAMP).isPresent()) {
+        while (!coordinationService.getValueForTimestamp(START_OF_TIME).isPresent()) {
             coordinationService.tryTransformCurrentValue(valueAndBound -> valueAndBound.value()
                     .orElseGet(this::getDefaultInternalSchemaMetadata));
         }
@@ -52,7 +50,8 @@ public class InternalSchemaMetadataInitializer {
     private InternalSchemaMetadata getDefaultInternalSchemaMetadata() {
         return InternalSchemaMetadata.builder()
                 .timestampToTransactionsTableSchemaVersion(
-                        TimestampPartitioningMap.of(ImmutableRangeMap.of(Range.atLeast(1L), 1)))
+                        TimestampPartitioningMap.of(ImmutableRangeMap.of(
+                                ALL_TIMESTAMPS, TransactionConstants.TRANSACTIONS_TABLE_SCHEMA_VERSION)))
                 .build();
     }
 }

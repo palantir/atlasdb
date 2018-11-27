@@ -62,8 +62,8 @@ public class TransactionSchemaManager {
         });
     }
 
-    private TimestampPartitioningMap installNewVersionInMap(
-            TimestampPartitioningMap sourceMap, long bound, int newVersion) {
+    private TimestampPartitioningMap<Integer> installNewVersionInMap(
+            TimestampPartitioningMap<Integer> sourceMap, long bound, int newVersion) {
         return sourceMap.copyInstallingNewValue(bound, newVersion);
     }
 
