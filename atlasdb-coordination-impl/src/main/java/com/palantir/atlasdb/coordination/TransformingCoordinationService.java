@@ -47,10 +47,10 @@ public class TransformingCoordinationService<T1, T2> implements CoordinationServ
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T2>> tryTransformCurrentValue(Function<ValueAndBound<T2>, T2> transform) {
+    public CheckAndSetResult<ValueAndBound<T2>> tryTransformCurrentValue(Function<ValueAndBound<T2>, T2> valueUpdater) {
         CheckAndSetResult<ValueAndBound<T1>> delegateResult
                 = delegate.tryTransformCurrentValue(
-                        preservingBounds(transformFromUnderlying).andThen(transform).andThen(transformToUnderlying));
+                        preservingBounds(transformFromUnderlying).andThen(valueUpdater).andThen(transformToUnderlying));
         return CheckAndSetResult.of(
                 delegateResult.successful(),
                 delegateResult.existingValues()
