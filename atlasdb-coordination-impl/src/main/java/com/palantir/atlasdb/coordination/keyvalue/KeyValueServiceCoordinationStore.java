@@ -162,8 +162,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             Optional<SequenceAndBound> coordinationValue,
             Optional<T> extantValue,
             T targetValue) {
-        return coordinationValue.isPresent() &&
-                extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
+        return coordinationValue.isPresent()
+                && extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
