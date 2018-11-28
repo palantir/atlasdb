@@ -395,6 +395,8 @@ public abstract class TransactionManagers {
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
+        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,

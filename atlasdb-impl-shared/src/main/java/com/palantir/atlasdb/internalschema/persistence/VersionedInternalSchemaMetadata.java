@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.coordination;
+package com.palantir.atlasdb.internalschema.persistence;
 
 import org.immutables.value.Value;
 
@@ -22,21 +22,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
- * A pair of a sequence number and a bound on the validity of the value associated with that sequence number.
+ * A serialized form of {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata} that includes both a
+ * version of the wire-format as well as a payload.
+ *
+ * Note that additive changes may be made to {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata}
+ * without requiring an increase in the version number; increases are only needed when wire-compatibility would be
+ * broken, or it is not possible to assign a sensible default value for events occurring in the past.
  */
 @Value.Immutable
-@JsonSerialize(as = ImmutableSequenceAndBound.class)
-@JsonDeserialize(as = ImmutableSequenceAndBound.class)
-public interface SequenceAndBound {
-    long INVALID_BOUND = -1;
-
-    @Value.Parameter
-    long sequence();
-
-    @Value.Parameter
-    long bound();
-
-    static SequenceAndBound of(long sequence, long bound) {
-        return ImmutableSequenceAndBound.of(sequence, bound);
-    }
+@JsonSerialize(as = ImmutableVersionedInternalSchemaMetadata.class)
+@JsonDeserialize(as = ImmutableVersionedInternalSchemaMetadata.class)
+public interface VersionedInternalSchemaMetadata {
+    int version();
+    byte[] payload();
 }

@@ -42,7 +42,7 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform) {
+    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform) {
         CheckAndSetResult<ValueAndBound<T>> transformResult = store.transformAgreedValue(transform);
         ValueAndBound<T> existingValue = Iterables.getOnlyElement(transformResult.existingValues());
         accumulateCachedValue(Optional.of(existingValue));

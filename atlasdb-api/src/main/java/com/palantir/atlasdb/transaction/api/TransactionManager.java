@@ -327,8 +327,7 @@ public interface TransactionManager extends AutoCloseable {
     void clearTimestampCache();
 
     /**
-     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
-     * submitted throws an exception.
+     * Registers a Runnable that will be run after the transaction manager is closed.
      *
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
@@ -367,10 +366,13 @@ public interface TransactionManager extends AutoCloseable {
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
      *
+     * All callbacks will execute in the reverse order of registration, regardless
+     * of any exceptions thrown. If any exceptions occur, they will be collected and rethrown as a new exception
+     * with any exceptions that occurred set as suppressed exceptions.
+     *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
      * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
-     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     * guaranteed to be executed.
      */
     @Override
     void close();
