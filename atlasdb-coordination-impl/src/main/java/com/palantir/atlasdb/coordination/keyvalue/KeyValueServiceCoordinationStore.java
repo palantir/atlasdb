@@ -125,18 +125,45 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        T targetValue = transform.apply(
-                ValueAndBound.of(coordinationValue.flatMap(
-                        sequenceAndBound -> getValue(sequenceAndBound.sequence())),
-                        coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND)));
+        ValueAndBound<T> extantValueAndBound = ValueAndBound.of(coordinationValue.flatMap(
+                sequenceAndBound -> getValue(sequenceAndBound.sequence())),
+                coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND));
+        T targetValue = transform.apply(extantValueAndBound);
 
-        long sequenceNumber = sequenceNumberSupplier.getAsLong();
-        putUnlessValueExists(sequenceNumber, targetValue);
+        SequenceAndBound newSequenceAndBound
+                = determineNewSequenceAndBound(coordinationValue, extantValueAndBound, targetValue);
 
-        long newBound = getNewBound(sequenceNumber);
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
-                coordinationValue, SequenceAndBound.of(sequenceNumber, newBound));
-        return extractRelevantValues(targetValue, newBound, casResult);
+                coordinationValue, newSequenceAndBound);
+        return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private SequenceAndBound determineNewSequenceAndBound(
+            Optional<SequenceAndBound> coordinationValue,
+            ValueAndBound<T> extantValueAndBound,
+            T targetValue) {
+        long sequenceNumber;
+        long newBound;
+        if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
+            // Safe as we're only on this branch if the value is present
+            sequenceNumber = coordinationValue.get().sequence();
+            newBound = getNewBound(sequenceNumberSupplier.getAsLong());
+        } else {
+            sequenceNumber = sequenceNumberSupplier.getAsLong();
+            putUnlessValueExists(sequenceNumber, targetValue);
+            newBound = getNewBound(sequenceNumber);
+        }
+        return SequenceAndBound.of(sequenceNumber, newBound);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private boolean shouldReuseExtantValue(
+            Optional<SequenceAndBound> coordinationValue,
+            Optional<T> extantValue,
+            T targetValue) {
+        return coordinationValue.isPresent() &&
+                extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
