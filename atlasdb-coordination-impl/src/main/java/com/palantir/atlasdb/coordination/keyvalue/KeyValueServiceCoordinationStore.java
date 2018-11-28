@@ -186,7 +186,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private Optional<SequenceAndBound> getCoordinationValue() {
+    @VisibleForTesting
+    Optional<SequenceAndBound> getCoordinationValue() {
         return readFromCoordinationTable(getCoordinationValueCell())
                 .map(Value::getContents)
                 .map(this::deserializeSequenceAndBound);
