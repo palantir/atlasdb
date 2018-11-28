@@ -217,6 +217,16 @@ public class FailoverFeignTargetTest {
         }
     }
 
+    @Test
+    public void fastFailoverShouldTryAllPossibleServersBeforeThrowing() throws Exception {
+        simulateRequest(normalTarget);
+        normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+
+        simulateRequest(normalTarget);
+        Thread.sleep(11000);
+        normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+    }
+
     private void simulateRequest(FailoverFeignTarget target) {
         // This method is called as a part of a request being invoked.
         // We need to update the mostRecentServerIndex, for the FailoverFeignTarget to track failures properly.
