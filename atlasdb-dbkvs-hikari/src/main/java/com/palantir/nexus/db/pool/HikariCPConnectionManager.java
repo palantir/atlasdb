@@ -108,7 +108,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
             profiler.logAcquisitionAndRestart();
 
             try {
-                testConnection(conn);
+                testConnection(conn, Optional.of(profiler));
                 return conn;
             } catch (SQLException e) {
                 log.error("[{}] Dropping connection which failed validation",
