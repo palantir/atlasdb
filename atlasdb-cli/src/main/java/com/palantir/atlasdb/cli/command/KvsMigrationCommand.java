@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cli.command;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
 
