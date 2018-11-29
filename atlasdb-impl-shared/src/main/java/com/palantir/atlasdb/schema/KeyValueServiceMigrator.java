@@ -103,7 +103,10 @@ public class KeyValueServiceMigrator {
     }
 
     /**
-     * Drop and create tables before starting migration.
+     * Drop and create tables before starting migration. Note that we do not want to drop atomic tables since there
+     * are legacy use cases where a migration is done using a
+     * {@link com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService} that delegates all atomic tables access
+     * (including dropTable) back to the source KVS.
      */
     public void setup() {
         Set<TableReference> tablesToDrop = KeyValueServiceMigratorUtils.getCreatableTables(toKvs, unmigratableTables);

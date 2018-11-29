@@ -112,8 +112,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
     }
 
     public int execute(AtlasDbServices fromServices, AtlasDbServices toServices) {
-        if (Stream.of(setup, migrate, validate).filter(Boolean::booleanValue).count() != 1) {
-            printer.error("Exactly one of --setup, --migrate, or --validate should be specified.");
+        if (!setup && !migrate && !validate) {
+            printer.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
 

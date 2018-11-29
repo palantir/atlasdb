@@ -66,11 +66,11 @@ public class TestKvsMigrationCommand {
     }
 
     @Test
-    public void cannotRunMultipleTasksAtOnce() throws Exception {
-        assertFailure(() -> runWithOptions("--setup", "--migrate"));
-        assertFailure(() -> runWithOptions("--setup", "--validate"));
-        assertFailure(() -> runWithOptions("--migrate", "--validate"));
-        assertFailure(() -> runWithOptions("--setup", "--migrate", "--validate"));
+    public void canRunMultipleTasksAtOnce() throws Exception {
+        assertSuccess(() -> runWithOptions("--setup", "--migrate"));
+        assertSuccess(() -> runWithOptions("--setup", "--validate"));
+        assertSuccess(() -> runWithOptions("--migrate", "--validate"));
+        assertSuccess(() -> runWithOptions("--setup", "--migrate", "--validate"));
     }
 
     @Test
@@ -103,10 +103,6 @@ public class TestKvsMigrationCommand {
         String[] initArgs = new String[] { "migrate", "-fc", filePath, "-mc", filePath };
         String[] fullArgs = ObjectArrays.concat(initArgs, args, String.class);
         return AbstractTestRunner.buildCommand(KvsMigrationCommand.class, fullArgs);
-    }
-
-    private void assertFailure(Callable<Integer> callable) throws Exception {
-        assertThat(callable.call()).isEqualTo(1);
     }
 
     private void assertSuccess(Callable<Integer> callable) throws Exception {
