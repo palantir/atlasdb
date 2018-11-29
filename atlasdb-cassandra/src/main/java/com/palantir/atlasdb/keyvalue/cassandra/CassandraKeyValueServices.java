@@ -21,15 +21,20 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.cassandra.thrift.TokenRange;
 import org.apache.commons.lang3.Validate;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -37,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -87,7 +93,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
+            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions, client)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -132,19 +138,56 @@ public final class CassandraKeyValueServices {
 
     static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
             CassandraKeyValueServiceConfig config,
-            Map<String, List<String>> versions) {
-        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
-        if (reachableSchemas.size() > 1) {
+            Map<String, List<String>> versions, CassandraClient client) {
+
+        if (allNodesOnSameSchema(versions)) {
+            return true;
+        }
+
+        if (schemaMismatch(versions)) {
             return false;
         }
 
-        int numberOfServers = config.servers().size();
-        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
-
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
+        return quorumOfRacksInAgreement(versions, client);
     }
 
-    private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
+    private static boolean allNodesOnSameSchema(Map<String, List<String>> versions) {
+        return versions.keySet().size() == 1;
+    }
+
+    private static boolean schemaMismatch(Map<String, List<String>> versions) {
+        long distinctReachableSchemas = versions.keySet().stream()
+                .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
+                .count();
+        return distinctReachableSchemas > 1;
+    }
+
+    private static boolean quorumOfRacksInAgreement(Map<String, List<String>> versions, CassandraClient client) {
+        try {
+            List<String> hostsOnGoodSchema = versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE)).findFirst().map(Map.Entry::getValue).orElse(
+                    ImmutableList.of());
+            KsDef ksdef = client.describe_keyspace("test");
+            Map<String, Integer> requiredHostsPerDc = Maps.transformValues(ksdef.getStrategy_options(), replication -> Integer.valueOf(replication) / 2 + 1);
+            List<TokenRange> ring = client.describe_ring("test");
+            for (TokenRange tokenRange : ring) {
+                Map<String, Set<String>> dcToHost = new HashMap<>();
+                tokenRange.endpoint_details.forEach(details ->
+                        dcToHost.computeIfAbsent(details.getDatacenter(), ignore -> new HashSet<>()).add(details.getHost()));
+                for (Map.Entry<String, Set<String>> datacenterInfo : dcToHost.entrySet()) {
+                    long availableHosts = datacenterInfo.getValue().stream().filter(hostsOnGoodSchema::contains).count();
+                    if (availableHosts < requiredHostsPerDc.get(datacenterInfo.getKey())) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        } catch (TException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private static List<String> knownSchemaVersions(Map<String, List<String>> versions) {
         return versions.keySet().stream()
                 .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
                 .collect(Collectors.toList());
@@ -378,7 +421,7 @@ public final class CassandraKeyValueServices {
     }
 
     private static void extractTimestampResults(@Output Multimap<Cell, Long> ret,
-                                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> results) {
         for (Entry<ByteBuffer, List<ColumnOrSuperColumn>> result : results.entrySet()) {
             byte[] row = CassandraKeyValueServices.getBytesFromByteBuffer(result.getKey());
             for (ColumnOrSuperColumn col : result.getValue()) {
