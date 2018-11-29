@@ -755,10 +755,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
-        return validateLocksOnReads && isValidationNecessary(tableRef);
+        return validateLocksOnReads && isThoroughlySwept(tableRef);
     }
 
-    private boolean isValidationNecessary(TableReference tableRef) {
+    private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
+        return !validateLocksOnReads && isThoroughlySwept(tableRef);
+    }
+
+    private boolean isThoroughlySwept(TableReference tableRef) {
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
@@ -1359,7 +1363,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                if (validationNecessaryForInvolvedTables()) {
+                if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
                 return;
@@ -2057,8 +2061,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         involvedTables.add(tableRef);
     }
 
-    private boolean validationNecessaryForInvolvedTables() {
-        return involvedTables.stream().anyMatch(this::isValidationNecessary);
+    private boolean validationNecessaryForInvolvedTablesOnCommit() {
+        return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
     }
 
     private long getStartTimestamp() {

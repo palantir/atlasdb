@@ -56,6 +56,24 @@ develop
            Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
 
+    *    - |improved|
+         - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
+           This improves the read performance and reduces load on timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
+
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           This only applies where multiple `TransactionManager` s might exist in a single VM
+           and they are created an shutdown repeatedly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
+
+    *    - |fixed|
+         - Wrap shutdown callback running in try-catch.
+           This guards against any shutdown hooks throwing unchecked exceptions,
+           which would cause other hooks to not run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+>>>>>>> 06742eef3eda606af9d2e959469ce3b1602a91d8
+
 ========
 v0.111.0
 ========
