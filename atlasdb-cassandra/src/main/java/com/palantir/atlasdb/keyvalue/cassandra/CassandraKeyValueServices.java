@@ -89,9 +89,6 @@ public final class CassandraKeyValueServices {
         long sleepTime = INITIAL_SLEEP_TIME;
         Map<String, List<String>> versions;
         do {
-            // This only returns the schema versions of nodes that the client knows exist. In particular, if a node we
-            // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
-            // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
             if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions, client)) {
                 return;
@@ -138,17 +135,12 @@ public final class CassandraKeyValueServices {
 
     static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
             CassandraKeyValueServiceConfig config,
-            Map<String, List<String>> versions, CassandraClient client) {
+            Map<String, List<String>> versions,
+            CassandraClient client) throws TException {
 
-        if (allNodesOnSameSchema(versions)) {
-            return true;
-        }
+        return allNodesOnSameSchema(versions)
+                || (!schemaMismatch(versions) && quorumInAgreement(config.getKeyspaceOrThrow(), versions, client));
 
-        if (schemaMismatch(versions)) {
-            return false;
-        }
-
-        return quorumOfRacksInAgreement(versions, client);
     }
 
     private static boolean allNodesOnSameSchema(Map<String, List<String>> versions) {
@@ -162,42 +154,45 @@ public final class CassandraKeyValueServices {
         return distinctReachableSchemas > 1;
     }
 
-    private static boolean quorumOfRacksInAgreement(Map<String, List<String>> versions, CassandraClient client) {
-        try {
-            List<String> hostsOnGoodSchema = versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE)).findFirst().map(Map.Entry::getValue).orElse(
-                    ImmutableList.of());
-            KsDef ksdef = client.describe_keyspace("test");
-            Map<String, Integer> requiredHostsPerDc = Maps.transformValues(ksdef.getStrategy_options(), replication -> Integer.valueOf(replication) / 2 + 1);
-            List<TokenRange> ring = client.describe_ring("test");
-            for (TokenRange tokenRange : ring) {
-                Map<String, Set<String>> dcToHost = new HashMap<>();
-                tokenRange.endpoint_details.forEach(details ->
-                        dcToHost.computeIfAbsent(details.getDatacenter(), ignore -> new HashSet<>()).add(details.getHost()));
-                for (Map.Entry<String, Set<String>> datacenterInfo : dcToHost.entrySet()) {
-                    long availableHosts = datacenterInfo.getValue().stream().filter(hostsOnGoodSchema::contains).count();
-                    if (availableHosts < requiredHostsPerDc.get(datacenterInfo.getKey())) {
-                        return false;
-                    }
+    private static boolean quorumInAgreement(
+            String keyspace,
+            Map<String, List<String>> versions,
+            CassandraClient client) throws TException {
+        List<String> reachableHosts = reachableHosts(versions);
+        Map<String, Integer> minRequiredHostsPerDc = calculateQuorumPerDc(keyspace, client);
+
+        List<TokenRange> ring = client.describe_ring(keyspace);
+        for (TokenRange tokenRange : ring) {
+            Map<String, Set<String>> dcToHostsForRange = mapDcToHostsForRange(tokenRange);
+            for (Map.Entry<String, Set<String>> datacenterHosts : dcToHostsForRange.entrySet()) {
+                long availableHosts = datacenterHosts.getValue().stream().filter(reachableHosts::contains).count();
+                if (availableHosts < minRequiredHostsPerDc.get(datacenterHosts.getKey())) {
+                    return false;
                 }
             }
-            return true;
-        } catch (TException e) {
-            e.printStackTrace();
         }
-        return false;
+        return true;
     }
 
-    private static List<String> knownSchemaVersions(Map<String, List<String>> versions) {
-        return versions.keySet().stream()
-                .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
-                .collect(Collectors.toList());
+    private static List<String> reachableHosts(Map<String, List<String>> versions) {
+        return versions.entrySet().stream()
+                .filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
+                .findFirst()
+                .map(Map.Entry::getValue)
+                .orElse(ImmutableList.of());
     }
 
-    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
-        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue)
-                .mapToInt(List::size)
-                .sum();
+    private static Map<String, Integer> calculateQuorumPerDc(String keyspace, CassandraClient client)
+            throws TException {
+        KsDef ksdef = client.describe_keyspace(keyspace);
+        return Maps.transformValues(ksdef.getStrategy_options(), replication -> Integer.valueOf(replication) / 2 + 1);
+    }
+
+    private static Map<String, Set<String>> mapDcToHostsForRange(TokenRange tokenRange) {
+        Map<String, Set<String>> dcToHost = new HashMap<>();
+        tokenRange.getEndpoint_details().forEach(details ->
+                dcToHost.computeIfAbsent(details.getDatacenter(), ignore -> new HashSet<>()).add(details.getHost()));
+        return dcToHost;
     }
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {
