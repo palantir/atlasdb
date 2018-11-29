@@ -22,6 +22,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.VERSION_UNREACHABLE;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -54,8 +56,6 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final String DC2 = "dc2";
     private static final String VERSION_1 = "v1";
     private static final String VERSION_2 = "v2";
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
-
 
     private Map<String, List<String>> versionToHostDc1 = new HashMap<>();
     private Map<String, List<String>> versionToHostDc2 = new HashMap<>();
@@ -78,7 +78,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         setNumberOfNodesForVersionPerDatacenter(VERSION_1, 3, 3);
         setNumberOfNodesForVersionPerDatacenter(VERSION_2, 0, 1);
         finalizeSchemaVersions();
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -91,12 +91,21 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
+    public void waitSucceedsWhenQuorumIsAvailablePerDatacenterWithHigherRf() throws TException {
+        setNumberOfNodesForVersionPerDatacenter(VERSION_1, 3, 2);
+        setNumberOfNodesForVersionPerDatacenter(VERSION_UNREACHABLE, 2, 1);
+        finalizeSchemaVersions();
+        setRfPerDatacenter(5, 3);
+        assertWaitForSchemaVersionsDoesNotThrow();
+    }
+
+    @Test
     public void waitThrowsWhenLessThanQuorumForSomeDatacenter() throws TException {
         setNumberOfNodesForVersionPerDatacenter(VERSION_1, 3, 4);
         setNumberOfNodesForVersionPerDatacenter(VERSION_UNREACHABLE, 1, 2);
         finalizeSchemaVersions();
         setRfPerDatacenter(3, 3);
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -105,7 +114,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         setNumberOfNodesForVersionPerDatacenter(VERSION_UNREACHABLE, 1, 1);
         finalizeSchemaVersions();
         setRfPerDatacenter(2, 2);
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertWaitForSchemaVersionsThrows();
     }
 
     @Test
@@ -145,22 +154,6 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         verify(client, times(3)).describe_schema_versions();
     }
 
-    private void cleanupVersions() {
-        versionToHostDc1 = new HashMap<>();
-        versionToHostDc2 = new HashMap<>();
-    }
-
-    private void setOnlyTokenRangeToIncludeQuorumFromEachDc() throws TException {
-        when(client.describe_ring(any())).thenReturn(ImmutableList.of(
-                createTokenRange(
-                        Lists.newArrayList(Iterables.concat(
-                                versionToHostDc1.get(VERSION_1).subList(0, 2),
-                                versionToHostDc1.get(VERSION_UNREACHABLE).subList(0, 1))),
-                        Lists.newArrayList(Iterables.concat(
-                                versionToHostDc2.get(VERSION_1).subList(0, 2),
-                                versionToHostDc2.get(VERSION_UNREACHABLE).subList(0, 1))))));
-    }
-
     private void setNumberOfNodesForVersionPerDatacenter(String version, int dc1, int dc2) throws TException {
         versionToHostDc1.put(version, createHostList(DC1, version, dc1));
         versionToHostDc2.put(version, createHostList(DC2, version, dc2));
@@ -168,6 +161,12 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         allVersions = new HashMap<>(versionToHostDc1);
         versionToHostDc2.forEach((ver, hosts) -> allVersions
                 .merge(ver, hosts, (hosts1, hosts2) -> Lists.newArrayList(Iterables.concat(hosts1, hosts2))));
+    }
+
+    private List<String> createHostList(String datacenter, String version, int number) {
+        return IntStream.range(0, number)
+                .mapToObj(num -> datacenter + version + num)
+                .collect(Collectors.toList());
     }
 
     private void finalizeSchemaVersions() throws TException {
@@ -194,12 +193,6 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
                 .collect(Collectors.toSet());
     }
 
-    private List<String> createHostList(String datacenter, String version, int number) {
-        return IntStream.range(0, number)
-                .mapToObj(num -> datacenter + version + num)
-                .collect(Collectors.toList());
-    }
-
     private TokenRange createTokenRange(Collection<String> dc1Nodes, Collection<String> dc2Nodes) {
         List<EndpointDetails> endpointDetails = new ArrayList<>();
         dc1Nodes.forEach(host -> endpointDetails.add(new EndpointDetails(host, DC1)));
@@ -207,12 +200,28 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
         return new TokenRange().setEndpoint_details(endpointDetails);
     }
 
-    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
-                .isInstanceOf(IllegalStateException.class);
+    private void cleanupVersions() {
+        versionToHostDc1 = new HashMap<>();
+        versionToHostDc2 = new HashMap<>();
+    }
+
+    private void setOnlyTokenRangeToIncludeQuorumFromEachDc() throws TException {
+        when(client.describe_ring(any())).thenReturn(ImmutableList.of(
+                createTokenRange(
+                        Lists.newArrayList(Iterables.concat(
+                                versionToHostDc1.get(VERSION_1).subList(0, 2),
+                                versionToHostDc1.get(VERSION_UNREACHABLE).subList(0, 1))),
+                        Lists.newArrayList(Iterables.concat(
+                                versionToHostDc2.get(VERSION_1).subList(0, 2),
+                                versionToHostDc2.get(VERSION_UNREACHABLE).subList(0, 1))))));
     }
 
     private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
         CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+    }
+
+    private void assertWaitForSchemaVersionsThrows() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
+                .isInstanceOf(IllegalStateException.class);
     }
 }
