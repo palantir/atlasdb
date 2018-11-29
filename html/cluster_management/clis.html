@@ -93,6 +93,7 @@
 <li class="toctree-l2"><a class="reference internal" href="backup-restore.html">Backup and Restore</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Command Line Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
+<li class="toctree-l2"><a class="reference internal" href="kvs-migration.html">KVS Migration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sweep.html">AtlasDB Sweep</a></li>
 </ul>
 </li>
@@ -260,18 +261,7 @@ For more information, check out <a class="reference internal" href="sweep/standa
 </div>
 <div class="section" id="migrate">
 <span id="clis-migrate"></span><h3>migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
-<p>This CLI can help you migrate your AtlasDB client product from one KVS to another.
-You will need to supply two different KVS configurations to the script.
-In the general case you first call <code class="docutils literal notranslate"><span class="pre">–-setup</span></code>, then <code class="docutils literal notranslate"><span class="pre">-–migrate</span></code>, then <code class="docutils literal notranslate"><span class="pre">-–validate</span></code> each time supplying the old and new configurations.</p>
-<p>We currently only support doing KVS migrations offline (using the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag), so you must shut down your AtlasDB backed service to perform the migration.
-For more information run <code class="docutils literal notranslate"><span class="pre">./bin/atlasdb</span> <span class="pre">help</span> <span class="pre">migrate</span></code> for more information.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
-</pre></div>
-</div>
-<p>Note that the <cite>migrate</cite> CLI can safely be resumed (with the same arguments) if it fails during a step.
-The CLI will check and skip past tables that have already been processed.</p>
+<p>Migrate data from one KVS to another. See <a class="reference internal" href="kvs-migration.html#kvs-migration"><span class="std std-ref">KVS migration</span></a> for details.</p>
 </div>
 <div class="section" id="read-punch-table">
 <h3>read-punch-table<a class="headerlink" href="#read-punch-table" title="Permalink to this headline">¶</a></h3>

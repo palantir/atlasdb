@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>KVS Migration &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="AtlasDB Sweep" href="sweep.html" />
+    <link rel="prev" title="Console" href="console.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Cluster Management</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="backup-restore.html">Backup and Restore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="clis.html">Command Line Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="console.html">Console</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">KVS Migration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sweep.html">AtlasDB Sweep</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OSS AtlasDB</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Cluster Management</a> &raquo;</li>
+        
+      <li>KVS Migration</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/cluster_management/kvs-migration.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="kvs-migration">
+<span id="id1"></span><h1>KVS Migration<a class="headerlink" href="#kvs-migration" title="Permalink to this headline">¶</a></h1>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Ensure you have backups before attempting a KVS migration.
+Double check that <cite>migrateConfig</cite> (the target KVS) is specified correctly, since all tables in that KVS will be dropped.</p>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Migration of all transactional data from one KVS to another can be performed using the <a class="reference internal" href="clis.html#clis"><span class="std std-ref">AtlasDB CLI</span></a>.
+The source KVS (which contains the data to migrate) should be specified in the <code class="docutils literal notranslate"><span class="pre">fromConfig</span></code>.
+The target KVS (which we will migrate to) should be specified in the <code class="docutils literal notranslate"><span class="pre">migrateConfig</span></code>.</p>
+<p>There following are AtlasDB tables with special behaviour with respect to KVS migration:</p>
+<ul class="simple">
+<li>Atomic tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.ATOMIC_TABLES</span></code>, are internal tables that use check and set and are not transactional.</li>
+<li>Hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">AtlasDbConstants.HIDDEN_TABLES</span></code>, are internal tables that are not transactional.</li>
+<li>Cassandra hidden tables, as specified in <code class="docutils literal notranslate"><span class="pre">HiddenTables.CASSANDRA_TABLES</span></code>, are internal tables used by Cassandra KVS and are not transactional.</li>
+<li>Targeted sweep tables, as specified in <code class="docutils literal notranslate"><span class="pre">TargetedSweepSchema</span></code>, none of which are transactional.</li>
+<li>Migration checkpoint table, which is a special table used for checkpointing during the migration.</li>
+</ul>
+<p>None of the above tables can be migrated, because the migration uses transactional reads and writes.
+Transactional reads will generally skip over any data in the tables above, but it is possible that some of the data would be successfully read and then almost certainly incorrectly migrated.
+Due to legacy reasons, we still drop and create some of the non-transactional tables as described in more detail below.
+The migration is performed in three steps which must be run in order: setup, followed by migrate, and finally validate.
+If the migration needs to be restarted from scratch, running setup again will reset any previous migration state and allow a fresh migration.</p>
+<p>The first step in running any of the three commands is to take out a fresh timestamp in the source KVS, fast-forward the target KVS to a larger timestamp, and then take out two fresh timestamps on the target KVS for the migration start timestamp and the migration commit timestamp.
+Then, we immediately insert an entry into the transactions table of the target KVS with the above two timestamps, effectively committing all transactions with the migration start timestamp.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">KVS migration must be run while the service using AtlasDB is offline.
+If you are using TimeLock, the TimeLock server must be running in order to do the migration.
+Otherwise, you must use the <code class="docutils literal notranslate"><span class="pre">--offline</span></code> flag, which will remove the leader block from your configuration for the purposes of migration.</p>
+</div>
+<div class="section" id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup
+</pre></div>
+</div>
+<p>Running this command will prepare the target KVS for the migration.
+The CLI will first <strong>drop all tables in the target KVS</strong> except atomic tables and Cassandra hidden tables.
+Then, for each table in the source KVS except atomic tables and Cassandra hidden tables, a table with the same name and metadata is created in the target KVS.
+Note that in this step we drop and create some internal non-transactional tables.
+Even though these tables cannot be migrated automatically, this is done in order to facilitate easier manual migration.</p>
+</div>
+<div class="section" id="migrate">
+<h3>Migrate<a class="headerlink" href="#migrate" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --migrate
+</pre></div>
+</div>
+<p>Running this command will migrate the actual data from source KVS to target KVS.
+For each table in the source KVS that is not in the list of special tables above, the entire table is transactionally scanned at the migration timestamp and all entries found are copied over to the target KVS with timestamp equal to the transaction timestamp.
+Note that this will copy over only the most recent version of each cell (as the migration start timestamp is greater than any timestamp ever issued in the source KVS).
+Since the migration timestamp was precommitted, even in case of failure, all data that was successfully copied over will have been committed.
+As data is copied over, we regularly update the checkpoint table, which enables us to continue a failed migration without starting from scratch.</p>
+<div class="admonition hint">
+<p class="first admonition-title">Hint</p>
+<p class="last">If a migration fails, it can be restarted from the last checkpoint simply by running the migrate command again.
+Running setup at this point will reset the migration state and force a fresh migration.</p>
+</div>
+</div>
+<div class="section" id="validate">
+<h3>Validate<a class="headerlink" href="#validate" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --validate
+</pre></div>
+</div>
+<p>Running this command will validate the correctness of the migration.
+For each table in the source KVS that can be migrated, except the the legacy sweep priority tablea, the table is scanned in both KVSs and cells are validated to be equal.
+The sweep priority table is excluded from this step because, even though it is migrated, the contents of the table in respective KVSs might diverge as a result of the writes performed during the migration.</p>
+<div class="admonition hint">
+<p class="first admonition-title">Hint</p>
+<p class="last">All three commands can be combined in a single invocation of the client, with the caveat that if the migration fails, care should be taken to identify which step failed before further actions are determined.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./bin/atlasdb-cli --offline migrate --fromConfig from.yml --migrateConfig to.yml --setup --migrate --validate
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="sweep.html" class="btn btn-neutral float-right" title="AtlasDB Sweep" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="console.html" class="btn btn-neutral" title="Console" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Palantir Technologies
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
