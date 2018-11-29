@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Cassandra KVS now correctly determines if enough nodes agree on schema versions when waiting for schema changes to propagate.
+           Previously, we would proceed if a majority of the nodes were on the same schema version and the rest were unreachable.
+           Now, we require that a quorum of nodes for each datacenter and for each token range satisfies the condition, and the rest are unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3664>`__)
+
     *    - |improved|
          - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
            This improves the read performance and reduces load on timelock.
