@@ -72,7 +72,6 @@ develop
            This guards against any shutdown hooks throwing unchecked exceptions,
            which would cause other hooks to not run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
->>>>>>> 06742eef3eda606af9d2e959469ce3b1602a91d8
 
 ========
 v0.111.0
