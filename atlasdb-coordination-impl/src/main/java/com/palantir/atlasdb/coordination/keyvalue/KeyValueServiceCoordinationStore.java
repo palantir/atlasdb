@@ -179,8 +179,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                         .collect(Collectors.toList()));
     }
 
-    private long getNewBound(long sequenceNumber) {
-        return sequenceNumber + ADVANCEMENT_QUANTUM;
+    private long getNewBound(long pointInTime) {
+        return pointInTime + ADVANCEMENT_QUANTUM;
     }
 
     @VisibleForTesting
