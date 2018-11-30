@@ -15,13 +15,16 @@
  */
 package com.palantir.atlasdb.cli.command;
 
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -34,11 +37,67 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.services.AtlasDbServices;
-import com.palantir.atlasdb.table.description.Schemas;
 
 public class TestKvsMigrationCommand {
+    private AtlasDbServices fromServices;
+    private AtlasDbServices toServices;
+
+    @Before
+    public void setupServices() throws Exception {
+        KvsMigrationCommand cmd = getCommand(new String[] { });
+        fromServices = cmd.connectFromServices();
+        toServices = cmd.connectToServices();
+    }
+
+    @After
+    public void close() {
+        fromServices.close();
+        toServices.close();
+    }
+
+    @Test
+    public void doesNotSweepDuringMigration() {
+        assertThat(fromServices.getAtlasDbRuntimeConfig().sweep().enabled()).isFalse();
+        assertThat(fromServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
+
+        assertThat(toServices.getAtlasDbRuntimeConfig().sweep().enabled()).isFalse();
+        assertThat(toServices.getAtlasDbRuntimeConfig().targetedSweep().enabled()).isFalse();
+    }
+
+    @Test
+    public void canRunMultipleTasksAtOnce() throws Exception {
+        assertSuccess(() -> runWithOptions("--setup", "--migrate"));
+        assertSuccess(() -> runWithOptions("--setup", "--validate"));
+        assertSuccess(() -> runWithOptions("--migrate", "--validate"));
+        assertSuccess(() -> runWithOptions("--setup", "--migrate", "--validate"));
+    }
+
+    @Test
+    public void canMigrateZeroTables() throws Exception {
+        assertSuccess(() -> runWithOptions("--setup"));
+        assertSuccess(() -> runWithOptions("--migrate"));
+        assertSuccess(() -> runWithOptions("--validate"));
+    }
+
+    @Test
+    public void canMigrateOneTable() throws Exception {
+        seedKvs(fromServices, 1, 1);
+        assertSuccess(() -> runWithOptions("--setup"));
+        assertSuccess(() -> runWithOptions("--migrate"));
+        assertSuccess(() -> runWithOptions("--validate"));
+        checkKvs(toServices, 1, 1);
+    }
+
+    @Test
+    public void canMigrateMultipleTables() throws Exception {
+        seedKvs(fromServices, 10, 257);
+        assertSuccess(() -> runWithOptions("--setup"));
+        assertSuccess(() -> runWithOptions("--migrate"));
+        assertSuccess(() -> runWithOptions("--validate"));
+        checkKvs(toServices, 10, 257);
+    }
+
     private KvsMigrationCommand getCommand(String[] args) throws URISyntaxException {
         String filePath = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
         String[] initArgs = new String[] { "migrate", "-fc", filePath, "-mc", filePath };
@@ -46,52 +105,18 @@ public class TestKvsMigrationCommand {
         return AbstractTestRunner.buildCommand(KvsMigrationCommand.class, fullArgs);
     }
 
-    @Test
-    public void doesNotSweepDuringMigration() throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
-        AtlasDbServices fromServices = cmd.connectFromServices();
-        assertFalse(fromServices.getAtlasDbRuntimeConfig().sweep().enabled());
-
-        AtlasDbServices toServices = cmd.connectToServices();
-        assertFalse(toServices.getAtlasDbRuntimeConfig().sweep().enabled());
+    private void assertSuccess(Callable<Integer> callable) throws Exception {
+        assertThat(callable.call()).isEqualTo(0);
     }
 
-    @Test
-    public void canMigrateZeroTables() throws Exception {
-        runTestWithTableSpecs(0, 0);
-    }
-
-    @Test
-    public void canMigrateOneTable() throws Exception {
-        runTestWithTableSpecs(1, 1);
-    }
-
-    @Test
-    public void canMigrateMultipleTables() throws Exception {
-        runTestWithTableSpecs(10, 257);
-    }
-
-    private void runTestWithTableSpecs(int numTables, int numEntriesPerTable) throws Exception {
-        KvsMigrationCommand cmd = getCommand(new String[] { "-smv" });
-        AtlasDbServices fromServices = cmd.connectFromServices();
-
-        // CLIs don't currently reinitialize the KVS
-        Schemas.createTablesAndIndexes(SweepSchema.INSTANCE.getLatestSchema(), fromServices.getKeyValueService());
-        AtlasDbServices toServices = cmd.connectToServices();
-        seedKvs(fromServices, numTables, numEntriesPerTable);
-        try {
-            int exitCode = cmd.execute(fromServices, toServices);
-            Assert.assertEquals(0, exitCode);
-            checkKvs(toServices, numTables, numEntriesPerTable);
-        } finally {
-            fromServices.close();
-            toServices.close();
-        }
+    private int runWithOptions(String... args) throws URISyntaxException {
+        KvsMigrationCommand command = getCommand(args);
+        return command.execute(fromServices, toServices);
     }
 
     private void seedKvs(AtlasDbServices services, int numTables, int numEntriesPerTable) {
         for (int i = 0; i < numTables; i++) {
-            TableReference table = TableReference.create(Namespace.create("ns"), "table" + i);
+            TableReference table = getTableRef(i);
             services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
             services.getTransactionManager().runTaskThrowOnConflict(t -> {
                 ImmutableMap.Builder<Cell, byte[]> toWrite = ImmutableMap.builder();
@@ -107,8 +132,7 @@ public class TestKvsMigrationCommand {
 
     private void checkKvs(AtlasDbServices services, int numTables, int numEntriesPerTable) {
         for (int i = 0; i < numTables; i++) {
-            TableReference table = TableReference.create(Namespace.create("ns"), "table" + i);
-            services.getKeyValueService().createTable(table, AtlasDbConstants.GENERIC_TABLE_METADATA);
+            TableReference table = getTableRef(i);
             services.getTransactionManager().runTaskThrowOnConflict(t -> {
                 ImmutableSet.Builder<Cell> toRead = ImmutableSet.builder();
                 ImmutableMap.Builder<Cell, byte[]> expectedBuilder = ImmutableMap.builder();
@@ -126,5 +150,9 @@ public class TestKvsMigrationCommand {
                 return null;
             });
         }
+    }
+
+    private static TableReference getTableRef(int number) {
+        return TableReference.create(Namespace.create("ns"), "table" + number);
     }
 }
