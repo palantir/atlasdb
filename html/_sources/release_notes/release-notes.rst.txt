@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
     *    - |improved|
          - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
            This improves the read performance and reduces load on timelock.

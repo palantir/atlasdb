@@ -186,18 +186,24 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3587">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Read transactions on thoroughly swept tables requires one less RPC to timelock now.
 This improves the read performance and reduces load on timelock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3651">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
 This only applies where multiple <cite>TransactionManager</cite> s might exist in a single VM
 and they are created an shutdown repeatedly.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3653">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Wrap shutdown callback running in try-catch.
 This guards against any shutdown hooks throwing unchecked exceptions,
 which would cause other hooks to not run.
