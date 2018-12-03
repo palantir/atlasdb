@@ -35,7 +35,7 @@ public final class KeyValueServiceMigrators {
     private static final OutputPrinter printer
             = new OutputPrinter(LoggerFactory.getLogger(KeyValueServiceMigrator.class));
 
-    private static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
+    static final Namespace CHECKPOINT_NAMESPACE = Namespace.create("kvs_migrate");
 
     private KeyValueServiceMigrators() {
         // utility
@@ -43,14 +43,13 @@ public final class KeyValueServiceMigrators {
 
     public static KeyValueServiceMigrator setupMigrator(MigratorSpec migratorSpec) {
         AtlasDbServices fromServices = migratorSpec.fromServices();
-        long migrationStartTimestamp = fromServices.getTimestampService().getFreshTimestamp();
-        long migrationCommitTimestamp = fromServices.getTimestampService().getFreshTimestamp();
-
         AtlasDbServices toServices = migratorSpec.toServices();
         TimestampManagementService toTimestampManagementService = getTimestampManagementService(toServices);
 
+        toTimestampManagementService.fastForwardTimestamp(fromServices.getTimestampService().getFreshTimestamp() + 1);
+        long migrationStartTimestamp = toServices.getTimestampService().getFreshTimestamp();
+        long migrationCommitTimestamp = toServices.getTimestampService().getFreshTimestamp();
         toServices.getTransactionService().putUnlessExists(migrationStartTimestamp, migrationCommitTimestamp);
-        toTimestampManagementService.fastForwardTimestamp(migrationCommitTimestamp + 1);
 
         return new KeyValueServiceMigrator(
                 CHECKPOINT_NAMESPACE,

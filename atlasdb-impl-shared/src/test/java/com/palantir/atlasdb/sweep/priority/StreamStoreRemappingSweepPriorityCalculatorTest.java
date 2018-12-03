@@ -70,7 +70,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
         SweepPriorityCalculator nextTableToSweep = new SweepPriorityCalculator(kvs, sweepPriorityStore);
         calculator = new StreamStoreRemappingSweepPriorityCalculator(nextTableToSweep, sweepPriorityStore);
 
-        allTables = new HashSet<>(AtlasDbConstants.hiddenTables);
+        allTables = new HashSet<>(AtlasDbConstants.HIDDEN_TABLES);
         oldPriorities = new ArrayList<>();
         newPriorities = new ArrayList<>();
         isCassandra = true;

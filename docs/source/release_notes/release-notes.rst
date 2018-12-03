@@ -59,22 +59,71 @@ develop
            Note that for or across this version, blue-green deployment of embedded services is not supported.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
 
+========
+v0.113.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
     *    - |improved|
          - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
            This improves the read performance and reduces load on timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
 
     *    - |fixed|
-         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
-           This only applies where multiple `TransactionManager` s might exist in a single VM
-           and they are created an shutdown repeatedly.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
+         - Fix warning in stream-store generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3667>`__)
+
+========
+v0.112.1
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Wrap shutdown callback running in try-catch.
            This guards against any shutdown hooks throwing unchecked exceptions,
            which would cause other hooks to not run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+
+========
+v0.112.0
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           This only applies where multiple `TransactionManager` s might exist in a single VM
+           and they are created an shutdown repeatedly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
 
 ========
 v0.111.0
