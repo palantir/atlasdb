@@ -1,5 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/non-client-dist.gradle"
 
 apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'org.inferred.processors'
@@ -76,8 +77,6 @@ distribution {
     mainClass 'com.palantir.atlasdb.AtlasDbEteServer'
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx384M'
-    ignoredProductDependency('com.palantir.rescue', 'rescue')
-    ignoredProductDependency('com.palantir.timelock', 'timelock-server')
 }
 
 sourceCompatibility = '1.8'
