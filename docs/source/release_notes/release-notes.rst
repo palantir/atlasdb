@@ -73,6 +73,10 @@ develop
            which would cause other hooks to not run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
 
+    *    - |fixed|
+         - Fix warning in stream-store generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3667>`__)
+
 ========
 v0.111.0
 ========
