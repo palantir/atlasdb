@@ -271,7 +271,7 @@ public class StreamStoreRenderer {
                     line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(id);");
                     line("StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
                     line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being cleaned up while storing blocks: %s\", id);");
-                    line("Builder builder = StreamMetadata.newBuilder(metadata);");
+                    line("StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
                     line("metaTable.putMetadata(row, builder.build());");
                 } line("}");
@@ -825,7 +825,6 @@ public class StreamStoreRenderer {
         ByteString.class,
         Status.class,
         StreamMetadata.class,
-        StreamMetadata.Builder.class,
         Throwables.class,
         ConcatenatedInputStream.class,
         Cell.class,
