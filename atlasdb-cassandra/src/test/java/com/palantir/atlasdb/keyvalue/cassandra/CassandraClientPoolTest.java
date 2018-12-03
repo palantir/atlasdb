@@ -136,14 +136,14 @@ public class CassandraClientPoolTest {
             hostList.add(new InetSocketAddress(i));
         }
 
-        CassandraClientPoolImpl cassandraClientPool = throwingClientPoolWithServersInCurrentPool(
+        CassandraClientPoolImpl clientPool = throwingClientPoolWithServersInCurrentPool(
                 ImmutableSet.copyOf(hostList), new SocketTimeoutException());
-        assertThatThrownBy(() -> runNoopWithRetryOnHost(hostList.get(0), cassandraClientPool))
+        assertThatThrownBy(() -> runNoopWithRetryOnHost(hostList.get(0), clientPool))
                 .isInstanceOf(Exception.class);
 
-        verifyNumberOfAttemptsOnHost(hostList.get(0), cassandraClientPool, cassandraClientPool.getMaxRetriesPerHost());
+        verifyNumberOfAttemptsOnHost(hostList.get(0), clientPool, CassandraClientPoolImpl.getMaxRetriesPerHost());
         for (int i = 1; i < numHosts; i++) {
-            verifyNumberOfAttemptsOnHost(hostList.get(i), cassandraClientPool, 1);
+            verifyNumberOfAttemptsOnHost(hostList.get(i), clientPool, 1);
         }
     }
 
@@ -153,7 +153,7 @@ public class CassandraClientPoolTest {
                 ImmutableSet.of(HOST_1), new SocketTimeoutException());
 
         assertThatThrownBy(() -> runNoopWithRetryOnHost(HOST_1, cassandraClientPool)).isInstanceOf(Exception.class);
-        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, cassandraClientPool.getMaxTriesTotal());
+        verifyNumberOfAttemptsOnHost(HOST_1, cassandraClientPool, CassandraClientPoolImpl.getMaxTriesTotal());
     }
 
     @Test
@@ -315,7 +315,7 @@ public class CassandraClientPoolTest {
     }
 
     @Test
-    public void hostsAreResetToCondigOnRefreshWhenRefreshIsDisabled() {
+    public void hostsAreResetToConfigOnRefreshWhenRefreshIsDisabled() {
         when(config.servers()).thenReturn(ImmutableSet.of(HOST_1, HOST_2));
         when(config.autoRefreshNodes()).thenReturn(false);
 
