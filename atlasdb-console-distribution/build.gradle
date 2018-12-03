@@ -18,4 +18,5 @@ distribution {
   serviceName 'atlasdb-console'
   mainClass 'com.palantir.atlasdb.console.AtlasConsoleMain'
   ignoredProductDependency('com.palantir.rescue', 'rescue')
+  ignoredProductDependency('com.palantir.timelock', 'timelock-server')
 }
