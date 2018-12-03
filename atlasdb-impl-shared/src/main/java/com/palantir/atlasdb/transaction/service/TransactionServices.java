@@ -16,19 +16,27 @@
 package com.palantir.atlasdb.transaction.service;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionServices {
     private TransactionServices() {
-        // Uility class
+        // Utility class
+    }
+
+    public static TransactionService createTransactionService(
+            KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordination) {
+        TransactionSchemaManager manager = new TransactionSchemaManager(coordination);
+
+        return new SplitKeyDelegatingTransactionService<>(
+                manager::getTransactionsSchemaVersion,
+                ImmutableMap.of(1, new SimpleTransactionV1Service(keyValueService)));
     }
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService) {
-        SplitKeyDelegatingTransactionService delegatingTransactionService = new SplitKeyDelegatingTransactionService<>(
-                unused -> SplitKeyDelegatingTransactionService.class, ImmutableMap.of(SplitKeyDelegatingTransactionService.class, new SimpleTransactionV1Service(keyValueService))
-        );
-
         return new SimpleTransactionV1Service(keyValueService);
     }
 }

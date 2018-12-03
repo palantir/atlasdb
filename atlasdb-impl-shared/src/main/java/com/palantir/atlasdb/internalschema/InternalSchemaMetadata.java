@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.encoding.PtBytes;
 
 /**
  * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
@@ -28,6 +29,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
 @JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
 public interface InternalSchemaMetadata {
+    // Warning: Do not change this without a migration
+    byte[] DEFAULT_METADATA_COORDINATION_KEY = PtBytes.toBytes("m");
+
     TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
 
     static ImmutableInternalSchemaMetadata.Builder builder() {

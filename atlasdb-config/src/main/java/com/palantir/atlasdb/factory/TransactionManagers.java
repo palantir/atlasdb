@@ -64,6 +64,9 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -72,6 +75,7 @@ import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockServi
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -130,6 +134,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -324,6 +329,14 @@ public abstract class TransactionManagers {
                 keyValueService, schemas(), config().initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
+
+        CoordinationService<InternalSchemaMetadata> coordinationService = new CoordinationServiceImpl<>(
+                KeyValueServiceCoordinationStore.create(
+                        ObjectMappers.newServerObjectMapper(),
+                        keyValueService,
+                        InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
+                        lockAndTimestampServices.timestamp()::getFreshTimestamp,
+                        InternalSchemaMetadata.class));
 
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
