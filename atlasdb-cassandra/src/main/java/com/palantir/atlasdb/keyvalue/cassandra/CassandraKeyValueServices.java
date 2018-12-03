@@ -46,8 +46,10 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
@@ -115,6 +117,17 @@ public final class CassandraKeyValueServices {
                 schemaVersions.toString(),
                 configNodes);
         throw new IllegalStateException(errorMessage);
+    }
+
+    static void runWithWaitingForSchemas(
+            RunnableCheckedException<TException> task,
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        task.run();
+        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
     static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
@@ -375,13 +388,17 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
-        if (metadata == null
+    static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
+        return metadata == null
                 || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)
-                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
-            return true;
+                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    static TableMetadata getMetadataOrDefaultToGeneric(byte[] metadata) {
+        if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA);
         }
-        return false;
+        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
     }
 
 }

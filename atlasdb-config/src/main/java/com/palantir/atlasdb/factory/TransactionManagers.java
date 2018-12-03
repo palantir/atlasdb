@@ -67,6 +67,7 @@ import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
@@ -96,6 +97,7 @@ import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -298,6 +300,7 @@ public abstract class TransactionManagers {
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
+            kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
             // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
             if (!config().targetedSweep().enableSweepQueueWrites()) {
@@ -384,13 +387,15 @@ public abstract class TransactionManagers {
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
-        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
+        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
@@ -643,7 +648,22 @@ public abstract class TransactionManagers {
                 timeManagement,
                 invalidator,
                 userAgent);
-        return withMetrics(metricsManager, withRefreshingLockService(lockAndTimestampServices));
+        return withMetrics(metricsManager,
+                withCorroboratingTimestampService(
+                        withRefreshingLockService(lockAndTimestampServices)));
+    }
+
+    private static LockAndTimestampServices withCorroboratingTimestampService(
+            LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockService = TimestampCorroboratingTimelockService
+                .create(lockAndTimestampServices.timelock());
+        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
+
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timelockService)
+                .timestamp(corroboratingTimestampService)
+                .build();
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
@@ -820,7 +840,7 @@ public abstract class TransactionManagers {
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
-                    ServiceCreator.createSslSocketFactory(leaderConfig.sslConfiguration()),
+                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
                     userAgent);

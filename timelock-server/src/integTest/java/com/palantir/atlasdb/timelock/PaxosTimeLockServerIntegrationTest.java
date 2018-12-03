@@ -127,7 +127,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public static void waitForClusterToStabilize() {
         PingableLeader leader = AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TestProxies.SSL_SOCKET_FACTORY),
+                Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
                 PingableLeader.class);
         Awaitility.await()
@@ -200,8 +200,9 @@ public class PaxosTimeLockServerIntegrationTest {
         for (LockService lockService : lockServices) {
             for (int i = 0; i < numRequestsPerClient; i++) {
                 int currentTrial = i;
-                futures.add(executorService.submit(() -> lockService.lock(
-                                CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT)));
+                futures.add(executorService.submit(() ->
+                        lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
+                );
             }
         }
 
@@ -467,7 +468,9 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private static Response makeEmptyPostToUri(String uri) throws IOException {
         OkHttpClient client = new OkHttpClient.Builder()
-                .sslSocketFactory(TestProxies.SSL_SOCKET_FACTORY)
+                .sslSocketFactory(
+                        TestProxies.TRUST_CONTEXT.sslSocketFactory(),
+                        TestProxies.TRUST_CONTEXT.x509TrustManager())
                 .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .build();
         return client.newCall(new Request.Builder()
@@ -500,7 +503,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static <T> T getProxyForService(String client, Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TestProxies.SSL_SOCKET_FACTORY),
+                Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
                 clazz,
                 client);

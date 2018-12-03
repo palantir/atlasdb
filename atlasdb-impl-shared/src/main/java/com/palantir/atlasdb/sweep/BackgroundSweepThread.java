@@ -123,7 +123,7 @@ public class BackgroundSweepThread implements Runnable {
                 sleepUntilNextRun(outcome);
             }
         } catch (InterruptedException e) {
-            log.warn(
+            log.info(
                     "Shutting down background sweeper. Please restart the service to rerun background sweep.");
             closeTableLockIfHeld();
             sweepOutcomeMetrics.registerOccurrenceOf(

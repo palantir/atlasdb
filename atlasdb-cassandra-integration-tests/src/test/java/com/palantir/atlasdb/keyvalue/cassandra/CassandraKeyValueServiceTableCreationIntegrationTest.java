@@ -98,11 +98,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     }
 
     @Test
-    public void describeVersionBehavesCorrectly() throws Exception {
-        kvs.getClientPool().runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-    }
-
-    @Test
     public void testCreateTableCanRestoreLostMetadata() {
         // setup a basic table
         TableReference missingMetadataTable = TableReference.createFromFullyQualifiedName("test.metadata_missing");

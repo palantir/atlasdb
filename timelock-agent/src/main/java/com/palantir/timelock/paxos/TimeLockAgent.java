@@ -108,7 +108,7 @@ public class TimeLockAgent {
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
         return new PaxosTimestampCreator(metrics, paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
-                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
+                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createTrustContext),
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 

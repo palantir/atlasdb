@@ -90,7 +90,6 @@ final class ColumnFamilyDefinitions {
 
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
-            // clear out the now nonsensical "keep it at 80MB per sstable" option from LCS
             cf.setCompaction_strategy_optionsIsSet(false);
             if (!negativeLookups) {
                 falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;

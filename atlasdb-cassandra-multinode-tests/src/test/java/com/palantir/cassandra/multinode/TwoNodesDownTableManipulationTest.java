@@ -15,10 +15,8 @@
  */
 package com.palantir.cassandra.multinode;
 
-import org.apache.thrift.TException;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
@@ -31,35 +29,10 @@ public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTe
     }
 
     @Test
-    public void createTableThrowsAndDoesNotChangeCassandraSchema() throws TException {
+    public void createTableThrowsAndDoesNotChangeCassandraSchema() {
         TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
 
-    }
-
-    @Test
-    public void dropTableThrowsAndDoesNotChangeCassandraSchema() throws TException {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().dropTable(TEST_TABLE));
-    }
-
-    @Test
-    public void dropTablesThrowsAndDoesNotChangeCassandraSchema() throws TException {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().dropTables(ImmutableSet.of(TEST_TABLE)));
-    }
-
-    @Test
-    public void truncateTableThrowsAndDoesNotChangeCassandraSchema() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().truncateTable(TEST_TABLE));
-
-    }
-
-    @Test
-    public void truncateTablesThrowsAndDoesNotChangeCassandraSchema() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().truncateTables(ImmutableSet.of(TEST_TABLE)));
     }
 }
