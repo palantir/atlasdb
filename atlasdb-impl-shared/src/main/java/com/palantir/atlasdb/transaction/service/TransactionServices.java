@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.service;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionServices {
@@ -24,6 +25,10 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService) {
-        return new SimpleTransactionService(keyValueService);
+        SplitKeyDelegatingTransactionService delegatingTransactionService = new SplitKeyDelegatingTransactionService<>(
+                unused -> SplitKeyDelegatingTransactionService.class, ImmutableMap.of(SplitKeyDelegatingTransactionService.class, new SimpleTransactionV1Service(keyValueService))
+        );
+
+        return new SimpleTransactionV1Service(keyValueService);
     }
 }
