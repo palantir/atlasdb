@@ -15,6 +15,7 @@ distribution {
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms512m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
     ignoredProductDependency('com.palantir.rescue', 'rescue')
+    ignoredProductDependency('com.palantir.timelock', 'timelock-server')
 }
 
 configurations.all {

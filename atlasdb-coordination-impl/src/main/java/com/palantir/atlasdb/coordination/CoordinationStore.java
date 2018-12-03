@@ -36,10 +36,12 @@ public interface CoordinationStore<T> {
 
     /**
      * Proposes a new value to be stored in this {@link CoordinationStore} based on applying the transform passed
-     * to an existing bound. It is the responsibility of users to confirm whether their transform succeeded or not.
+     * to an existing {@link ValueAndBound}. It is the responsibility of users to confirm whether their transform
+     * succeeded or not.
      *
      * @param transform transformation of the original value passed
      * @return a {@link CheckAndSetResult} indicating if the proposal was successful and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(
+            Function<ValueAndBound<T>, T> transform);
 }
