@@ -50,6 +50,15 @@ develop
     *    - Type
          - Change
 
+    *    - |userbreak|
+         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
+           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
+           Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
+           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
+           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
+           Note that for or across this version, blue-green deployment of embedded services is not supported.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
+
     *    - |improved|
          - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
            This improves the read performance and reduces load on timelock.
@@ -210,15 +219,6 @@ v0.108.0
     *    - |fixed|
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
-
-    *    - |userbreak|
-         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
-           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
-           Products should depend on TimeLock 0.30.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
-           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
-           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
-           Note that for or across this version, blue-green deployment of embedded services is not supported.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
 
     *    - |new|
          - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
