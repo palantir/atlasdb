@@ -54,7 +54,7 @@ develop
          - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
            Previously, the annotation processor would generate code that wouldn't compile.
            Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/QQQQ>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
 
 ========
 v0.114.0
