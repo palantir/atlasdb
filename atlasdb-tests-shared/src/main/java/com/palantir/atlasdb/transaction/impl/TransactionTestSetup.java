@@ -137,8 +137,13 @@ public abstract class TransactionTestSetup {
         timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
 
-        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = getMetadataCoordinationService(ts);
-        transactionService = TransactionServices.createTransactionService(keyValueService, metadataCoordinationService);
+        if (keyValueService.supportsCheckAndSet()) {
+            CoordinationService<InternalSchemaMetadata> coordinationService = getMetadataCoordinationService(ts);
+            transactionService = TransactionServices.createTransactionService(keyValueService,
+                    coordinationService);
+        } else {
+            transactionService = TransactionServices.createTransactionService(keyValueService);
+        }
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();
