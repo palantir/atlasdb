@@ -38,7 +38,6 @@ public class AutoDelegateGenericTests {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_GenericsTester.class);
         Set<String> originalMethods = TestingUtils.extractNonStaticMethods(GenericsTester.class);
 
-        generatedMethods.removeAll(originalMethods);
         assertThat(Sets.difference(generatedMethods, originalMethods)).containsOnly("delegate");
     }
 }
