@@ -35,7 +35,5 @@ public interface TestInterface {
 
     void overriddenMethod(Integer p1, Integer p2, Integer p3);
 
-    static void staticMethod() {
-        // do nothing
-    }
+    static void staticMethod() {}
 }
