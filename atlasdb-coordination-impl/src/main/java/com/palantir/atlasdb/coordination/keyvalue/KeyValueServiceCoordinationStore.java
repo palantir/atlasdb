@@ -87,6 +87,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
 
+    // TODO This thing needs to support AsyncInit...
     private KeyValueServiceCoordinationStore(
             ObjectMapper objectMapper,
             KeyValueService kvs,

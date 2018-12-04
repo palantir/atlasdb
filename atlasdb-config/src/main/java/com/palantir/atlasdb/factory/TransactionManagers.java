@@ -330,18 +330,22 @@ public abstract class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
-        CoordinationService<InternalSchemaMetadata> coordinationService = new CoordinationServiceImpl<>(
-                KeyValueServiceCoordinationStore.create(
-                        ObjectMappers.newServerObjectMapper(),
-                        keyValueService,
-                        InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
-                        lockAndTimestampServices.timestamp()::getFreshTimestamp,
-                        InternalSchemaMetadata.class));
+        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
+        CoordinationService<InternalSchemaMetadata> coordinationService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationService.class,
+                new CoordinationServiceImpl<>(
+                        KeyValueServiceCoordinationStore.create(
+                                ObjectMappers.newServerObjectMapper(),
+                                keyValueService,
+                                InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
+                                lockAndTimestampServices.timestamp()::getFreshTimestamp,
+                                InternalSchemaMetadata.class)));
 
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService));
+                TransactionServices.createTransactionService(keyValueService, coordinationService));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
