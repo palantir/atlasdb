@@ -56,7 +56,7 @@ develop
            The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
 
-         *    - |userbreak|
+    *    - |userbreak|
          - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
            Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
            Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
