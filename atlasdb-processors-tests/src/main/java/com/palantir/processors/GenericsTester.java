@@ -21,6 +21,8 @@ import java.util.Set;
 
 @AutoDelegate
 public interface GenericsTester<A, B extends List<C>, C> {
+    A processItems(A first, B second, C third);
+
     List<B> getListOfLists(A comparison);
 
     default Set<C> hello() {
