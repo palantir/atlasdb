@@ -328,8 +328,6 @@ public abstract class TransactionManagers {
 
         CoordinationService<InternalSchemaMetadata> metadataCoordinationService = getSchemaMetadataCoordinationService(
                 metricsManager, lockAndTimestampServices, keyValueService);
-        InternalSchemaMetadataInitializer metadataInitializer = InternalSchemaMetadataInitializer.createAndInitialize(
-                metadataCoordinationService, config().initializeAsync());
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync());
@@ -364,6 +362,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+                InternalSchemaMetadataInitializer.create(metadataCoordinationService),
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
                 new DeprecatedTablesCleaner(schemas()),
@@ -382,7 +381,7 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         cleaner,
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
-                                ImmutableList.of(initializer, metadataInitializer),
+                                ImmutableList.of(initializer),
                                 lockAndTimestampServices),
                         allowHiddenTableAccess(),
                         config().keyValueService().concurrentGetRangesThreadPoolSize(),

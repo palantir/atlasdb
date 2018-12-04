@@ -159,7 +159,7 @@ public abstract class TransactionTestSetup {
                         ts::getFreshTimestamp,
                         InternalSchemaMetadata.class,
                         false));
-        InternalSchemaMetadataInitializer.createAndInitialize(metadataCoordinationService, false);
+        InternalSchemaMetadataInitializer.create(metadataCoordinationService).init(null);
         return metadataCoordinationService;
     }
 

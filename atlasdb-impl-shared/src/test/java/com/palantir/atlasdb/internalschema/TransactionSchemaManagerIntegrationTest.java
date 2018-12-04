@@ -50,7 +50,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Before
     public void setUp() {
-        InternalSchemaMetadataInitializer.createAndInitialize(actualCoordinationService, false);
+        InternalSchemaMetadataInitializer.create(actualCoordinationService).init(null);
     }
 
     @Test

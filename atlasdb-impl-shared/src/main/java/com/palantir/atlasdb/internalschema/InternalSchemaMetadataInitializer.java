@@ -21,17 +21,18 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
-import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.exception.NotInitializedException;
 
 /**
  * Writes an initial version of the {@link InternalSchemaMetadata} to the database.
  */
-public final class InternalSchemaMetadataInitializer extends AsyncInitializer {
+public final class InternalSchemaMetadataInitializer extends Callback<TransactionManager> {
     private static final Logger log = LoggerFactory.getLogger(InternalSchemaMetadataInitializer.class);
 
     private static final long START_OF_TIME = 1L;
@@ -44,20 +45,9 @@ public final class InternalSchemaMetadataInitializer extends AsyncInitializer {
         this.coordinationService = coordinationService;
     }
 
-    public static InternalSchemaMetadataInitializer createAndInitialize(
-            CoordinationService<InternalSchemaMetadata> coordinationService,
-            boolean initializeAsync) {
-        InternalSchemaMetadataInitializer initializer = new InternalSchemaMetadataInitializer(coordinationService);
-        initializer.initialize(initializeAsync);
-        return initializer;
-    }
-
-    @Override
-    protected void tryInitialize() {
-        boolean metadataInitialized = attemptToInitializeSchemaMetadata();
-        if (!metadataInitialized) {
-            throw new NotInitializedException("The schema metadata service wasn't actually initialized");
-        }
+    public static InternalSchemaMetadataInitializer create(
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return new InternalSchemaMetadataInitializer(coordinationService);
     }
 
     /**
@@ -95,7 +85,10 @@ public final class InternalSchemaMetadataInitializer extends AsyncInitializer {
     }
 
     @Override
-    protected String getInitializingClassName() {
-        return InternalSchemaMetadataInitializer.class.getSimpleName();
+    public void init(TransactionManager resource) {
+        boolean metadataInitialized = attemptToInitializeSchemaMetadata();
+        if (!metadataInitialized) {
+            throw new NotInitializedException("The schema metadata service couldn't be initialized.");
+        }
     }
 }
