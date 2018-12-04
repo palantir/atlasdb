@@ -15,9 +15,11 @@
  */
 package com.palantir.processors;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -63,7 +65,7 @@ public class AutoDelegateInterfaceTests {
     @Test
     public void generatedInterfaceHasInterfaceMethods() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
-        Set<String> originalMethods = TestingUtils.extractMethods(TestInterface.class);
+        Set<String> originalMethods = extractNonStaticMethods(TestInterface.class);
 
         assertThat(generatedMethods, hasItems(originalMethods.toArray(new String[0])));
     }
@@ -71,7 +73,7 @@ public class AutoDelegateInterfaceTests {
     @Test
     public void generatedInterfaceHasDelegateMethod() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
-        Set<String> originalMethods = TestingUtils.extractMethods(TestInterface.class);
+        Set<String> originalMethods = extractNonStaticMethods(TestInterface.class);
 
         generatedMethods.removeAll(originalMethods);
         assertThat(generatedMethods.size(), is(1));
@@ -79,10 +81,19 @@ public class AutoDelegateInterfaceTests {
     }
 
     @Test
+    public void generatedInterfaceDoesNotHaveStaticMethods() {
+        Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_TestInterface.class);
+        Set<String> originalStaticMethods = TestingUtils.extractMethodsSatisfyingPredicate(TestInterface.class,
+                method -> Modifier.isStatic(method.getModifiers()));
+
+        originalStaticMethods.forEach(staticMethod -> assertThat(generatedMethods, not(contains(staticMethod))));
+    }
+
+    @Test
     public void childInterfaceHasParentAndChildMethods() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_ChildTestInterface.class);
-        Set<String> parentMethods = TestingUtils.extractMethods(TestInterface.class);
-        Set<String> childMethods = TestingUtils.extractMethods(ChildTestInterface.class);
+        Set<String> parentMethods = extractNonStaticMethods(TestInterface.class);
+        Set<String> childMethods = extractNonStaticMethods(ChildTestInterface.class);
 
         assertThat(generatedMethods, hasItems(parentMethods.toArray(new String[0])));
         assertThat(generatedMethods, hasItems(childMethods.toArray(new String[0])));
@@ -95,5 +106,11 @@ public class AutoDelegateInterfaceTests {
 
         instanceOfInterface.methodWithReturnType();
         verify(mockImpl, times(1)).methodWithReturnType();
+    }
+
+    private Set<String> extractNonStaticMethods(Class klass) {
+        return TestingUtils.extractMethodsSatisfyingPredicate(
+                klass,
+                method -> !Modifier.isStatic(method.getModifiers()));
     }
 }

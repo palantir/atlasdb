@@ -19,13 +19,19 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 final class TestingUtils {
     private TestingUtils() {}
 
     static Set<String> extractMethods(Class klass) {
+        return extractMethodsSatisfyingPredicate(klass, unused -> true);
+    }
+
+    static Set<String> extractMethodsSatisfyingPredicate(Class klass, Predicate<Method> predicate) {
         return Arrays.stream(klass.getDeclaredMethods())
+                .filter(predicate)
                 .map(TestingUtils::methodToString)
                 .collect(Collectors.toSet());
     }

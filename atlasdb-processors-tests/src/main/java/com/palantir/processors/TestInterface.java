@@ -34,4 +34,8 @@ public interface TestInterface {
     default void defaultMethod() {}
 
     void overriddenMethod(Integer p1, Integer p2, Integer p3);
+
+    static void staticMethod() {
+        // do nothing
+    }
 }
