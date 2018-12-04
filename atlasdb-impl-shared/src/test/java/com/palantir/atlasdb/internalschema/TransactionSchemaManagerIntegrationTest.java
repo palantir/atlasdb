@@ -41,7 +41,8 @@ public class TransactionSchemaManagerIntegrationTest {
                     new InMemoryKeyValueService(true),
                     PtBytes.toBytes("blablabla"),
                     timestamps::getFreshTimestamp,
-                    VersionedInternalSchemaMetadata.class));
+                    VersionedInternalSchemaMetadata.class,
+                    true));
     private final CoordinationService<InternalSchemaMetadata> actualCoordinationService
             = CoordinationServices.wrapHidingVersionSerialization(rawCoordinationService);
     private final TransactionSchemaManager manager = new TransactionSchemaManager(
@@ -49,8 +50,7 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Before
     public void setUp() {
-        new InternalSchemaMetadataInitializer(actualCoordinationService)
-                .ensureInternalSchemaMetadataInitialized();
+        InternalSchemaMetadataInitializer.createAndInitialize(actualCoordinationService, false);
     }
 
     @Test

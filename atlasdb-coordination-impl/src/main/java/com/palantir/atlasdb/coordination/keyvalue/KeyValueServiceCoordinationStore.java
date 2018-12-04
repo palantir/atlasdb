@@ -75,7 +75,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
-    private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
+    public static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
 
     private static final long ADVANCEMENT_QUANTUM = 5_000_000L;
 
@@ -119,10 +119,11 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
-            Class<T> clazz) {
+            Class<T> clazz,
+            boolean initializeAsync) {
         KeyValueServiceCoordinationStore<T> coordinationStore = new KeyValueServiceCoordinationStore<>(
                 objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
-        coordinationStore.wrapper.initialize(true);
+        coordinationStore.wrapper.initialize(initializeAsync);
         return coordinationStore.wrapper.isInitialized() ? coordinationStore : coordinationStore.wrapper;
     }
 

@@ -157,7 +157,8 @@ public class KeyValueServiceCoordinationStoreTest {
                 kvs,
                 COORDINATION_ROW,
                 timestampSequence::incrementAndGet,
-                String.class);
+                String.class,
+                true);
         Awaitility.waitAtMost(Duration.ONE_MINUTE)
                 .pollInterval(Duration.FIVE_HUNDRED_MILLISECONDS)
                 .until(asyncStore::isInitialized);

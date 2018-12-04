@@ -76,6 +76,7 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadataInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -325,27 +326,20 @@ public abstract class TransactionManagers {
             return ValidatingQueryRewritingKeyValueService.create(kvs);
         }, closeables);
 
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = getSchemaMetadataCoordinationService(
+                metricsManager, lockAndTimestampServices, keyValueService);
+        InternalSchemaMetadataInitializer metadataInitializer = InternalSchemaMetadataInitializer.createAndInitialize(
+                metadataCoordinationService, config().initializeAsync());
+
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
-        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
-        CoordinationService<InternalSchemaMetadata> coordinationService = AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                CoordinationService.class,
-                new CoordinationServiceImpl<>(
-                        KeyValueServiceCoordinationStore.create(
-                                ObjectMappers.newServerObjectMapper(),
-                                keyValueService,
-                                InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
-                                lockAndTimestampServices.timestamp()::getFreshTimestamp,
-                                InternalSchemaMetadata.class)));
-
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService, coordinationService));
+                TransactionServices.createTransactionService(keyValueService, metadataCoordinationService));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -388,7 +382,7 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         cleaner,
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
-                                initializer,
+                                ImmutableList.of(initializer, metadataInitializer),
                                 lockAndTimestampServices),
                         allowHiddenTableAccess(),
                         config().keyValueService().concurrentGetRangesThreadPoolSize(),
@@ -439,6 +433,24 @@ public abstract class TransactionManagers {
         return instrumentedTransactionManager;
     }
 
+    private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
+            MetricsManager metricsManager, LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService) {
+        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationService.class,
+                new CoordinationServiceImpl<>(
+                        KeyValueServiceCoordinationStore.create(
+                                ObjectMappers.newServerObjectMapper(),
+                                keyValueService,
+                                InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
+                                lockAndTimestampServices.timestamp()::getFreshTimestamp,
+                                InternalSchemaMetadata.class,
+                                config().initializeAsync())));
+        return metadataCoordinationService;
+    }
+
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices,
@@ -473,9 +485,10 @@ public abstract class TransactionManagers {
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
-            AsyncInitializer initializer,
+            List<AsyncInitializer> initializers,
             LockAndTimestampServices lockAndTimestampServices) {
-        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+        return initializers.stream().allMatch(AsyncInitializer::isInitialized)
+                && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
     }
 
     @VisibleForTesting
