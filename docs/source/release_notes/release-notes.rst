@@ -50,6 +50,25 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+           Previously, the annotation processor would generate code that wouldn't compile.
+           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/QQQQ>`__)
+
+========
+v0.114.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |userbreak|
          - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
            Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
