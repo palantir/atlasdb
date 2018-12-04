@@ -129,7 +129,8 @@ public abstract class TransactionTestSetup {
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
                 AtlasDbConstants.COORDINATION_TABLE,
                 KeyValueServiceCoordinationStore.COORDINATION_TABLE_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
+        keyValueService.truncateTables(ImmutableSet.of(
+                TEST_TABLE, TransactionConstants.TRANSACTION_TABLE, AtlasDbConstants.COORDINATION_TABLE));
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
         timestampService = ts;

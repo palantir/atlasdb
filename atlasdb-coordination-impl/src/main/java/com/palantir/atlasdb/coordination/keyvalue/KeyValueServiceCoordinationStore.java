@@ -102,6 +102,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         this.clazz = clazz;
     }
 
+    // Note: This is not equivalent to create(..., false) because we need the explicit typing information in the test.
     static <T> KeyValueServiceCoordinationStore<T> createForTesting(
             ObjectMapper objectMapper,
             KeyValueService kvs,

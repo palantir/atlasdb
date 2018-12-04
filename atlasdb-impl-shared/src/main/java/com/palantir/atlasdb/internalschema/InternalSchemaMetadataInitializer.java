@@ -31,7 +31,7 @@ import com.palantir.exception.NotInitializedException;
 /**
  * Writes an initial version of the {@link InternalSchemaMetadata} to the database.
  */
-public class InternalSchemaMetadataInitializer extends AsyncInitializer {
+public final class InternalSchemaMetadataInitializer extends AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(InternalSchemaMetadataInitializer.class);
 
     private static final long START_OF_TIME = 1L;
