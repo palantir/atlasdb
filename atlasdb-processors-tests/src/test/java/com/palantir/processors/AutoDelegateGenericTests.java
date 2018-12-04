@@ -16,38 +16,29 @@
 
 package com.palantir.processors;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.lang.reflect.Modifier;
 import java.util.Set;
 
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 public class AutoDelegateGenericTests {
     @Test
     public void generatedInterfaceHasInterfaceMethods() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_GenericsTester.class);
-        Set<String> originalMethods = extractNonStaticMethods(GenericsTester.class);
+        Set<String> originalMethods = TestingUtils.extractNonStaticMethods(GenericsTester.class);
 
-        assertThat(generatedMethods, hasItems(originalMethods.toArray(new String[0])));
+        assertThat(generatedMethods).containsAll(originalMethods);
     }
 
     @Test
     public void generatedInterfaceHasDelegateMethod() {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_GenericsTester.class);
-        Set<String> originalMethods = extractNonStaticMethods(GenericsTester.class);
+        Set<String> originalMethods = TestingUtils.extractNonStaticMethods(GenericsTester.class);
 
         generatedMethods.removeAll(originalMethods);
-        assertThat(generatedMethods.size(), is(1));
-        assertThat(generatedMethods.iterator().next(), containsString("delegate"));
-    }
-
-    private Set<String> extractNonStaticMethods(Class klass) {
-        return TestingUtils.extractMethodsSatisfyingPredicate(
-                klass,
-                method -> !Modifier.isStatic(method.getModifiers()));
+        assertThat(Sets.difference(generatedMethods, originalMethods)).containsOnly("delegate");
     }
 }
