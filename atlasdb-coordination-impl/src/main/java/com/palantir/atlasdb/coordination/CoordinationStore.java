@@ -26,6 +26,15 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
  */
 public interface CoordinationStore<T> {
     /**
+     * Coordination stores may require asynchronous initialization, especially if dependencies are unavailable.
+     *
+     * @return true if and only if the coordination store is ready to service requests
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
+    /**
      * Gets the value stored in this {@link CoordinationStore}. This value may not be the most recent value; however,
      * it is guaranteed that any value returned by this method will be at least as current as any value returned by
      * a call that returned prior to this method being invoked.

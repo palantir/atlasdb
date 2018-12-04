@@ -18,10 +18,15 @@ package com.palantir.atlasdb.coordination.keyvalue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.awaitility.Awaitility;
+import org.awaitility.Duration;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -48,12 +53,12 @@ public class KeyValueServiceCoordinationStoreTest {
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
-    private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
-            ObjectMappers.newServerObjectMapper(),
-            keyValueService,
-            COORDINATION_ROW,
-            timestampSequence::incrementAndGet,
-            String.class);
+    private final KeyValueServiceCoordinationStore<String> coordinationStore
+            = KeyValueServiceCoordinationStore.createForTesting(ObjectMappers.newServerObjectMapper(),
+                    keyValueService,
+                    COORDINATION_ROW,
+                    timestampSequence::incrementAndGet,
+                    String.class);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -127,7 +132,7 @@ public class KeyValueServiceCoordinationStoreTest {
     public void multipleStoresCanCoexist() {
         byte[] otherCoordinationKey = PtBytes.toBytes("bbbbb");
         CoordinationStore<String> otherCoordinationStore
-                = KeyValueServiceCoordinationStore.create(
+                = KeyValueServiceCoordinationStore.createForTesting(
                         ObjectMappers.newServerObjectMapper(),
                         keyValueService,
                         otherCoordinationKey,
@@ -137,5 +142,24 @@ public class KeyValueServiceCoordinationStoreTest {
         otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
         assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);
         assertThat(otherCoordinationStore.getAgreedValue().get().value()).contains(VALUE_2);
+    }
+
+    @Test
+    public void canInitializeAsynchronously() {
+        KeyValueService kvs = mock(KeyValueService.class);
+        doThrow(new IllegalStateException("fail first"))
+                .doAnswer(invocation -> null)
+                .when(kvs)
+                .createTable(any(), any());
+
+        CoordinationStore<String> asyncStore = KeyValueServiceCoordinationStore.create(
+                ObjectMappers.newServerObjectMapper(),
+                kvs,
+                COORDINATION_ROW,
+                timestampSequence::incrementAndGet,
+                String.class);
+        Awaitility.waitAtMost(Duration.ONE_MINUTE)
+                .pollInterval(Duration.FIVE_HUNDRED_MILLISECONDS)
+                .until(asyncStore::isInitialized);
     }
 }

@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
@@ -86,8 +87,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    // TODO This thing needs to support AsyncInit...
     private KeyValueServiceCoordinationStore(
             ObjectMapper objectMapper,
             KeyValueService kvs,
@@ -101,17 +102,33 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         this.clazz = clazz;
     }
 
-    public static <T> KeyValueServiceCoordinationStore<T> create(
+    static <T> KeyValueServiceCoordinationStore<T> createForTesting(
             ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
             Class<T> clazz) {
-        KeyValueServiceCoordinationStore<T> coordinationStore
-                = new KeyValueServiceCoordinationStore<>(
-                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
-        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
+        KeyValueServiceCoordinationStore<T> coordinationStore = new KeyValueServiceCoordinationStore<>(
+                objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
+        coordinationStore.tryInitialize();
         return coordinationStore;
+    }
+
+    public static <T> CoordinationStore<T> create(
+            ObjectMapper objectMapper,
+            KeyValueService kvs,
+            byte[] coordinationRow,
+            LongSupplier sequenceNumberSupplier,
+            Class<T> clazz) {
+        KeyValueServiceCoordinationStore<T> coordinationStore = new KeyValueServiceCoordinationStore<>(
+                objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
+        coordinationStore.wrapper.initialize(true);
+        return coordinationStore.wrapper.isInitialized() ? coordinationStore : coordinationStore.wrapper;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
     }
 
     // TODO (jkong): Since apart from the coordination value all other entries are immutable, we can perform
@@ -291,5 +308,34 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
                 false,
                 TableMetadataPersistence.LogSafety.SAFE);
+    }
+
+    // TODO (jkong): Replace with AutoDelegate after generic support is implemented
+    private class InitializingWrapper extends AsyncInitializer implements CoordinationStore<T> {
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceCoordinationStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return KeyValueServiceCoordinationStore.class.getSimpleName();
+        }
+
+        @Override
+        public Optional<ValueAndBound<T>> getAgreedValue() {
+            checkInitialized();
+            return KeyValueServiceCoordinationStore.this.getAgreedValue();
+        }
+
+        @Override
+        public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
+            checkInitialized();
+            return KeyValueServiceCoordinationStore.this.transformAgreedValue(transform);
+        }
+    }
+
+    private void tryInitialize() {
+        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
     }
 }
