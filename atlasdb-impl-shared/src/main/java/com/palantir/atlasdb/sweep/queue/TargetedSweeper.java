@@ -38,6 +38,7 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -113,6 +114,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     public void initializeWithoutRunning(TransactionManager txManager) {
         initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
+                txManager.getTransactionService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(followers, txManager));
     }
@@ -125,15 +127,18 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param kvs key value service that must be already initialized.
      * @param follower followers used for sweeps.
      */
-    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps, TimelockService timelockService,
-            KeyValueService kvs, TargetedSweepFollower follower) {
+    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps,
+            TimelockService timelockService,
+            TransactionService transactionService,
+            KeyValueService kvs,
+            TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
-        queue = SweepQueue.create(metrics, kvs, timelockService, shardsConfig, follower);
+        queue = SweepQueue.create(metrics, kvs, timelockService, transactionService, shardsConfig, follower);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;

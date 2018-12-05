@@ -21,6 +21,7 @@ import org.awaitility.Duration;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -61,7 +62,8 @@ public final class SweepTestUtils {
                 ts,
                 ts,
                 SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createTransactionV1ServiceForTesting(kvs));
+                TransactionServices.createTransactionService(kvs,
+                        CoordinationServices.createDefault(kvs, ts, false)));
     }
 
     public static TransactionManager setupTxManager(KeyValueService kvs,

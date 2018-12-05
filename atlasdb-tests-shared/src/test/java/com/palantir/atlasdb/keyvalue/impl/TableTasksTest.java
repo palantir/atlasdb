@@ -35,6 +35,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -63,6 +64,7 @@ public class TableTasksTest {
     private KeyValueService kvs;
     private LockServiceImpl lockService;
     private TransactionManager txManager;
+    private TransactionService txService;
 
     @Before
     public void setup() {
@@ -70,7 +72,8 @@ public class TableTasksTest {
         InMemoryTimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        TransactionService txService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
+        txService = TransactionServices.createTransactionService(kvs,
+                CoordinationServices.createDefault(kvs, tsService, false));
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -120,7 +123,7 @@ public class TableTasksTest {
                 key++;
             }
         }
-        TransactionServices.createTransactionV1ServiceForTesting(kvs).putUnlessExists(1, 1);
+        txService.putUnlessExists(1, 1);
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();
         AtomicLong rowsCompletelyInCommon = new AtomicLong();

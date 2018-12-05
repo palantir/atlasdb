@@ -30,6 +30,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -107,7 +110,9 @@ public class AtlasDbTestCase {
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
-        transactionService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
+        CoordinationService<InternalSchemaMetadata> coordinationService
+                = CoordinationServices.createDefault(keyValueService, timestampService, false);
+        transactionService = TransactionServices.createTransactionService(keyValueService, coordinationService);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 

@@ -63,7 +63,7 @@ import com.palantir.atlasdb.sweep.CommitTsCache;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.logsafe.SafeArg;
 
 public class SweepableCells extends SweepQueueTable {
@@ -74,9 +74,10 @@ public class SweepableCells extends SweepQueueTable {
     public SweepableCells(
             KeyValueService kvs,
             WriteInfoPartitioner partitioner,
+            TransactionService transactionService,
             TargetedSweepMetrics metrics) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
-        this.commitTsCache = CommitTsCache.create(TransactionServices.createTransactionV1ServiceForTesting(kvs));
+        this.commitTsCache = CommitTsCache.create(transactionService);
         this.writeReferencePersister = new WriteReferencePersister(new SweepTableIndices(kvs));
     }
 

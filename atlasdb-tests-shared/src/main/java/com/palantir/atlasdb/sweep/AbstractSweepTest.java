@@ -49,7 +49,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -93,8 +92,8 @@ public abstract class AbstractSweepTest {
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.createDefault(kvs);
-        txService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
         txManager = getManager();
+        txService = txManager.getTransactionService();
         SweepTestUtils.setupTables(kvs);
         persistentLockManager = new PersistentLockManager(
                 MetricsManagers.createForTests(),

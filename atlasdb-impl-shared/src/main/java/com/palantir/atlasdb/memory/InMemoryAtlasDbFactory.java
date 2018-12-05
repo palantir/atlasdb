@@ -34,6 +34,9 @@ import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;
 import com.palantir.atlasdb.config.LeaderConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -167,9 +170,10 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
         TransactionTables.createTables(keyValueService);
 
-
-
-        TransactionService transactionService = TransactionServices.createTransactionV1ServiceForTesting(keyValueService);
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = CoordinationServices.createDefault(
+                keyValueService, ts, false);
+        TransactionService transactionService
+                = TransactionServices.createTransactionService(keyValueService, metadataCoordinationService);
         LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
                  LockServerOptions.builder().isStandaloneServer(false).build()));
         LockClient client = LockClient.of("in memory atlasdb instance");

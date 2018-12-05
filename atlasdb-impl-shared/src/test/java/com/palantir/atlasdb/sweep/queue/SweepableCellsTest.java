@@ -66,7 +66,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void setup() {
         super.setup();
         metrics = TargetedSweepMetrics.create(metricsManager, mock(TimelockService.class), spiedKvs, 1);
-        sweepableCells = new SweepableCells(spiedKvs, partitioner, metrics);
+        sweepableCells = new SweepableCells(spiedKvs, partitioner, txnService, metrics);
 
         shardCons = writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);
         shardThor = writeToDefaultCellCommitted(sweepableCells, TS2, TABLE_THOR);

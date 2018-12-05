@@ -58,7 +58,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -128,7 +127,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TaggedMetricRegistry taggedMetricRegistry) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
-        TransactionService txnService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
+        TransactionService txnService = transactionManager.getTransactionService();
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
