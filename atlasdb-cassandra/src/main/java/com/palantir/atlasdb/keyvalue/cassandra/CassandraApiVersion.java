@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Arrays;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,17 +28,26 @@ public class CassandraApiVersion {
     private final String versionString;
     private final int majorVersion;
     private final int minorVersion;
+    private final Optional<Integer> palantirVersion;
 
     public CassandraApiVersion(String versionString) {
         this.versionString = versionString;
         String[] components = versionString.split("\\.");
         if (components.length != 3) {
-            throw new UnsupportedOperationException(String.format(
-                    "Illegal version of Thrift protocol detected; expected format '#.#.#', got '%s'",
-                    Arrays.toString(components)));
+            throwUnsupportedOperationException(versionString);
         }
         majorVersion = Integer.parseInt(components[0]);
         minorVersion = Integer.parseInt(components[1]);
+
+        if (components[2].contains("-pt")) {
+            String[] parts = components[2].split("-pt");
+            if (parts.length != 2) {
+                throwUnsupportedOperationException(versionString);
+            }
+            palantirVersion = Optional.of(Integer.parseInt(parts[1]));
+        } else {
+            palantirVersion = Optional.empty();
+        }
     }
 
     // This corresponds to the version change in
@@ -57,8 +66,28 @@ public class CassandraApiVersion {
         return supportsCheckAndSet;
     }
 
+    public boolean supportsThriftPutUnlessExists() {
+        boolean supportsThriftPutUnlessExists = palantirVersion.isPresent() && palantirVersion.get() >= 0;
+
+        if (supportsThriftPutUnlessExists) {
+            LOGGER.info("Your cassandra thrift api version ({}) supports put unless exists.",
+                    SafeArg.of("cassandraVersion", versionString));
+        } else {
+            LOGGER.info("Your cassandra thrift api version ({}) does not support put unless exists.",
+                    SafeArg.of("cassandraVersion", versionString));
+        }
+
+        return supportsThriftPutUnlessExists;
+    }
+
     @Override
     public String toString() {
         return versionString;
+    }
+
+    private void throwUnsupportedOperationException(String versionString) {
+        throw new UnsupportedOperationException(String.format(
+                "Illegal version of Thrift protocol detected; expected format '#.#.#' or '#.#.#-pt#', got '%s'",
+                versionString));
     }
 }
