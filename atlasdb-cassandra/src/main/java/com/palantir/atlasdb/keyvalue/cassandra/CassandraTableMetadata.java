@@ -77,6 +77,7 @@ public class CassandraTableMetadata {
                             entry -> CassandraKeyValueServices
                                     .lowerCaseTableReferenceFromBytes(entry.getKey().getRowName()),
                             Map.Entry::getValue,
+                            // take the lexicographically latest, which will be the new style entry, if it exists
                             (fst, snd) -> snd));
         }
 
@@ -93,7 +94,7 @@ public class CassandraTableMetadata {
         return result;
     }
 
-    void deleteAllRowsForTable(TableReference tableRef) {
+    void deleteAllMetadataRowsForTable(TableReference tableRef) {
         try (ClosableIterator<RowResult<Value>> range = rangeLoader.getRange(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
                 CassandraKeyValueServices.metadataRangeRequestForTable(tableRef),
@@ -104,7 +105,7 @@ public class CassandraTableMetadata {
                     .map(Map.Entry::getKey)
                     .map(Cell::getRowName)
                     .map(CassandraKeyValueServices::tableReferenceFromBytes)
-                    .filter(candidate -> matchingIgnoreCase(candidate, tableRef))
+                    .filter(candidate -> nonNullMatchingIgnoreCase(candidate, tableRef))
                     .collect(Collectors.toMap(CassandraKeyValueServices::getOldMetadataCell, ignore -> Long.MAX_VALUE));
 
             new CellRangeDeleter(clientPool, wrappingQueryRunner, CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
@@ -183,8 +184,7 @@ public class CassandraTableMetadata {
                 || metadataIsDifferent(existingMetadata.get(Iterables.getOnlyElement(matchingTables)), newMetadata);
     }
 
-    private static boolean matchingIgnoreCase(TableReference t1, TableReference t2) {
-        return t1 != null && t2 != null && t1.getQualifiedName().toLowerCase().equals(
-                t2.getQualifiedName().toLowerCase());
+    private static boolean nonNullMatchingIgnoreCase(TableReference t1, TableReference t2) {
+        return t1 != null && t2 != null && t1.getQualifiedName().equalsIgnoreCase(t2.getQualifiedName().toLowerCase());
     }
 }

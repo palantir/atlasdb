@@ -19,9 +19,9 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.clearOutMetadataTable;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.insertMetadataIntoLegacyCell;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.originalMetadata;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.originalMetadata;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,7 +88,7 @@ public class CassandraStrangeBehaviourTest {
     @Test
     public void getMetadataReturnsResultFromNewMetadataCellOnConflict() {
         kvs.createTable(LOWER_UPPER, originalMetadata());
-        insertMetadataIntoLegacyCell(kvs, LOWER_UPPER);
+        insertGenericMetadataIntoLegacyCell(kvs, LOWER_UPPER);
 
         assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(originalMetadata());
         assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(originalMetadata());
@@ -106,10 +106,10 @@ public class CassandraStrangeBehaviourTest {
         clearOutMetadataTable(kvs);
 
         insertMetadataIntoNewCell(LOWER_UPPER);
-        insertMetadataIntoLegacyCell(kvs, LOWER_UPPER);
-        insertMetadataIntoLegacyCell(kvs, UPPER_UPPER);
-        insertMetadataIntoLegacyCell(kvs, longerInRange);
-        insertMetadataIntoLegacyCell(kvs, shorterInRange);
+        insertGenericMetadataIntoLegacyCell(kvs, LOWER_UPPER);
+        insertGenericMetadataIntoLegacyCell(kvs, UPPER_UPPER);
+        insertGenericMetadataIntoLegacyCell(kvs, longerInRange);
+        insertGenericMetadataIntoLegacyCell(kvs, shorterInRange);
 
         kvs.dropTable(LOWER_UPPER);
 

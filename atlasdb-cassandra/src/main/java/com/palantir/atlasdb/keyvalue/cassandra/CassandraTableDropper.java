@@ -61,7 +61,7 @@ class CassandraTableDropper {
                         CassandraKeyValueServices.runWithWaitingForSchemas(
                                 () -> truncateThenDrop(table, client), config, client,
                                 "dropping the column family for table " + table + " in a call to drop tables");
-                        cassandraTableMetadata.deleteAllRowsForTable(table);
+                        cassandraTableMetadata.deleteAllMetadataRowsForTable(table);
                     } else {
                         log.warn("Ignored call to drop a table ({}) that did not exist.", LoggingArgs.tableRef(table));
                     }

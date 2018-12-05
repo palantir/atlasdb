@@ -27,8 +27,8 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
-public final class CassandraKeyvalueServiceTestUtils {
-    private CassandraKeyvalueServiceTestUtils() {
+public final class CassandraKeyValueServiceTestUtils {
+    private CassandraKeyValueServiceTestUtils() {
         // utility
     }
 
@@ -36,11 +36,11 @@ public final class CassandraKeyvalueServiceTestUtils {
         kvs.truncateTable(AtlasDbConstants.DEFAULT_METADATA_TABLE);
     }
 
-    public static void insertMetadataIntoLegacyCell(KeyValueService kvs, TableReference tableRef) {
-        insertMetadataIntoLegacyCell(kvs, tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    public static void insertGenericMetadataIntoLegacyCell(KeyValueService kvs, TableReference tableRef) {
+        insertGenericMetadataIntoLegacyCell(kvs, tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
-    public static void insertMetadataIntoLegacyCell(KeyValueService kvs, TableReference tableRef, byte[] data) {
+    public static void insertGenericMetadataIntoLegacyCell(KeyValueService kvs, TableReference tableRef, byte[] data) {
         Cell legacyMetadataCell = CassandraKeyValueServices.getOldMetadataCell(tableRef);
         kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(legacyMetadataCell, data),
                 System.currentTimeMillis());

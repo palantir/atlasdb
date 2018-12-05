@@ -28,9 +28,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.clearOutMetadataTable;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.insertMetadataIntoLegacyCell;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyvalueServiceTestUtils.originalMetadata;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.originalMetadata;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -295,7 +295,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.cAsEsEnSiTiVe");
         keyValueService.createTable(userTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         clearOutMetadataTable(keyValueService);
-        insertMetadataIntoLegacyCell(keyValueService, userTable, originalMetadata());
+        insertGenericMetadataIntoLegacyCell(keyValueService, userTable, originalMetadata());
 
         assertThat(
                 Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata()),
@@ -303,7 +303,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Test
-    public void metadataForNewTableIsNotLowerCased() {
+    public void metadataForNewTableMatchesCase() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
 
         keyValueService.createTable(userTable, originalMetadata());
