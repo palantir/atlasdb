@@ -50,7 +50,7 @@ develop
     *    - Type
          - Change
 
-    *    - |fixed|
+    *    - |fixed| |userbreak}
          - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
            Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
            Furthermore, the table reference keys of the returned map have capitalisation matching the table names in Cassandra.
