@@ -9,6 +9,8 @@ repositories {
 
 dependencies {
     processor project(":atlasdb-processors")
+
+    testCompile group: 'com.google.guava', name: 'guava'
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library'
     testCompile group: 'org.mockito', name: 'mockito-core'
