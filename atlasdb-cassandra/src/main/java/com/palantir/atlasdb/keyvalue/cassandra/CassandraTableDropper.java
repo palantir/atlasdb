@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,28 +25,23 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.exception.AtlasDbDependencyException;
 
 class CassandraTableDropper {
     private static final Logger log = LoggerFactory.getLogger(CassandraTableDropper.class);
-    private CassandraKeyValueServiceConfig config;
-    private CassandraClientPool clientPool;
-    private CassandraTableTruncator cassandraTableTruncator;
-    private WrappingQueryRunner wrappingQueryRunner;
+    private final CassandraKeyValueServiceConfig config;
+    private final CassandraClientPool clientPool;
+    private final CassandraTableMetadata cassandraTableMetadata;
+    private final CassandraTableTruncator cassandraTableTruncator;
 
-    CassandraTableDropper(CassandraKeyValueServiceConfig config,
-            CassandraClientPool clientPool,
-            WrappingQueryRunner wrappingQueryRunner,
-            CassandraTableTruncator cassandraTableTruncator) {
+    CassandraTableDropper(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool,
+            CassandraTableMetadata cassandraTableMetadata, CassandraTableTruncator cassandraTableTruncator) {
         this.config = config;
         this.clientPool = clientPool;
-        this.wrappingQueryRunner = wrappingQueryRunner;
+        this.cassandraTableMetadata = cassandraTableMetadata;
         this.cassandraTableTruncator = cassandraTableTruncator;
     }
 
@@ -68,7 +61,7 @@ class CassandraTableDropper {
                         CassandraKeyValueServices.runWithWaitingForSchemas(
                                 () -> truncateThenDrop(table, client), config, client,
                                 "dropping the column family for table " + table + " in a call to drop tables");
-                        deleteAtlasMetadataForTable(table);
+                        cassandraTableMetadata.deleteAllMetadataRowsForTable(table);
                     } else {
                         log.warn("Ignored call to drop a table ({}) that did not exist.", LoggingArgs.tableRef(table));
                     }
@@ -83,20 +76,5 @@ class CassandraTableDropper {
     private void truncateThenDrop(TableReference tableRef, CassandraClient client) throws TException {
         cassandraTableTruncator.runTruncateOnClient(ImmutableSet.of(tableRef), client);
         client.system_drop_column_family(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-    }
-
-    private void deleteAtlasMetadataForTable(final TableReference tableRef) {
-        try {
-            Map<Cell, Long> oldAndNewMetadataCell = new HashMap<>();
-            oldAndNewMetadataCell.put(CassandraKeyValueServices.getMetadataCell(tableRef), Long.MAX_VALUE);
-            oldAndNewMetadataCell.put(CassandraKeyValueServices.getOldMetadataCell(tableRef), Long.MAX_VALUE);
-
-            new CellRangeDeleter(clientPool, wrappingQueryRunner, CassandraKeyValueServiceImpl.DELETE_CONSISTENCY,
-                    no -> System.currentTimeMillis())
-                    .deleteAllTimestamps(AtlasDbConstants.DEFAULT_METADATA_TABLE, oldAndNewMetadataCell, true);
-        } catch (AtlasDbDependencyException e) {
-            log.info("Failed to delete old table metadata for table {} because not all Cassandra nodes are up.",
-                    LoggingArgs.tableRef(tableRef), e);
-        }
     }
 }
