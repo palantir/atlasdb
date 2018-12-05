@@ -33,6 +33,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -49,6 +52,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 
@@ -93,7 +97,16 @@ public abstract class AbstractSweepTest {
         kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.createDefault(kvs);
         txManager = getManager();
-        txService = txManager.getTransactionService();
+        if (kvs.supportsCheckAndSet()) {
+            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                    kvs,
+                    txManager.getTimestampService(),
+                    false);
+            txService = TransactionServices.createTransactionService(kvs, coordinationService);
+        } else {
+            txService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
+        }
+
         SweepTestUtils.setupTables(kvs);
         persistentLockManager = new PersistentLockManager(
                 MetricsManagers.createForTests(),
