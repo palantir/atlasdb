@@ -35,6 +35,11 @@ public final class TransactionServices {
                 ImmutableMap.of(1, new SimpleTransactionV1Service(keyValueService)));
     }
 
+    /**
+     * @deprecated Only to be used for tests; please use
+     * {@link TransactionServices#createTransactionService(KeyValueService, CoordinationService)} for production
+     * use cases.
+     */
     @Deprecated // Only to be used for tests, or on key-value-services not supporting check and set.
     public static TransactionService createTransactionV1ServiceForTesting(KeyValueService keyValueService) {
         return new SimpleTransactionV1Service(keyValueService);
