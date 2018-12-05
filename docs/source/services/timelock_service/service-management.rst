@@ -10,6 +10,8 @@ Namespace Changes
 .. danger::
 
    Be careful when changing namespaces - doing this process incorrectly may result in **SEVERE DATA CORRUPTION**.
+   This guide also **ONLY** covers the steps for migrating a TimeLock client - AtlasDB clients, separately, must also
+   migrate the data in their key-value services to the new namespace.
 
 When a TimeLock client wants to switch its namespace (while preserving its data), care must be taken to ensure that the
 old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
