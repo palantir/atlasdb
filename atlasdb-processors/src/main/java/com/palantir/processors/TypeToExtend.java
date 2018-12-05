@@ -28,6 +28,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.TypeMirror;
 
 import com.google.common.collect.Sets;
@@ -78,7 +79,8 @@ final class TypeToExtend {
 
     private Boolean interfaceMethodFilter(Element element) {
         return element.getKind() == ElementKind.METHOD
-                && element.getModifiers().contains(Modifier.PUBLIC);
+                && element.getModifiers().contains(Modifier.PUBLIC)
+                && !element.getModifiers().contains(Modifier.STATIC);
     }
 
     private Boolean classMethodFilter(Element element) {
@@ -136,5 +138,9 @@ final class TypeToExtend {
 
     Set<ExecutableElement> getConstructors() {
         return constructors;
+    }
+
+    List<? extends TypeParameterElement> getTypeParameterElements() {
+        return typeToExtend.getTypeParameters();
     }
 }
