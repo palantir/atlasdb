@@ -76,7 +76,7 @@ public class SweepableCells extends SweepQueueTable {
             WriteInfoPartitioner partitioner,
             TargetedSweepMetrics metrics) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
-        this.commitTsCache = CommitTsCache.create(TransactionServices.createTransactionService(kvs));
+        this.commitTsCache = CommitTsCache.create(TransactionServices.createTransactionV1ServiceForTesting(kvs));
         this.writeReferencePersister = new WriteReferencePersister(new SweepTableIndices(kvs));
     }
 

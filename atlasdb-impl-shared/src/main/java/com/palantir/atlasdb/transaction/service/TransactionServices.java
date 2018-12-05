@@ -35,8 +35,8 @@ public final class TransactionServices {
                 ImmutableMap.of(1, new SimpleTransactionV1Service(keyValueService)));
     }
 
-    public static TransactionService createTransactionService(
-            KeyValueService keyValueService) {
+    @Deprecated // Only to be used for tests, or on key-value-services not supporting check and set.
+    public static TransactionService createTransactionV1ServiceForTesting(KeyValueService keyValueService) {
         return new SimpleTransactionV1Service(keyValueService);
     }
 }

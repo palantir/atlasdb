@@ -93,7 +93,7 @@ public abstract class AbstractSweepTest {
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.createDefault(kvs);
-        txService = TransactionServices.createTransactionService(kvs);
+        txService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
         txManager = getManager();
         SweepTestUtils.setupTables(kvs);
         persistentLockManager = new PersistentLockManager(

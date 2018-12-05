@@ -85,7 +85,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
                 () -> AtlasDbConstants.DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD
         );
         SweepStrategyManager ssm = SweepStrategyManagers.createDefault(kvs);
-        txService = TransactionServices.createTransactionService(kvs);
+        txService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
         txManager = SweepTestUtils.setupTxManager(kvs, tsService, tsService, ssm, txService);
         PersistentLockManager persistentLockManager = new PersistentLockManager(metricsManager,
                 SweepTestUtils.getPersistentLockService(kvs),

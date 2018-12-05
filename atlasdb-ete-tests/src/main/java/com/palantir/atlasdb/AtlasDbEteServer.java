@@ -128,7 +128,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TaggedMetricRegistry taggedMetricRegistry) {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
-        TransactionService txnService = TransactionServices.createTransactionService(kvs);
+        TransactionService txnService = TransactionServices.createTransactionV1ServiceForTesting(kvs);
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),

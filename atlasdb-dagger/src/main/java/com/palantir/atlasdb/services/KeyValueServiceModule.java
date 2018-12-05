@@ -85,7 +85,7 @@ public class KeyValueServiceModule {
     @Provides
     @Singleton
     public TransactionService provideTransactionService(@Named("kvs") KeyValueService kvs) {
-        return TransactionServices.createTransactionService(kvs);
+        return TransactionServices.createTransactionV1ServiceForTesting(kvs);
     }
 
     @Provides

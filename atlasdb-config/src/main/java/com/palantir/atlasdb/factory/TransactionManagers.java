@@ -65,8 +65,6 @@ import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
-import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -76,6 +74,7 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -134,7 +133,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -437,14 +435,10 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 CoordinationService.class,
-                new CoordinationServiceImpl<>(
-                        KeyValueServiceCoordinationStore.create(
-                                ObjectMappers.newServerObjectMapper(),
-                                keyValueService,
-                                InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
-                                lockAndTimestampServices.timestamp()::getFreshTimestamp,
-                                InternalSchemaMetadata.class,
-                                config().initializeAsync())));
+                CoordinationServices.createDefault(
+                        keyValueService,
+                        lockAndTimestampServices.timestamp(),
+                        config().initializeAsync()));
         return metadataCoordinationService;
     }
 

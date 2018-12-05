@@ -27,10 +27,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -56,7 +56,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -137,28 +136,18 @@ public abstract class TransactionTestSetup {
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
 
         if (keyValueService.supportsCheckAndSet()) {
-            CoordinationService<InternalSchemaMetadata> coordinationService = getMetadataCoordinationService(ts);
+            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                    keyValueService,
+                    timestampService,
+                    false);
             transactionService = TransactionServices.createTransactionService(keyValueService,
                     coordinationService);
         } else {
-            transactionService = TransactionServices.createTransactionService(keyValueService);
+            transactionService = TransactionServices.createTransactionV1ServiceForTesting(keyValueService);
         }
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();
-    }
-
-    private CoordinationService<InternalSchemaMetadata> getMetadataCoordinationService(TimestampService ts) {
-        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
-        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = new CoordinationServiceImpl<>(
-                KeyValueServiceCoordinationStore.create(
-                        ObjectMappers.newServerObjectMapper(),
-                        keyValueService,
-                        InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
-                        ts::getFreshTimestamp,
-                        InternalSchemaMetadata.class,
-                        false));
-        return metadataCoordinationService;
     }
 
     protected KeyValueService getKeyValueService() {
