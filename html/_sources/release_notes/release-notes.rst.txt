@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
+           Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
+           The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
     *    - |userbreak|
          - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
            Support for previous versions of TimeLock has been dropped; please update your TimeLock server.

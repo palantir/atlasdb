@@ -186,7 +186,13 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
+Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
+The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3661">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the <code class="docutils literal notranslate"><span class="pre">startIdentifiedAtlasDbTransaction</span></code> endpoint.
 Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
 Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
