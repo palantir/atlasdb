@@ -26,13 +26,13 @@ public final class HiddenTables {
         // utility
     }
 
-    private static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
+    private static final Set<TableReference> CASSANDRA_TABLES = ImmutableSet.of(
             AtlasDbConstants.TIMESTAMP_TABLE,
             AtlasDbConstants.DEFAULT_METADATA_TABLE,
             AtlasDbConstants.PERSISTED_LOCKS_TABLE);
 
     public static boolean isHidden(TableReference tableReference) {
-        return HIDDEN_TABLES.contains(tableReference)
+        return CASSANDRA_TABLES.contains(tableReference)
                 || tableReference.getTablename().startsWith(AtlasDbConstants.LOCK_TABLE_PREFIX);
     }
 }

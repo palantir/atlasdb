@@ -2,6 +2,7 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
+apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
   runtime project(':atlasdb-console')
@@ -17,5 +18,4 @@ dependencies {
 distribution {
   serviceName 'atlasdb-console'
   mainClass 'com.palantir.atlasdb.console.AtlasConsoleMain'
-  ignoredProductDependency('com.palantir.rescue', 'rescue')
 }

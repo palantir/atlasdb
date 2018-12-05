@@ -51,15 +51,85 @@ develop
          - Change
 
     *    - |fixed|
-         - Cassandra KVS `getMetadataForTables` method no longer returns entries for tables that were dropped.
+         - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
            Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
-           Now we place a ranged tombstone deleting all historical versions of the table's metadata instead.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
+           Furthermore, the table reference keys of the returned map have capitalisation matching the table names in Cassandra.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3656>`__)
 
     *    - |fixed|
-         - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
-           Furthermore, the table reference keys of the returned map have capitalisation matching the table names in Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/TBD>`__)
+         - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
+           Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
+           The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
+    *    - |userbreak|
+         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
+           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
+           Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
+           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
+           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
+           Note that for or across this version, blue-green deployment of embedded services is not supported.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
+
+========
+v0.113.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
+    *    - |improved|
+         - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
+           This improves the read performance and reduces load on timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
+
+    *    - |fixed|
+         - Fix warning in stream-store generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3667>`__)
+
+========
+v0.112.1
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Wrap shutdown callback running in try-catch.
+           This guards against any shutdown hooks throwing unchecked exceptions,
+           which would cause other hooks to not run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+
+========
+v0.112.0
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
@@ -210,6 +280,11 @@ v0.108.0
     *    - |fixed|
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
+
+    *    - |new|
+         - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
+           This may be used by AtlasDB clients for some key value services to achieve better data distribution and performance as far as the transactions table is concerned.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3529>`__)
 
     *    - |devbreak|
          - The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.

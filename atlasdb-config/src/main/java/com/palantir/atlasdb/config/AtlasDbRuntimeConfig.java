@@ -97,6 +97,9 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     public static ImmutableAtlasDbRuntimeConfig withSweepDisabled() {
-        return ImmutableAtlasDbRuntimeConfig.builder().sweep(SweepConfig.disabled()).build();
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .sweep(SweepConfig.disabled())
+                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .build();
     }
 }

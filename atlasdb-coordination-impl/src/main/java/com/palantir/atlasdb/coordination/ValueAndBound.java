@@ -20,6 +20,14 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+/**
+ * A pair of an optionally present value and a bound indicating that the value is valid for events at timestamps up to
+ * the bound, inclusive.
+ *
+ * In some embodiments this bound may be an AtlasDB timestamp. If a decision is to be made based on an event (such as a
+ * transaction) happening at some timestamp, then this value should only be used to make the decision if it is still
+ * valid at that timestamp (i.e. the bound is greater than or equal to that timestamp).
+ */
 @Value.Immutable
 public interface ValueAndBound<T> {
     long INVALID_BOUND = -1;
@@ -32,5 +40,9 @@ public interface ValueAndBound<T> {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     static <T> ValueAndBound<T> of(Optional<T> value, long bound) {
         return ImmutableValueAndBound.of(value, bound);
+    }
+
+    static <T> ValueAndBound<T> of(T value, long bound) {
+        return ImmutableValueAndBound.of(Optional.of(value), bound);
     }
 }

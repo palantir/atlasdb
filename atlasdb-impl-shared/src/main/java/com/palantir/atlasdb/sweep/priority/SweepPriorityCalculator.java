@@ -64,7 +64,7 @@ class SweepPriorityCalculator {
     }
 
     Map<TableReference, Double> calculateSweepPriorityScores(Transaction tx, long conservativeSweepTs) {
-        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.hiddenTables);
+        Set<TableReference> allTables = Sets.difference(kvs.getAllTableNames(), AtlasDbConstants.HIDDEN_TABLES);
 
         // We read priorities from the past because we should prioritize based on what the sweeper will
         // actually be able to sweep. We read priorities from the present to make sure we don't repeatedly
@@ -172,7 +172,7 @@ class SweepPriorityCalculator {
     }
 
     private double getSweepPriorityScore(SweepPriority oldPriority, SweepPriority newPriority) {
-        if (AtlasDbConstants.hiddenTables.contains(newPriority.tableRef())) {
+        if (AtlasDbConstants.HIDDEN_TABLES.contains(newPriority.tableRef())) {
             // Never sweep hidden tables.
             return 0.0;
         }

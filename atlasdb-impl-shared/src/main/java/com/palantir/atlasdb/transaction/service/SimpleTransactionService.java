@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public final class SimpleTransactionService implements TransactionService {
+public class SimpleTransactionService implements TransactionService {
     private final KeyValueService keyValueService;
 
     public SimpleTransactionService(KeyValueService keyValueService) {

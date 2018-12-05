@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -123,18 +123,47 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform) {
+    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        T targetValue = transform.apply(coordinationValue.flatMap(
-                sequenceAndBound -> getValue(sequenceAndBound.sequence())));
+        ValueAndBound<T> extantValueAndBound = ValueAndBound.of(coordinationValue.flatMap(
+                sequenceAndBound -> getValue(sequenceAndBound.sequence())),
+                coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND));
+        T targetValue = transform.apply(extantValueAndBound);
 
-        long sequenceNumber = sequenceNumberSupplier.getAsLong();
-        putUnlessValueExists(sequenceNumber, targetValue);
+        SequenceAndBound newSequenceAndBound
+                = determineNewSequenceAndBound(coordinationValue, extantValueAndBound, targetValue);
 
-        long newBound = getNewBound(sequenceNumber);
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
-                coordinationValue, SequenceAndBound.of(sequenceNumber, newBound));
-        return extractRelevantValues(targetValue, newBound, casResult);
+                coordinationValue, newSequenceAndBound);
+        return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private SequenceAndBound determineNewSequenceAndBound(
+            Optional<SequenceAndBound> coordinationValue,
+            ValueAndBound<T> extantValueAndBound,
+            T targetValue) {
+        long sequenceNumber;
+        long newBound;
+        if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
+            // Safe as we're only on this branch if the value is present
+            sequenceNumber = coordinationValue.get().sequence();
+            newBound = getNewBound(sequenceNumberSupplier.getAsLong());
+        } else {
+            sequenceNumber = sequenceNumberSupplier.getAsLong();
+            putUnlessValueExists(sequenceNumber, targetValue);
+            newBound = getNewBound(sequenceNumber);
+        }
+        return SequenceAndBound.of(sequenceNumber, newBound);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private boolean shouldReuseExtantValue(
+            Optional<SequenceAndBound> coordinationValue,
+            Optional<T> extantValue,
+            T targetValue) {
+        return coordinationValue.isPresent()
+                && extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
@@ -150,8 +179,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                         .collect(Collectors.toList()));
     }
 
-    private long getNewBound(long sequenceNumber) {
-        return sequenceNumber + ADVANCEMENT_QUANTUM;
+    private long getNewBound(long pointInTime) {
+        return pointInTime + ADVANCEMENT_QUANTUM;
     }
 
     @VisibleForTesting
@@ -184,7 +213,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private Optional<SequenceAndBound> getCoordinationValue() {
+    @VisibleForTesting
+    Optional<SequenceAndBound> getCoordinationValue() {
         return readFromCoordinationTable(getCoordinationValueCell())
                 .map(Value::getContents)
                 .map(this::deserializeSequenceAndBound);
@@ -226,7 +256,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         } catch (IOException e) {
             log.error("Error encountered when deserializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
-                    SafeArg.of("coordinationData", Arrays.toString(data)));
+                    SafeArg.of("coordinationData", PtBytes.toString(data)));
             throw new RuntimeException(e);
         }
     }

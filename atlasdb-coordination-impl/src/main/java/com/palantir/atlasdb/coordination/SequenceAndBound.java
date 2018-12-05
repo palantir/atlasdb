@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableSequenceAndBound.class)
 @JsonDeserialize(as = ImmutableSequenceAndBound.class)
 public interface SequenceAndBound {
+    long INVALID_BOUND = -1;
+
     @Value.Parameter
     long sequence();
 
