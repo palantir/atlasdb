@@ -16,10 +16,12 @@
 
 package com.palantir.processors;
 
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
+import org.assertj.core.api.Condition;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -38,6 +40,7 @@ public class AutoDelegateGenericTests {
         Set<String> generatedMethods = TestingUtils.extractMethods(AutoDelegate_GenericsTester.class);
         Set<String> originalMethods = TestingUtils.extractNonStaticMethods(GenericsTester.class);
 
-        assertThat(Sets.difference(generatedMethods, originalMethods)).containsOnly("delegate");
+        assertThat(Sets.difference(generatedMethods, originalMethods)).haveAtLeastOne(
+                new Condition<>(string -> string.contains("delegate"), "contains the string 'delegate'"));
     }
 }
