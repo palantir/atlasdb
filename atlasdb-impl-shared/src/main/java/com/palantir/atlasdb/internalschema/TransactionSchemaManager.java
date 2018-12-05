@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
@@ -54,24 +57,40 @@ public class TransactionSchemaManager {
     }
 
     /**
-     * Installs a new transactions table schema version, by submitting a relevant transform.
+     * Attempts to install a new transactions table schema version, by submitting a relevant transform.
+     *
+     * The execution of this method does not guarantee that the provided version will eventually be installed.
+     * This method returns true if and only if in the map agreed by the coordination service evaluated at the validity
+     * bound, the transactions schema version is equal to newVersion.
      */
-    public void tryInstallNewTransactionsSchemaVersion(int newVersion) {
-        coordinationService.tryTransformCurrentValue(valueAndBound -> {
-            if (!valueAndBound.value().isPresent()) {
-                throw new SafeIllegalStateException("Persisted value is empty, which is unexpected.");
-            }
+    public boolean tryInstallNewTransactionsSchemaVersion(int newVersion) {
+        List<Integer> presentVersionPeakValidity = coordinationService.tryTransformCurrentValue(
+                valueAndBound -> installNewVersionInMapIfPresent(newVersion, valueAndBound))
+                .existingValues()
+                .stream()
+                .map(valueAndBound -> valueAndBound.value()
+                        .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
+                        .timestampToTransactionsTableSchemaVersion()
+                        .getValueForTimestamp(valueAndBound.bound()))
+                .collect(Collectors.toList());
+        return Iterables.getOnlyElement(presentVersionPeakValidity) == newVersion;
+    }
 
-            InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
-            return InternalSchemaMetadata.builder()
-                    .from(internalSchemaMetadata)
-                    .timestampToTransactionsTableSchemaVersion(
-                            installNewVersionInMap(
-                                    internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
-                                    valueAndBound.bound() + 1,
-                                    newVersion))
-                    .build();
-        });
+    private InternalSchemaMetadata installNewVersionInMapIfPresent(int newVersion,
+            ValueAndBound<InternalSchemaMetadata> valueAndBound) {
+        if (!valueAndBound.value().isPresent()) {
+            return InternalSchemaMetadata.defaultValue();
+        }
+
+        InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
+        return InternalSchemaMetadata.builder()
+                .from(internalSchemaMetadata)
+                .timestampToTransactionsTableSchemaVersion(
+                        installNewVersionInMap(
+                                internalSchemaMetadata.timestampToTransactionsTableSchemaVersion(),
+                                valueAndBound.bound() + 1,
+                                newVersion))
+                .build();
     }
 
     private TimestampPartitioningMap<Integer> installNewVersionInMap(
@@ -81,8 +100,7 @@ public class TransactionSchemaManager {
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
         return coordinationService.tryTransformCurrentValue(valueAndBound ->
-                valueAndBound.value().orElseThrow(
-                        () -> new SafeIllegalStateException("Cannot perpetuate an existing state that didn't exist!")));
+                valueAndBound.value().orElseGet(InternalSchemaMetadata::defaultValue));
     }
 
     private static Optional<Integer> extractTimestampVersion(

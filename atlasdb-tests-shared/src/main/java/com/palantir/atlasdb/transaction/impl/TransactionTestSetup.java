@@ -31,7 +31,6 @@ import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadataInitializer;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -159,7 +158,6 @@ public abstract class TransactionTestSetup {
                         ts::getFreshTimestamp,
                         InternalSchemaMetadata.class,
                         false));
-        InternalSchemaMetadataInitializer.create(metadataCoordinationService).init(null);
         return metadataCoordinationService;
     }
 

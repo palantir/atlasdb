@@ -76,7 +76,6 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
-import com.palantir.atlasdb.internalschema.InternalSchemaMetadataInitializer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -362,7 +361,6 @@ public abstract class TransactionManagers {
                 closeables);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(
-                InternalSchemaMetadataInitializer.create(metadataCoordinationService),
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
                 new DeprecatedTablesCleaner(schemas()),
