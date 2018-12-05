@@ -39,7 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public class CassandraStrangeBehaviourTest {
+public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final TableReference UPPER_UPPER = TableReference.createFromFullyQualifiedName("TEST.TABLE");
     private static final TableReference LOWER_UPPER = TableReference.createFromFullyQualifiedName("test.TABLE");
     private static final TableReference LOWER_LOWER = TableReference.createFromFullyQualifiedName("test.table");
@@ -117,9 +117,7 @@ public class CassandraStrangeBehaviourTest {
         assertThat(kvs.getMetadataForTable(LOWER_UPPER)).isEmpty();
     }
 
-    /**
-     * Tests below document strange or inconsistent behaviour. We should decide if and how to fix it.
-     */
+    // todo(gmaretic): The following tests document unexpected behaviour. We should decide if and how to fix it.
 
     @Test
     public void createTablesWithDifferentCapitalizationCreatesInCassandraAndDoesNotUpdateMetadata() {
