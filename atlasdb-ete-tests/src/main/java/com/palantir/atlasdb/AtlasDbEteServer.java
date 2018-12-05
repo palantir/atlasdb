@@ -142,6 +142,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         sweeper.initializeWithoutRunning(
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
                 txManager.getTimelockService(),
+                txManager.getTransactionService(),
                 txManager.getKeyValueService(),
                 new TargetedSweepFollower(ImmutableList.of(FOLLOWER), txManager));
         sweeper.runInBackground();
