@@ -17,8 +17,13 @@
 package com.palantir.atlasdb.internalschema.persistence;
 
 import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
+import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.remoting3.ext.jackson.ObjectMappers;
+import com.palantir.timestamp.TimestampService;
 
 public final class CoordinationServices {
     private CoordinationServices() {
@@ -31,5 +36,18 @@ public final class CoordinationServices {
                 rawCoordinationService,
                 InternalSchemaMetadataPayloadCodec::decode,
                 InternalSchemaMetadataPayloadCodec::encode);
+    }
+
+    public static CoordinationService<InternalSchemaMetadata> createDefault(
+            KeyValueService keyValueService,
+            TimestampService timestampService) {
+        CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
+                KeyValueServiceCoordinationStore.create(
+                        ObjectMappers.newServerObjectMapper(),
+                        keyValueService,
+                        InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
+                        timestampService::getFreshTimestamp,
+                        VersionedInternalSchemaMetadata.class));
+        return wrapHidingVersionSerialization(versionedService);
     }
 }
