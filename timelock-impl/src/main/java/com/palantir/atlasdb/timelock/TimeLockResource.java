@@ -114,7 +114,7 @@ public class TimeLockResource {
         }
 
         TimeLockServices services = clientServicesFactory.apply(namespace);
-        log.info("Registered a new TimeLock client {} successfully.", SafeArg.of("client", namespace));
+        log.info("Successfully created services for a new TimeLock client {}.", SafeArg.of("client", namespace));
         return services;
     }
 
