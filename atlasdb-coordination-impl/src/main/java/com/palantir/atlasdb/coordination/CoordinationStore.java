@@ -20,11 +20,23 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
  */
+@AutoDelegate
 public interface CoordinationStore<T> {
+    /**
+     * Coordination stores may require asynchronous initialization, if dependencies aren't initially available.
+     *
+     * @return true iff the coordination store is ready to service requests
+     */
+
+    default boolean isInitialized() {
+        return true;
+    }
+
     /**
      * Gets the value stored in this {@link CoordinationStore}. This value may not be the most recent value; however,
      * it is guaranteed that any value returned by this method will be at least as current as any value returned by

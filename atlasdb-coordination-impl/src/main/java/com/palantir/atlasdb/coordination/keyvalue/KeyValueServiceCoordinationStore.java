@@ -31,7 +31,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.coordination.AutoDelegate_CoordinationStore;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
@@ -86,6 +88,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
+    private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private KeyValueServiceCoordinationStore(
             ObjectMapper objectMapper,
@@ -100,17 +103,23 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         this.clazz = clazz;
     }
 
-    public static <T> KeyValueServiceCoordinationStore<T> create(
+    public static <T> CoordinationStore<T> create(
             ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
-            Class<T> clazz) {
+            Class<T> clazz,
+            boolean initializeAsync) {
         KeyValueServiceCoordinationStore<T> coordinationStore
                 = new KeyValueServiceCoordinationStore<>(
                         objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
-        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
-        return coordinationStore;
+        coordinationStore.wrapper.initialize(initializeAsync);
+        return coordinationStore.isInitialized() ? coordinationStore : coordinationStore.wrapper;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
     }
 
     // TODO (jkong): Since apart from the coordination value all other entries are immutable, we can perform
@@ -136,6 +145,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
                 coordinationValue, newSequenceAndBound);
         return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
+    }
+
+    private void tryInitialize() {
+        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
@@ -318,5 +331,22 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
                 false,
                 TableMetadataPersistence.LogSafety.SAFE);
+    }
+
+    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceCoordinationStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return KeyValueServiceCoordinationStore.class.getSimpleName();
+        }
+
+        @Override
+        public CoordinationStore<T> delegate() {
+            return KeyValueServiceCoordinationStore.this;
+        }
     }
 }
