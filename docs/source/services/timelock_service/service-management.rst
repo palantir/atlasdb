@@ -11,7 +11,8 @@ Namespace Changes
 
    Be careful when changing namespaces - doing this process incorrectly may result in **SEVERE DATA CORRUPTION**.
    This guide also **ONLY** covers the steps for migrating a TimeLock client - AtlasDB clients, separately, must also
-   migrate the data in their key-value services to the new namespace.
+   migrate the data in their key-value services to the new namespace. Internal users should consult internal
+   documentation for how to do this; external users can use :ref:`KVS Migration<kvs-migration>`.
 
 When a TimeLock client wants to switch its namespace (while preserving its data), care must be taken to ensure that the
 old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
@@ -20,8 +21,9 @@ that timestamps must be increasing.
 Step 1: Shut Down Clients
 -------------------------
 
-Shut down all instances of the TimeLock client.
-This is done to ensure that the timestamp bound does not advance further while we are doing the other step.
+Shut down all instances of the TimeLock client for which you wish to change the namespace.
+This is done to ensure that the timestamp bound does not advance further while we are doing the other steps.
+Leave TimeLock running; you'll need it for the remaining steps.
 
 Step 2: Get a Fresh Timestamp for the Old Namespace
 ---------------------------------------------------
