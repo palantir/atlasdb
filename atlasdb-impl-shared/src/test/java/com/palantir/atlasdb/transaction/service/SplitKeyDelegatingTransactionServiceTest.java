@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableMap;
 public class SplitKeyDelegatingTransactionServiceTest {
     private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> num % 10;
 
-    private final TransactionService delegate1 = mock(TransactionService.class); // using 0 for modulo reasons
+    private final TransactionService delegate1 = mock(TransactionService.class);
     private final TransactionService delegate2 = mock(TransactionService.class);
     private final TransactionService delegate3 = mock(TransactionService.class);
 
