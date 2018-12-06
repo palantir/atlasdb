@@ -198,6 +198,10 @@ Previously, refresh would only add discovered new servers, but never remove deco
 The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3661">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3676">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
