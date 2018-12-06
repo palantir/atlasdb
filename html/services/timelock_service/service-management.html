@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Service Management &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Qos Service" href="../qos_service/index.html" />
+    <link rel="prev" title="Paxos and AtlasDB" href="paxos.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Services</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../key_value_services/index.html">Key Value Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../lock_service/index.html">Lock Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../timestamp_service/index.html">Timestamp Service</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">External Timelock Service</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="installation.html">Timelock Server Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="migration.html">Migration to Timelock Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manual-migration.html">Manual Migration to Timelock Server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reverse-migration.html">Reverse Migration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="product-changes.html">Developing a product to use the timelock service</a></li>
+<li class="toctree-l3"><a class="reference internal" href="paxos.html">Paxos and AtlasDB</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Service Management</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../qos_service/index.html">Qos Service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous/index.html">Miscellaneous</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">OSS AtlasDB</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Services</a> &raquo;</li>
+        
+          <li><a href="index.html">External Timelock Service</a> &raquo;</li>
+        
+      <li>Service Management</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/services/timelock_service/service-management.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="service-management">
+<span id="timelock-service-management"></span><h1>Service Management<a class="headerlink" href="#service-management" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="namespace-changes">
+<h2>Namespace Changes<a class="headerlink" href="#namespace-changes" title="Permalink to this headline">¶</a></h2>
+<div class="admonition danger">
+<p class="first admonition-title">Danger</p>
+<p class="last">Be careful when changing namespaces - doing this process incorrectly may result in <strong>SEVERE DATA CORRUPTION</strong>.
+This guide also <strong>ONLY</strong> covers the steps for migrating a TimeLock client - AtlasDB clients, separately, must also
+migrate the data in their key-value services to the new namespace. Internal users should consult internal
+documentation for how to do this; external users can use <a class="reference internal" href="../../cluster_management/kvs-migration.html#kvs-migration"><span class="std std-ref">KVS Migration</span></a>.</p>
+</div>
+<p>When a TimeLock client wants to switch its namespace (while preserving its data), care must be taken to ensure that the
+old timestamp bound is carried over to the new namespace. This is to preserve the guarantee of the timestamp service
+that timestamps must be increasing.</p>
+<div class="section" id="step-1-shut-down-clients">
+<h3>Step 1: Shut Down Clients<a class="headerlink" href="#step-1-shut-down-clients" title="Permalink to this headline">¶</a></h3>
+<p>Shut down all instances of the TimeLock client for which you wish to change the namespace.
+This is done to ensure that the timestamp bound does not advance further while we are doing the other steps.
+Leave TimeLock running; you’ll need it for the remaining steps.</p>
+</div>
+<div class="section" id="step-2-get-a-fresh-timestamp-for-the-old-namespace">
+<h3>Step 2: Get a Fresh Timestamp for the Old Namespace<a class="headerlink" href="#step-2-get-a-fresh-timestamp-for-the-old-namespace" title="Permalink to this headline">¶</a></h3>
+<p>If we get a fresh timestamp for the old namespace, we know that all timestamps old clients have seen must be strictly
+less than the fresh timestamp. This may be obtained through the fresh timestamp endpoint.</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">curl</span> <span class="o">-</span><span class="n">XPOST</span> <span class="n">localhost</span><span class="p">:</span><span class="mi">8080</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">old_namespace</span><span class="o">/</span><span class="n">timelock</span><span class="o">/</span><span class="n">fresh</span><span class="o">-</span><span class="n">timestamp</span>
+</pre></div>
+</div>
+<p>A cluster of TimeLock servers elects a single leader, so if you contact a node that is not the leader you’ll receive a
+<code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code> and an HTTP 503. In this case, try the same request on other nodes until you find the
+leader.</p>
+<p>Note down the value of the timestamp returned. From here on out, we’ll refer to this as <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
+</div>
+<div class="section" id="step-3-fast-forward-on-the-new-namespace">
+<h3>Step 3: Fast Forward on the New Namespace<a class="headerlink" href="#step-3-fast-forward-on-the-new-namespace" title="Permalink to this headline">¶</a></h3>
+<p>We now want to fast forward the new namespace to <code class="docutils literal notranslate"><span class="pre">TS</span></code>. This may be done through the timestamp management endpoints
+on TimeLock.</p>
+<div class="code bash highlight-default notranslate"><div class="highlight"><pre><span></span>curl -XPOST localhost:8080/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
+</pre></div>
+</div>
+<p>As before, this command needs to be run on the TimeLock leader.
+After performing the fast forward, it may be worth obtaining a fresh timestamp for the new namespace to confirm that
+the fast forward was successful (following the steps in Step 2, but using the new namespace). This should return
+a value strictly larger than <code class="docutils literal notranslate"><span class="pre">TS</span></code>.</p>
+<p>Timestamps serviced for the new namespace will now return values greater than <code class="docutils literal notranslate"><span class="pre">TS</span></code>, meaning that the guarantees
+of the timestamp service as far as clients are concerned have been preserved.</p>
+</div>
+<div class="section" id="step-4-optional-cleanup-on-timelock">
+<h3>Step 4 (Optional): Cleanup on TimeLock<a class="headerlink" href="#step-4-optional-cleanup-on-timelock" title="Permalink to this headline">¶</a></h3>
+<p>TimeLock will continue to hold references to the old client in memory until it is next bounced, and the logs for
+previous rounds of the Paxos protocol will be preserved. Generally, these have a very small footprint and it’s thus
+okay to leave them around.</p>
+<p>The logs for the old namespace may be manually deleted from the Paxos data directories of TimeLock (by default
+<code class="docutils literal notranslate"><span class="pre">var/data/paxos</span></code>) if needed. These will be found in the subdirectory corresponding to <code class="docutils literal notranslate"><span class="pre">old_namespace</span></code>.
+Please exercise extreme caution when doing this, as deleting the logs for an active client may, of course,
+result in <strong>SEVERE DATA CORRUPTION</strong>.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../qos_service/index.html" class="btn btn-neutral float-right" title="Qos Service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="paxos.html" class="btn btn-neutral" title="Paxos and AtlasDB" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Palantir Technologies
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
