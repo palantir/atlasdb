@@ -70,7 +70,7 @@ public class TableTasksTest {
         InMemoryTimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        TransactionService txService = TransactionServices.createTransactionService(kvs);
+        TransactionService txService = TransactionServices.createV1TransactionService(kvs);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -120,7 +120,7 @@ public class TableTasksTest {
                 key++;
             }
         }
-        TransactionServices.createTransactionService(kvs).putUnlessExists(1, 1);
+        TransactionServices.createV1TransactionService(kvs).putUnlessExists(1, 1);
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();
         AtomicLong rowsCompletelyInCommon = new AtomicLong();
