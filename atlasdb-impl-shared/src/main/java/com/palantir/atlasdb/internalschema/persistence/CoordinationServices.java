@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
@@ -45,7 +46,7 @@ public final class CoordinationServices {
                 KeyValueServiceCoordinationStore.create(
                         ObjectMappers.newServerObjectMapper(),
                         keyValueService,
-                        InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
+                        AtlasDbConstants.DEFAULT_METADATA_COORDINATION_KEY,
                         timestampService::getFreshTimestamp,
                         VersionedInternalSchemaMetadata.class));
         return wrapHidingVersionSerialization(versionedService);

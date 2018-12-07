@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
-import com.palantir.atlasdb.encoding.PtBytes;
 
 /**
  * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
@@ -31,8 +30,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 @JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
 @JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
 public interface InternalSchemaMetadata {
-    // Warning: Do not change this without a migration
-    byte[] DEFAULT_METADATA_COORDINATION_KEY = PtBytes.toBytes("m");
 
     @Value.Default
     default TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion() {
