@@ -50,7 +50,7 @@ public class TimestampCorroboratingTimelockServiceTest {
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
     private TimelockService rawTimelockService;
-    private TimelockService timelockService;
+    private TimestampCorroboratingTimelockService timelockService;
 
     @Before
     public void setUp() {
