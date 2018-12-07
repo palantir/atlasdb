@@ -107,7 +107,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
-        sweepableCells = new SweepableCells(spiedKvs, partitioner, null);
+        sweepableCells = new SweepableCells(spiedKvs, partitioner, null, txnService);
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 

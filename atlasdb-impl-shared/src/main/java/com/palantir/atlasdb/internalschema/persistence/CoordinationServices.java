@@ -16,7 +16,12 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
+<<<<<<< HEAD
 import com.palantir.atlasdb.AtlasDbConstants;
+=======
+import java.util.function.LongSupplier;
+
+>>>>>>> 6d8e9b9... Targeted Sweep and transactions
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
@@ -43,12 +48,19 @@ public final class CoordinationServices {
             KeyValueService keyValueService,
             TimestampService timestampService,
             boolean initializeAsync) {
+        return createDefault(keyValueService, timestampService::getFreshTimestamp, initializeAsync);
+    }
+
+        public static CoordinationService<InternalSchemaMetadata> createDefault(
+            KeyValueService keyValueService,
+            LongSupplier timestampSupplier,
+            boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
                 KeyValueServiceCoordinationStore.create(
                         ObjectMappers.newServerObjectMapper(),
                         keyValueService,
                         AtlasDbConstants.DEFAULT_METADATA_COORDINATION_KEY,
-                        timestampService::getFreshTimestamp,
+                        timestampSupplier,
                         VersionedInternalSchemaMetadata.class,
                         initializeAsync));
         return wrapHidingVersionSerialization(versionedService);
