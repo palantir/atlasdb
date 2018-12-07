@@ -43,6 +43,12 @@ Then, we immediately insert an entry into the transactions table of the target K
     If you are using TimeLock, the TimeLock server must be running in order to do the migration.
     Otherwise, you must use the ``--offline`` flag, which will remove the leader block from your configuration for the purposes of migration.
 
+.. warning::
+
+    After attempting a migration, the source KVS is likely going to be behind in timestamps than the target KVS.
+    In the specific use case where the destination KVS is a ``TableSplittingKvs`` that refers atomic tables back to the source KVS, this means that for some timestamp service implementations on the source KVS it could be possible to be issued timestamps that are already committed.
+    Therefore, if the migration needs to be abandoned in favour of again using the source KVS, the source timestamp service must first be fast forwarded to a timestamp higher than the fresh timestamp of the target timestamp service.
+
 Setup
 -----
 
