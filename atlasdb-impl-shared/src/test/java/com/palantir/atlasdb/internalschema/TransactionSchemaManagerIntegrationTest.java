@@ -85,7 +85,6 @@ public class TransactionSchemaManagerIntegrationTest {
         return new TransactionSchemaManager(CoordinationServices.wrapHidingVersionSerialization(rawService));
     }
 
-
     private void fastForwardTimestampByOneHundredMillion() {
         long currentTimestamp = timestamps.getFreshTimestamp();
         timestamps.fastForwardTimestamp(currentTimestamp + ONE_HUNDRED_MILLION);

@@ -40,14 +40,16 @@ public final class CoordinationServices {
 
     public static CoordinationService<InternalSchemaMetadata> createDefault(
             KeyValueService keyValueService,
-            TimestampService timestampService) {
+            TimestampService timestampService,
+            boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
                 KeyValueServiceCoordinationStore.create(
                         ObjectMappers.newServerObjectMapper(),
                         keyValueService,
                         InternalSchemaMetadata.DEFAULT_METADATA_COORDINATION_KEY,
                         timestampService::getFreshTimestamp,
-                        VersionedInternalSchemaMetadata.class));
+                        VersionedInternalSchemaMetadata.class,
+                        initializeAsync));
         return wrapHidingVersionSerialization(versionedService);
     }
 }
