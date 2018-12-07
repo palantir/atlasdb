@@ -649,19 +649,18 @@ public abstract class TransactionManagers {
                 invalidator,
                 userAgent);
         return withMetrics(metricsManager,
-                withCorroboratingTimestampService(
-                        withRefreshingLockService(lockAndTimestampServices)));
+                withRefreshingLockService(lockAndTimestampServices));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
-            LockAndTimestampServices lockAndTimestampServices) {
-        TimelockService timelockService = TimestampCorroboratingTimelockService
-                .create(lockAndTimestampServices.timelock());
-        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
+            LockAndTimestampServices lockAndTimestampServices,
+            TimestampCorroboratingTimelockService corroboratingTimelockService) {
+        TimestampService corroboratingTimestampService =
+                new TimelockTimestampServiceAdapter(corroboratingTimelockService);
 
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(timelockService)
+                .timelock(corroboratingTimelockService)
                 .timestamp(corroboratingTimestampService)
                 .build();
     }
