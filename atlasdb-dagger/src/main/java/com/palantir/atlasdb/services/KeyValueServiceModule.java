@@ -20,6 +20,9 @@ import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.SweepConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -84,8 +87,10 @@ public class KeyValueServiceModule {
 
     @Provides
     @Singleton
-    public TransactionService provideTransactionService(@Named("kvs") KeyValueService kvs) {
-        return TransactionServices.createV1TransactionService(kvs);
+    public TransactionService provideTransactionService(
+            @Named("kvs") KeyValueService kvs,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return TransactionServices.createTransactionService(kvs, coordinationService);
     }
 
     @Provides
@@ -98,6 +103,15 @@ public class KeyValueServiceModule {
     @Singleton
     public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
         return SweepStrategyManagers.createDefault(kvs);
+    }
+
+    @Provides
+    @Singleton
+    public CoordinationService<InternalSchemaMetadata> provideMetadataCoordinationService(
+            @Named("kvs") KeyValueService kvs,
+            TimestampService ts,
+            ServicesConfig config) {
+        return CoordinationServices.createDefault(kvs, ts, config.atlasDbConfig().initializeAsync());
     }
 
 }
