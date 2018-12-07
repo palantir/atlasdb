@@ -50,10 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
-         - Introduced runtime checks on client side for timestamps retrieved from timelock; aiming to prevent data corruption in case of timestamps going back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and do not provide absolute protection.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
-
     *    - |fixed|
          - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
            Previously, the annotation processor would generate code that wouldn't compile.
