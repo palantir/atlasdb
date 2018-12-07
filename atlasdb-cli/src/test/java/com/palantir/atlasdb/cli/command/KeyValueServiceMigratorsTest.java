@@ -138,7 +138,8 @@ public class KeyValueServiceMigratorsTest {
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
 
-        assertThat(toKvs.getAllTableNames()).containsExactly(TransactionConstants.TRANSACTION_TABLE);
+        assertThat(toKvs.getAllTableNames()).containsExactly(TransactionConstants.TRANSACTION_TABLE,
+                AtlasDbConstants.COORDINATION_TABLE);
     }
 
     @Test
