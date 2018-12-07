@@ -32,7 +32,6 @@ public interface CoordinationStore<T> {
      *
      * @return true iff the coordination store is ready to service requests
      */
-
     default boolean isInitialized() {
         return true;
     }

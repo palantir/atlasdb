@@ -74,6 +74,25 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
+    @VisibleForTesting
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceCoordinationStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return KeyValueServiceCoordinationStore.class.getSimpleName();
+        }
+
+        @Override
+        public CoordinationStore<T> delegate() {
+            checkInitialized();
+            return KeyValueServiceCoordinationStore.this;
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
     private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
@@ -88,9 +107,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
-    private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    private KeyValueServiceCoordinationStore(
+    @VisibleForTesting
+    final InitializingWrapper wrapper = new InitializingWrapper();
+
+    @VisibleForTesting
+    KeyValueServiceCoordinationStore(
             ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
@@ -331,22 +353,5 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
                 false,
                 TableMetadataPersistence.LogSafety.SAFE);
-    }
-
-    private class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
-        @Override
-        protected void tryInitialize() {
-            KeyValueServiceCoordinationStore.this.tryInitialize();
-        }
-
-        @Override
-        protected String getInitializingClassName() {
-            return KeyValueServiceCoordinationStore.class.getSimpleName();
-        }
-
-        @Override
-        public CoordinationStore<T> delegate() {
-            return KeyValueServiceCoordinationStore.this;
-        }
     }
 }

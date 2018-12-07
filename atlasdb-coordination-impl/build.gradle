@@ -19,6 +19,5 @@ dependencies {
   processor group: 'org.immutables', name: 'value'
 
   testCompile group: 'org.assertj', name: 'assertj-core'
-  testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'org.mockito', name: 'mockito-core'
 }
