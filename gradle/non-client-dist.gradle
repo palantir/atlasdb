@@ -3,6 +3,7 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 distribution {
+    ignoredProductDependency('com.palantir.cassandra', 'sls-cassandra')
     ignoredProductDependency('com.palantir.rescue', 'rescue')
     ignoredProductDependency('com.palantir.timelock', 'timelock-server')
 }
