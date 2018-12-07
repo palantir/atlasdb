@@ -18,8 +18,6 @@ package com.palantir.atlasdb.http;
 import java.util.List;
 import java.util.Optional;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.Lists;
 
@@ -42,7 +40,7 @@ public final class TimelockUtils {
     private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricRegistry,
-                Optional.<SSLSocketFactory>empty(),
+                Optional.empty(),
                 Optional.empty(),
                 endpointUris,
                 type);

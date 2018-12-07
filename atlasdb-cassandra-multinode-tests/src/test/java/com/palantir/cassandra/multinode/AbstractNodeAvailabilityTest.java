@@ -15,21 +15,24 @@
  */
 package com.palantir.cassandra.multinode;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
-public abstract class AbstractNodeAvailabilityTest {
+public abstract class AbstractNodeAvailabilityTest extends AbstractDegradedClusterTest {
+
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        // noop
+    }
 
     @Test
     public void nodeAvailabilityStatusShouldBeAsExpected() {
-        assertEquals(expectedNodeAvailabilityStatus(), getKeyValueService().getClusterAvailabilityStatus());
+        assertThat(getTestKvs().getClusterAvailabilityStatus()).isEqualTo(expectedNodeAvailabilityStatus());
     }
 
     protected abstract ClusterAvailabilityStatus expectedNodeAvailabilityStatus();
-
-    protected abstract KeyValueService getKeyValueService();
 }

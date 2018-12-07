@@ -41,6 +41,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     public static final Sha256Hash EMPTY = Sha256Hash.computeHash(new byte[0]);
 
     private final byte[] bytes;
+    private transient int hashCode = 0;
 
     /**
      * Constructs a type-safe {@link Sha256Hash} object from the given hash
@@ -116,7 +117,13 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(bytes);
+        // same mechanism as java.lang.String. Note: Don't return hashCode directly
+        int localHash = hashCode;
+        if (localHash == 0) {
+            localHash = Arrays.hashCode(bytes);
+            hashCode = localHash;
+        }
+        return localHash;
     }
 
     @Override

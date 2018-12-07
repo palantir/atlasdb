@@ -113,7 +113,9 @@ public class TimeLockResource {
             throw new IllegalStateException("Maximum number of clients exceeded");
         }
 
-        return clientServicesFactory.apply(namespace);
+        TimeLockServices services = clientServicesFactory.apply(namespace);
+        log.info("Successfully created services for a new TimeLock client {}.", SafeArg.of("client", namespace));
+        return services;
     }
 
     private static void registerClientCapacityMetrics(TimeLockResource resource, MetricsManager metricsManager) {

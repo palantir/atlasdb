@@ -16,29 +16,41 @@
 
 package com.palantir.atlasdb.factory.timelock;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampRange;
 
 public class TimestampCorroboratingTimelockServiceTest {
     private static final IdentifiedTimeLockRequest IDENTIFIED_TIME_LOCK_REQUEST = IdentifiedTimeLockRequest.create();
     private static final LockImmutableTimestampResponse LOCK_IMMUTABLE_TIMESTAMP_RESPONSE =
-            LockImmutableTimestampResponse.of(1L, mock(LockToken.class));
+            LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
     private TimelockService rawTimelockService;
-    private TimestampCorroboratingTimelockService timelockService;
+    private TimelockService timelockService;
 
     @Before
     public void setUp() {
@@ -71,22 +83,69 @@ public class TimestampCorroboratingTimelockServiceTest {
     }
 
     @Test
-    public void lockImmutableTimestampShouldFail() {
-        when(rawTimelockService.lockImmutableTimestamp(any())).thenReturn(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE);
-
-        assertThrowsOnSecondCall(() -> timelockService.lockImmutableTimestamp(IDENTIFIED_TIME_LOCK_REQUEST));
-    }
-
-    @Test
     public void failsIfFreshTimestampIsLowerThanConservativeBound() {
         when(rawTimelockService.getFreshTimestamp()).thenReturn(0L);
         assertThrowsGoBackInTimeError(() -> timelockService.validateWithConservativeLowerBound(() -> 1L));
     }
 
     @Test
-    public void shouldNotFailIfConservativeBoundIsLowerThanFreshTimestamp() {
-        when(rawTimelockService.getFreshTimestamp()).thenReturn(2L);
-        timelockService.validateWithConservativeLowerBound(() -> 1L);
+    public void startIdentifiedAtlasDbTransactionShouldFail() {
+        StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
+                StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
+                        TimestampAndPartition.of(1L, 0));
+
+        when(rawTimelockService.startIdentifiedAtlasDbTransaction(any()))
+                .thenReturn(startIdentifiedAtlasDbTransactionResponse);
+
+        assertThrowsOnSecondCall(() -> timelockService.startIdentifiedAtlasDbTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(UUID.randomUUID())));
+    }
+
+    @Test
+    public void resilientUnderMultipleThreads() throws InterruptedException {
+        BlockingTimestamp blockingTimestampReturning1 = new BlockingTimestamp(1);
+        when(rawTimelockService.getFreshTimestamp())
+                .thenAnswer(blockingTimestampReturning1)
+                .thenReturn(2L);
+
+        Future<Void> blockingGetFreshTimestampCall =
+                CompletableFuture.runAsync(timelockService::getFreshTimestamp);
+
+        blockingTimestampReturning1.waitForFirstCallToBlock();
+
+        assertThat(timelockService.getFreshTimestamp())
+                .as("This should have updated the lower bound to 2")
+                .isEqualTo(2L);
+
+        // we want to now resume the blocked call, which will return timestamp of 1 and not throw
+        blockingTimestampReturning1.countdown();
+        assertThatCode(blockingGetFreshTimestampCall::get)
+                .doesNotThrowAnyException();
+    }
+
+    private static final class BlockingTimestamp implements Answer<Long> {
+        private final CountDownLatch returnTimestampLatch = new CountDownLatch(1);
+        private final CountDownLatch blockingLatch = new CountDownLatch(1);
+        private final long timestampToReturn;
+
+        private BlockingTimestamp(long timestampToReturn) {
+            this.timestampToReturn = timestampToReturn;
+        }
+
+        @Override
+        public Long answer(InvocationOnMock invocation) throws Throwable {
+            blockingLatch.countDown();
+            returnTimestampLatch.await();
+            return timestampToReturn;
+        }
+
+        void countdown() {
+            returnTimestampLatch.countDown();
+        }
+
+        void waitForFirstCallToBlock() throws InterruptedException {
+            blockingLatch.await();
+        }
     }
 
     private void assertThrowsOnSecondCall(Runnable runnable) {

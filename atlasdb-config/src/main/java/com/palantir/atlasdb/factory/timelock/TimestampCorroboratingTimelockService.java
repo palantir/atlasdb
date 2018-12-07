@@ -25,8 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
@@ -75,10 +76,11 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return checkAndUpdateLowerBound(() -> delegate.lockImmutableTimestamp(request),
-                LockImmutableTimestampResponse::getImmutableTimestamp,
-                LockImmutableTimestampResponse::getImmutableTimestamp);
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransaction(request),
+                r -> r.startTimestampAndPartition().timestamp(),
+                r -> r.startTimestampAndPartition().timestamp());
     }
 
     /**
@@ -117,8 +119,8 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
         return timestampContainer;
     }
 
-    private void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
-        if (freshTimestamp <= lowerBound.get()) {
+    private static void checkTimestamp(long timestampLowerBound, long freshTimestamp) {
+        if (freshTimestamp <= timestampLowerBound) {
             throw clocksWentBackwards(timestampLowerBound, freshTimestamp);
         }
     }

@@ -10,6 +10,8 @@ server:
       port: 3829
 
 atlasdb:
+  targetedSweep:
+    enableSweepQueueWrites: false
   keyValueService:
     type: cassandra
     servers:

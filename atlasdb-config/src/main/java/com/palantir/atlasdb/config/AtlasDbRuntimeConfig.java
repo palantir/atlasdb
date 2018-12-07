@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.compact.CompactorConfig;
-import com.palantir.atlasdb.qos.config.QosClientConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -79,11 +78,6 @@ public abstract class AtlasDbRuntimeConfig {
         return AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE;
     }
 
-    @Value.Default
-    public QosClientConfig qos() {
-        return QosClientConfig.DEFAULT;
-    }
-
     public abstract Optional<KeyValueServiceRuntimeConfig> keyValueService();
 
     /**
@@ -103,6 +97,9 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     public static ImmutableAtlasDbRuntimeConfig withSweepDisabled() {
-        return ImmutableAtlasDbRuntimeConfig.builder().sweep(SweepConfig.disabled()).build();
+        return ImmutableAtlasDbRuntimeConfig.builder()
+                .sweep(SweepConfig.disabled())
+                .targetedSweep(TargetedSweepRuntimeConfig.disabled())
+                .build();
     }
 }

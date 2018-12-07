@@ -67,7 +67,6 @@ import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -83,14 +82,7 @@ import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
-import com.palantir.atlasdb.qos.QosClient;
-import com.palantir.atlasdb.qos.QosService;
-import com.palantir.atlasdb.qos.client.AtlasDbQosClient;
-import com.palantir.atlasdb.qos.config.QosClientConfig;
-import com.palantir.atlasdb.qos.ratelimit.QosRateLimiters;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataService;
-import com.palantir.atlasdb.schema.metadata.SchemaMetadataServiceImpl;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -105,6 +97,7 @@ import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -135,9 +128,6 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.remoting.api.config.service.ServiceConfiguration;
-import com.palantir.remoting3.clients.ClientConfigurations;
-import com.palantir.remoting3.jaxrs.JaxRsClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -275,16 +265,12 @@ public abstract class TransactionManagers {
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
                 () -> runtimeConfigSupplier().get().orElse(defaultRuntime);
 
-        QosClient qosClient = initializeCloseable(() -> getQosClient(metricsManager,
-                Suppliers.compose(AtlasDbRuntimeConfig::qos, runtimeConfigSupplier::get)), closeables);
-
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(metricsManager,
-                config().keyValueService(),
-                Suppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier::get),
-                config().leader(), config().namespace(), Optional.empty(), config().initializeAsync(),
-                qosClient,
-                adapter);
+                        config().keyValueService(),
+                        Suppliers.compose(AtlasDbRuntimeConfig::keyValueService, runtimeConfigSupplier::get),
+                        config().leader(), config().namespace(), Optional.empty(), config().initializeAsync(),
+                         adapter);
 
         LockRequest.setDefaultLockTimeout(
                 SimpleTimeDuration.of(config().getDefaultLockTimeoutSeconds(), TimeUnit.SECONDS));
@@ -317,6 +303,7 @@ public abstract class TransactionManagers {
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
+            kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
             // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
             if (!config().targetedSweep().enableSweepQueueWrites()) {
@@ -335,10 +322,8 @@ public abstract class TransactionManagers {
             return ValidatingQueryRewritingKeyValueService.create(kvs);
         }, closeables);
 
-        SchemaMetadataService schemaMetadataService =
-                SchemaMetadataServiceImpl.create(keyValueService, config().initializeAsync());
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), schemaMetadataService, config().initializeAsync());
+                keyValueService, schemas(), config().initializeAsync());
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
@@ -405,14 +390,15 @@ public abstract class TransactionManagers {
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
-        instrumentedTransactionManager.registerClosingCallback(qosClient::close);
-        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices::close);
+        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
+        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
@@ -469,25 +455,6 @@ public abstract class TransactionManagers {
             Optional<T> closeableOptional, @Output List<AutoCloseable> closeables) {
         closeableOptional.ifPresent(closeables::add);
         return closeableOptional;
-    }
-
-    private QosClient getQosClient(MetricsManager metricsManager, Supplier<QosClientConfig> config) {
-        Optional<ServiceConfiguration> qosServiceConfig = config.get().qosService();
-        QosRateLimiters rateLimiters;
-        if (qosServiceConfig.isPresent()) {
-            QosService qosService = JaxRsClient.create(QosService.class, userAgent(),
-                    ClientConfigurations.of(qosServiceConfig.get()));
-            rateLimiters = QosRateLimiters.create(
-                    Suppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config::get),
-                    () -> qosService.readLimit(config().getNamespaceString()),
-                    () -> qosService.writeLimit(config().getNamespaceString()));
-        } else {
-            rateLimiters = QosRateLimiters.create(
-                    Suppliers.compose(conf -> conf.maxBackoffSleepTime().toMilliseconds(), config::get),
-                    Suppliers.compose(conf -> conf.limits().readBytesPerSecond(), config::get),
-                    Suppliers.compose(conf -> conf.limits().writeBytesPerSecond(), config::get));
-        }
-        return AtlasDbQosClient.create(metricsManager, rateLimiters);
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
@@ -682,28 +649,20 @@ public abstract class TransactionManagers {
                 invalidator,
                 userAgent);
         return withMetrics(metricsManager,
-                        withRefreshingLockService(
-                                withBridgingTimelockService(lockAndTimestampServices)));
+                withCorroboratingTimestampService(
+                        withRefreshingLockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
-            LockAndTimestampServices lockAndTimestampServices,
-            TimestampCorroboratingTimelockService corroboratingTimelockService) {
-        TimestampService corroboratingTimestampService =
-                new TimelockTimestampServiceAdapter(corroboratingTimelockService);
-
-        return ImmutableLockAndTimestampServices.builder()
-                .from(lockAndTimestampServices)
-                .timelock(corroboratingTimelockService)
-                .timestamp(corroboratingTimestampService)
-                .build();
-    }
-
-    private static LockAndTimestampServices withBridgingTimelockService(
             LockAndTimestampServices lockAndTimestampServices) {
+        TimelockService timelockService = TimestampCorroboratingTimelockService
+                .create(lockAndTimestampServices.timelock());
+        TimestampService corroboratingTimestampService = new TimelockTimestampServiceAdapter(timelockService);
+
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timelock(ImmutableTimestampBridgingTimeLockService.create(lockAndTimestampServices.timelock()))
+                .timelock(timelockService)
+                .timestamp(corroboratingTimestampService)
                 .build();
     }
 
@@ -881,7 +840,7 @@ public abstract class TransactionManagers {
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
-                    ServiceCreator.createSslSocketFactory(leaderConfig.sslConfiguration()),
+                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
                     Iterables.getOnlyElement(leaderConfig.leaders()),
                     PingableLeader.class,
                     userAgent);

@@ -44,6 +44,7 @@ import com.palantir.docker.compose.logging.LogCollector;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
 
+@SuppressWarnings("ShutdownHook")
 public class Containers extends ExternalResource {
     private static final ProjectName PROJECT_NAME = ProjectName.fromString("atlasdbcontainers");
     @VisibleForTesting

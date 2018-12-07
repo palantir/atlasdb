@@ -23,8 +23,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -32,6 +30,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local
@@ -48,7 +47,7 @@ public final class ClockSkewMonitor {
     private final ReversalDetectingClockService localClockService;
 
     public static ClockSkewMonitor create(MetricsManager metricsManager,
-            Set<String> remoteServers, Optional<SSLSocketFactory> optionalSecurity) {
+            Set<String> remoteServers, Optional<TrustContext> optionalSecurity) {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(metricsManager.getRegistry(),

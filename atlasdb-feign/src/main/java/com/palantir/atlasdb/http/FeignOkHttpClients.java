@@ -27,6 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.remoting3.config.ssl.TrustContext;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
@@ -98,29 +99,31 @@ public final class FeignOkHttpClients {
      * specified {@link SSLSocketFactory}.
      */
     public static Client newOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+        return new OkHttpClient(newRawOkHttpClient(trustContext, proxySelector, userAgent));
     }
 
     /**
-     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}, which re-creates
-     * itself periodically (by default, every ScheduledRefreshingClient.STANDARD_REFRESH_INTERVAL time).
+     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}. This {@link Client} recreates
+     * itself in the event that either {@link CounterBackedRefreshingClient#DEFAULT_REQUEST_COUNT_BEFORE_REFRESH}
+     * requests have been made, or if {@link ExceptionCountingRefreshingClient#DEFAULT_EXCEPTION_COUNT_BEFORE_REFRESH}
+     * consecutive exceptions have been thrown by the underlying client.
      */
     public static Client newRefreshingOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
         Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
-                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+                () -> newOkHttpClient(trustContext, proxySelector, userAgent));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
 
     @VisibleForTesting
     static okhttp3.OkHttpClient newRawOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             String userAgent) {
         // Don't allow retrying on connection failures - see ticket #2194
@@ -129,8 +132,8 @@ public final class FeignOkHttpClients {
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
                 .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
-        if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
+        if (trustContext.isPresent()) {
+            builder.sslSocketFactory(trustContext.get().sslSocketFactory(), trustContext.get().x509TrustManager());
         }
         builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
 

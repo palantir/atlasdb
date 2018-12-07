@@ -9,4 +9,5 @@ Cluster Management
    backup-restore
    clis
    console
+   kvs-migration
    sweep

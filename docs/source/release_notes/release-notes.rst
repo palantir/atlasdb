@@ -55,6 +55,209 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
 
     *    - |fixed|
+         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+           Previously, the annotation processor would generate code that wouldn't compile.
+           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
+
+    *    - |fixed|
+         - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
+           Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
+           The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
+    *    - |improved|
+         - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3676>`__)
+
+========
+v0.114.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
+           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
+           Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
+           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
+           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
+           Note that for or across this version, blue-green deployment of embedded services is not supported.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
+
+========
+v0.113.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
+    *    - |improved|
+         - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
+           This improves the read performance and reduces load on timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
+
+    *    - |fixed|
+         - Fix warning in stream-store generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3667>`__)
+
+========
+v0.112.1
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Wrap shutdown callback running in try-catch.
+           This guards against any shutdown hooks throwing unchecked exceptions,
+           which would cause other hooks to not run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+
+========
+v0.112.0
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           This only applies where multiple `TransactionManager` s might exist in a single VM
+           and they are created an shutdown repeatedly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
+
+========
+v0.111.0
+========
+
+20 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug where lock and timestamp services were not closed when transaction managers were closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3644>`__)
+
+========
+v0.110.0
+========
+
+20 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Numerous small internal improvements that did not include release notes.
+
+========
+v0.109.0
+========
+
+14 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - PaxosQuorumChecker now takes an ExecutorService as opposed to an Executor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
+
+    *    - |fixed|
+         - Re-introduced the distinct bounded thread pools to PaxosLeaderElectionService for communication with other PaxosLearners and PingableLeaders.
+           Previously, a single unbounded thread pool was used, which could cause starvation and OOMs under high load if any learners or leaders in the cluster were slow to fulfil requests.
+           This change also improves visibility as to which specific communication workflows may be suffering from issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3596>`__)
+
+    *    - |fixed|
+         - Targeted sweep now handles table truncations with conservative sweeps correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3610>`__)
+
+    *    - |Improved|
+         - No longer calls deprecated OkHttpClient.Builder().sslSocketFactory() method, now passes in X509TrustManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3627>`__)
+
+    *    - |improved|
+         - Sha256Hash now caches its Java hashCode method.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3633>`__)
+
+    *    - |improved|
+         - The version of javapoet had previously been bumped to 1.11.1 from 1.9.0. However this was not done consistently across the repository. The atlasdb-client and atlasdb-processors subprojects now also use the newer version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3631>`__)
+
+========
+v0.108.0
+========
+
+7 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Cassandra KVS no longer uses the schema mutation lock and instead creates tables using an id deterministically generated from the Cassandra keyspace and the table name.
+           As part of this change, table deletion now truncates the table before dropping it in Cassandra, therefore requiring all Cassandra nodes to be available to drop tables.
+           This fixes a bug where it was possible to create two instances of the same table on two different Cassandra nodes, resulting in schema version inconsistency that required manual intervention.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3620>`__)
+
+    *    - |improved|
+         - Introduced runtime checks on the client side for timestamps retrieved from timelock. This aims to prevent data corruption if timestamps go back in time, possibly caused by a misconducted timelock migration. This is a best effort for catching abnormalities on timestamps at runtime, and does not provide absolute protection.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3568>`__)
+
+    *    - |userbreak|
+         - Qos Service: The experimental QosService for rate-limiting clients has been removed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3586>`__)
+
+    *    - |fixed|
          - Fixed a bug in the ``AsyncInitializer.cancelInitialization`` method that caused asynchronously initialized ``CassandraKeyValueServiceImpl`` and ``CassandraClientPoolImpl`` objects unable to be closed and shut down, respectively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3578>`__)
 
@@ -62,6 +265,12 @@ develop
          - Targeted sweep now deletes certain sweep queue rows faster than before, which should
            reduce table bloat (particularly on space constrained systems).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3581>`__)
+
+    *    - |improved| |fixed|
+         - Schema mutations against the Cassandra KVS are now HA.
+           Previously, Cassandra KVS required that after some schema mutations all cassandra nodes must agree on the schema version.
+           Now, all reachable nodes must agree and at least a quorum of nodes must be reachable, instead.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3480>`__)
 
     *    - |devbreak|
          - The AutoDelegate annotation no longer supports a typeToExtend parameter.
@@ -80,14 +289,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3570>`__)
 
     *    - |improved|
-         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
-
-    *    - |improved|
-         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
-           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
-           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
+         - The HikariConnectionClientPool now allows specification of a use-case.
+           If specified, threads created will have the use-case in their name, and log messages about pool statistics will be prefaced by the use-case as well.
+           This may be useful for debugging when users run multiple such pools.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3588>`__)
 
     *    - |new|
          - Old deprecated tables can now be added to a schema to be cleaned up on startup.
@@ -96,6 +301,54 @@ develop
     *    - |fixed|
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
+
+    *    - |new|
+         - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
+           This may be used by AtlasDB clients for some key value services to achieve better data distribution and performance as far as the transactions table is concerned.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3529>`__)
+
+    *    - |devbreak|
+         - The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.
+           If you were consuming this service, please contact the AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3605>`__)
+
+    *    - |improved|
+         - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
+           Previously, puts would instead fail at runtime when the column did not exist.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
+ 
+    *    - |improved|
+         - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
+           Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3423>`__)
+
+    *    - |fixed|
+         - Live-reloading HTTP proxies and HTTP proxies with failover now refresh themselves after encountering a large number of cumulative requests or consecutive exceptions.
+           This was previously implemented to work around several issues with our usage of OkHttp, but was not implemented for the proxies with failover (which includes proxies to TimeLock).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3629>`__)
+
+========
+v0.107.0
+========
+
+10 Oct 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Targeted sweep now stores even less data in the sweepable cells table due to dictionary encoding table references instead of storing them as strings.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3533>`__)
+
+    *    - |improved|
+         - The legacy lock service's lock state logger now logs additional information about the lock service's internal synchronization state.
+           This includes details of queueing threads on each underlying sync object, as well as information on the progress of inflight requests.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3554>`__ and
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3565>`__)
 
 ========
 v0.106.0

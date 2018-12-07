@@ -77,6 +77,8 @@ This will vary depending on your choice of key-value service:
   .. code-block:: none
 
      cqlsh> USE client;
+     cqlsh:client> CONSISTENCY QUORUM;
+     Consistency level set to QUORUM.
      cqlsh:client> SELECT * FROM "_timestamp" ;
 
       key    | column1      | column2 | value

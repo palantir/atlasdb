@@ -219,6 +219,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
     }
 
     @Test
@@ -603,10 +606,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() throws Exception {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() {
         List<String> successfulTasks = getThoroughTableReadTasks().stream()
                 .map(this::runTaskWithInvalidLocks)
                 .filter(Optional::isPresent)
@@ -1109,10 +1109,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnReadsIfThoroughlySwept() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
@@ -1127,18 +1123,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() ->
-            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead)));
+            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
     }
 
     @Test
     public void validateLocksOnlyOnCommitIfValidationFlagIsFalse() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
@@ -1152,10 +1142,77 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 false);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                true);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                false);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void testThrowsIfSweepSentinelSeen() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+        t1.getTimestamp();
+        t2.getTimestamp();
+
+        t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+        t1.commit();
+
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+
+        assertThatExceptionOfType(TransactionFailedRetriableException.class)
+                .isThrownBy(() -> t2.get(TABLE, ImmutableSet.of(cell)))
+                .withMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void testIgnoresOrphanedSweepSentinel() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+        Transaction txn = txManager.createNewTransaction();
+        assertThat(txn.get(TABLE, ImmutableSet.of(cell)), is(ImmutableMap.of()));
     }
 
     private SnapshotTransaction getSnapshotTransactionWith(

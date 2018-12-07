@@ -139,7 +139,7 @@ public final class CassandraVerifier {
     static void sanityCheckTableName(TableReference tableRef) {
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(!(tableName.startsWith("_") && tableName.contains("."))
-                || AtlasDbConstants.hiddenTables.contains(tableRef)
+                || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
                 || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "invalid tableName: %s", tableName);
     }
@@ -208,11 +208,8 @@ public final class CassandraVerifier {
         try {
             CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
             client.describe_keyspace(config.getKeyspaceOrThrow());
-            CassandraKeyValueServices.waitForSchemaVersions(
-                    config,
-                    client,
-                    "(checking if schemas diverged on startup)",
-                    true);
+            CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    "while checking if schemas diverged on startup");
             return true;
         } catch (NotFoundException e) {
             return false;
@@ -226,14 +223,10 @@ public final class CassandraVerifier {
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-            CassandraKeyValueServices.waitForSchemaVersions(
-                    config,
-                    client,
-                    "(adding the initial empty keyspace)",
-                    true);
+            CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                    "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
-            // request could fail due to a race condition where the keyspace was created in the meantime, so recheck
             return keyspaceAlreadyExists(host, config);
         }
     }
@@ -254,12 +247,9 @@ public final class CassandraVerifier {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
                 client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(
-                        config,
-                        client,
-                        "(updating the existing keyspace)");
+                CassandraKeyValueServices.waitForSchemaVersions(config, client,
+                        "after updating the existing keyspace");
             }
-
             return null;
         });
     }
@@ -352,17 +342,4 @@ public final class CassandraVerifier {
             }
         }
     }
-
-    static final FunctionCheckedException<CassandraClient, Boolean, UnsupportedOperationException>
-            underlyingCassandraClusterSupportsCASOperations = client -> {
-                try {
-                    CassandraApiVersion serverVersion = new CassandraApiVersion(client.describe_version());
-                    log.debug("Connected cassandra thrift version is: {}",
-                            SafeArg.of("cassandraVersion", serverVersion));
-                    return serverVersion.supportsCheckAndSet();
-                } catch (TException ex) {
-                    throw new UnsupportedOperationException("Couldn't determine underlying cassandra version;"
-                            + " received an exception while checking the thrift version.", ex);
-                }
-            };
 }

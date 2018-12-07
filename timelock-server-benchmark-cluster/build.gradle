@@ -3,6 +3,7 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/timelock.gradle"
+apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
     compile project(':timelock-server')
@@ -14,7 +15,6 @@ distribution {
     mainClass 'com.palantir.atlasdb.timelock.benchmarks.server.TimelockBenchmarkServerLauncher'
     args 'server', 'var/conf/timelock.yml'
     defaultJvmOpts "-Xms512m", "-Xmx4096m", "-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"
-    ignoredProductDependency('com.palantir.rescue', 'rescue')
 }
 
 configurations.all {

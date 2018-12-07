@@ -29,7 +29,6 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -75,18 +74,14 @@ public class AsyncTimelockResource {
     @POST
     @Path("start-atlasdb-transaction")
     public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return StartAtlasDbTransactionResponse.of(
-                timelock.lockImmutableTimestamp(request),
-                timelock.getFreshTimestamp());
+        return timelock.startAtlasDbTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return StartIdentifiedAtlasDbTransactionResponse.of(
-                timelock.lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
-                timelock.getFreshTimestampForClient(request.requestorId()));
+        return timelock.startIdentifiedAtlasDbTransaction(request);
     }
 
     @POST

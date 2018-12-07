@@ -53,6 +53,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
 
 @AutoService(Processor.class)
 public final class AutoDelegateProcessor extends AbstractProcessor {
@@ -204,6 +205,10 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
         } else {
             typeBuilder = TypeSpec.classBuilder(newTypeName);
         }
+        typeBuilder.addTypeVariables(typeToExtend.getTypeParameterElements()
+                .stream()
+                .map(TypeVariableName::get)
+                .collect(Collectors.toList()));
 
         // Add modifiers
         TypeMirror typeMirror = typeToExtend.getType();

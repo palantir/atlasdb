@@ -227,29 +227,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
-                               MetricsManager metricsManager,
-                               KeyValueService keyValueService,
-                               TimelockService timelockService,
-                               TransactionService transactionService,
-                               Cleaner cleaner,
-                               Supplier<Long> startTimeStamp,
-                               ConflictDetectionManager conflictDetectionManager,
-                               SweepStrategyManager sweepStrategyManager,
-                               long immutableTimestamp,
-                               Optional<LockToken> immutableTimestampLock,
-                               PreCommitCondition preCommitCondition,
-                               AtlasDbConstraintCheckingMode constraintCheckingMode,
-                               Long transactionTimeoutMillis,
-                               TransactionReadSentinelBehavior readSentinelBehavior,
-                               boolean allowHiddenTableAccess,
-                               TimestampCache timestampValidationReadCache,
-                               ExecutorService getRangesExecutor,
-                               int defaultGetRangesConcurrency,
-                               MultiTableSweepQueueWriter sweepQueue,
-                               ExecutorService deleteExecutor,
-                               CommitProfileProcessor commitProfileProcessor,
-                               boolean validateLocksOnReads,
-                               Supplier<TransactionConfig> transactionConfig) {
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TransactionService transactionService,
+            Cleaner cleaner,
+            Supplier<Long> startTimeStamp,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            long immutableTimestamp,
+            Optional<LockToken> immutableTimestampLock,
+            PreCommitCondition preCommitCondition,
+            AtlasDbConstraintCheckingMode constraintCheckingMode,
+            Long transactionTimeoutMillis,
+            TransactionReadSentinelBehavior readSentinelBehavior,
+            boolean allowHiddenTableAccess,
+            TimestampCache timestampValidationReadCache,
+            ExecutorService getRangesExecutor,
+            int defaultGetRangesConcurrency,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            CommitProfileProcessor commitProfileProcessor,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.keyValueService = keyValueService;
@@ -298,7 +298,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 && System.currentTimeMillis() - timeCreated > transactionReadTimeoutMillis) {
             throw new TransactionFailedRetriableException("Transaction timed out.");
         }
-        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(allowHiddenTableAccess || !AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (!(state.get() == State.UNCOMMITTED || state.get() == State.COMMITTING)) {
             throw new CommittedTransactionException();
@@ -755,10 +755,14 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
-        return validateLocksOnReads && isValidationNecessary(tableRef);
+        return validateLocksOnReads && isThoroughlySwept(tableRef);
     }
 
-    private boolean isValidationNecessary(TableReference tableRef) {
+    private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
+        return !validateLocksOnReads && isThoroughlySwept(tableRef);
+    }
+
+    private boolean isThoroughlySwept(TableReference tableRef) {
         return sweepStrategyManager.get().get(tableRef) == SweepStrategy.THOROUGH;
     }
 
@@ -1037,7 +1041,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
         getMeter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).mark(rawResults.size());
 
-        if (AtlasDbConstants.hiddenTables.contains(tableRef)) {
+        if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
@@ -1059,6 +1063,26 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     /**
+     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred
+     * and where it was truncated. In this case, there is a chance that we end up with a sentinel with no
+     * valid AtlasDB cell covering it. In this case, we ignore it.
+     */
+    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
+        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel).keySet();
+        if (sweepSentinels.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Map<Cell, Long> atMaxTimestamp = keyValueService.getLatestTimestamps(
+                table,
+                Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE));
+        return Maps.filterValues(atMaxTimestamp, ts -> Value.INVALID_VALUE_TIMESTAMP == ts).keySet();
+    }
+
+    private static boolean isSweepSentinel(Value value) {
+        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
+    }
+
+    /**
      * This will return all the keys that still need to be postFiltered.  It will output properly
      * postFiltered keys to the results output param.
      */
@@ -1073,23 +1097,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
 
+        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP) {
+            if (isSweepSentinel(value)) {
                 getMeter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef).mark();
+
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
                 switch (getReadSentinelBehavior()) {
                     case IGNORE:
                         break;
                     case THROW_EXCEPTION:
-                        throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
-                                + " This can be caused by hard delete transactions using the type "
-                                + TransactionType.AGGRESSIVE_HARD_DELETE
-                                + ". It can also be caused by transactions taking too long, or"
-                                + " its locks expired. Retrying it should work.");
+                        if (!orphanedSentinels.contains(key)) {
+                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
+                                    + "deleted. This can be caused by hard delete transactions using the type "
+                                    + TransactionType.AGGRESSIVE_HARD_DELETE
+                                    + ". It can also be caused by transactions taking too long, or"
+                                    + " its locks expired. Retrying it should work.");
+
+                        }
+                        break;
                     default:
                         throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
                 }
@@ -1164,7 +1194,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
-        Preconditions.checkArgument(!AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 
         if (values.isEmpty()) {
@@ -1333,7 +1363,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
-                if (validationNecessaryForInvolvedTables()) {
+                if (validationNecessaryForInvolvedTablesOnCommit()) {
                     throwIfImmutableTsOrCommitLocksExpired(null);
                 }
                 return;
@@ -2031,8 +2061,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         involvedTables.add(tableRef);
     }
 
-    private boolean validationNecessaryForInvolvedTables() {
-        return involvedTables.stream().anyMatch(this::isValidationNecessary);
+    private boolean validationNecessaryForInvolvedTablesOnCommit() {
+        return involvedTables.stream().anyMatch(this::isValidationNecessaryOnCommit);
     }
 
     private long getStartTimestamp() {
