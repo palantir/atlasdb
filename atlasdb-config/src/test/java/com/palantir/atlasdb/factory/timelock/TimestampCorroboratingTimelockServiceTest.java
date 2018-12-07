@@ -89,6 +89,12 @@ public class TimestampCorroboratingTimelockServiceTest {
     }
 
     @Test
+    public void shouldNotFailIfFreshTimestampIsBiggerThanConservativeBound() {
+        when(rawTimelockService.getFreshTimestamp()).thenReturn(2L);
+        timelockService.validateWithConservativeLowerBound(() -> 1L)    ;
+    }
+
+    @Test
     public void startIdentifiedAtlasDbTransactionShouldFail() {
         StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransactionResponse =
                 StartIdentifiedAtlasDbTransactionResponse.of(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE,
