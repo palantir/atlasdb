@@ -263,6 +263,7 @@ public final class TransactionManagers {
                 Suppliers.ofInstance(config.getSweepPauseMillis()),
                 Suppliers.ofInstance(config.getSweepBatchSize()),
                 Suppliers.ofInstance(config.getSweepCellBatchSize()),
+                Suppliers.ofInstance(config.getSweepBlacklistTables()),
                 SweepProgressStoreWithCas.create(kvs),
                 SweepTableFactory.of(),
                 new NoOpBackgroundSweeperPerformanceLogger());
