@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
  * committed or aborted.
  *
- * A given startTimestamp will only ever have one non-null value.  This means that anything
+ * A given startTimestamp will only ever have one non-null value.  This means that non-null values
  * returned from this service can be aggressively cached.  Caching negative look ups should not be
  * done for performance reasons.  If a null value is returned, that startTimestamp will likely be
  * rolled back and set to TransactionConstants.FAILED_COMMIT_TS (-1).
