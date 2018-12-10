@@ -35,7 +35,6 @@ public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
     private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
-
     private final TransactionSchemaManager manager = createTransactionSchemaManager(timestamps);
 
     @Before
@@ -80,7 +79,8 @@ public class TransactionSchemaManagerIntegrationTest {
                         new InMemoryKeyValueService(true),
                         PtBytes.toBytes("aaa"),
                         ts::getFreshTimestamp,
-                        VersionedInternalSchemaMetadata.class));
+                        VersionedInternalSchemaMetadata.class,
+                        false));
         return new TransactionSchemaManager(CoordinationServices.wrapHidingVersionSerialization(rawService));
     }
 

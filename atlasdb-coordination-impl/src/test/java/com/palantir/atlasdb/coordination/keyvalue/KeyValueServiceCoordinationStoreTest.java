@@ -52,12 +52,17 @@ public class KeyValueServiceCoordinationStoreTest {
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
-    private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
-            ObjectMappers.newServerObjectMapper(),
-            keyValueService,
-            COORDINATION_ROW,
-            timestampSequence::incrementAndGet,
-            String.class);
+
+    // Casting is reasonable because we initialize with false. We need the precise typing for some of the
+    // tests that hit the store directly.
+    private final KeyValueServiceCoordinationStore<String> coordinationStore
+            = (KeyValueServiceCoordinationStore<String>) KeyValueServiceCoordinationStore.create(
+                    ObjectMappers.newServerObjectMapper(),
+                    keyValueService,
+                    COORDINATION_ROW,
+                    timestampSequence::incrementAndGet,
+                    String.class,
+                    false);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -159,7 +164,8 @@ public class KeyValueServiceCoordinationStoreTest {
                         keyValueService,
                         otherCoordinationKey,
                         timestampSequence::incrementAndGet,
-                        String.class);
+                        String.class,
+                        false);
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
         otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
         assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);
