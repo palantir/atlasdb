@@ -16,12 +16,9 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
-<<<<<<< HEAD
-import com.palantir.atlasdb.AtlasDbConstants;
-=======
 import java.util.function.LongSupplier;
 
->>>>>>> 6d8e9b9... Targeted Sweep and transactions
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
