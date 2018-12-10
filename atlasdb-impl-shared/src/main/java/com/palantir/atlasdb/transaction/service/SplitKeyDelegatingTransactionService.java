@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,8 +33,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * A {@link SplitKeyDelegatingTransactionService} delegates between multiple {@link TransactionService}s, depending
- * on which timestamps are requested. We guarantee that for get on a given startTimestamp, if we return a non-null value
- * we guarantee to always return that value on subsequent get calls.
+ * on which timestamps are requested. This class preserves the {@link TransactionService} guarantees regardless of
+ * which underlying service is contacted.
  *
  * The timestamp service will throw an exception if the timestamp-to-service-key function returns a key which is
  * not in the keyedServices map.
@@ -63,20 +64,19 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         Map<T, List<Long>> queryMap = StreamSupport.stream(startTimestamps.spliterator(), false)
                 .collect(Collectors.groupingBy(timestampToServiceKey));
 
-        Set<T> extraKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!extraKeys.isEmpty()) {
+        Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
+        if (!unknownKeys.isEmpty()) {
             throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
                     + " are unknown: {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamps", startTimestamps),
-                    SafeArg.of("extraKeys", extraKeys),
+                    SafeArg.of("unknownKeys", unknownKeys),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
 
         return queryMap.entrySet()
                 .stream()
                 .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
-                .flatMap(longLongMap -> longLongMap.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(HashMap::new, Map::putAll, Map::putAll);
     }
 
     @Override

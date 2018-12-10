@@ -126,6 +126,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 .hasMessageContaining("A batch of timestamps {} produced some transaction service keys which are"
                         + " unknown");
 
-        // no requests made is implicit, since delegate1 is a mock
+        Mockito.verifyNoMoreInteractions(delegate1);
     }
 }
