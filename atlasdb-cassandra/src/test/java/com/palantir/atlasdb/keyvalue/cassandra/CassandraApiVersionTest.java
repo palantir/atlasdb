@@ -69,7 +69,7 @@ public class CassandraApiVersionTest {
     }
 
     @Test public void
-    version_20_1_0_pt0_supports_cas() {
+    version_20_1_0_pt0_supports_pue() {
         CassandraApiVersion version = new CassandraApiVersion("20.1.0-pt0");
         assertThat(version.supportsThriftPutUnlessExists(), is(true));
     }
