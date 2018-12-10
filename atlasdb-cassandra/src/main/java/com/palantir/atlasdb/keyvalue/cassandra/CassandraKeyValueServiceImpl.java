@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -1792,13 +1793,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                for (Entry<Cell, byte[]> e : values.entrySet()) {
-                    CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
-                    CheckAndSetResult casResult = checkAndSetRunner.executeCheckAndSet(client, request);
-                    if (!casResult.successful()) {
+                Map<byte[], List<Map.Entry<Cell, byte[]>>> rowKeyedValues = values.entrySet()
+                        .stream()
+                        .collect(Collectors.groupingBy(e -> e.getKey().getRowName()));
+
+                for (Entry<byte[], List<Map.Entry<Cell, byte[]>>> entry : rowKeyedValues.entrySet()) {
+                    CASResult result = client.put_unless_exists(
+                            tableRef,
+                            ByteBuffer.wrap(entry.getKey()),
+                            entry.getValue().stream()
+                                    .map(updateEntry -> new Column()
+                                            .setName(updateEntry.getKey().getColumnName())
+                                            .setValue(updateEntry.getValue())
+                                            .setTimestamp(0L))
+                                    .collect(Collectors.toList()),
+                            WRITE_CONSISTENCY,
+                            WRITE_CONSISTENCY);
+                    if (!result.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
-                                ImmutableList.of(e.getKey())));
+                                entry.getValue().stream().map(Entry::getKey).collect(Collectors.toList())));
                     }
                 }
                 return Optional.empty();
