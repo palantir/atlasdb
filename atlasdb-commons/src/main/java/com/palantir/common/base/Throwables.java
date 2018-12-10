@@ -144,7 +144,7 @@ public final class Throwables {
      */
     @SuppressWarnings("unchecked")
     public static <K extends Throwable> void rewrapAndThrowIfInstance(String newMessage, Throwable t, Class<K> clazz) throws K {
-        if ((t != null) && clazz.isAssignableFrom(t.getClass())) {
+        if (isInstance(t, clazz)) {
             K kt = (K) t;
             K wrapped = Throwables.rewrap(newMessage, kt);
             throw wrapped;

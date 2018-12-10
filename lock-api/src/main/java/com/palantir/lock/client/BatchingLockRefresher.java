@@ -35,24 +35,26 @@ public class BatchingLockRefresher {
 
     public static BatchingLockRefresher create(TimelockService timelockService) {
         return new BatchingLockRefresher(DisruptorAutobatcher.create(batch -> {
-            Set<LockToken> tokensBatch = batch.stream()
-                    .map(BatchElement::argument)
-                    .flatMap(Set::stream)
-                    .collect(Collectors.toSet());
+                    Set<LockToken> tokensBatch = batch.stream()
+                            .map(BatchElement::argument)
+                            .flatMap(Set::stream)
+                            .collect(Collectors.toSet());
 
-            Set<LockToken> refreshedTokens = timelockService.refreshLockLeases(tokensBatch);
-            batch.forEach(element -> element.result().set(
-                    element.argument().stream()
-                            .filter(refreshedTokens::contains)
-                            .collect(Collectors.toSet())));
+                    Set<LockToken> refreshedTokens = timelockService.refreshLockLeases(tokensBatch);
+                    batch.forEach(element -> element.result().set(
+                            element.argument().stream()
+                                    .filter(refreshedTokens::contains)
+                                    .collect(Collectors.toSet())));
         }));
     }
 
     public Set<LockToken> refreshLockLeases(Set<LockToken> lockTokens) {
         try {
             return autobatcher.apply(lockTokens).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw Throwables.throwUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.throwUncheckedException(e.getCause());
+        } catch (Throwable t) {
+            throw Throwables.throwUncheckedException(t);
         }
     }
 }

@@ -49,6 +49,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     private final CloseableTimestampService timestampService;
     private final LockRefresher lockRefresher;
     private final TimeLockUnlocker unlocker;
+    private final BatchingLockRefresher batchingLockRefresher;
 
     public static TimeLockClient createDefault(TimelockService timelockService) {
         AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
@@ -71,6 +72,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         this.timestampService = timestampService;
         this.lockRefresher = lockRefresher;
         this.unlocker = unlocker;
+        this.batchingLockRefresher = BatchingLockRefresher.create(delegate);
     }
 
     @Override
@@ -132,7 +134,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return executeOnTimeLock(() -> delegate.refreshLockLeases(tokens));
+        return executeOnTimeLock(() -> batchingLockRefresher.refreshLockLeases(tokens));
     }
 
     @Override
