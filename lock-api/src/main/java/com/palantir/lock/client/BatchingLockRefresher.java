@@ -26,7 +26,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-public class BatchingLockRefresher {
+public final class BatchingLockRefresher {
     private final DisruptorAutobatcher<Set<LockToken>, Set<LockToken>> autobatcher;
 
     private BatchingLockRefresher(DisruptorAutobatcher<Set<LockToken>, Set<LockToken>> autobatcher) {
@@ -35,16 +35,16 @@ public class BatchingLockRefresher {
 
     public static BatchingLockRefresher create(TimelockService timelockService) {
         return new BatchingLockRefresher(DisruptorAutobatcher.create(batch -> {
-                    Set<LockToken> tokensBatch = batch.stream()
-                            .map(BatchElement::argument)
-                            .flatMap(Set::stream)
-                            .collect(Collectors.toSet());
+            Set<LockToken> tokensBatch = batch.stream()
+                    .map(BatchElement::argument)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
 
-                    Set<LockToken> refreshedTokens = timelockService.refreshLockLeases(tokensBatch);
-                    batch.forEach(element -> element.result().set(
-                            element.argument().stream()
-                                    .filter(refreshedTokens::contains)
-                                    .collect(Collectors.toSet())));
+            Set<LockToken> refreshedTokens = timelockService.refreshLockLeases(tokensBatch);
+            batch.forEach(element -> element.result().set(
+                    element.argument().stream()
+                            .filter(refreshedTokens::contains)
+                            .collect(Collectors.toSet())));
         }));
     }
 

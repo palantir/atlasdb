@@ -17,7 +17,7 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.doAnswer;
@@ -33,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -53,34 +54,42 @@ public class BatchingLockRefresherTest {
     private final TimelockService timelockService = mock(TimelockService.class);
     private final BatchingLockRefresher lockRefresher = BatchingLockRefresher.create(timelockService);
 
+    @Before
+    public void setUp() {
+        doAnswer(invocation -> {
+            Set<LockToken> requestedTokens = invocation.getArgument(0);
+            return requestedTokens.stream()
+                    .filter(validTokens::contains)
+                    .collect(Collectors.toSet());
+        }).when(timelockService).refreshLockLeases(anySet());
+    }
 
     @Test
     public void returnsRefreshedTokens() {
-        when(timelockService.refreshLockLeases(any())).thenReturn(TOKENS);
+        withValidTokens(ImmutableSet.of(TOKEN_1, TOKEN_2));
 
-        Set<LockToken> refreshedTokens = lockRefresher.refreshLockLeases(TOKENS);
-        assertEquals(TOKENS, refreshedTokens);
+        Set<LockToken> refreshedTokens = lockRefresher.refreshLockLeases(ImmutableSet.of(TOKEN_1, TOKEN_2));
+        assertEquals(ImmutableSet.of(TOKEN_1, TOKEN_2), refreshedTokens);
     }
 
     @Test
     public void onlyReturnsValidTokens() {
-        Set<LockToken> validTokens = ImmutableSet.of(TOKEN_1);
-        when(timelockService.refreshLockLeases(any())).thenReturn(validTokens);
+        withValidTokens(ImmutableSet.of(TOKEN_1));
 
-        Set<LockToken> refreshedTokens = lockRefresher.refreshLockLeases(TOKENS);
-        assertEquals(validTokens, refreshedTokens);
+        Set<LockToken> refreshedTokens = lockRefresher.refreshLockLeases(ImmutableSet.of(TOKEN_1, TOKEN_2));
+        assertEquals(ImmutableSet.of(TOKEN_1), refreshedTokens);
     }
 
     @Test
-    public void rethrowsException() {
+    public void shouldRethrowException() {
         when(timelockService.refreshLockLeases(any())).thenThrow(EXCEPTION);
 
         assertThatThrownBy(() -> lockRefresher.refreshLockLeases(TOKENS)).isEqualTo(EXCEPTION);
     }
 
     @Test
-    public void usingVerify() throws Exception {
-        withValidTokens(TOKENS);
+    public void shouldReturnValidTokensWhenBatched() throws Exception {
+        withValidTokens(ImmutableSet.of(TOKEN_1, TOKEN_2));
         verifyBatchedCallsWithResults(ImmutableList.of(
                 new Pair<>(ImmutableSet.of(TOKEN_1), ImmutableSet.of(TOKEN_1)),
                 new Pair<>(ImmutableSet.of(TOKEN_1, TOKEN_2), ImmutableSet.of(TOKEN_1, TOKEN_2)),
@@ -140,7 +149,7 @@ public class BatchingLockRefresherTest {
         }
     }
 
-    private void withValidTokens(Set<LockToken> validTokens) {
-        this.validTokens = validTokens;
+    private void withValidTokens(Set<LockToken> tokens) {
+        this.validTokens = tokens;
     }
 }
