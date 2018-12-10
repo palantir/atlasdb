@@ -198,6 +198,25 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
+    public CASResult put_unless_exists(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        long startTime = System.currentTimeMillis();
+
+        return KvsProfilingLogger.maybeLog(
+                (KvsProfilingLogger.CallableCheckedException<CASResult, TException>)
+                () -> client.put_unless_exists(
+                        tableReference, key, updates, serial_consistency_level, commit_consistency_level),
+                (logger, timer) -> logger.log("CassandraClient.put_unless_exists(table {}) at time {} took {} ms",
+                        LoggingArgs.tableRef(tableReference),
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.durationMillis(timer)));
+    }
+
+    @Override
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
             TException {

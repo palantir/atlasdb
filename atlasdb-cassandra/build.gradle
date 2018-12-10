@@ -10,6 +10,12 @@ configurations {
   compile.extendsFrom(explicitShadow)
 }
 
+repositories {
+  maven {
+    url 'https://artifactory.palantir.build/artifactory/all-jar'
+  }
+}
+
 dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
@@ -25,7 +31,7 @@ dependencies {
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
 
-  explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude(group: 'de.jflex', module: 'jflex')
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
@@ -95,7 +101,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.cassandra'
         productName = 'sls-cassandra'
-        minimumVersion = '3.24.0'
+        minimumVersion = '3.25.1'
         maximumVersion = '3.x.x'
     }
 }

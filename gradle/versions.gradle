@@ -23,6 +23,7 @@ ext.libVersions =
     jackson: '2.9.5',
     snakeyaml: '1.12',
     cassandra: '3.11.2',
+    palantir_cassandra_thrift: '2.2.13-0.20.2',
     cassandra_driver_core: '3.4.0',
     groovy: '2.4.4',
     hamcrest: '1.3',

@@ -154,6 +154,21 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
         }
     }
 
+    @Override
+    public CASResult put_unless_exists(
+            TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        try (CloseableTrace trace = startLocalTrace("client.put_unless_exists(table {})",
+                LoggingArgs.safeTableOrPlaceholder(tableReference))) {
+            return client.put_unless_exists(
+                    tableReference, key, updates, serial_consistency_level, commit_consistency_level);
+        }
+    }
+
     private static CloseableTrace startLocalTrace(CharSequence operationFormat, Object... formatArguments) {
         return CloseableTrace.startLocalTrace(SERVICE_NAME, operationFormat, formatArguments);
     }

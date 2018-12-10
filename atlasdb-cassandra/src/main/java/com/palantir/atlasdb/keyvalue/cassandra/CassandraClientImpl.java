@@ -171,6 +171,21 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public CASResult put_unless_exists(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        return executeHandlingExceptions(() -> client.put_unless_exists(
+                key,
+                AbstractKeyValueService.internalTableName(tableReference),
+                updates,
+                serial_consistency_level,
+                commit_consistency_level));
+    }
+
+    @Override
     public String system_add_column_family(CfDef cf_def)
             throws InvalidRequestException, SchemaDisagreementException, TException {
         return executeHandlingExceptions(() -> client.system_add_column_family(cf_def));
