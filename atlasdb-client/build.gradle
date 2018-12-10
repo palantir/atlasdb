@@ -83,7 +83,6 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   compile group: 'com.squareup', name:'javapoet'
-  compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
 
