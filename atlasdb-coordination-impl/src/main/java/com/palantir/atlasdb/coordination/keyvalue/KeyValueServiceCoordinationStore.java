@@ -148,6 +148,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     // some caching.
     @Override
     public Optional<ValueAndBound<T>> getAgreedValue() {
+        System.out.println("Attempting to get an agreed value");
         return getCoordinationValue()
                 .map(sequenceAndBound -> ValueAndBound.of(
                         getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
@@ -155,6 +156,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
+        System.out.println("Attempting to transform an agreed value");
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
         ValueAndBound<T> extantValueAndBound = ValueAndBound.of(coordinationValue.flatMap(
                 sequenceAndBound -> getValue(sequenceAndBound.sequence())),

@@ -21,9 +21,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class TransactionSchemaManager {
@@ -43,6 +45,12 @@ public class TransactionSchemaManager {
      * otherwise, achieving a consensus may take a long time.
      */
     public int getTransactionsSchemaVersion(long timestamp) {
+        if (timestamp < AtlasDbConstants.STARTING_TS) {
+            throw new SafeIllegalStateException("Query attempted for timestamp {} which was never given out by the"
+                    + " timestamp service, as timestamps start at {}",
+                    SafeArg.of("queriedTimestamp", timestamp),
+                    SafeArg.of("startOfTime", AtlasDbConstants.STARTING_TS));
+        }
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
         while (!possibleVersion.isPresent()) {
