@@ -17,10 +17,12 @@
 package com.palantir.atlasdb.internalschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -70,6 +72,13 @@ public class TransactionSchemaManagerIntegrationTest {
         // Always need to seed the default value, if it's not there
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isFalse();
         assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isTrue();
+    }
+
+    @Test
+    public void throwsIfTryingToGetAnImpossibleTimestamp() {
+        assertThatThrownBy(() -> manager.getTransactionsSchemaVersion(AtlasDbConstants.STARTING_TS - 3141592))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("was never given out by the timestamp service");
     }
 
     private static TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
