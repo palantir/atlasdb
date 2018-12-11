@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra1:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: snapshot.docker.palantir.build/cassandra/sls-cassandra:3.25.1-2-g9dbee03
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
@@ -10,7 +10,7 @@ services:
       - LOCAL_JMX=no
 
   cassandra2:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: snapshot.docker.palantir.build/cassandra/sls-cassandra:3.25.1-2-g9dbee03
     depends_on:
       - cassandra1
     environment:
@@ -20,7 +20,7 @@ services:
       - LOCAL_JMX=no
 
   cassandra3:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: snapshot.docker.palantir.build/cassandra/sls-cassandra:3.25.1-2-g9dbee03
     depends_on:
       - cassandra1
     environment:
@@ -30,7 +30,7 @@ services:
       - LOCAL_JMX=no
 
   cli:
-    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    image: snapshot.docker.palantir.build/cassandra/sls-cassandra:3.25.1-2-g9dbee03
     depends_on:
       - cassandra1
     entrypoint: [bash, -c, '"$$@"', --]

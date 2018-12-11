@@ -111,6 +111,7 @@ import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
@@ -1793,21 +1794,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                Map<byte[], List<Map.Entry<Cell, byte[]>>> rowKeyedValues = values.entrySet()
+                Map<ByteBuffer, List<Map.Entry<Cell, byte[]>>> rowKeyedValues = values.entrySet()
                         .stream()
-                        .collect(Collectors.groupingBy(e -> e.getKey().getRowName()));
+                        .collect(Collectors.groupingBy(e -> ByteBuffer.wrap(e.getKey().getRowName())));
 
-                for (Entry<byte[], List<Map.Entry<Cell, byte[]>>> entry : rowKeyedValues.entrySet()) {
+                for (Entry<ByteBuffer, List<Map.Entry<Cell, byte[]>>> entry : rowKeyedValues.entrySet()) {
                     CASResult result = client.put_unless_exists(
                             tableRef,
-                            ByteBuffer.wrap(entry.getKey()),
+                            entry.getKey(),
                             entry.getValue().stream()
                                     .map(updateEntry -> new Column()
-                                            .setName(updateEntry.getKey().getColumnName())
+                                            .setName(CassandraKeyValueServices.makeCompositeBuffer(updateEntry.getKey().getColumnName(), 0L))
                                             .setValue(updateEntry.getValue())
                                             .setTimestamp(0L))
                                     .collect(Collectors.toList()),
-                            WRITE_CONSISTENCY,
+                            ConsistencyLevel.SERIAL,
                             WRITE_CONSISTENCY);
                     if (!result.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(

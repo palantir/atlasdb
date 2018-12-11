@@ -3,6 +3,12 @@ apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/shared.gradle"
 
+repositories {
+    maven {
+        url 'https://artifactory.palantir.build/artifactory/all-jar'
+    }
+}
+
 dependencies {
   testCompile project(":atlasdb-cassandra")
   testCompile project(":atlasdb-cli")
@@ -17,7 +23,8 @@ dependencies {
       exclude module: 'ant'
       compile 'org.apache.ant:ant:' + libVersions.ant
   }
-  testCompile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+
+  testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude module: 'junit'
 
     // override ant to a newer one that is shared with the version in jmock-->cglib
