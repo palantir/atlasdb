@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb;
 
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -98,6 +100,7 @@ public class AtlasDbConstants {
     public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
     public static final int DEFAULT_SWEEP_BATCH_SIZE = 100;
     public static final int DEFAULT_SWEEP_CELL_BATCH_SIZE = 10_000;
+    public static final List<String> DEFAULT_SWEEP_TABLE_BLACKLIST = ImmutableList.of();
 
     public static final int DEFAULT_STREAM_IN_MEMORY_THRESHOLD = 4 * 1024 * 1024;
 

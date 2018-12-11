@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.config;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -142,6 +144,15 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public long getSweepPauseMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
+    }
+
+    /**
+     * Fully qualified table references (of the form namespace.tablename),
+     * that the background sweeper should never sweep.
+     */
+    @Value.Default
+    public List<String> getSweepBlacklistTables() {
+        return AtlasDbConstants.DEFAULT_SWEEP_TABLE_BLACKLIST;
     }
 
     /**

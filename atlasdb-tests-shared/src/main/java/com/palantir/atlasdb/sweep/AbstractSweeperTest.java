@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.jayway.awaitility.Awaitility;
 import com.jayway.awaitility.Duration;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.Cleaner;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -149,10 +150,11 @@ public abstract class AbstractSweeperTest {
         Supplier<Long> sweepNoPause = () -> 0L;
         Supplier<Integer> batchSizeSupplier = () -> batchSize;
         Supplier<Integer> cellBatchSizeSupplier = () -> DEFAULT_CELL_BATCH_SIZE;
+        Supplier<List<String>> tableBlacklistSupplier = () -> AtlasDbConstants.DEFAULT_SWEEP_TABLE_BLACKLIST;
 
         backgroundSweeper = new BackgroundSweeperImpl(txManager, kvs, sweepRunner, sweepEnabledSupplier, sweepNoPause,
-                batchSizeSupplier, cellBatchSizeSupplier, sweepProgressStore, SweepTableFactory.of(),
-                new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics);
+                batchSizeSupplier, cellBatchSizeSupplier, tableBlacklistSupplier, sweepProgressStore,
+                SweepTableFactory.of(), new NoOpBackgroundSweeperPerformanceLogger(), sweepMetrics);
     }
 
     @After

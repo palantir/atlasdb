@@ -78,6 +78,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
     private final Supplier<Long> sweepPauseMillis;
     private final Supplier<Integer> sweepRowBatchSize;
     private final Supplier<Integer> sweepCellBatchSize;
+    private final Supplier<List<String>> sweepTableBlacklist;
     private final SweepProgressStore sweepProgressStore;
     private final SweepTableFactory tableFactory;
     private final BackgroundSweeperPerformanceLogger sweepPerfLogger;
@@ -100,6 +101,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
+            Supplier<List<String>> sweepTableBlacklist,
             SweepProgressStore sweepProgressStore,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger,
@@ -111,6 +113,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         this.sweepPauseMillis = sweepPauseMillis;
         this.sweepRowBatchSize = sweepBatchSize;
         this.sweepCellBatchSize = sweepCellBatchSize;
+        this.sweepTableBlacklist = sweepTableBlacklist;
         this.sweepProgressStore = sweepProgressStore;
         this.tableFactory = tableFactory;
         this.sweepPerfLogger = sweepPerfLogger;
@@ -125,6 +128,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             Supplier<Long> sweepPauseMillis,
             Supplier<Integer> sweepBatchSize,
             Supplier<Integer> sweepCellBatchSize,
+            Supplier<List<String>> sweepTableBlacklist,
             SweepProgressStore sweepProgressStore,
             SweepTableFactory tableFactory,
             BackgroundSweeperPerformanceLogger sweepPerfLogger) {
@@ -137,6 +141,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
                 sweepPauseMillis,
                 sweepBatchSize,
                 sweepCellBatchSize,
+                sweepTableBlacklist,
                 sweepProgressStore,
                 tableFactory,
                 sweepPerfLogger,
@@ -212,6 +217,12 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
             runOnceAndSaveResults(tableToSweep.get());
             return true;
         }
+    }
+
+    private Set<TableReference> getBlacklist() {
+        return sweepTableBlacklist.get().stream()
+                .map(TableReference::createFromFullyQualifiedName)
+                .collect(Collectors.toSet());
     }
 
     // there's a bug in older jdk8s around type inference here, don't make the same mistake two of us made
@@ -308,6 +319,10 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         // Arbitrarily pick the first table alphabetically from the never-before-swept tables
         List<TableReference> unsweptTables = Sets.difference(allTables, newPrioritiesByTableName.keySet())
                 .stream().sorted(Comparator.comparing(TableReference::getTablename)).collect(Collectors.toList());
+
+        // remove blacklisted never-swept tables from consideration
+        unsweptTables.removeAll(getBlacklist());
+
         if (!unsweptTables.isEmpty()) {
             return Iterables.get(unsweptTables, 0);
         }
@@ -316,6 +331,9 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper {
         Collection<SweepPriorityRow> toDelete = Lists.newArrayList();
         for (SweepPriorityRowResult oldPriority : oldPriorities) {
             TableReference tableRef = TableReference.createUnsafe(oldPriority.getRowName().getFullTableName());
+            if (getBlacklist().contains(tableRef)) {
+                continue;
+            }
             if (allTables.contains(tableRef)) {
                 SweepPriorityRowResult newPriority = newPrioritiesByTableName.get(tableRef);
                 double priority = getSweepPriority(oldPriority, newPriority);
