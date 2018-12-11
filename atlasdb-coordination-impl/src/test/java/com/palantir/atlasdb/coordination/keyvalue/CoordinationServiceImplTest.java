@@ -116,4 +116,20 @@ public class CoordinationServiceImplTest {
         stringCoordinationService.getValueForTimestamp(88);
         verify(coordinationStore, never()).getAgreedValue();
     }
+
+    @Test
+    public void retrieveLocalValueRetrievesCachedValue() {
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(STRING_AND_ONE_HUNDRED));
+        assertThat(stringCoordinationService.getValueForTimestamp(42)).contains(STRING_AND_ONE_HUNDRED);
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(OTHER_STRING_AND_ONE_THOUSAND));
+        assertThat(stringCoordinationService.getLastKnownLocalValue()).contains(STRING_AND_ONE_HUNDRED);
+        verify(coordinationStore, times(1)).getAgreedValue();
+    }
+
+    @Test
+    public void retrieveLocalValueReturnsEmptyIfNothingCached() {
+        when(coordinationStore.getAgreedValue()).thenReturn(Optional.of(OTHER_STRING_AND_ONE_THOUSAND));
+        assertThat(stringCoordinationService.getLastKnownLocalValue()).isEmpty();
+        verify(coordinationStore, never()).getAgreedValue();
+    }
 }

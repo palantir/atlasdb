@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.coordination;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -53,6 +54,14 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         ValueAndBound<T> existingValue = Iterables.getOnlyElement(transformResult.existingValues());
         accumulateCachedValue(Optional.of(existingValue));
         return transformResult;
+    }
+
+    @Override
+    public Optional<ValueAndBound<T>> getLastKnownLocalValue() {
+        ValueAndBound<T> cachedValue = cache.get();
+        return Objects.equals(getInitialCacheValue(), cachedValue)
+                ? Optional.empty()
+                : Optional.of(cachedValue);
     }
 
     private Optional<ValueAndBound<T>> readLatestValueFromStore() {

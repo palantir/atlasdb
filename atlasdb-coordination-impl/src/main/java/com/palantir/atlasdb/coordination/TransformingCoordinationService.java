@@ -59,8 +59,13 @@ public class TransformingCoordinationService<T1, T2> implements CoordinationServ
                         .collect(Collectors.toList()));
     }
 
+    @Override
+    public Optional<ValueAndBound<T2>> getLastKnownLocalValue() {
+        return delegate.getLastKnownLocalValue()
+                .map(preservingBounds(transformFromUnderlying));
+    }
+
     private static <F, T> Function<ValueAndBound<F>, ValueAndBound<T>> preservingBounds(Function<F, T> base) {
         return fromValueAndBound -> ValueAndBound.of(fromValueAndBound.value().map(base), fromValueAndBound.bound());
     }
-
 }

@@ -96,4 +96,21 @@ public class TransformingCoordinationServiceTest {
         assertThat(casResult.existingValues()).containsExactly(ValueAndBound.of(STRING_1, BOUND));
         verify(delegate).tryTransformCurrentValue(any());
     }
+
+    @Test
+    public void getsLastKnownLocalValueFromDelegateIfPresent() {
+        when(delegate.getLastKnownLocalValue()).thenReturn(Optional.of(ValueAndBound.of(INTEGER_1, BOUND)));
+
+        assertThat(coordinationService.getLastKnownLocalValue()).contains(ValueAndBound.of(STRING_1, BOUND));
+        verify(delegate).getLastKnownLocalValue();
+        verify(intToStringTransform).apply(INTEGER_1);
+    }
+
+    @Test
+    public void getsEmptyLocalValueFromDelegateIfDelegateHasEmptyLocalValue() {
+        when(delegate.getLastKnownLocalValue()).thenReturn(Optional.empty());
+
+        assertThat(coordinationService.getLastKnownLocalValue()).isEmpty();
+        verify(delegate).getLastKnownLocalValue();
+    }
 }
