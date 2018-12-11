@@ -195,7 +195,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, shardProgress,
                     SweepQueueUtils.REFRESH_TIME);
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
             return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs, timelock);
