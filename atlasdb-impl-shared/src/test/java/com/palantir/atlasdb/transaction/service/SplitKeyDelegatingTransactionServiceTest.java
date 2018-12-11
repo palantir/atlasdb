@@ -126,7 +126,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void getMultipleFiltersOutImpossibleTimestamps() {
-        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -5L, 1L));
+        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -9L, -19L, 1L));
         verify(delegate1).get(eq(ImmutableList.of(1L)));
     }
 
