@@ -73,6 +73,7 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -438,6 +439,7 @@ public abstract class TransactionManagers {
                         keyValueService,
                         lockAndTimestampServices.timestamp(),
                         config().initializeAsync()));
+        MetadataCoordinationServiceMetrics.registerMetrics(metricsManager, metadataCoordinationService);
         return metadataCoordinationService;
     }
 
