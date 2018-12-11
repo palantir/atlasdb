@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -70,7 +69,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     /**
      * Creates a SweepQueueWriter, performing all the necessary initialization.
      */
-    @VisibleForTesting
     public static MultiTableSweepQueueWriter createWriter(
             TargetedSweepMetrics metrics,
             KeyValueService kvs,
