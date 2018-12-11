@@ -48,10 +48,10 @@ public final class CoordinationServices {
         return createDefault(keyValueService, timestampService::getFreshTimestamp, initializeAsync);
     }
 
-        public static CoordinationService<InternalSchemaMetadata> createDefault(
-            KeyValueService keyValueService,
-            LongSupplier timestampSupplier,
-            boolean initializeAsync) {
+    public static CoordinationService<InternalSchemaMetadata> createDefault(
+                KeyValueService keyValueService,
+                LongSupplier timestampSupplier,
+                boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
                 KeyValueServiceCoordinationStore.create(
                         ObjectMappers.newServerObjectMapper(),
