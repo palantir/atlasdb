@@ -59,12 +59,12 @@ develop
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
            Users may create a ``CoordinationService`` via the ``CoordinationServices`` factory, if needed, or retrieve it from the relevant ``TransactionManager``.
            Generally speaking, ``TransactionService`` should not be directly used by standard AtlasDB consumers; abusing it can result in **SEVERE DATA CORRUPTION**.
-           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3686>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3xyz>`__)
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3686>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3689>`__)
 
     *    - |devbreak|
          - Transaction Managers now expose a ``getTransactionService()`` method.
            Users with custom subclasses of ``TransactionManager`` will need to implement this.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3xyz>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3689>`__)
 
     *    - |fixed| |userbreak|
          - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
