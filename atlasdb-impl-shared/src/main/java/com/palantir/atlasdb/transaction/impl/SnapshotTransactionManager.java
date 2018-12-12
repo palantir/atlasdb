@@ -421,6 +421,11 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
+    public TransactionService getTransactionService() {
+        return transactionService;
+    }
+
+    @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {

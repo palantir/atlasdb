@@ -181,6 +181,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     }
 
     @Override
+    public TransactionService getTransactionService() {
+        return transactionService;
+    }
+
+    @Override
     public Cleaner getCleaner() {
         return null;
     }

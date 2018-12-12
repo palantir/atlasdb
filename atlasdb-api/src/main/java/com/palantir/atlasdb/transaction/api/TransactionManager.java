@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
@@ -265,6 +266,16 @@ public interface TransactionManager extends AutoCloseable {
      * @return the timestamp management service for this transaction manager
      */
     TimestampManagementService getTimestampManagementService();
+
+    /**
+     * The transaction service is used by libraries providing additional functionality around AtlasDB.
+     * End-user clients probably should not require it.
+     * Abuse of the transaction service, especially involving putting new records in, may result in severe and
+     * irrecoverable data corruption.
+     *
+     * @return the transaction service for this transaction manager
+     */
+    TransactionService getTransactionService();
 
     /**
      * Returns the cleaner used by this transaction manager.
