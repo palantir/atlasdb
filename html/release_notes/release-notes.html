@@ -186,6 +186,17 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
+Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3686">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>With the introduction of _coordination, creation of <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> now requires a <code class="docutils literal notranslate"><span class="pre">CoordinationService&lt;InternalSchemaMetadata&gt;</span></code>.
+Users may create a <code class="docutils literal notranslate"><span class="pre">CoordinationService</span></code> via the <code class="docutils literal notranslate"><span class="pre">CoordinationServices</span></code> factory, if needed.
+Generally speaking, <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> should not be directly used by standard AtlasDB consumers; abusing it can result in <strong>SEVERE DATA CORRUPTION</strong>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3686">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The &#64;AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
 Previously, the annotation processor would generate code that wouldn’t compile.
