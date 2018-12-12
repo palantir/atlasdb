@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.coordination;
 
+import java.util.UUID;
+
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -25,11 +29,11 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.SafeArg;
 
 public final class SimpleCoordinationResource implements CoordinationResource {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName(
             "test." + SimpleCoordinationResource.class.getSimpleName());
-    private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
 
     private final TransactionManager transactionManager;
     private final TransactionSchemaManager transactionSchemaManager;
@@ -64,6 +68,8 @@ public final class SimpleCoordinationResource implements CoordinationResource {
     public void forceInstallNewTransactionsSchemaVersion(int newVersion) {
         while (transactionSchemaManager.getTransactionsSchemaVersion(
                 transactionManager.getTimestampService().getFreshTimestamp()) != newVersion) {
+            LoggerFactory.getLogger(SimpleCoordinationResource.class).info("ts = {}",
+                    SafeArg.of("ts", transactionManager.getTimestampService().getFreshTimestamp()));
             transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
             advanceOneHundredMillionTimestamps();
         }
@@ -76,7 +82,9 @@ public final class SimpleCoordinationResource implements CoordinationResource {
                 KeyValueService kvs = transactionManager.getKeyValueService();
                 kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-                tx.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, new byte[1]));
+                tx.put(TEST_TABLE, ImmutableMap.of(generateRandomCell(), new byte[1]));
+                LoggerFactory.getLogger(SimpleCoordinationResource.class).info("tx ts = {}",
+                        SafeArg.of("ts", tx.getTimestamp()));
                 return true;
             });
         } catch (Exception e) {
@@ -87,5 +95,11 @@ public final class SimpleCoordinationResource implements CoordinationResource {
     private void advanceOneHundredMillionTimestamps() {
         transactionManager.getTimestampManagementService().fastForwardTimestamp(
                 transactionManager.getTimestampService().getFreshTimestamp() + 100_000_000);
+    }
+
+    private static Cell generateRandomCell() {
+        return Cell.create(
+                PtBytes.toBytes(UUID.randomUUID().getMostSignificantBits()),
+                PtBytes.toBytes(UUID.randomUUID().getMostSignificantBits()));
     }
 }
