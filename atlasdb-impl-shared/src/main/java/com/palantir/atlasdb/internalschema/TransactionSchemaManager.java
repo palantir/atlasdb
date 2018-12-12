@@ -92,8 +92,11 @@ public class TransactionSchemaManager {
     private InternalSchemaMetadata installNewVersionInMapOrDefault(int newVersion,
             ValueAndBound<InternalSchemaMetadata> valueAndBound) {
         if (!valueAndBound.value().isPresent()) {
-            log.info("Attempting to install a new transactions schema version {}, but no past data was found,"
-                    + " so we attempt to install default instead.",
+            log.warn("Attempting to install a new transactions schema version {}, but no past data was found,"
+                            + " so we attempt to install default instead. This should normally only happen once per"
+                            + " server, and only on or around first startup since upgrading to a version of AtlasDB"
+                            + " that is aware of the transactions table. If this message persists, please contact"
+                            + " support.",
                     SafeArg.of("newVersion", newVersion));
             return InternalSchemaMetadata.defaultValue();
         }
