@@ -45,4 +45,9 @@ public interface CoordinationResource {
     @Path("/transaction")
     @Produces(MediaType.APPLICATION_JSON)
     boolean doTransactionAndReportOutcome();
+
+    @POST
+    @Path("/reset-state")
+    @Produces(MediaType.APPLICATION_JSON)
+    long resetStateAndGetFreshTimestamp();
 }
