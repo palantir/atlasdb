@@ -38,6 +38,11 @@ public interface CoordinationResource {
     boolean tryInstallNewTransactionsSchemaVersion(int newVersion);
 
     @POST
+    @Path("/force-install-transactions-schema-version")
+    @Consumes(MediaType.APPLICATION_JSON)
+    void forceInstallNewTransactionsSchemaVersion(int newVersion);
+
+    @POST
     @Path("/transaction")
     @Produces(MediaType.APPLICATION_JSON)
     boolean doTransactionAndReportOutcome();
