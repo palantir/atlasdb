@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
@@ -25,6 +26,7 @@ import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
@@ -59,6 +61,10 @@ class CassandraTables {
 
     private Set<String> getExisting(CassandraClient client, String keyspace) throws TException {
         return getTableNames(client, keyspace, CfDef::getName);
+    }
+
+    Stream<TableReference> getTableReferencesWithoutFiltering() {
+        return getExisting().stream().map(TableReference::fromInternalTableName);
     }
 
     Set<String> getExistingLowerCased() throws TException {
