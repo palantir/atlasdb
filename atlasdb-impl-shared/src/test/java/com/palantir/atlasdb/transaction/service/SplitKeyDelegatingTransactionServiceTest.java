@@ -32,9 +32,10 @@ import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.math.LongMath;
 
 public class SplitKeyDelegatingTransactionServiceTest {
-    private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> num % 10;
+    private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> LongMath.mod(num, 10L);
 
     private final TransactionService delegate1 = mock(TransactionService.class);
     private final TransactionService delegate2 = mock(TransactionService.class);
@@ -65,6 +66,11 @@ public class SplitKeyDelegatingTransactionServiceTest {
         assertThat(delegatingTransactionService.get(2L)).isEqualTo(4L);
         verify(delegate1).get(1L);
         verify(delegate2).get(2L);
+    }
+
+    @Test
+    public void getReturnsNullIfTimestampIsImpossible() {
+        assertThat(delegatingTransactionService.get(-1L)).isNull();
     }
 
     @Test
@@ -116,6 +122,12 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 .isEqualTo(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
         verify(delegate1).get(eq(ImmutableList.of(1L, 41L)));
         verify(delegate2).get(eq(ImmutableList.of(12L, 32L)));
+    }
+
+    @Test
+    public void getMultipleFiltersOutImpossibleTimestamps() {
+        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -9L, -19L, 1L));
+        verify(delegate1).get(eq(ImmutableList.of(1L)));
     }
 
     @Test

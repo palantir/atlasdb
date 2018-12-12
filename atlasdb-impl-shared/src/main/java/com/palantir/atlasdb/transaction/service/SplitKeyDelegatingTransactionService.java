@@ -27,6 +27,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -55,6 +56,9 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
+        if (startTimestamp < AtlasDbConstants.STARTING_TS) {
+            return null;
+        }
         return getServiceForTimestamp(startTimestamp).get(startTimestamp);
     }
 
@@ -62,6 +66,7 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         // TODO (jkong): If this is too slow, don't use streams.
         Map<T, List<Long>> queryMap = StreamSupport.stream(startTimestamps.spliterator(), false)
+                .filter(timestamp -> timestamp >= AtlasDbConstants.STARTING_TS)
                 .collect(Collectors.groupingBy(timestampToServiceKey));
 
         Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());

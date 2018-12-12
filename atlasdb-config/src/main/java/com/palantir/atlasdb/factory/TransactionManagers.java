@@ -64,6 +64,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
@@ -71,6 +72,8 @@ import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockServi
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -324,10 +327,13 @@ public abstract class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
+        CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
+                metricsManager, lockAndTimestampServices, keyValueService);
+
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService));
+                TransactionServices.createTransactionService(keyValueService, coordinationService));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -419,6 +425,20 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
+            MetricsManager metricsManager, LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService) {
+        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationService.class,
+                CoordinationServices.createDefault(
+                        keyValueService,
+                        lockAndTimestampServices.timestamp(),
+                        config().initializeAsync()));
+        return metadataCoordinationService;
     }
 
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(

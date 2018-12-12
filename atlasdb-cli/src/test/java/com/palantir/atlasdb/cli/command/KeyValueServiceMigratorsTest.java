@@ -138,7 +138,8 @@ public class KeyValueServiceMigratorsTest {
         KeyValueServiceMigrator migrator = KeyValueServiceMigrators.setupMigrator(migratorSpec);
         migrator.setup();
 
-        assertThat(toKvs.getAllTableNames()).containsExactly(TransactionConstants.TRANSACTION_TABLE);
+        assertThat(toKvs.getAllTableNames()).containsExactly(TransactionConstants.TRANSACTION_TABLE,
+                AtlasDbConstants.COORDINATION_TABLE);
     }
 
     @Test
@@ -315,7 +316,7 @@ public class KeyValueServiceMigratorsTest {
         TimestampService timestampService = new InMemoryTimestampService();
 
         TransactionTables.createTables(kvs);
-        TransactionService transactionService = spy(TransactionServices.createTransactionService(kvs));
+        TransactionService transactionService = spy(TransactionServices.createForTesting(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
         when(mockServices.getTimestampService()).thenReturn(timestampService);
