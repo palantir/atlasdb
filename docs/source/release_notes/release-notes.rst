@@ -50,6 +50,17 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
+           Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
+    *    - |devbreak|
+         - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
+           Users may create a ``CoordinationService`` via the ``CoordinationServices`` factory, if needed.
+           Generally speaking, ``TransactionService`` should not be directly used by standard AtlasDB consumers; abusing it can result in **SEVERE DATA CORRUPTION**.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
     *    - |fixed| |userbreak|
          - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
            Previously there was no strict guarantee on the keys' capitalisation, but it was in most cases all lowercase.

@@ -78,6 +78,7 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB = 8;
     public static final int DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB = 64;
 
+    public static final long STARTING_TS = 1L;
     public static final long TRANSACTION_TS = 0L;
     public static final long MAX_TS = Long.MAX_VALUE;
 
