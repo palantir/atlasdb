@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.originalMetadata;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -295,10 +295,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.cAsEsEnSiTiVe");
         keyValueService.createTable(userTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
         clearOutMetadataTable(keyValueService);
-        insertGenericMetadataIntoLegacyCell(keyValueService, userTable, originalMetadata());
+        insertGenericMetadataIntoLegacyCell(keyValueService, userTable, ORIGINAL_METADATA);
 
         assertThat(
-                Arrays.equals(keyValueService.getMetadataForTable(userTable), originalMetadata()),
+                Arrays.equals(keyValueService.getMetadataForTable(userTable), ORIGINAL_METADATA),
                 is(true));
     }
 
@@ -306,7 +306,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public void metadataForNewTableMatchesCase() {
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.xXcOoLtAbLeNaMeXx");
 
-        keyValueService.createTable(userTable, originalMetadata());
+        keyValueService.createTable(userTable, ORIGINAL_METADATA);
 
         assertThat(keyValueService.getMetadataForTables().keySet().contains(userTable), is(true));
     }
@@ -319,13 +319,13 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         byte[] tableMetadataUpdate = new TableMetadata(
                 new NameMetadataDescription(),
                 new ColumnMetadataDescription(),
-                ConflictHandler.IGNORE_ALL, // <--- new, update that isn't in originalMetadata
+                ConflictHandler.IGNORE_ALL, // <--- new, update that isn't in ORIGINAL_METADATA
                 TableMetadataPersistence.LogSafety.SAFE)
                 .persistToBytes();
 
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(oldMetadataCell, originalMetadata()),
+                ImmutableMap.of(oldMetadataCell, ORIGINAL_METADATA),
                 System.currentTimeMillis());
 
         keyValueService.createTable(userTable, tableMetadataUpdate);
@@ -339,9 +339,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), originalMetadata()),
+                ImmutableMap.of(CassandraKeyValueServices.getMetadataCell(tableRef), ORIGINAL_METADATA),
                 System.currentTimeMillis());
-        keyValueService.createTable(tableRef, originalMetadata());
+        keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
         ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), any(Object.class));
@@ -353,9 +353,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
         keyValueService.put(
                 AtlasDbConstants.DEFAULT_METADATA_TABLE,
-                ImmutableMap.of(CassandraKeyValueServices.getOldMetadataCell(tableRef), originalMetadata()),
+                ImmutableMap.of(CassandraKeyValueServices.getOldMetadataCell(tableRef), ORIGINAL_METADATA),
                 System.currentTimeMillis());
-        keyValueService.createTable(tableRef, originalMetadata());
+        keyValueService.createTable(tableRef, ORIGINAL_METADATA);
 
         ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), any(Object.class));

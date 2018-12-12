@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.originalMetadata;
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,9 +44,9 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final TableReference LOWER_UPPER = TableReference.createFromFullyQualifiedName("test.TABLE");
     private static final TableReference LOWER_LOWER = TableReference.createFromFullyQualifiedName("test.table");
     private static final List<TableReference> TABLES = ImmutableList.of(UPPER_UPPER, LOWER_UPPER, LOWER_LOWER);
-    public static final byte[] BYTE_ARRAY = new byte[] {1};
-    public static final byte[] SECOND_BYTE_ARRAY = new byte[] {2};
-    public static final Cell CELL = Cell.create(BYTE_ARRAY, BYTE_ARRAY);
+    private static final byte[] BYTE_ARRAY = new byte[] {1};
+    private static final byte[] SECOND_BYTE_ARRAY = new byte[] {2};
+    private static final Cell CELL = Cell.create(BYTE_ARRAY, BYTE_ARRAY);
 
     private KeyValueService kvs = CASSANDRA.getDefaultKvs();
 
@@ -82,16 +82,22 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
         insertMetadataIntoNewCell(LOWER_UPPER);
 
         assertThat(kvs.getMetadataForTables()).isEmpty();
+    }
+
+    @Test
+    public void nonExistentTablesWithMetadataReturnMetadata() {
+        insertMetadataIntoNewCell(LOWER_UPPER);
+
         assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
     @Test
     public void getMetadataReturnsResultFromNewMetadataCellOnConflict() {
-        kvs.createTable(LOWER_UPPER, originalMetadata());
+        kvs.createTable(LOWER_UPPER, ORIGINAL_METADATA);
         insertGenericMetadataIntoLegacyCell(kvs, LOWER_UPPER);
 
-        assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(originalMetadata());
-        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(originalMetadata());
+        assertThat(kvs.getMetadataForTables().get(LOWER_UPPER)).contains(ORIGINAL_METADATA);
+        assertThat(kvs.getMetadataForTable(LOWER_UPPER)).contains(ORIGINAL_METADATA);
     }
 
 
@@ -115,6 +121,13 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
 
         assertThat(kvs.getMetadataForTables().keySet()).containsExactlyInAnyOrder(longerInRange, shorterInRange);
         assertThat(kvs.getMetadataForTable(LOWER_UPPER)).isEmpty();
+    }
+
+    @Test
+    public void tableCreationWithDifferentCapitalizationFailsForDifferentMetadata() {
+        kvs.createTable(LOWER_UPPER, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThatThrownBy(() -> kvs.createTable(UPPER_UPPER, ORIGINAL_METADATA))
+                .isInstanceOf(RetryLimitReachedException.class);
     }
 
     // todo(gmaretic): The following tests document unexpected behaviour. We should decide if and how to fix it.

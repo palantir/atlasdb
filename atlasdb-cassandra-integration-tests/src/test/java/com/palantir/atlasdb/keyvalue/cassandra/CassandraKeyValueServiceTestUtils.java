@@ -32,6 +32,15 @@ public final class CassandraKeyValueServiceTestUtils {
         // utility
     }
 
+    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
+    // to make sure the tests are actually exercising the correct retrieval codepaths
+    public static final byte[] ORIGINAL_METADATA = new TableMetadata(
+            new NameMetadataDescription(),
+            new ColumnMetadataDescription(),
+            ConflictHandler.RETRY_ON_VALUE_CHANGED,
+            TableMetadataPersistence.LogSafety.SAFE)
+            .persistToBytes();
+
     public static void clearOutMetadataTable(KeyValueService kvs) {
         kvs.truncateTable(AtlasDbConstants.DEFAULT_METADATA_TABLE);
     }
@@ -44,16 +53,5 @@ public final class CassandraKeyValueServiceTestUtils {
         Cell legacyMetadataCell = CassandraKeyValueServices.getOldMetadataCell(tableRef);
         kvs.put(AtlasDbConstants.DEFAULT_METADATA_TABLE, ImmutableMap.of(legacyMetadataCell, data),
                 System.currentTimeMillis());
-    }
-
-    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
-    // to make sure the tests are actually exercising the correct retrieval codepaths
-    public static byte[] originalMetadata() {
-        return new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_VALUE_CHANGED,
-                TableMetadataPersistence.LogSafety.SAFE)
-                .persistToBytes();
     }
 }

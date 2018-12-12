@@ -51,10 +51,17 @@ develop
          - Change
 
     *    - |fixed| |userbreak|
+         - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
+           Previously there was no strict guarantee on the keys' capitalisation, but it was in most cases all lowercase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
+
+    *    - |fixed|
          - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
            Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
-           Furthermore, the table reference keys of the returned map have capitalisation matching the table names in Cassandra.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3656>`__)
+           Now, we delete all rows of the _metadata table containing entries pertaining to the dropped table.
+           Note that this involves a range scan over a part of the _metadata table.
+           While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
 
     *    - |fixed|
          - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
