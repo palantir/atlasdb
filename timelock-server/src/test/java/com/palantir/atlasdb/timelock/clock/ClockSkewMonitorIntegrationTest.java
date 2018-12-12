@@ -42,6 +42,8 @@ public class ClockSkewMonitorIntegrationTest {
     private DeterministicScheduler executorService = new DeterministicScheduler();
     private ClockSkewMonitor monitor;
 
+    private RequestTime originalRequest;
+
     @Before
     public void setUp() {
         mockedEvents = mock(ClockSkewEvents.class);
@@ -49,46 +51,73 @@ public class ClockSkewMonitorIntegrationTest {
         monitor = new ClockSkewMonitor(monitorByServer,
                 mockedEvents, executorService, mockedLocalClockService);
         monitor.runInBackground();
+
+        originalRequest = RequestTime.builder()
+                .localTimeAtStart(0)
+                .localTimeAtEnd(1)
+                .remoteSystemTime(0)
+                .build();
+
+        mockLocalAndRemoteClockSuppliers(originalRequest);
+        executorService.tick(1, TimeUnit.NANOSECONDS);
     }
 
     @Test
     public void logsRequestsWithoutSkew() {
-        RequestTime requestTime = RequestTime.builder()
-                .localTimeAtStart(1)
-                .localTimeAtEnd(1)
-                .remoteSystemTime(1)
-                .build();
-        mockLocalAndRemoteClockSuppliers(requestTime);
-        executorService.tick(1, TimeUnit.NANOSECONDS);
-
-        RequestTime remoteTime = requestTime
+        RequestTime nextRequest = originalRequest
                 .progressLocalClock(100L)
                 .progressRemoteClock(100L);
-        mockLocalAndRemoteClockSuppliers(remoteTime);
+
+        mockLocalAndRemoteClockSuppliers(nextRequest);
         tickOneIteration();
 
+        ClockSkewEvent expectedClockSkew = ImmutableClockSkewEvent.builder()
+                .maxElapsedTime(100L + 1L)
+                .minElapsedTime(100L - 1L)
+                .remoteElapsedTime(100L)
+                .build();
+
+
         verify(mockedEvents, times(1))
-                .clockSkew(server, 0L, 100L, 0L);
+                .clockSkew(server, expectedClockSkew, 1L);
     }
 
     @Test
-    public void logsRequestsWithSkew() {
-        RequestTime requestTime = RequestTime.builder()
-                .localTimeAtStart(1)
-                .localTimeAtEnd(1)
-                .remoteSystemTime(1)
-                .build();
-        mockLocalAndRemoteClockSuppliers(requestTime);
-        executorService.tick(1, TimeUnit.NANOSECONDS);
-
-        RequestTime remoteTime = requestTime
+    public void logsRequestsWithFastRemote() {
+        RequestTime nextRequst = originalRequest
                 .progressLocalClock(100L)
                 .progressRemoteClock(200L);
-        mockLocalAndRemoteClockSuppliers(remoteTime);
+
+        mockLocalAndRemoteClockSuppliers(nextRequst);
         tickOneIteration();
 
+        ClockSkewEvent expectedClockSkew = ImmutableClockSkewEvent.builder()
+                .maxElapsedTime(100L + 1L)
+                .minElapsedTime(100L - 1L)
+                .remoteElapsedTime(200L)
+                .build();
+
         verify(mockedEvents, times(1))
-                .clockSkew(server, 100L, 100L, 0L);
+                .clockSkew(server, expectedClockSkew, 1L);
+    }
+
+    @Test
+    public void logsRequestsWithSlowRemote() {
+        RequestTime nextRequst = originalRequest
+                .progressLocalClock(100L)
+                .progressRemoteClock(50L);
+
+        mockLocalAndRemoteClockSuppliers(nextRequst);
+        tickOneIteration();
+
+        ClockSkewEvent expectedClockSkew = ImmutableClockSkewEvent.builder()
+                .maxElapsedTime(100L + 1L)
+                .minElapsedTime(100L - 1L)
+                .remoteElapsedTime(50L)
+                .build();
+
+        verify(mockedEvents, times(1))
+                .clockSkew(server, expectedClockSkew, 1L);
     }
 
     @Test
@@ -124,7 +153,7 @@ public class ClockSkewMonitorIntegrationTest {
     }
 
     @After
-    public void tearDown() throws InterruptedException {
+    public void tearDown() {
         verifyNoMoreInteractions(mockedEvents);
     }
 }
