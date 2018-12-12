@@ -34,13 +34,14 @@ public final class SimpleCoordinationResource implements CoordinationResource {
 
     private final TransactionManager transactionManager;
     private final TransactionSchemaManager transactionSchemaManager;
-    private TimestampService timestampService;
+    private final TimestampService timestampService;
 
     private SimpleCoordinationResource(
             TransactionManager transactionManager,
             TransactionSchemaManager transactionSchemaManager) {
         this.transactionManager = transactionManager;
         this.transactionSchemaManager = transactionSchemaManager;
+        this.timestampService = transactionManager.getTimestampService();
     }
 
     public static CoordinationResource create(TransactionManager transactionManager) {
