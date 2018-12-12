@@ -38,6 +38,19 @@ public class TrackerUtils {
         // utility
     }
 
+    /**
+     * Creates a {@link Gauge} that caches values, and is monotonically increasing.
+     * Specifically, when this Gauge is queried, it invokes the underlying {@link Supplier<Long>} if it hasn't been
+     * invoked in the last {@link TrackerUtils#DEFAULT_CACHE_INTERVAL}, then returns the highest seen value so far.
+     * In the event the underlying {@link Supplier} throws an exception, we return the highest seen value so far,
+     * rather than propagating the exception.
+     *
+     * @param logger to log error messages
+     * @param clock to measure time
+     * @param shortName used to identify the name of the gauge when logging error messages
+     * @param supplier returns a lower bound on the value of the metric
+     * @return a caching, monotonically increasing gauge
+     */
     public static Gauge<Long> createCachingMonotonicIncreasingGauge(
             Logger logger, Clock clock, String shortName, Supplier<Long> supplier) {
         return new CachedGauge<Long>(clock, DEFAULT_CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
@@ -48,13 +61,13 @@ public class TrackerUtils {
                 try {
                     return upperBound.accumulateAndGet(supplier.get(), Math::max);
                 } catch (Exception e) {
-                    long timestampToReturn = upperBound.get();
+                    long existingValue = upperBound.get();
                     logger.info("An exception occurred when trying to update the {} gauge for tracking purposes."
                                     + " Returning the last known value of {}.",
-                            SafeArg.of("timestampName", shortName),
-                            SafeArg.of("timestamp", timestampToReturn),
+                            SafeArg.of("gaugeName", shortName),
+                            SafeArg.of("existingValue", existingValue),
                             e);
-                    return timestampToReturn;
+                    return existingValue;
                 }
             }
         };

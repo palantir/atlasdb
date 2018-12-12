@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Clock;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -28,6 +29,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 
 public class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
+
+    @VisibleForTesting
+    static final String LAST_VALID_BOUND = "lastValidBound";
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
@@ -38,11 +42,11 @@ public class MetadataCoordinationServiceMetrics {
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
-                "lastValidBound",
+                LAST_VALID_BOUND,
                 TrackerUtils.createCachingMonotonicIncreasingGauge(
                         log,
                         Clock.defaultClock(),
-                        "lastValidBound",
+                        LAST_VALID_BOUND,
                         () -> metadataCoordinationService.getLastKnownLocalValue()
                                 .map(ValueAndBound::bound)
                                 .orElse(Long.MIN_VALUE)));
