@@ -31,6 +31,7 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.SafeArg;
 
 public class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
@@ -40,13 +41,36 @@ public class MetadataCoordinationServiceMetrics {
 
     @VisibleForTesting
     static final String EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
+    public static final int DEFAULT_CACHE_TTL = 10;
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
     }
 
+
+    /**
+     * Registers metrics that may be useful for diagnosing the status of a {@link CoordinationService}.
+     *
+     * Only one coordination service should be registered to a single metrics manager - if multiple are registered,
+     * then it is non-deterministic as to which coordination service the metrics being reported are referring to.
+     *
+     * @param metricsManager metrics manager to register the
+     * @param metadataCoordinationService metadata coordination service that should be tracked
+     */
     public static void registerMetrics(
             MetricsManager metricsManager,
+            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+        registerValidityBoundMetric(metricsManager, metadataCoordinationService);
+        registerEventualTransactionsSchemaVersionMetric(metricsManager, metadataCoordinationService);
+    }
+
+    /**
+     * Registers a gauge which tracks the highest seen validity bound up to this point.
+     *
+     * @param metricsManager metrics manager to register the gauge on
+     * @param metadataCoordinationService metadata coordination service that should be tracked
+     */
+    private static void registerValidityBoundMetric(MetricsManager metricsManager,
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
@@ -58,22 +82,41 @@ public class MetadataCoordinationServiceMetrics {
                         () -> metadataCoordinationService.getLastKnownLocalValue()
                                 .map(ValueAndBound::bound)
                                 .orElse(Long.MIN_VALUE)));
+    }
+
+    /**
+     * Registers a gauge which tracks the eventual transactions schema version - that is, at the end of the current
+     * period of validity for the bound, what the metadata says the transactions schema version should be.
+     *
+     * @param metricsManager metrics manager to register the gauge on
+     * @param metadataCoordinationService metadata coordination service that should be tracked
+     */
+    private static void registerEventualTransactionsSchemaVersionMetric(MetricsManager metricsManager,
+            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
                 EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
-                new CachedGauge<Integer>(Clock.defaultClock(), 10, TimeUnit.SECONDS) {
+                new CachedGauge<Integer>(Clock.defaultClock(), DEFAULT_CACHE_TTL, TimeUnit.SECONDS) {
                     @Override
                     protected Integer loadValue() {
-                        Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
-                                = metadataCoordinationService.getLastKnownLocalValue();
-                        return latestValue
-                                .map(ValueAndBound::value)
-                                .flatMap(Function.identity())
-                                .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                                .map(timestampMap -> timestampMap.getValueForTimestamp(latestValue.get().bound()))
-                                .orElse(null);
+                        try {
+                            Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
+                                    = metadataCoordinationService.getLastKnownLocalValue();
+                            return latestValue
+                                    .map(ValueAndBound::value)
+                                    .flatMap(Function.identity())
+                                    .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
+                                    .map(timestampMap -> timestampMap.getValueForTimestamp(latestValue.get().bound()))
+                                    .orElse(null);
+                        } catch (Exception e) {
+                            log.info("An exception occurred when trying to retrieve the {} metric.",
+                                    SafeArg.of("gaugeName", EVENTUAL_TRANSACTIONS_SCHEMA_VERSION),
+                                    e);
+                            return null;
+                        }
                     }
                 }
         );
     }
+
 }
