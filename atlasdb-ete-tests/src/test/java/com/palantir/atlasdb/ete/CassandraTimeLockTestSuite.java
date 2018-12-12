@@ -24,13 +24,15 @@ import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TargetedSweepEteTest.class,
         CassandraTimestampsEteTest.class,
-        TimestampManagementEteTest.class
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

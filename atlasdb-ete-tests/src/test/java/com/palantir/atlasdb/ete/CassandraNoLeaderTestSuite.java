@@ -28,11 +28,11 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        CoordinationEteTest.class,
         TodoEteTest.class,
         ServiceExposureEteTest.class,
         CassandraTimestampsEteTest.class,
-        TimestampManagementEteTest.class
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class
         })
 public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
