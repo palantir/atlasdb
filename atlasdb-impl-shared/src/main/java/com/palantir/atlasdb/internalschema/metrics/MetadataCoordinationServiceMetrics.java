@@ -16,9 +16,14 @@
 
 package com.palantir.atlasdb.internalschema.metrics;
 
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -32,6 +37,9 @@ public class MetadataCoordinationServiceMetrics {
 
     @VisibleForTesting
     static final String LAST_VALID_BOUND = "lastValidBound";
+
+    @VisibleForTesting
+    static final String EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
@@ -50,5 +58,22 @@ public class MetadataCoordinationServiceMetrics {
                         () -> metadataCoordinationService.getLastKnownLocalValue()
                                 .map(ValueAndBound::bound)
                                 .orElse(Long.MIN_VALUE)));
+        metricsManager.registerMetric(
+                MetadataCoordinationServiceMetrics.class,
+                EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                new CachedGauge<Integer>(Clock.defaultClock(), 10, TimeUnit.SECONDS) {
+                    @Override
+                    protected Integer loadValue() {
+                        Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
+                                = metadataCoordinationService.getLastKnownLocalValue();
+                        return latestValue
+                                .map(ValueAndBound::value)
+                                .flatMap(Function.identity())
+                                .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
+                                .map(timestampMap -> timestampMap.getValueForTimestamp(latestValue.get().bound()))
+                                .orElse(null);
+                    }
+                }
+        );
     }
 }

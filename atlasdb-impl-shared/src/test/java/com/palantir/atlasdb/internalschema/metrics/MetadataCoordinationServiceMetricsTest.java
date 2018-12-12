@@ -19,6 +19,7 @@ package com.palantir.atlasdb.internalschema.metrics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -28,17 +29,27 @@ import org.junit.Test;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings("unchecked") // Mocks
 public class MetadataCoordinationServiceMetricsTest {
-    private static final String LAST_VALID_BOUND = MetadataCoordinationServiceMetrics.LAST_VALID_BOUND;
     private static final long TIMESTAMP_1 = 1111L;
     private static final long TIMESTAMP_2 = 2222L;
+    private static final InternalSchemaMetadata INTERNAL_SCHEMA_METADATA = InternalSchemaMetadata.builder()
+            .timestampToTransactionsTableSchemaVersion(TimestampPartitioningMap.of(
+                    ImmutableRangeMap.<Long, Integer>builder()
+                            .put(Range.range(1L, BoundType.CLOSED, TIMESTAMP_1, BoundType.OPEN), 1)
+                            .put(Range.atLeast(TIMESTAMP_1), 2)
+                            .build()))
+            .build();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final CoordinationService<InternalSchemaMetadata> metadataCoordinationService
@@ -47,15 +58,25 @@ public class MetadataCoordinationServiceMetricsTest {
     @Before
     public void setUp() {
         when(metadataCoordinationService.getLastKnownLocalValue())
-                .thenReturn(Optional.of(ValueAndBound.of(Optional.empty(), TIMESTAMP_1)));
+                .thenReturn(Optional.of(ValueAndBound.of(INTERNAL_SCHEMA_METADATA, TIMESTAMP_1)));
         MetadataCoordinationServiceMetrics.registerMetrics(metricsManager, metadataCoordinationService);
     }
 
     @Test
     public void returnsValidityBoundFromCoordinationService() {
-        Gauge<Long> boundGauge = getGauge(metricsManager, LAST_VALID_BOUND);
+        Gauge<Long> boundGauge = getGauge(metricsManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND);
         assertThat(boundGauge.getValue()).isEqualTo(TIMESTAMP_1);
         verify(metadataCoordinationService).getLastKnownLocalValue();
+        verifyNoMoreInteractions(metadataCoordinationService);
+    }
+
+    @Test
+    public void returnsEventualTransactionsSchemaVersionFromCoordinationService() {
+        Gauge<Integer> boundGauge = getGauge(metricsManager,
+                MetadataCoordinationServiceMetrics.EVENTUAL_TRANSACTIONS_SCHEMA_VERSION);
+        assertThat(boundGauge.getValue()).isEqualTo(2);
+        verify(metadataCoordinationService).getLastKnownLocalValue();
+        verifyNoMoreInteractions(metadataCoordinationService);
     }
 
     @Test
@@ -67,17 +88,18 @@ public class MetadataCoordinationServiceMetricsTest {
         when(otherService.getLastKnownLocalValue()).thenReturn(
                 Optional.of(ValueAndBound.of(Optional.empty(), TIMESTAMP_2)));
 
-        assertThat(getGauge(metricsManager, LAST_VALID_BOUND).getValue()).isEqualTo(TIMESTAMP_1);
-        assertThat(getGauge(otherManager, LAST_VALID_BOUND).getValue()).isEqualTo(TIMESTAMP_2);
+        assertThat(getGauge(metricsManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND).getValue())
+                .isEqualTo(TIMESTAMP_1);
+        assertThat(getGauge(otherManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND).getValue())
+                .isEqualTo(TIMESTAMP_2);
     }
 
     private static String buildFullyQualifiedMetricName(String shortName) {
         return MetricRegistry.name(MetadataCoordinationServiceMetrics.class, shortName);
     }
 
-    @SuppressWarnings("unchecked") // We know the gauges we are registering produce Longs
-    private Gauge<Long> getGauge(MetricsManager manager, String shortName) {
-        return (Gauge<Long>) manager.getRegistry()
+    private static <T> Gauge<T> getGauge(MetricsManager manager, String shortName) {
+        return manager.getRegistry()
                 .getGauges()
                 .get(buildFullyQualifiedMetricName(shortName));
     }
