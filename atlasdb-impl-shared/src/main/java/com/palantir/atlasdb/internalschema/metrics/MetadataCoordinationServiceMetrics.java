@@ -33,20 +33,19 @@ import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 
-public class MetadataCoordinationServiceMetrics {
+public final class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
+
+    private static final int DEFAULT_CACHE_TTL = 10;
 
     @VisibleForTesting
     static final String LAST_VALID_BOUND = "lastValidBound";
-
     @VisibleForTesting
     static final String EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
-    public static final int DEFAULT_CACHE_TTL = 10;
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
     }
-
 
     /**
      * Registers metrics that may be useful for diagnosing the status of a {@link CoordinationService}.

@@ -29,7 +29,7 @@ import com.codahale.metrics.Gauge;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.logsafe.SafeArg;
 
-public class TrackerUtils {
+public final class TrackerUtils {
     // We cache underlying calls, in case a hyper-aggressive metrics client repeatedly queries the values.
     @VisibleForTesting
     static final Duration DEFAULT_CACHE_INTERVAL = Duration.ofSeconds(10L);
@@ -40,7 +40,7 @@ public class TrackerUtils {
 
     /**
      * Creates a {@link Gauge} that caches values, and is monotonically increasing.
-     * Specifically, when this Gauge is queried, it invokes the underlying {@link Supplier<Long>} if it hasn't been
+     * Specifically, when this Gauge is queried, it invokes the underlying {@link Supplier} if it hasn't been
      * invoked in the last {@link TrackerUtils#DEFAULT_CACHE_INTERVAL}, then returns the highest seen value so far.
      * In the event the underlying {@link Supplier} throws an exception, we return the highest seen value so far,
      * rather than propagating the exception.
