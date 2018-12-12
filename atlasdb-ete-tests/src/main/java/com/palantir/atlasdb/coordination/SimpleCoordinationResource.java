@@ -89,10 +89,16 @@ public final class SimpleCoordinationResource implements CoordinationResource {
 
     @Override
     public long resetStateAndGetFreshTimestamp() {
+        forceInstallNewTransactionsSchemaVersion(1);
         KeyValueService kvs = transactionManager.getKeyValueService();
         kvs.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
+        return timestampService.getFreshTimestamp();
+    }
+
+    @Override
+    public long getFreshTimestamp() {
         return timestampService.getFreshTimestamp();
     }
 

@@ -22,6 +22,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.processors.AutoDelegate;
+
+@AutoDelegate
 @Path("/coordination")
 public interface CoordinationResource {
     @POST
@@ -50,4 +53,9 @@ public interface CoordinationResource {
     @Path("/reset-state")
     @Produces(MediaType.APPLICATION_JSON)
     long resetStateAndGetFreshTimestamp();
+
+    @Path("/fresh-timestamp")
+    @POST // POST because we can't allow caching
+    @Produces(MediaType.APPLICATION_JSON)
+    long getFreshTimestamp();
 }
