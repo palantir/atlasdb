@@ -28,9 +28,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.clearOutMetadataTable;
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
-import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.ORIGINAL_METADATA;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
