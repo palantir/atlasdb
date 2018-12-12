@@ -197,6 +197,19 @@ Users may create a <code class="docutils literal notranslate"><span class="pre">
 Generally speaking, <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> should not be directly used by standard AtlasDB consumers; abusing it can result in <strong>SEVERE DATA CORRUPTION</strong>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3686">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Cassandra KVS <cite>getMetadataForTables</cite> method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
+Previously there was no strict guarantee on the keys’ capitalisation, but it was in most cases all lowercase.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3649">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Cassandra KVS <cite>getMetadataForTables</cite> method now does not contain entries for tables that do not exist in Cassandra.
+Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
+Now, we delete all rows of the _metadata table containing entries pertaining to the dropped table.
+Note that this involves a range scan over a part of the _metadata table.
+While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3649">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>The &#64;AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
 Previously, the annotation processor would generate code that wouldn’t compile.
