@@ -32,7 +32,7 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
         TargetedSweepEteTest.class,
         CassandraTimestampsEteTest.class,
         TimestampManagementEteTest.class,
-        CoordinationEteTest.class,
+        CoordinationEteTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

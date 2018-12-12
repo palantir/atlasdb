@@ -31,7 +31,7 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
         TodoEteTest.class,
         ServiceExposureEteTest.class,
         TimestampManagementEteTest.class,
-        CoordinationEteTest.class,
+        CoordinationEteTest.class
         })
 public class CassandraMultinodeTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
