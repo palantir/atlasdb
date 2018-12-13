@@ -42,20 +42,16 @@ public class ClockSkewComparer {
             return;
         }
 
-        long skew = getSkew();
-        events.clockSkew(server, skew, minElapsedTime, lastRequestDuration);
+        ClockSkewEvent event = getSkew();
+        events.clockSkew(server, event, lastRequestDuration);
     }
 
-    private long getSkew() {
-        long skew = 0;
-
-        if (remoteElapsedTime < minElapsedTime) {
-            skew = minElapsedTime - remoteElapsedTime;
-        } else if (remoteElapsedTime > maxElapsedTime) {
-            skew = remoteElapsedTime - maxElapsedTime;
-        }
-
-        return skew;
+    private ClockSkewEvent getSkew() {
+        return ImmutableClockSkewEvent.builder()
+                .maxElapsedTime(maxElapsedTime)
+                .minElapsedTime(minElapsedTime)
+                .remoteElapsedTime(remoteElapsedTime)
+                .build();
     }
 
     private boolean clockHasMovedBackwards() {
