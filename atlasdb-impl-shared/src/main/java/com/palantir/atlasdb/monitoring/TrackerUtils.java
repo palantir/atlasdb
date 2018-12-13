@@ -78,7 +78,7 @@ public final class TrackerUtils {
     public static Gauge<Long> createCachingMonotonicIncreasingGauge(
             Logger logger, Clock clock, String shortName, Supplier<Long> supplier) {
         return createCachingReducingGauge(logger, clock, shortName, supplier, Long.MIN_VALUE, Math::max);
-   }
+    }
 
     private static <T> Gauge<T> createCachingReducingGauge(
             Logger logger,
