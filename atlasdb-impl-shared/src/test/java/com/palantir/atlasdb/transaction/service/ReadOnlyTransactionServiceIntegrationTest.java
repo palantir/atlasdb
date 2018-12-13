@@ -42,6 +42,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
 
         assertThat(readOnlyTransactionService.get(1L)).isEqualTo(8L);
         assertThat(readOnlyTransactionService.get(8L)).isNull();
+        assertThat(readOnlyTransactionService.get(COORDINATION_QUANTUM + 1L)).isNull();
 
         timestampService.fastForwardTimestamp(COORDINATION_QUANTUM);
 

@@ -111,6 +111,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("serviceKey", key),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
-        return Optional.ofNullable(service);
+        return Optional.of(service);
     }
 }
