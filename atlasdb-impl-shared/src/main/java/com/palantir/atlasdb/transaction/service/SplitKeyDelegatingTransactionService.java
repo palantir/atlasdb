@@ -17,16 +17,15 @@
 package com.palantir.atlasdb.transaction.service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -46,14 +45,12 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
-    private final boolean ignoreUnknown;
 
     public SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
-            Map<T, TransactionService> keyedServices, boolean ignoreUnknown) {
+            Map<T, TransactionService> keyedServices) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
-        this.ignoreUnknown = ignoreUnknown;
     }
 
     @CheckForNull
@@ -67,13 +64,19 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        // TODO (jkong): If this is too slow, don't use streams.
-        Map<T, List<Long>> queryMap = StreamSupport.stream(startTimestamps.spliterator(), false)
-                .filter(timestamp -> timestamp >= AtlasDbConstants.STARTING_TS)
-                .collect(Collectors.groupingBy(timestampToServiceKey));
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            if (startTimestamp < AtlasDbConstants.STARTING_TS) {
+                continue;
+            }
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
 
         Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!ignoreUnknown && !unknownKeys.isEmpty()) {
+        if (!unknownKeys.isEmpty()) {
             throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
                     + " are unknown: {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamps", startTimestamps),
@@ -81,9 +84,9 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
 
-        return queryMap.entrySet()
+        return queryMap.asMap()
+                .entrySet()
                 .stream()
-                .filter(entry -> !unknownKeys.contains(entry.getKey()))
                 .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
                 .collect(HashMap::new, Map::putAll, Map::putAll);
     }
@@ -96,9 +99,12 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
+        if (key == null) {
+            return Optional.empty();
+        }
         TransactionService service = keyedServices.get(key);
 
-        if (!ignoreUnknown && service == null) {
+        if (service == null) {
             throw new SafeIllegalStateException("Could not find a transaction service for timestamp {}, which"
                     + " produced a key of {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamp", startTimestamp),
