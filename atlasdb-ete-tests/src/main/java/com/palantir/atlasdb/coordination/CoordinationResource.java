@@ -39,6 +39,13 @@ public interface CoordinationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     boolean tryInstallNewTransactionsSchemaVersion(int newVersion);
 
+    /**
+     * Force install a new version of the transactions schema. After this method returns, the provided
+     * transactions schema version should be installed, and timestamps brought forward to the point where the
+     * provided version will actively be used in transactions.
+     *
+     * @param newVersion new schema verison to install
+     */
     @POST
     @Path("/force-install-transactions-schema-version")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -49,6 +56,13 @@ public interface CoordinationResource {
     @Produces(MediaType.APPLICATION_JSON)
     boolean doTransactionAndReportOutcome();
 
+    /**
+     * After this method returns, the state of the {@link CoordinationService} that is backing this
+     * {@link CoordinationResource} should be reset. In particular, caches should be reset, and the value the
+     * {@link CoordinationService} believes to be agreed upon should be reset to zero.
+     *
+     * @return a fresh timestamp after the reset has been executed
+     */
     @POST
     @Path("/reset-state")
     @Produces(MediaType.APPLICATION_JSON)
