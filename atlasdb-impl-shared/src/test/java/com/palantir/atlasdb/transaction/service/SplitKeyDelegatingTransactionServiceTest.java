@@ -44,7 +44,9 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final Map<Long, TransactionService> transactionServiceMap = ImmutableMap.of(
             1L, delegate1, 2L, delegate2, 3L, delegate3);
     private final TransactionService delegatingTransactionService
-            = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
+            = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap, false);
+    private final TransactionService ignoringUnknownTransactionService
+            = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap, true);
 
     @After
     public void verifyNoMoreInteractions() {
@@ -87,7 +89,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 num -> {
                     throw ex;
                 },
-                transactionServiceMap);
+                transactionServiceMap, false);
 
         assertThatThrownBy(() -> unusableService.get(5L)).isEqualTo(ex);
     }
@@ -139,5 +141,19 @@ public class SplitKeyDelegatingTransactionServiceTest {
                         + " unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
+    }
+
+    @Test
+    public void ignoreUnknownIgnoresUnknownTimestampServicesForSingleTimestamps() {
+        assertThat(ignoringUnknownTransactionService.get(7L)).isNull();
+    }
+
+    @Test
+    public void ignoreUnknownIgnoresUnknownTimestampServicesForMultipleTimestamps() {
+        when(delegate1.get(eq(ImmutableList.of(1L, 41L)))).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+
+        assertThat(ignoringUnknownTransactionService.get(ImmutableList.of(1L, 17L, 39L, 41L)))
+                .isEqualTo(ImmutableMap.of(1L, 8L, 41L, 48L));
+        verify(delegate1).get(eq(ImmutableList.of(1L, 41L)));
     }
 }

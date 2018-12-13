@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -45,12 +46,14 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
+    private final boolean ignoreUnknown;
 
     public SplitKeyDelegatingTransactionService(
             Function<Long, T> timestampToServiceKey,
-            Map<T, TransactionService> keyedServices) {
+            Map<T, TransactionService> keyedServices, boolean ignoreUnknown) {
         this.timestampToServiceKey = timestampToServiceKey;
         this.keyedServices = keyedServices;
+        this.ignoreUnknown = ignoreUnknown;
     }
 
     @CheckForNull
@@ -59,7 +62,7 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         if (startTimestamp < AtlasDbConstants.STARTING_TS) {
             return null;
         }
-        return getServiceForTimestamp(startTimestamp).get(startTimestamp);
+        return getServiceForTimestamp(startTimestamp).map(service -> service.get(startTimestamp)).orElse(null);
     }
 
     @Override
@@ -70,7 +73,7 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                 .collect(Collectors.groupingBy(timestampToServiceKey));
 
         Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
-        if (!unknownKeys.isEmpty()) {
+        if (!ignoreUnknown && !unknownKeys.isEmpty()) {
             throw new SafeIllegalStateException("A batch of timestamps {} produced some transaction service keys which"
                     + " are unknown: {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamps", startTimestamps),
@@ -80,26 +83,28 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
         return queryMap.entrySet()
                 .stream()
+                .filter(entry -> !unknownKeys.contains(entry.getKey()))
                 .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
                 .collect(HashMap::new, Map::putAll, Map::putAll);
     }
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        getServiceForTimestamp(startTimestamp).putUnlessExists(startTimestamp, commitTimestamp);
+        getServiceForTimestamp(startTimestamp).ifPresent(
+                service -> service.putUnlessExists(startTimestamp, commitTimestamp));
     }
 
-    private TransactionService getServiceForTimestamp(long startTimestamp) {
+    private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
         TransactionService service = keyedServices.get(key);
 
-        if (service == null) {
+        if (!ignoreUnknown && service == null) {
             throw new SafeIllegalStateException("Could not find a transaction service for timestamp {}, which"
                     + " produced a key of {}. Known transaction service keys were {}.",
                     SafeArg.of("timestamp", startTimestamp),
                     SafeArg.of("serviceKey", key),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
-        return service;
+        return Optional.ofNullable(service);
     }
 }

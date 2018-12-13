@@ -31,17 +31,26 @@ public final class TransactionServices {
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
         if (keyValueService.supportsCheckAndSet()) {
-            return createSplitKeyTransactionService(keyValueService, coordinationService);
+            return createSplitKeyTransactionService(keyValueService, coordinationService, false);
         }
         return createV1TransactionService(keyValueService);
     }
 
+//    public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
+//            KeyValueService keyValueService,
+//            CoordinationService<InternalSchemaMetadata> coordinationService) {
+//
+//    }
+
     private static TransactionService createSplitKeyTransactionService(
-            KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
+            KeyValueService keyValueService,
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            boolean ignoreUnknown) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         return new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
-                ImmutableMap.of(1, createV1TransactionService(keyValueService)));
+                ImmutableMap.of(1, createV1TransactionService(keyValueService)),
+                ignoreUnknown);
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
