@@ -73,7 +73,7 @@ public final class TransactionServices {
                         throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
                                 + " transaction service! This is probably a product bug. Please contact"
                                 + " support.");
-                        },
+                    },
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
