@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
-    private final long COORDINATION_QUANTUM = 100_000_000L;
+    private static final long COORDINATION_QUANTUM = 100_000_000L;
 
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();

@@ -67,13 +67,13 @@ public final class TransactionServices {
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
             KeyValueService keyValueService) {
         if (keyValueService.supportsCheckAndSet()) {
-            CoordinationService<InternalSchemaMetadata> coordinationService
-                    = CoordinationServices.createDefault(keyValueService,
+            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                    keyValueService,
                     () -> {
                         throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
                                 + " transaction service! This is probably a product bug. Please contact"
                                 + " support.");
-                    },
+                        },
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
