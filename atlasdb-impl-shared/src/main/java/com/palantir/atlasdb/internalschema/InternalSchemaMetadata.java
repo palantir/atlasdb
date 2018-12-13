@@ -20,6 +20,8 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableRangeMap;
+import com.google.common.collect.Range;
 
 /**
  * An {@link InternalSchemaMetadata} object controls how Atlas nodes carry out certain operations.
@@ -28,9 +30,18 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableInternalSchemaMetadata.class)
 @JsonDeserialize(as = ImmutableInternalSchemaMetadata.class)
 public interface InternalSchemaMetadata {
-    TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion();
+
+    @Value.Default
+    default TimestampPartitioningMap<Integer> timestampToTransactionsTableSchemaVersion() {
+        Range<Long> startOfTime = Range.atLeast(1L);
+        return TimestampPartitioningMap.of(ImmutableRangeMap.of(startOfTime, 1));
+    }
 
     static ImmutableInternalSchemaMetadata.Builder builder() {
         return ImmutableInternalSchemaMetadata.builder();
+    }
+
+    static InternalSchemaMetadata defaultValue() {
+        return builder().build();
     }
 }

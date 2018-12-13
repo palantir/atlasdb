@@ -20,10 +20,16 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.SafeArg;
 
 public class CoordinationServiceImpl<T> implements CoordinationService<T> {
+    private static final Logger log = LoggerFactory.getLogger(CoordinationServiceImpl.class);
+
     private final CoordinationStore<T> store;
     private final AtomicReference<ValueAndBound<T>> cache = new AtomicReference<>(getInitialCacheValue());
 
@@ -63,12 +69,14 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
     }
 
     private ValueAndBound<T> chooseValueWithGreaterBound(
-            ValueAndBound<T> valueAndBound1,
-            ValueAndBound<T> valueAndBound2) {
-        if (valueAndBound1.bound() > valueAndBound2.bound()) {
-            return valueAndBound1;
+            ValueAndBound<T> currentValue,
+            ValueAndBound<T> nextValue) {
+        if (currentValue.bound() > nextValue.bound()) {
+            return currentValue;
         }
-        return valueAndBound2;
+        log.info("Updating cached coordination value to a new value, valid till {}",
+                SafeArg.of("newBound", nextValue.bound()));
+        return nextValue;
     }
 
     private static <T> ValueAndBound<T> getInitialCacheValue() {

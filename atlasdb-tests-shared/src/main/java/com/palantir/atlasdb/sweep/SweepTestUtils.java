@@ -61,7 +61,7 @@ public final class SweepTestUtils {
                 ts,
                 ts,
                 SweepStrategyManagers.createDefault(kvs),
-                TransactionServices.createTransactionService(kvs));
+                TransactionServices.createForTesting(kvs, ts, false));
     }
 
     public static TransactionManager setupTxManager(KeyValueService kvs,

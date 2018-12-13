@@ -17,11 +17,12 @@
 package com.palantir.atlasdb.internalschema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -30,27 +31,17 @@ import com.palantir.atlasdb.internalschema.persistence.VersionedInternalSchemaMe
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.remoting3.ext.jackson.ObjectMappers;
 import com.palantir.timestamp.InMemoryTimestampService;
+import com.palantir.timestamp.TimestampService;
 
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
     private final InMemoryTimestampService timestamps = new InMemoryTimestampService();
-    private final CoordinationServiceImpl<VersionedInternalSchemaMetadata> rawCoordinationService
-            = new CoordinationServiceImpl<>(KeyValueServiceCoordinationStore.create(
-                    ObjectMappers.newServerObjectMapper(),
-                    new InMemoryKeyValueService(true),
-                    PtBytes.toBytes("blablabla"),
-                    timestamps::getFreshTimestamp,
-                    VersionedInternalSchemaMetadata.class));
-    private final CoordinationService<InternalSchemaMetadata> actualCoordinationService
-            = CoordinationServices.wrapHidingVersionSerialization(rawCoordinationService);
-    private final TransactionSchemaManager manager = new TransactionSchemaManager(
-            actualCoordinationService);
+    private final TransactionSchemaManager manager = createTransactionSchemaManager(timestamps);
 
     @Before
     public void setUp() {
-        new InternalSchemaMetadataInitializer(actualCoordinationService)
-                .ensureInternalSchemaMetadataInitialized();
+        assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
     }
 
     @Test
@@ -60,20 +51,48 @@ public class TransactionSchemaManagerIntegrationTest {
 
     @Test
     public void newSchemaVersionsCanBeInstalledWithinOneHundredMillionTimestamps() {
-        manager.tryInstallNewTransactionsSchemaVersion(2);
+        assertThat(manager.tryInstallNewTransactionsSchemaVersion(2)).isTrue();
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
     }
 
     @Test
     public void canSwitchBetweenSchemaVersions() {
-        manager.tryInstallNewTransactionsSchemaVersion(2);
+        assertThat(manager.tryInstallNewTransactionsSchemaVersion(2)).isTrue();
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(2);
-        manager.tryInstallNewTransactionsSchemaVersion(1);
+        assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
         fastForwardTimestampByOneHundredMillion();
         assertThat(manager.getTransactionsSchemaVersion(timestamps.getFreshTimestamp())).isEqualTo(1);
     }
+
+    @Test
+    public void canFailToInstallNewVersions() {
+        TransactionSchemaManager newManager = createTransactionSchemaManager(new InMemoryTimestampService());
+        // Always need to seed the default value, if it's not there
+        assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isFalse();
+        assertThat(newManager.tryInstallNewTransactionsSchemaVersion(5)).isTrue();
+    }
+
+    @Test
+    public void throwsIfTryingToGetAnImpossibleTimestamp() {
+        assertThatThrownBy(() -> manager.getTransactionsSchemaVersion(AtlasDbConstants.STARTING_TS - 3141592))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("was never given out by the timestamp service");
+    }
+
+    private static TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
+        CoordinationServiceImpl<VersionedInternalSchemaMetadata> rawService = new CoordinationServiceImpl<>(
+                KeyValueServiceCoordinationStore.create(
+                        ObjectMappers.newServerObjectMapper(),
+                        new InMemoryKeyValueService(true),
+                        PtBytes.toBytes("aaa"),
+                        ts::getFreshTimestamp,
+                        VersionedInternalSchemaMetadata.class,
+                        false));
+        return new TransactionSchemaManager(CoordinationServices.wrapHidingVersionSerialization(rawService));
+    }
+
 
     private void fastForwardTimestampByOneHundredMillion() {
         long currentTimestamp = timestamps.getFreshTimestamp();

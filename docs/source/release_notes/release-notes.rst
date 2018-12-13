@@ -50,6 +50,35 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
+           Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
+    *    - |devbreak|
+         - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
+           Users may create a ``CoordinationService`` via the ``CoordinationServices`` factory, if needed, or retrieve it from the relevant ``TransactionManager``.
+           Generally speaking, ``TransactionService`` should not be directly used by standard AtlasDB consumers; abusing it can result in **SEVERE DATA CORRUPTION**.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3686>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3689>`__)
+
+    *    - |devbreak|
+         - Transaction Managers now expose a ``getTransactionService()`` method.
+           Users with custom subclasses of ``TransactionManager`` will need to implement this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3689>`__)
+
+    *    - |fixed| |userbreak|
+         - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
+           Previously there was no strict guarantee on the keys' capitalisation, but it was in most cases all lowercase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
+
+    *    - |fixed|
+         - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
+           Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
+           Now, we delete all rows of the _metadata table containing entries pertaining to the dropped table.
+           Note that this involves a range scan over a part of the _metadata table.
+           While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
+
     *    - |fixed|
          - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
            Previously, the annotation processor would generate code that wouldn't compile.
@@ -61,6 +90,10 @@ develop
            Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
            The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
+    *    - |improved|
+         - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3676>`__)
 
 ========
 v0.114.0
