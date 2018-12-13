@@ -85,9 +85,9 @@ public class CassandraApiVersion {
         return versionString;
     }
 
-    private void throwUnsupportedOperationException(String versionString) {
+    private void throwUnsupportedOperationException(String version) {
         throw new UnsupportedOperationException(String.format(
                 "Illegal version of Thrift protocol detected; expected format '#.#.#' or '#.#.#-pt#', got '%s'",
-                versionString));
+                version));
     }
 }
