@@ -123,23 +123,21 @@ public class ClockSkewMonitorIntegrationTest {
     @Test
     public void logsIfLocalTimeGoesBackwards() {
         when(mockedLocalClockService.getSystemTimeInNanos())
-                .thenReturn(10L)
-                .thenReturn(5L);
+                .thenReturn(-1L);
         tickOneIteration();
 
         verify(mockedEvents, times(1))
-                .clockWentBackwards("local", 5);
+                .clockWentBackwards("local", 2);
     }
 
     @Test
     public void logsIfRemoteTimeGoesBackwards() {
         when(mockedRemoteClockService.getSystemTimeInNanos())
-                .thenReturn(10L)
-                .thenReturn(5L);
+                .thenReturn(-1L);
         tickOneIteration();
 
         verify(mockedEvents, times(1))
-                .clockWentBackwards(server, 5);
+                .clockWentBackwards(server, 1);
     }
 
     private void tickOneIteration() {
