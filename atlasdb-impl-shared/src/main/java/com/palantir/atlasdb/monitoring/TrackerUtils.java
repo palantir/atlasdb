@@ -18,7 +18,8 @@ package com.palantir.atlasdb.monitoring;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -39,6 +40,29 @@ public final class TrackerUtils {
     }
 
     /**
+     * Creates a {@link Gauge} that caches values, and preserves previous values in the event an exception occurs.
+     * Specifically, when this Gauge is queried, it invokes the underlying {@link Supplier} if it hasn't been
+     * invoked in the last {@link TrackerUtils#DEFAULT_CACHE_INTERVAL}. In the event the underlying {@link Supplier}
+     * throws an exception, we return the last seen value rather than propagating the exception.
+     *
+     * Thread safety: In the event that loadValue() is called concurrently (which can occur if, for example, a call
+     * to the supplier takes more than {@link TrackerUtils#DEFAULT_CACHE_INTERVAL}) and concurrent calls are successful,
+     * the value stored as the last seen value may correspond to the value returned by any call (but will correspond
+     * to the value returned by one of the calls).
+     *
+     * @param logger to log error messages
+     * @param clock to measure time
+     * @param shortName to identify the name of the gauge when logging error messages
+     * @param supplier returns the current value of the metric
+     * @param <T> type of value the metric should have
+     * @return a caching, exception-handling gauge
+     */
+    public static <T> Gauge<T> createCachingExceptionHandlingGauge(
+            Logger logger, Clock clock, String shortName, Supplier<T> supplier) {
+        return createCachingReducingGauge(logger, clock, shortName, supplier, null, (previous, current) -> current);
+    }
+
+    /**
      * Creates a {@link Gauge} that caches values, and is monotonically increasing.
      * Specifically, when this Gauge is queried, it invokes the underlying {@link Supplier} if it hasn't been
      * invoked in the last {@link TrackerUtils#DEFAULT_CACHE_INTERVAL}, then returns the highest seen value so far.
@@ -47,21 +71,31 @@ public final class TrackerUtils {
      *
      * @param logger to log error messages
      * @param clock to measure time
-     * @param shortName used to identify the name of the gauge when logging error messages
+     * @param shortName to identify the name of the gauge when logging error messages
      * @param supplier returns a lower bound on the value of the metric
      * @return a caching, monotonically increasing gauge
      */
     public static Gauge<Long> createCachingMonotonicIncreasingGauge(
             Logger logger, Clock clock, String shortName, Supplier<Long> supplier) {
-        return new CachedGauge<Long>(clock, DEFAULT_CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
-            AtomicLong upperBound = new AtomicLong(Long.MIN_VALUE);
+        return createCachingReducingGauge(logger, clock, shortName, supplier, Long.MIN_VALUE, Math::max);
+   }
+
+    private static <T> Gauge<T> createCachingReducingGauge(
+            Logger logger,
+            Clock clock,
+            String shortName,
+            Supplier<T> supplier,
+            T initialValue,
+            BinaryOperator<T> reducer) {
+        return new CachedGauge<T>(clock, DEFAULT_CACHE_INTERVAL.getSeconds(), TimeUnit.SECONDS) {
+            AtomicReference<T> previousValue = new AtomicReference<>(initialValue);
 
             @Override
-            protected Long loadValue() {
+            protected T loadValue() {
                 try {
-                    return upperBound.accumulateAndGet(supplier.get(), Math::max);
+                    return previousValue.accumulateAndGet(supplier.get(), reducer);
                 } catch (Exception e) {
-                    long existingValue = upperBound.get();
+                    T existingValue = previousValue.get();
                     logger.info("An exception occurred when trying to update the {} gauge for tracking purposes."
                                     + " Returning the last known value of {}.",
                             SafeArg.of("gaugeName", shortName),

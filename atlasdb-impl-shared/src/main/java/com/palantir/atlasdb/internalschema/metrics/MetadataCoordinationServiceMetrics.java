@@ -17,13 +17,11 @@
 package com.palantir.atlasdb.internalschema.metrics;
 
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -31,7 +29,6 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.logsafe.SafeArg;
 
 public final class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
@@ -59,7 +56,8 @@ public final class MetadataCoordinationServiceMetrics {
     }
 
     /**
-     * Registers a gauge which tracks the highest seen validity bound up to this point.
+     * Registers a gauge which tracks the current value of the validity bound. Under normal operation and within the
+     * lifetiem of a single JVM, this should not decrease.
      *
      * @param metricsManager metrics manager to register the gauge on
      * @param metadataCoordinationService metadata coordination service that should be tracked
@@ -69,7 +67,7 @@ public final class MetadataCoordinationServiceMetrics {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
                 AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
-                TrackerUtils.createCachingMonotonicIncreasingGauge(
+                TrackerUtils.createCachingExceptionHandlingGauge(
                         log,
                         Clock.defaultClock(),
                         AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
@@ -90,10 +88,11 @@ public final class MetadataCoordinationServiceMetrics {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
                 AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
-                new CachedGauge<Integer>(Clock.defaultClock(), DEFAULT_CACHE_TTL, TimeUnit.SECONDS) {
-                    @Override
-                    protected Integer loadValue() {
-                        try {
+                TrackerUtils.createCachingExceptionHandlingGauge(
+                        log,
+                        Clock.defaultClock(),
+                        AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                        () -> {
                             Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
                                     = metadataCoordinationService.getLastKnownLocalValue();
                             return latestValue
@@ -102,16 +101,7 @@ public final class MetadataCoordinationServiceMetrics {
                                     .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
                                     .map(timestampMap -> timestampMap.getValueForTimestamp(latestValue.get().bound()))
                                     .orElse(null);
-                        } catch (Exception e) {
-                            log.info("An exception occurred when trying to retrieve the {} metric.",
-                                    SafeArg.of("gaugeName",
-                                            AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION),
-                                    e);
-                            return null;
-                        }
-                    }
-                }
-        );
+                        }));
     }
 
 }
