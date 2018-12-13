@@ -88,6 +88,7 @@ jobs:
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
       - attach_workspace: { at: . }
+      - run: sudo apt-get update
       - run: sudo apt-get install python python-pip
       - run:
           command: |
