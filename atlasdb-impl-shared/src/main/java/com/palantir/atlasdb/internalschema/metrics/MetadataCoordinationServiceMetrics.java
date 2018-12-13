@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.CachedGauge;
 import com.codahale.metrics.Clock;
-import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -37,11 +37,6 @@ public final class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
 
     private static final int DEFAULT_CACHE_TTL = 10;
-
-    @VisibleForTesting
-    static final String LAST_VALID_BOUND = "lastValidBound";
-    @VisibleForTesting
-    static final String EVENTUAL_TRANSACTIONS_SCHEMA_VERSION = "eventualTransactionsSchemaVersion";
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
@@ -73,11 +68,11 @@ public final class MetadataCoordinationServiceMetrics {
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
-                LAST_VALID_BOUND,
+                AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
                 TrackerUtils.createCachingMonotonicIncreasingGauge(
                         log,
                         Clock.defaultClock(),
-                        LAST_VALID_BOUND,
+                        AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND,
                         () -> metadataCoordinationService.getLastKnownLocalValue()
                                 .map(ValueAndBound::bound)
                                 .orElse(Long.MIN_VALUE)));
@@ -94,7 +89,7 @@ public final class MetadataCoordinationServiceMetrics {
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
-                EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
                 new CachedGauge<Integer>(Clock.defaultClock(), DEFAULT_CACHE_TTL, TimeUnit.SECONDS) {
                     @Override
                     protected Integer loadValue() {
@@ -109,7 +104,8 @@ public final class MetadataCoordinationServiceMetrics {
                                     .orElse(null);
                         } catch (Exception e) {
                             log.info("An exception occurred when trying to retrieve the {} metric.",
-                                    SafeArg.of("gaugeName", EVENTUAL_TRANSACTIONS_SCHEMA_VERSION),
+                                    SafeArg.of("gaugeName",
+                                            AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION),
                                     e);
                             return null;
                         }

@@ -32,6 +32,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
+import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -64,7 +65,7 @@ public class MetadataCoordinationServiceMetricsTest {
 
     @Test
     public void returnsValidityBoundFromCoordinationService() {
-        Gauge<Long> boundGauge = getGauge(metricsManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND);
+        Gauge<Long> boundGauge = getGauge(metricsManager, AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND);
         assertThat(boundGauge.getValue()).isEqualTo(TIMESTAMP_1);
         verify(metadataCoordinationService).getLastKnownLocalValue();
         verifyNoMoreInteractions(metadataCoordinationService);
@@ -73,7 +74,7 @@ public class MetadataCoordinationServiceMetricsTest {
     @Test
     public void returnsEventualTransactionsSchemaVersionFromCoordinationService() {
         Gauge<Integer> boundGauge = getGauge(metricsManager,
-                MetadataCoordinationServiceMetrics.EVENTUAL_TRANSACTIONS_SCHEMA_VERSION);
+                AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION);
         assertThat(boundGauge.getValue()).isEqualTo(2);
         verify(metadataCoordinationService).getLastKnownLocalValue();
         verifyNoMoreInteractions(metadataCoordinationService);
@@ -88,9 +89,9 @@ public class MetadataCoordinationServiceMetricsTest {
         when(otherService.getLastKnownLocalValue()).thenReturn(
                 Optional.of(ValueAndBound.of(Optional.empty(), TIMESTAMP_2)));
 
-        assertThat(getGauge(metricsManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND).getValue())
+        assertThat(getGauge(metricsManager, AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND).getValue())
                 .isEqualTo(TIMESTAMP_1);
-        assertThat(getGauge(otherManager, MetadataCoordinationServiceMetrics.LAST_VALID_BOUND).getValue())
+        assertThat(getGauge(otherManager, AtlasDbMetricNames.COORDINATION_LAST_VALID_BOUND).getValue())
                 .isEqualTo(TIMESTAMP_2);
     }
 
