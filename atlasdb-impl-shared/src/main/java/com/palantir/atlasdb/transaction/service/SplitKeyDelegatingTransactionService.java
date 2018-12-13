@@ -93,8 +93,9 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        getServiceForTimestamp(startTimestamp).ifPresent(
-                service -> service.putUnlessExists(startTimestamp, commitTimestamp));
+        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
+                () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
+        service.putUnlessExists(startTimestamp, commitTimestamp);
     }
 
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
