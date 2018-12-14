@@ -66,6 +66,10 @@ develop
            Users with custom subclasses of ``TransactionManager`` will need to implement this.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3689>`__)
 
+    *    - |new| |metrics|
+         - With the introduction of _coordination, we expose new metrics indicating the point (in logical timestamps) till which the coordination service knows what has been agreed, as well as the transactions schema version that will eventually be applied.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3691>`__)
+
     *    - |fixed| |userbreak|
          - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
            Previously there was no strict guarantee on the keys' capitalisation, but it was in most cases all lowercase.
