@@ -18,9 +18,11 @@ package com.palantir.atlasdb.transaction.service;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 
 public final class TransactionServices {
@@ -37,11 +39,13 @@ public final class TransactionServices {
     }
 
     private static TransactionService createSplitKeyTransactionService(
-            KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
+            KeyValueService keyValueService,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         return new SplitKeyDelegatingTransactionService<>(
                 transactionSchemaManager::getTransactionsSchemaVersion,
-                ImmutableMap.of(1, createV1TransactionService(keyValueService)));
+                ImmutableMap.of(1, createV1TransactionService(keyValueService))
+        );
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
@@ -58,5 +62,26 @@ public final class TransactionServices {
         CoordinationService<InternalSchemaMetadata> coordinationService
                 = CoordinationServices.createDefault(keyValueService, timestampService, initializeAsync);
         return createTransactionService(keyValueService, coordinationService);
+    }
+
+    public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
+            KeyValueService keyValueService) {
+        if (keyValueService.supportsCheckAndSet()) {
+            CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+                    keyValueService,
+                    () -> {
+                        throw new SafeIllegalStateException("Attempted to get a timestamp from a read-only"
+                                + " transaction service! This is probably a product bug. Please contact"
+                                + " support.");
+                    },
+                    false);
+            ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
+                    = new ReadOnlyTransactionSchemaManager(coordinationService);
+            return new SplitKeyDelegatingTransactionService<>(
+                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
+                    ImmutableMap.of(1, createV1TransactionService(keyValueService))
+            );
+        }
+        return createV1TransactionService(keyValueService);
     }
 }
