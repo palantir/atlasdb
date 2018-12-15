@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -107,6 +108,12 @@ public class SplitKeyDelegatingTransactionServiceTest {
         assertThatThrownBy(() -> delegatingTransactionService.putUnlessExists(4L, 12L))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Could not find a transaction service for timestamp {}");
+    }
+
+    @Test
+    public void putUnlessExistsDoesNotThrowOnImpossibleValues() {
+        assertThatCode(() -> delegatingTransactionService.putUnlessExists(-1L, -1L))
+                .doesNotThrowAnyException();
     }
 
     @Test
