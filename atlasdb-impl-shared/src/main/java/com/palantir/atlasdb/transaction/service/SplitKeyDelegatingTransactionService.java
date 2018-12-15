@@ -24,6 +24,9 @@ import java.util.function.Function;
 
 import javax.annotation.CheckForNull;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -43,6 +46,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * Service keys are expected to be safe for logging.
  */
 public class SplitKeyDelegatingTransactionService<T> implements TransactionService {
+    private static final Logger log = LoggerFactory.getLogger(SplitKeyDelegatingTransactionService.class);
+
     private final Function<Long, T> timestampToServiceKey;
     private final Map<T, TransactionService> keyedServices;
 
@@ -93,6 +98,16 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
+        if (startTimestamp < AtlasDbConstants.STARTING_TS) {
+            if (commitTimestamp != -1) {
+                log.warn("Attempted to putUnlessExists a value at start timestamp {} and commit {} (not rolling"
+                                + " back), which is unexpected though not inconsistent with legacy behaviour."
+                                + " Please contact support if this state persists.",
+                        SafeArg.of("startTimestamp", startTimestamp),
+                        SafeArg.of("commitTimestamp", commitTimestamp));
+            }
+            return;
+        }
         TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
                 () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
         service.putUnlessExists(startTimestamp, commitTimestamp);
