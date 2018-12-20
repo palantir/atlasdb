@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import org.junit.Test;
 
@@ -45,15 +46,23 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final String VALUE_2 = "twodoszweier2";
     private static final SequenceAndBound SEQUENCE_AND_BOUND_1 = ImmutableSequenceAndBound.of(1, 2);
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
+    private static final Function<ValueAndBound<String>, String> VALUE_PRESERVING_FUNCTION
+            = valueAndBound -> valueAndBound.value()
+                    .orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
-    private final KeyValueServiceCoordinationStore<String> coordinationStore = KeyValueServiceCoordinationStore.create(
-            ObjectMappers.newServerObjectMapper(),
-            keyValueService,
-            COORDINATION_ROW,
-            timestampSequence::incrementAndGet,
-            String.class);
+
+    // Casting is reasonable because we initialize with false. We need the precise typing for some of the
+    // tests that hit the store directly.
+    private final KeyValueServiceCoordinationStore<String> coordinationStore
+            = (KeyValueServiceCoordinationStore<String>) KeyValueServiceCoordinationStore.create(
+                    ObjectMappers.newServerObjectMapper(),
+                    keyValueService,
+                    COORDINATION_ROW,
+                    timestampSequence::incrementAndGet,
+                    String.class,
+                    false);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -82,6 +91,29 @@ public class KeyValueServiceCoordinationStoreTest {
         assertThat(firstValueAndBound.value()).contains(VALUE_1);
         assertThat(secondValueAndBound.value()).contains(VALUE_2);
         assertThat(firstValueAndBound.bound()).isLessThan(secondValueAndBound.bound());
+    }
+
+    @Test
+    public void valuePreservingTransformationsAdvanceTheBound() {
+        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
+        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+
+        assertThat(firstValueAndBound.value()).contains(VALUE_1);
+        assertThat(secondValueAndBound.value()).contains(VALUE_1);
+        assertThat(firstValueAndBound.bound()).isLessThan(secondValueAndBound.bound());
+    }
+
+    @Test
+    public void valuePreservingTransformationsDoNotWriteTheSameValueAgain() {
+        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        SequenceAndBound firstSequenceAndBound = coordinationStore.getCoordinationValue().get();
+        coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
+        SequenceAndBound secondSequenceAndBound = coordinationStore.getCoordinationValue().get();
+
+        assertThat(firstSequenceAndBound.sequence()).isEqualTo(secondSequenceAndBound.sequence());
+        assertThat(firstSequenceAndBound.bound()).isLessThan(secondSequenceAndBound.bound());
     }
 
     @Test
@@ -132,7 +164,8 @@ public class KeyValueServiceCoordinationStoreTest {
                         keyValueService,
                         otherCoordinationKey,
                         timestampSequence::incrementAndGet,
-                        String.class);
+                        String.class,
+                        false);
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
         otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
         assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);

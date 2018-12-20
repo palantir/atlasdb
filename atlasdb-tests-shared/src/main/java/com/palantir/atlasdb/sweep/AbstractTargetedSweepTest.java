@@ -59,7 +59,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
 
         sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
         sweepQueue.initializeWithoutRunning(
-                timestampsSupplier, mock(TimelockService.class), kvs, mock(TargetedSweepFollower.class));
+                timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
     }
 
     @Override

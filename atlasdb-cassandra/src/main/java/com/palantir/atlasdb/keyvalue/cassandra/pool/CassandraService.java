@@ -76,7 +76,7 @@ public class CassandraService implements AutoCloseable {
     public void close() {
     }
 
-    public Set<InetSocketAddress> refreshTokenRanges() {
+    public Set<InetSocketAddress> refreshTokenRangesAndGetServers() {
         Set<InetSocketAddress> servers = Sets.newHashSet();
 
         try {

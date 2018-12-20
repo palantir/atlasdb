@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -53,9 +54,9 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -86,6 +87,7 @@ import com.palantir.timestamp.TimestampService;
     final AtomicBoolean isClosed;
 
     final CommitProfileProcessor commitProfileProcessor;
+    final UUID clientId = UUID.randomUUID();
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -152,15 +154,17 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartAtlasDbTransactionResponse transactionResponse = timelockService.startAtlasDbTransaction(
-                IdentifiedTimeLockRequest.create());
+        StartIdentifiedAtlasDbTransactionResponse transactionResponse
+                = timelockService.startIdentifiedAtlasDbTransaction(
+                        StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
         try {
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
 
-            cleaner.punch(transactionResponse.freshTimestamp());
-            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(transactionResponse.freshTimestamp());
+            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
+            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                    transactionResponse.startTimestampAndPartition().timestamp());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
@@ -414,6 +418,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TimestampManagementService getTimestampManagementService() {
         return timestampManagementService;
+    }
+
+    @Override
+    public TransactionService getTransactionService() {
+        return transactionService;
     }
 
     @Override

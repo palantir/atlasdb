@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -46,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.logsafe.SafeArg;
@@ -67,7 +69,9 @@ import com.palantir.paxos.PaxosValue;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
+    private static final double LOG_RATE = 1;
 
+    private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
     private final ReentrantLock lock;
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
@@ -288,8 +292,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
-            allFutures.add(pingService.submit(potentialLeader,
-                    () -> Maps.immutableEntry(potentialLeader.getUUID(), potentialLeader)));
+            try {
+                allFutures.add(pingService.submit(potentialLeader,
+                        () -> Maps.immutableEntry(potentialLeader.getUUID(), potentialLeader)));
+            } catch (RejectedExecutionException e) {
+                if (logRateLimiter.tryAcquire()) {
+                    log.info("Leader ping executor rejected task. "
+                            + "This may signal a problem with cluster if happens frequently");
+                }
+            }
         }
 
         // collect responses

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -32,10 +31,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.coordination.AutoDelegate_CoordinationStore;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -72,6 +74,25 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
+    @VisibleForTesting
+    class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
+        @Override
+        protected void tryInitialize() {
+            KeyValueServiceCoordinationStore.this.tryInitialize();
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return KeyValueServiceCoordinationStore.class.getSimpleName();
+        }
+
+        @Override
+        public CoordinationStore<T> delegate() {
+            checkInitialized();
+            return KeyValueServiceCoordinationStore.this;
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
     private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
@@ -87,7 +108,11 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final LongSupplier sequenceNumberSupplier;
     private final Class<T> clazz;
 
-    private KeyValueServiceCoordinationStore(
+    @VisibleForTesting
+    final InitializingWrapper wrapper = new InitializingWrapper();
+
+    @VisibleForTesting
+    KeyValueServiceCoordinationStore(
             ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
@@ -100,17 +125,23 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         this.clazz = clazz;
     }
 
-    public static <T> KeyValueServiceCoordinationStore<T> create(
+    public static <T> CoordinationStore<T> create(
             ObjectMapper objectMapper,
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
-            Class<T> clazz) {
+            Class<T> clazz,
+            boolean initializeAsync) {
         KeyValueServiceCoordinationStore<T> coordinationStore
                 = new KeyValueServiceCoordinationStore<>(
                         objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
-        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
-        return coordinationStore;
+        coordinationStore.wrapper.initialize(initializeAsync);
+        return coordinationStore.isInitialized() ? coordinationStore : coordinationStore.wrapper;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        return wrapper.isInitialized();
     }
 
     // TODO (jkong): Since apart from the coordination value all other entries are immutable, we can perform
@@ -123,18 +154,51 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform) {
+    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
-        T targetValue = transform.apply(coordinationValue.flatMap(
-                sequenceAndBound -> getValue(sequenceAndBound.sequence())));
+        ValueAndBound<T> extantValueAndBound = ValueAndBound.of(coordinationValue.flatMap(
+                sequenceAndBound -> getValue(sequenceAndBound.sequence())),
+                coordinationValue.map(SequenceAndBound::bound).orElse(SequenceAndBound.INVALID_BOUND));
+        T targetValue = transform.apply(extantValueAndBound);
 
-        long sequenceNumber = sequenceNumberSupplier.getAsLong();
-        putUnlessValueExists(sequenceNumber, targetValue);
+        SequenceAndBound newSequenceAndBound
+                = determineNewSequenceAndBound(coordinationValue, extantValueAndBound, targetValue);
 
-        long newBound = getNewBound(sequenceNumber);
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
-                coordinationValue, SequenceAndBound.of(sequenceNumber, newBound));
-        return extractRelevantValues(targetValue, newBound, casResult);
+                coordinationValue, newSequenceAndBound);
+        return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
+    }
+
+    private void tryInitialize() {
+        kvs.createTable(AtlasDbConstants.COORDINATION_TABLE, COORDINATION_TABLE_METADATA.persistToBytes());
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private SequenceAndBound determineNewSequenceAndBound(
+            Optional<SequenceAndBound> coordinationValue,
+            ValueAndBound<T> extantValueAndBound,
+            T targetValue) {
+        long sequenceNumber;
+        long newBound;
+        if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
+            // Safe as we're only on this branch if the value is present
+            sequenceNumber = coordinationValue.get().sequence();
+            newBound = getNewBound(sequenceNumberSupplier.getAsLong());
+        } else {
+            sequenceNumber = sequenceNumberSupplier.getAsLong();
+            putUnlessValueExists(sequenceNumber, targetValue);
+            newBound = getNewBound(sequenceNumber);
+        }
+        return SequenceAndBound.of(sequenceNumber, newBound);
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
+    private boolean shouldReuseExtantValue(
+            Optional<SequenceAndBound> coordinationValue,
+            Optional<T> extantValue,
+            T targetValue) {
+        return coordinationValue.isPresent()
+                && extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,
@@ -150,8 +214,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                         .collect(Collectors.toList()));
     }
 
-    private long getNewBound(long sequenceNumber) {
-        return sequenceNumber + ADVANCEMENT_QUANTUM;
+    private long getNewBound(long pointInTime) {
+        return pointInTime + ADVANCEMENT_QUANTUM;
     }
 
     @VisibleForTesting
@@ -184,7 +248,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private Optional<SequenceAndBound> getCoordinationValue() {
+    @VisibleForTesting
+    Optional<SequenceAndBound> getCoordinationValue() {
         return readFromCoordinationTable(getCoordinationValueCell())
                 .map(Value::getContents)
                 .map(this::deserializeSequenceAndBound);
@@ -226,7 +291,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         } catch (IOException e) {
             log.error("Error encountered when deserializing {}: {}",
                     SafeArg.of("safeDescriptionOfItemToDeserialize", safeDescriptionOfItemToDeserialize),
-                    SafeArg.of("coordinationData", Arrays.toString(data)));
+                    SafeArg.of("coordinationData", PtBytes.toString(data)));
             throw new RuntimeException(e);
         }
     }

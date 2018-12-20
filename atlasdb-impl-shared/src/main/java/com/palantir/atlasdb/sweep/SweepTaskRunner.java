@@ -134,7 +134,7 @@ public class SweepTaskRunner {
             RunType runType) {
 
         Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
-        Preconditions.checkState(!AtlasDbConstants.hiddenTables.contains(tableRef));
+        Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
             // this happens sometimes; I think it's because some places in the code can

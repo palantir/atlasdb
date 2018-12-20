@@ -56,17 +56,142 @@ develop
            of resources.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3700>`__)
 
+    *    - |new|
+         - AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
+           Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
+    *    - |devbreak|
+         - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
+           Users may create a ``CoordinationService`` via the ``CoordinationServices`` factory, if needed, or retrieve it from the relevant ``TransactionManager``.
+           Generally speaking, ``TransactionService`` should not be directly used by standard AtlasDB consumers; abusing it can result in **SEVERE DATA CORRUPTION**.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3686>`__ and `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3689>`__)
+
+    *    - |devbreak|
+         - Transaction Managers now expose a ``getTransactionService()`` method.
+           Users with custom subclasses of ``TransactionManager`` will need to implement this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3689>`__)
+
+    *    - |new| |metrics|
+         - With the introduction of _coordination, we expose new metrics indicating the point (in logical timestamps) till which the coordination service knows what has been agreed, as well as the transactions schema version that will eventually be applied.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3691>`__)
+
+    *    - |fixed| |userbreak|
+         - Cassandra KVS `getMetadataForTables` method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
+           Previously there was no strict guarantee on the keys' capitalisation, but it was in most cases all lowercase.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
+
     *    - |fixed|
-         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
-           This only applies where multiple `TransactionManager` s might exist in a single VM
-           and they are created an shutdown repeatedly.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
+         - Cassandra KVS `getMetadataForTables` method now does not contain entries for tables that do not exist in Cassandra.
+           Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
+           Now, we delete all rows of the _metadata table containing entries pertaining to the dropped table.
+           Note that this involves a range scan over a part of the _metadata table.
+           While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
+
+    *    - |fixed|
+         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+           Previously, the annotation processor would generate code that wouldn't compile.
+           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
+
+    *    - |fixed|
+         - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
+           Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
+           The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
+    *    - |improved|
+         - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3676>`__)
+
+========
+v0.114.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - As part of preparatory work to migrate to a new transactions table, this version of AtlasDB and all versions going forward expect to be using a version of TimeLock that supports the ``startIdentifiedAtlasDbTransaction`` endpoint.
+           Support for previous versions of TimeLock has been dropped; please update your TimeLock server.
+           Products should depend on TimeLock 0.51.0 or higher, or ignore this dependency altogether if they do not expect to use TimeLock.
+           Note that new versions of the TimeLock server still expose the old endpoints, so old clients may still safely use a new TimeLock server.
+           Also note that some momentary issues may be faced if one is performing a rolling upgrade of embedded services, though once the upgrades settle services should work normally.
+           Note that for or across this version, blue-green deployment of embedded services is not supported.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3597>`__)
+
+========
+v0.113.0
+========
+
+03 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - KVS Migration CLI no longer migrates the checkpoint table if it exists on the source KVS.
+           Previously, existence of an old checkpoint table on the source KVS could cause a migration to silently skip migrating data.
+           Furthermore, in the cleanup stage of migration, the checkpoint table is now dropped instead of truncated.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3587>`__)
+
+    *    - |improved|
+         - Read transactions on thoroughly swept tables requires one less RPC to timelock now.
+           This improves the read performance and reduces load on timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3651>`__)
+
+    *    - |fixed|
+         - Fix warning in stream-store generated code.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3667>`__)
+
+========
+v0.112.1
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Wrap shutdown callback running in try-catch.
            This guards against any shutdown hooks throwing unchecked exceptions,
            which would cause other hooks to not run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3654>`__)
+
+========
+v0.112.0
+========
+
+26 Nov 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
+           This only applies where multiple `TransactionManager` s might exist in a single VM
+           and they are created an shutdown repeatedly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3653>`__)
 
 ========
 v0.111.0
@@ -211,6 +336,11 @@ v0.108.0
     *    - |fixed|
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
+
+    *    - |new|
+         - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
+           This may be used by AtlasDB clients for some key value services to achieve better data distribution and performance as far as the transactions table is concerned.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3529>`__)
 
     *    - |devbreak|
          - The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.
