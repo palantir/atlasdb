@@ -49,7 +49,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
 public final class PartitioningTimelockService implements AutoDelegate_TimelockService {
-    private static final int LOCK_BATCH_THRESHOLD = 1000;
+    private static final int LOCK_BATCH_THRESHOLD = 5000;
     private static final int UNLOCK_BATCH_THRESHOLD = 10_000;
 
     private final Clock clock;
