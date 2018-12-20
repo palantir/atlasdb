@@ -155,7 +155,7 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
             for (List<LockDescriptor> batch : Iterables.partition(sortedLockDescriptors, lockBatchThreshold)) {
                 Optional<Duration> acquireTimeout = acquireTimeout(startTime, initialAcquireTimeout);
                 if (!acquireTimeout.isPresent()) {
-                    return descriptors.failure();
+                    return descriptors.failure(LockResponse.timedOut());
                 }
 
                 LockRequest batchedRequest = ImmutableLockRequest.builder()
@@ -165,7 +165,7 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
                         .build();
                 LockResponse response = timelockService.lock(batchedRequest);
                 if (!response.wasSuccessful()) {
-                    return descriptors.failure();
+                    return descriptors.failure(response);
                 }
                 descriptors.add(response.getToken());
             }
@@ -188,14 +188,14 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
             return LockResponse.successful(proxyToken);
         }
 
-        LockResponse failure() {
+        LockResponse failure(LockResponse response) {
             timelockService.tryUnlock(tokensFetched);
-            return LockResponse.timedOut();
+            return response;
         }
 
-        RuntimeException failure(RuntimeException e) {
+        RuntimeException failure(RuntimeException exception) {
             timelockService.tryUnlock(tokensFetched);
-            throw e;
+            throw exception;
         }
     }
 
