@@ -48,6 +48,10 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
+/**
+ * Complexities in this class are due to the original contract requiring only a single token be returned
+ * for any lock request, and unlocking returning only those tokens which were guaranteed to have been unlocked.
+ */
 public final class PartitioningTimelockService implements AutoDelegate_TimelockService {
     private static final int LOCK_BATCH_THRESHOLD = 5000;
     private static final int UNLOCK_BATCH_THRESHOLD = 10_000;
@@ -61,30 +65,22 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
     private final int unlockBatchThreshold;
 
     // tokens used as identifiers; these don't necessarily directly exist in timelock
-    private final ProxyLockTokens proxyLockTokens = new ProxyLockTokens();
+    private final ConcurrentMap<LockToken, Set<LockToken>> proxyLockTokens = new ConcurrentHashMap<>();
 
-    private static final class ProxyLockTokens {
-        private final ConcurrentMap<LockToken, Set<LockToken>> tokens = new ConcurrentHashMap<>();
-
-        void put(LockToken proxyToken, Set<LockToken> realTokens) {
-            tokens.put(proxyToken, realTokens);
-        }
-
-        /**
-         * Returns a map of token (possibly a proxy) to the user facing token we handed out for it.
-         */
-        Map<LockToken, LockToken> replaceProxies(Set<LockToken> maybeProxies) {
-            Map<LockToken, LockToken> results = new LinkedHashMap<>();
-            for (LockToken token : maybeProxies) {
-                Set<LockToken> maybeProxy = tokens.remove(token);
-                if (maybeProxy == null) {
-                    results.put(token, token);
-                } else {
-                    results.putAll(Maps.asMap(maybeProxy, unused -> token));
-                }
+    /**
+     * Returns a map of token (possibly a proxy) to the user facing token we handed out for it.
+     */
+    private Map<LockToken, LockToken> replaceProxies(Set<LockToken> maybeProxies) {
+        Map<LockToken, LockToken> results = new LinkedHashMap<>();
+        for (LockToken token : maybeProxies) {
+            Set<LockToken> maybeProxy = proxyLockTokens.remove(token);
+            if (maybeProxy == null) {
+                results.put(token, token);
+            } else {
+                results.putAll(Maps.asMap(maybeProxy, unused -> token));
             }
-            return results;
         }
+        return results;
     }
 
     @VisibleForTesting
@@ -119,7 +115,7 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> unenrichedTokens) {
-        Map<LockToken, LockToken> tokens = proxyLockTokens.replaceProxies(unenrichedTokens);
+        Map<LockToken, LockToken> tokens = replaceProxies(unenrichedTokens);
         if (tokens.size() <= unlockBatchThreshold) {
             return timelockService.unlock(tokens.keySet());
         }
@@ -134,7 +130,7 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
 
     @Override
     public void tryUnlock(Set<LockToken> unenrichedTokens) {
-        Set<LockToken> tokens = proxyLockTokens.replaceProxies(unenrichedTokens).keySet();
+        Set<LockToken> tokens = replaceProxies(unenrichedTokens).keySet();
         Streams.stream(Iterables.partition(tokens, unlockBatchThreshold))
                 .map(ImmutableSet::copyOf)
                 .forEach(timelockService::tryUnlock);
