@@ -5,7 +5,7 @@ Benefits
 Deadlock Free
 =============
 
-AtlasDB support Snapshot Isolation (SI) as well as full Serializable
+AtlasDB supports Snapshot Isolation (SI) as well as full Serializable Snapshot Isolation
 (SSI). SI is naturally deadlock free however a transaction may need to
 be retried due to a write/write (w/w) conflict.
 
