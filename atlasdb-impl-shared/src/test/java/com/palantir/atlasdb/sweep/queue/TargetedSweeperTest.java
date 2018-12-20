@@ -898,7 +898,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         for (int i = 0; i < shards; i++) {
             assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(unreadableTs - 1)), i);
-            verify(stickyLockService, times(1)).unlock(ImmutableSet.of(LockToken.of(new UUID(i, 0L))));
+            verify(stickyLockService, times(1)).tryUnlock(ImmutableSet.of(LockToken.of(new UUID(i, 0L))));
         }
 
         // minimum: all threads on one host succeed, then on another, etc:

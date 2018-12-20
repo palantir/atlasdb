@@ -90,9 +90,13 @@ public interface TimelockService {
      *
      * @param tokens Tokens for which associated locks should be unlocked.
      * @return Tokens for which associated locks were unlocked
+     * @deprecated the unlock method is useful for testing the timelock service' guarantees; however in
+     * practice the guarantees this endpoint provides are weak enough to be error-prone and
+     * {@link #tryUnlock(Set)} can be expected to execute faster.
      */
     @POST
     @Path("unlock")
+    @Deprecated
     Set<LockToken> unlock(Set<LockToken> tokens);
 
     /**

@@ -52,6 +52,6 @@ public final class TargetedSweeperLock {
     }
 
     public void unlock() {
-        timeLock.unlock(ImmutableSet.of(lockToken));
+        timeLock.tryUnlock(ImmutableSet.of(lockToken));
     }
 }

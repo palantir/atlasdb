@@ -22,20 +22,23 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Stream;
+import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
@@ -51,18 +54,62 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
 
     private final Clock clock;
     private final TimelockService timelockService;
+    private final Supplier<LockToken> proxyLockTokenSupplier;
+    private final Supplier<UUID> requestIdSupplier;
+
+    private final int lockBatchThreshold;
+    private final int unlockBatchThreshold;
 
     // tokens used as identifiers; these don't necessarily directly exist in timelock
-    private final ConcurrentMap<LockToken, Set<LockToken>> proxyLockTokens = new ConcurrentHashMap<>();
+    private final ProxyLockTokens proxyLockTokens = new ProxyLockTokens();
+
+    private static final class ProxyLockTokens {
+        private final ConcurrentMap<LockToken, Set<LockToken>> tokens = new ConcurrentHashMap<>();
+
+        void put(LockToken proxyToken, Set<LockToken> realTokens) {
+            tokens.put(proxyToken, realTokens);
+        }
+
+        /**
+         * Returns a map of token (possibly a proxy) to the user facing token we handed out for it.
+         */
+        Map<LockToken, LockToken> replaceProxies(Set<LockToken> maybeProxies) {
+            Map<LockToken, LockToken> results = new LinkedHashMap<>();
+            for (LockToken token : maybeProxies) {
+                Set<LockToken> maybeProxy = tokens.remove(token);
+                if (maybeProxy == null) {
+                    results.put(token, token);
+                } else {
+                    results.putAll(Maps.asMap(maybeProxy, unused -> token));
+                }
+            }
+            return results;
+        }
+    }
 
     @VisibleForTesting
-    PartitioningTimelockService(Clock clock, TimelockService timelockService) {
+    PartitioningTimelockService(
+            Clock clock,
+            TimelockService timelockService,
+            Supplier<LockToken> proxyLockTokenSupplier,
+            Supplier<UUID> requestIdSupplier,
+            int lockBatchThreshold,
+            int unlockBatchThresholed) {
         this.clock = clock;
         this.timelockService = timelockService;
+        this.proxyLockTokenSupplier = proxyLockTokenSupplier;
+        this.requestIdSupplier = requestIdSupplier;
+        this.lockBatchThreshold = lockBatchThreshold;
+        this.unlockBatchThreshold = unlockBatchThresholed;
     }
 
     public PartitioningTimelockService(TimelockService timelockService) {
-        this(Clock.systemUTC(), timelockService);
+        this(Clock.systemUTC(),
+                timelockService,
+                () -> LockToken.of(UUID.randomUUID()),
+                UUID::randomUUID,
+                LOCK_BATCH_THRESHOLD,
+                UNLOCK_BATCH_THRESHOLD);
     }
 
     @Override
@@ -70,44 +117,32 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
         return timelockService;
     }
 
-    private Set<LockToken> addProxies(Set<LockToken> maybeProxies) {
-        if (proxyLockTokens.isEmpty()) {
-            return maybeProxies;
-        } else {
-            return maybeProxies.stream()
-                    .flatMap(token ->
-                            Streams.concat(
-                                    Stream.of(token),
-                                    Optional.ofNullable(proxyLockTokens.remove(token))
-                                            .orElse(Collections.emptySet()).stream()))
-                    .collect(toSet());
-        }
-    }
-
     @Override
     public Set<LockToken> unlock(Set<LockToken> unenrichedTokens) {
-        Set<LockToken> tokens = addProxies(unenrichedTokens);
-        if (tokens.size() <= UNLOCK_BATCH_THRESHOLD) {
-            return timelockService.unlock(tokens);
+        Map<LockToken, LockToken> tokens = proxyLockTokens.replaceProxies(unenrichedTokens);
+        if (tokens.size() <= unlockBatchThreshold) {
+            return timelockService.unlock(tokens.keySet());
         }
-        return Streams.stream(Iterables.partition(tokens, UNLOCK_BATCH_THRESHOLD))
+        Set<LockToken> unsuccessfulTokens = Streams.stream(Iterables.partition(tokens.keySet(), unlockBatchThreshold))
                 .map(ImmutableSet::copyOf)
-                .map(timelockService::unlock)
+                .map(t -> Sets.difference(t, timelockService.unlock(t)))
                 .flatMap(Collection::stream)
+                .map(tokens::get)
                 .collect(toSet());
+        return Sets.difference(ImmutableSet.copyOf(tokens.values()), unsuccessfulTokens);
     }
 
     @Override
     public void tryUnlock(Set<LockToken> unenrichedTokens) {
-        Set<LockToken> tokens = addProxies(unenrichedTokens);
-        Streams.stream(Iterables.partition(tokens, UNLOCK_BATCH_THRESHOLD))
+        Set<LockToken> tokens = proxyLockTokens.replaceProxies(unenrichedTokens).keySet();
+        Streams.stream(Iterables.partition(tokens, unlockBatchThreshold))
                 .map(ImmutableSet::copyOf)
                 .forEach(timelockService::tryUnlock);
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        if (request.getLockDescriptors().size() <= LOCK_BATCH_THRESHOLD) {
+        if (request.getLockDescriptors().size() <= lockBatchThreshold) {
             return timelockService.lock(request);
         }
 
@@ -117,14 +152,14 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
                 Ordering.natural().immutableSortedCopy(request.getLockDescriptors());
         BatchedLockDescriptors descriptors = new BatchedLockDescriptors();
         try {
-            for (List<LockDescriptor> batch : Iterables.partition(sortedLockDescriptors, LOCK_BATCH_THRESHOLD)) {
+            for (List<LockDescriptor> batch : Iterables.partition(sortedLockDescriptors, lockBatchThreshold)) {
                 Optional<Duration> acquireTimeout = acquireTimeout(startTime, initialAcquireTimeout);
                 if (!acquireTimeout.isPresent()) {
                     return descriptors.failure();
                 }
 
                 LockRequest batchedRequest = ImmutableLockRequest.builder()
-                        .from(request)
+                        .requestId(requestIdSupplier.get())
                         .acquireTimeoutMs(acquireTimeout.get().toMillis())
                         .lockDescriptors(batch)
                         .build();
@@ -141,25 +176,25 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
     }
 
     private final class BatchedLockDescriptors {
-        private final Set<LockToken> tokensFetched = new HashSet<>();
+        private final Set<LockToken> tokensFetched = new LinkedHashSet<>();
 
         void add(LockToken token) {
             tokensFetched.add(token);
         }
 
         LockResponse success() {
-            LockToken proxyToken = LockToken.of(UUID.randomUUID());
+            LockToken proxyToken = proxyLockTokenSupplier.get();
             proxyLockTokens.put(proxyToken, tokensFetched);
             return LockResponse.successful(proxyToken);
         }
 
         LockResponse failure() {
-            tryUnlock(tokensFetched);
+            timelockService.tryUnlock(tokensFetched);
             return LockResponse.timedOut();
         }
 
         RuntimeException failure(RuntimeException e) {
-            tryUnlock(tokensFetched);
+            timelockService.tryUnlock(tokensFetched);
             throw e;
         }
     }

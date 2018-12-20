@@ -194,7 +194,7 @@ public class TimeLockClientTest {
         try (TimeLockClient client = TimeLockClient.withSynchronousUnlocker(timelock)) {
             UUID uuid = UUID.randomUUID();
             client.tryUnlock(ImmutableSet.of(LockToken.of(uuid)));
-            verify(timelock, times(1)).unlock(ImmutableSet.of(LockToken.of(uuid)));
+            verify(timelock, times(1)).tryUnlock(ImmutableSet.of(LockToken.of(uuid)));
         }
     }
 }
