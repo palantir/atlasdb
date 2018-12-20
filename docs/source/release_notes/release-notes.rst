@@ -51,6 +51,12 @@ develop
          - Change
 
     *    - |fixed|
+         - The timelock client now bounds the maximum lock request sizes that it will send
+           to the timelock server to a reasonable number; this helps prevent some starvation
+           of resources.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3700>`__)
+
+    *    - |fixed|
          - Remove a memory leak due to usages of Runtime#addShutdownHook to cleanup resources.
            This only applies where multiple `TransactionManager` s might exist in a single VM
            and they are created an shutdown repeatedly.
