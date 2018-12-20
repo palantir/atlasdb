@@ -30,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -38,6 +39,8 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -78,8 +81,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     /**
      * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
      * {@link #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService,
-     * TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before the background sweep
-     * job can run.
+     * TransactionService, TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before
+     * the background sweep job can run.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
@@ -114,6 +117,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),
+                TransactionServices.createTransactionService(txManager.getKeyValueService(),
+                        CoordinationServices.createDefault(
+                                txManager.getKeyValueService(),
+                                txManager.getTimestampService(),
+                                false)),
                 new TargetedSweepFollower(followers, txManager));
     }
 
@@ -123,17 +131,22 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param timelockService TimeLockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
+     * @param transaction transaction service for checking if values were committed and rolling back if necessary
      * @param follower followers used for sweeps.
      */
-    public void initializeWithoutRunning(SpecialTimestampsSupplier timestamps, TimelockService timelockService,
-            KeyValueService kvs, TargetedSweepFollower follower) {
+    public void initializeWithoutRunning(
+            SpecialTimestampsSupplier timestamps,
+            TimelockService timelockService,
+            KeyValueService kvs,
+            TransactionService transaction,
+            TargetedSweepFollower follower) {
         if (isInitialized) {
             return;
         }
         Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
-        queue = SweepQueue.create(metrics, kvs, timelockService, shardsConfig, follower);
+        queue = SweepQueue.create(metrics, kvs, timelockService, shardsConfig, transaction, follower);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         isInitialized = true;

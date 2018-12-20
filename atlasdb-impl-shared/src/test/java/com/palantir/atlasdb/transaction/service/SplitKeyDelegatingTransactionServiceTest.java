@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,13 +28,16 @@ import java.util.function.Function;
 
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.math.LongMath;
 
+@SuppressWarnings("unchecked") // Mocking
 public class SplitKeyDelegatingTransactionServiceTest {
-    private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> num % 10;
+    private static final Function<Long, Long> EXTRACT_LAST_DIGIT = num -> LongMath.mod(num, 10L);
 
     private final TransactionService delegate1 = mock(TransactionService.class);
     private final TransactionService delegate2 = mock(TransactionService.class);
@@ -44,6 +47,8 @@ public class SplitKeyDelegatingTransactionServiceTest {
             1L, delegate1, 2L, delegate2, 3L, delegate3);
     private final TransactionService delegatingTransactionService
             = new SplitKeyDelegatingTransactionService<>(EXTRACT_LAST_DIGIT, transactionServiceMap);
+    private final TransactionService lastDigitFiveImpliesUnknownTransactionService
+            = new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
 
     @After
     public void verifyNoMoreInteractions() {
@@ -65,6 +70,11 @@ public class SplitKeyDelegatingTransactionServiceTest {
         assertThat(delegatingTransactionService.get(2L)).isEqualTo(4L);
         verify(delegate1).get(1L);
         verify(delegate2).get(2L);
+    }
+
+    @Test
+    public void getReturnsNullIfTimestampIsImpossible() {
+        assertThat(delegatingTransactionService.get(-1L)).isNull();
     }
 
     @Test
@@ -101,31 +111,74 @@ public class SplitKeyDelegatingTransactionServiceTest {
 
     @Test
     public void getMultipleDelegatesRequestsToGetMultipleOnDelegates() {
-        when(delegate1.get(eq(ImmutableList.of(1L)))).thenReturn(ImmutableMap.of(1L, 2L));
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 2L));
         assertThat(delegatingTransactionService.get(ImmutableList.of(1L)))
                 .isEqualTo(ImmutableMap.of(1L, 2L));
-        verify(delegate1).get(eq(ImmutableList.of(1L)));
+        verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
     @Test
     public void getMultiplePartitionsRequestsAndMergesMaps() {
-        when(delegate1.get(eq(ImmutableList.of(1L, 41L)))).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
-        when(delegate2.get(eq(ImmutableList.of(12L, 32L)))).thenReturn(ImmutableMap.of(12L, 28L, 32L, 38L));
-
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+        when(delegate2.get(any())).thenReturn(ImmutableMap.of(12L, 28L, 32L, 38L));
         assertThat(delegatingTransactionService.get(ImmutableList.of(1L, 12L, 32L, 41L)))
                 .isEqualTo(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
-        verify(delegate1).get(eq(ImmutableList.of(1L, 41L)));
-        verify(delegate2).get(eq(ImmutableList.of(12L, 32L)));
+        verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
+        verifyDelegateHadMultigetCalledWith(delegate2, 12L, 32L);
+    }
+
+    @Test
+    public void getMultipleFiltersOutImpossibleTimestamps() {
+        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -9L, -19L, 1L));
+        verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
     @Test
     public void getMultipleThrowsAndDoesNotMakeRequestsIfAnyTimestampsCannotBeMapped() {
-        when(delegate1.get(eq(ImmutableList.of(1L, 41L)))).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
         assertThatThrownBy(() -> delegatingTransactionService.get(ImmutableList.of(1L, 7L, 41L)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("A batch of timestamps {} produced some transaction service keys which are"
                         + " unknown");
 
         Mockito.verifyNoMoreInteractions(delegate1);
+    }
+
+    @Test
+    public void ignoreUnknownIgnoresUnknownTimestampServicesForSingleTimestamps() {
+        assertThat(lastDigitFiveImpliesUnknownTransactionService.get(5L)).isNull();
+    }
+
+    @Test
+    public void ignoreUnknownIgnoresUnknownTimestampServicesForMultipleTimestamps() {
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+
+        assertThat(lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 35L, 41L)))
+                .isEqualTo(ImmutableMap.of(1L, 8L, 41L, 48L));
+        verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
+    }
+
+    @Test
+    public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForSingleTimestamps() {
+        assertThatThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(7L))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Could not find a transaction service for timestamp {}");
+    }
+
+    @Test
+    public void ignoreUnknownFailsIfSeeingATimestampServiceItDoesNotRecognizeForMultipleTimestamps() {
+        when(delegate1.get(any())).thenReturn(ImmutableMap.of(1L, 8L, 41L, 48L));
+        assertThatThrownBy(() -> lastDigitFiveImpliesUnknownTransactionService.get(ImmutableList.of(1L, 5L, 7L, 41L)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("A batch of timestamps {} produced some transaction service keys which are"
+                        + " unknown");
+
+        Mockito.verifyNoMoreInteractions(delegate1);
+    }
+
+    private void verifyDelegateHadMultigetCalledWith(TransactionService delegate, Long... startTimestamps) {
+        ArgumentCaptor<Iterable<Long>> captor = ArgumentCaptor.forClass(Iterable.class);
+        verify(delegate).get(captor.capture());
+        assertThat(captor.getValue()).contains(startTimestamps);
     }
 }

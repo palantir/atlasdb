@@ -17,16 +17,17 @@
 package com.palantir.atlasdb.transaction.service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -55,14 +56,24 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        return getServiceForTimestamp(startTimestamp).get(startTimestamp);
+        if (startTimestamp < AtlasDbConstants.STARTING_TS) {
+            return null;
+        }
+        return getServiceForTimestamp(startTimestamp).map(service -> service.get(startTimestamp)).orElse(null);
     }
 
     @Override
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
-        // TODO (jkong): If this is too slow, don't use streams.
-        Map<T, List<Long>> queryMap = StreamSupport.stream(startTimestamps.spliterator(), false)
-                .collect(Collectors.groupingBy(timestampToServiceKey));
+        Multimap<T, Long> queryMap = HashMultimap.create();
+        for (Long startTimestamp : startTimestamps) {
+            if (startTimestamp < AtlasDbConstants.STARTING_TS) {
+                continue;
+            }
+            T mappedValue = timestampToServiceKey.apply(startTimestamp);
+            if (mappedValue != null) {
+                queryMap.put(mappedValue, startTimestamp);
+            }
+        }
 
         Set<T> unknownKeys = Sets.difference(queryMap.keySet(), keyedServices.keySet());
         if (!unknownKeys.isEmpty()) {
@@ -73,7 +84,8 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
 
-        return queryMap.entrySet()
+        return queryMap.asMap()
+                .entrySet()
                 .stream()
                 .map(entry -> keyedServices.get(entry.getKey()).get(entry.getValue()))
                 .collect(HashMap::new, Map::putAll, Map::putAll);
@@ -81,11 +93,16 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        getServiceForTimestamp(startTimestamp).putUnlessExists(startTimestamp, commitTimestamp);
+        TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
+                () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
+        service.putUnlessExists(startTimestamp, commitTimestamp);
     }
 
-    private TransactionService getServiceForTimestamp(long startTimestamp) {
+    private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
+        if (key == null) {
+            return Optional.empty();
+        }
         TransactionService service = keyedServices.get(key);
 
         if (service == null) {
@@ -95,6 +112,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
                     SafeArg.of("serviceKey", key),
                     SafeArg.of("knownServiceKeys", keyedServices.keySet()));
         }
-        return service;
+        return Optional.of(service);
     }
 }

@@ -107,7 +107,7 @@ public class AtlasDbTestCase {
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
-        transactionService = TransactionServices.createTransactionService(kvs);
+        transactionService = TransactionServices.createForTesting(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 

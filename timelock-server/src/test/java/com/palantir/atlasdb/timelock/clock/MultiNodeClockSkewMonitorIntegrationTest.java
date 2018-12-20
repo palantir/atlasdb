@@ -16,9 +16,7 @@
 package com.palantir.atlasdb.timelock.clock;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -32,13 +30,11 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InOrder;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 
 public class MultiNodeClockSkewMonitorIntegrationTest {
-    private static final int NUM_REMOTE_HOSTS = 2;
     private static final String REMOTE_HOST_1 = "host1";
     private static final String REMOTE_HOST_2 = "host2";
 
@@ -78,31 +74,26 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
     @Test
     public void registersMultipleClockWentBackwardsEvents() {
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(2L, 1L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(4L, 3L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(-1L);
+        when(remoteClock2.getSystemTimeInNanos()).thenReturn(-2L);
 
         tickOneIteration();
-        tickOneIteration();
 
-        verify(events).clockSkew(REMOTE_HOST_1, 2L, 0L, 0L);
-        verify(events).clockSkew(REMOTE_HOST_2, 4L, 0L, 0L);
         verify(events).clockWentBackwards(REMOTE_HOST_1, 1L);
-        verify(events).clockWentBackwards(REMOTE_HOST_2, 1L);
+        verify(events).clockWentBackwards(REMOTE_HOST_2, 2L);
     }
 
     @Test
     public void registersCombinationsOfFailuresCorrectly() {
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(2L, 1L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(-1L);
 
         Exception badRequest = new BadRequestException("bar");
         when(remoteClock2.getSystemTimeInNanos()).thenThrow(badRequest);
 
         tickOneIteration();
-        tickOneIteration();
 
-        verify(events).clockSkew(REMOTE_HOST_1, 2L, 0L, 0L);
         verify(events).clockWentBackwards(REMOTE_HOST_1, 1L);
-        verify(events, times(2)).exception(eq(badRequest));
+        verify(events).exception(eq(badRequest));
     }
 
     @Test
@@ -112,45 +103,37 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
         when(remoteClock2.getSystemTimeInNanos()).thenReturn(125L);
         tickOneIteration();
 
-        when(localClock.getSystemTimeInNanos()).thenReturn(140L, 150L, 160L, 170L);
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(1105L + 50L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(5125L + 50L);
-        tickOneIteration();
-
-        // Don't really like this, but didn't find an easy way of verifying subsequences of events.
-        InOrder inOrder = inOrder(events);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 0L, 100L, 10L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 0L, 120L, 10L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_1, 1000L, 30L, 10L);
-        inOrder.verify(events).clockSkew(REMOTE_HOST_2, 5000L, 30L, 10L);
+        verify(events).clockSkew(REMOTE_HOST_1, clockSkewEventOf(100L, 110L, 105L), 10L);
+        verify(events).clockSkew(REMOTE_HOST_2, clockSkewEventOf(120L, 130L, 125L), 10L);
     }
 
     @Test
     public void registersBothFailuresAndClockSkew() {
         Exception serviceNotAvailable = new ServiceNotAvailableException("foo");
-        when(remoteClock1.getSystemTimeInNanos()).thenThrow(serviceNotAvailable);
+        when(remoteClock2.getSystemTimeInNanos()).thenThrow(serviceNotAvailable);
 
-        // The first value is a peculiarity of the implementation. We get the local time and THEN query the remote
-        // server.
-        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L, 120L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(115L);
+        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L);
+        when(remoteClock1.getSystemTimeInNanos()).thenReturn(115L);
         tickOneIteration();
 
-        when(localClock.getSystemTimeInNanos()).thenReturn(200L, 210L, 220L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(515L + 110L);
-        tickOneIteration();
-
-        verify(events).clockSkew(REMOTE_HOST_2, 0L, 110L, 10L);
-        verify(events).clockSkew(REMOTE_HOST_2, 400L, 90L, 10L);
-        verify(events, times(2)).exception(serviceNotAvailable);
+        verify(events).clockSkew(REMOTE_HOST_1, clockSkewEventOf(100L, 110L, 115L), 10L);
+        verify(events).exception(serviceNotAvailable);
     }
 
     private void tickOneIteration() {
         executor.tick(ClockSkewMonitor.PAUSE_BETWEEN_REQUESTS.toNanos(), TimeUnit.NANOSECONDS);
     }
 
+    private ClockSkewEvent clockSkewEventOf(long minElapsedTime, long maxElapsedTime, long remoteElapsedTime) {
+        return ImmutableClockSkewEvent.builder()
+                .maxElapsedTime(maxElapsedTime)
+                .minElapsedTime(minElapsedTime)
+                .remoteElapsedTime(remoteElapsedTime)
+                .build();
+    }
+
     @After
-    public void tearDown() throws InterruptedException {
+    public void tearDown() {
         verifyNoMoreInteractions(events);
     }
 }
