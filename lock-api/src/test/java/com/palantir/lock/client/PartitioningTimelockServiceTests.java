@@ -109,7 +109,6 @@ public final class PartitioningTimelockServiceTests {
             clock.now = clock.now.plusMillis(deadline * 2);
             return succ(-1);
         }).when(timelock).lock(req(0, deadline, "a"));
-        when(timelock.lock(req(1, 0, "b"))).thenThrow(new AssertionError());
         assertThat(partitioning.lock(req(123, deadline, "a", "b"))).isEqualTo(LockResponse.timedOut());
     }
 
@@ -192,10 +191,6 @@ public final class PartitioningTimelockServiceTests {
         return (int) uuid.getLeastSignificantBits();
     }
 
-    private static LockToken lt(int index) {
-        return LockToken.of(new UUID(index, index));
-    }
-
     // String... should really be char... but there is no Arrays.stream(char...)
     private static LockRequest req(int id, int deadline, String... descriptors) {
         return ImmutableLockRequest.builder()
@@ -211,11 +206,15 @@ public final class PartitioningTimelockServiceTests {
         return LockResponse.successful(lt(lt));
     }
 
-    private static LockToken lt(int id, char descriptor) {
-        return LockToken.of(new UUID(descriptor, id));
-    }
-
     private static LockResponse succ(int id, char descriptor) {
         return LockResponse.successful(lt(id, descriptor));
+    }
+
+    private static LockToken lt(int index) {
+        return LockToken.of(new UUID(index, index));
+    }
+
+    private static LockToken lt(int id, char descriptor) {
+        return LockToken.of(new UUID(descriptor, id));
     }
 }

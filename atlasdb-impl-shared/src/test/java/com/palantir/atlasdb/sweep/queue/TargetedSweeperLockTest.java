@@ -49,7 +49,7 @@ public class TargetedSweeperLockTest {
         assertThat(lock.getShardAndStrategy()).isEqualTo(ShardAndStrategy.conservative(1));
 
         lock.unlock();
-        verify(mockLockService, times(1)).unlock(ImmutableSet.of(lockToken));
+        verify(mockLockService, times(1)).tryUnlock(ImmutableSet.of(lockToken));
         verify(mockLockService, times(1)).lock(any());
         verifyNoMoreInteractions(mockLockService);
     }

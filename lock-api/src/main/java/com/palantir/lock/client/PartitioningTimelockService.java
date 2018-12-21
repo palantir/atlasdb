@@ -16,8 +16,6 @@
 
 package com.palantir.lock.client;
 
-import static java.util.stream.Collectors.toSet;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
@@ -124,7 +123,7 @@ public final class PartitioningTimelockService implements AutoDelegate_TimelockS
                 .map(t -> Sets.difference(t, timelockService.unlock(t)))
                 .flatMap(Collection::stream)
                 .map(tokens::get)
-                .collect(toSet());
+                .collect(Collectors.toSet());
         return Sets.difference(ImmutableSet.copyOf(tokens.values()), unsuccessfulTokens);
     }
 
