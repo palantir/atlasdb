@@ -32,6 +32,8 @@ final class ClockReversalDetector {
     private static NanoTime lastMeasured = NanoTime.now();
     private static boolean neverFailed = true;
 
+    private ClockReversalDetector() {}
+
     private static boolean update() {
         NanoTime now = NanoTime.now();
         if (now.isBefore(lastMeasured)) {

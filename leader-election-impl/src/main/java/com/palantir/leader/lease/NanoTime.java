@@ -18,7 +18,6 @@ package com.palantir.leader.lease;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -40,11 +39,16 @@ public final class NanoTime implements Comparable<NanoTime> {
      * period of time elapsed.
      */
     public static void sleepUntil(NanoTime end) throws InterruptedException {
-        NanoTime now = now();
-        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(end.time - now.time));
-        while (end.time - (now = now()).time > 0) {
-            LockSupport.parkNanos(end.time - now.time);
+        for (NanoTime now = now(); nanosBetween(now, end) > 0; now = now()) {
+            LockSupport.parkNanos(nanosBetween(now, end));
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
         }
+    }
+
+    private static long nanosBetween(NanoTime first, NanoTime second) {
+        return second.time - first.time;
     }
 
     public NanoTime plus(Duration duration) {
@@ -57,20 +61,18 @@ public final class NanoTime implements Comparable<NanoTime> {
 
     @Override
     public String toString() {
-        return "NanoTime{" +
-                "time=" + time +
-                '}';
+        return "NanoTime{" + "time=" + time + '}';
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        NanoTime nanoTime = (NanoTime) o;
+        NanoTime nanoTime = (NanoTime) other;
         return time == nanoTime.time;
     }
 
