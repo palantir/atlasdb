@@ -19,6 +19,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -210,6 +213,23 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
     @Override
     public Iterator<T> iterator() {
         return IteratorUtils.wrap(delegate().iterator());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Spliterator<T> spliterator() {
+        return (Spliterator<T>) delegate().spliterator();
+    }
+
+    /**
+     * @return a sequential {@code Stream} with the contents as its source.
+     */
+    @SuppressWarnings("unchecked")
+    public Stream<T> stream() {
+        if (delegate() instanceof Collection) {
+            return ((Collection<T>) delegate()).stream();
+        }
+        return StreamSupport.stream(spliterator(), false);
     }
 
     @Override
