@@ -37,7 +37,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * which underlying service is contacted.
  *
  * The timestampToServiceKey function is expected to handle all possible long arguments (including negative values).
- * The function may return null; if it does, then values written at that timestamp are considered to be uncommitted.
+ * The function may return null; if it does, then for reads, values written at that timestamp are considered to be
+ * uncommitted. The transaction service will throw if a write is attempted at such a timestamp.
  *
  * The transaction service will also throw an exception if the timestamp-to-service-key function returns a key which is
  * not in the keyedServices map.
