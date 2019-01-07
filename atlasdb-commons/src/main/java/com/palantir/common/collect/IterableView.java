@@ -88,9 +88,9 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
          * result.
          */
         if (delegate() instanceof List) {
-            return of(Lists.transform(castAsList(), function));
+            return of(Lists.transform((List<T>) delegate(), function));
         } else if (delegate() instanceof Collection) {
-            return of(Collections2.transform(castAsCollection(), function));
+            return of(Collections2.transform((Collection<T>) delegate(), function));
         }
         return of(Iterables.transform(delegate(), function));
     }
@@ -121,7 +121,7 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
              * Use the more efficient Lists.partition which utilizes sublists
              * without allocating new lists for the returned partitions.
              */
-            return of(Lists.partition(castAsList(), size));
+            return of(Lists.partition((List<T>) delegate(), size));
         }
 
         return of(Iterables.partition(castAsIterable(), size));
@@ -244,34 +244,6 @@ public abstract class IterableView<T> extends ForwardingObject implements Iterab
     @SuppressWarnings("unchecked")
     private Iterable<T> castAsIterable() {
         return (Iterable<T>)delegate();
-    }
-
-    /**
-     * Casts the {@link #delegate()} as a {@link Collection} of T to avoid type
-     * warnings due to type erasure. This is safe if the delegate has already
-     * been checked to be an instance of {@link Collection}, but will throw if
-     * not a {@link Collection}
-     *
-     * @throws ClassCastException if the {@link #delegate()} is not a
-     *         {@link Collection}
-     */
-    @SuppressWarnings("unchecked")
-    private Collection<T> castAsCollection() {
-        return (Collection<T>) delegate();
-    }
-
-    /**
-     * Casts the {@link #delegate()} as a {@link List} of T to avoid type
-     * warnings due to type erasure. This is safe if the delegate has already
-     * been checked to be an instance of {@link List}, but will throw if
-     * not a {@link List}
-     *
-     * @throws ClassCastException if the {@link #delegate()} is not a
-     *         {@link List}
-     */
-    @SuppressWarnings("unchecked")
-    private List<T> castAsList() {
-        return (List<T>) delegate();
     }
 
 }

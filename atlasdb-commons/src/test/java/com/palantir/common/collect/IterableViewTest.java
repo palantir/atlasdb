@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Spliterator;
+import java.util.stream.StreamSupport;
 
 import org.junit.Test;
 
@@ -43,64 +44,51 @@ public class IterableViewTest {
 
     @Test
     public void listSpliterator() {
-        Spliterator<String> spliterator = IterableView.of(ImmutableList.of("a", "b")).spliterator();
+        ImmutableList<String> delegate = ImmutableList.of("a", "b");
+        Spliterator<String> spliterator = IterableView.of(delegate).spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(2);
-        int characteristics = spliterator.characteristics();
-        assertThat(characteristics).isNotEqualTo(0);
-        assertThat(characteristics & Spliterator.CONCURRENT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.DISTINCT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.IMMUTABLE).isEqualTo(Spliterator.IMMUTABLE);
-        assertThat(characteristics & Spliterator.NONNULL).isEqualTo(Spliterator.NONNULL);
-        assertThat(characteristics & Spliterator.SIZED).isEqualTo(Spliterator.SIZED);
-        assertThat(characteristics & Spliterator.SORTED).isEqualTo(0);
-        assertThat(characteristics & Spliterator.SUBSIZED).isEqualTo(Spliterator.SUBSIZED);
+        assertThat(spliterator.characteristics()).isNotZero();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SIZED)).isTrue();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SUBSIZED)).isTrue();
+        assertThat(StreamSupport.stream(spliterator, false)).containsExactly("a", "b");
     }
 
     @Test
     public void listPartitionSpliterator() {
-        IterableView<List<String>> view = IterableView.of(ImmutableList.of("a", "b", "c")).partition(1);
+        ImmutableList<String> delegate = ImmutableList.of("a", "b", "c");
+        IterableView<List<String>> view = IterableView.of(delegate).partition(1);
         Spliterator<List<String>> spliterator = view.spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(3);
-        int characteristics = spliterator.characteristics();
-        assertThat(characteristics).isNotEqualTo(0);
-        assertThat(characteristics & Spliterator.CONCURRENT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.DISTINCT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.IMMUTABLE).isEqualTo(0);
-        assertThat(characteristics & Spliterator.NONNULL).isEqualTo(0);
-        assertThat(characteristics & Spliterator.SIZED).isEqualTo(Spliterator.SIZED);
-        assertThat(characteristics & Spliterator.SORTED).isEqualTo(0);
-        assertThat(characteristics & Spliterator.SUBSIZED).isEqualTo(Spliterator.SUBSIZED);
+        assertThat(spliterator.characteristics()).isNotZero();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SIZED)).isTrue();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SUBSIZED)).isTrue();
+        assertThat(StreamSupport.stream(spliterator, false)).containsExactly(
+                ImmutableList.of("a"),
+                ImmutableList.of("b"),
+                ImmutableList.of("c"));
     }
 
     @Test
     public void listTransformSpliterator() {
-        IterableView<String> view = IterableView.of(ImmutableList.of("a", "b", "c")).transform(String::toUpperCase);
+        ImmutableList<String> delegate = ImmutableList.of("a", "b", "c");
+        IterableView<String> view = IterableView.of(delegate).transform(String::toUpperCase);
         Spliterator<String> spliterator = view.spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(3);
-        int characteristics = spliterator.characteristics();
-        assertThat(characteristics).isNotEqualTo(0);
-        assertThat(characteristics & Spliterator.CONCURRENT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.DISTINCT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.IMMUTABLE).isEqualTo(0);
-        assertThat(characteristics & Spliterator.NONNULL).isEqualTo(0);
-        assertThat(characteristics & Spliterator.SIZED).isEqualTo(Spliterator.SIZED);
-        assertThat(characteristics & Spliterator.SORTED).isEqualTo(0);
-        assertThat(characteristics & Spliterator.SUBSIZED).isEqualTo(Spliterator.SUBSIZED);
+        assertThat(spliterator.characteristics()).isNotZero();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SIZED)).isTrue();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SUBSIZED)).isTrue();
+        assertThat(StreamSupport.stream(spliterator, false)).containsExactly("A", "B", "C");
     }
 
     @Test
     public void setSpliterator() {
         Spliterator<String> spliterator = IterableView.of(ImmutableSortedSet.of("a", "b")).spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(2);
-        int characteristics = spliterator.characteristics();
-        assertThat(characteristics).isNotEqualTo(0);
-        assertThat(characteristics & Spliterator.CONCURRENT).isEqualTo(0);
-        assertThat(characteristics & Spliterator.DISTINCT).isEqualTo(Spliterator.DISTINCT);
-        assertThat(characteristics & Spliterator.IMMUTABLE).isEqualTo(Spliterator.IMMUTABLE);
-        assertThat(characteristics & Spliterator.NONNULL).isEqualTo(Spliterator.NONNULL);
-        assertThat(characteristics & Spliterator.SIZED).isEqualTo(Spliterator.SIZED);
-        assertThat(characteristics & Spliterator.SORTED).isEqualTo(Spliterator.SORTED);
-        assertThat(characteristics & Spliterator.SUBSIZED).isEqualTo(Spliterator.SUBSIZED);
+        assertThat(spliterator.characteristics()).isNotZero();
+        assertThat(spliterator.hasCharacteristics(Spliterator.DISTINCT)).isTrue();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SIZED)).isTrue();
+        assertThat(spliterator.hasCharacteristics(Spliterator.SUBSIZED)).isTrue();
+        assertThat(StreamSupport.stream(spliterator, false)).containsExactly("a", "b");
     }
 
     @Test
@@ -108,7 +96,10 @@ public class IterableViewTest {
         IterableView<List<String>> view = IterableView.of(Iterables.partition(ImmutableSet.of("a", "b", "c"), 1));
         Spliterator<List<String>> spliterator = view.spliterator();
         assertThat(spliterator.estimateSize()).isEqualTo(Long.MAX_VALUE);
-        int characteristics = spliterator.characteristics();
-        assertThat(characteristics).isEqualTo(0);
+        assertThat(spliterator.characteristics()).isZero();
+        assertThat(StreamSupport.stream(spliterator, false)).containsExactly(
+                ImmutableList.of("a"),
+                ImmutableList.of("b"),
+                ImmutableList.of("c"));
     }
 }
