@@ -22,7 +22,6 @@ import java.util.UUID;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -32,8 +31,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 
 public class CassandraContainer extends Container {
     static final int CASSANDRA_PORT = 9160;
-    static final String USERNAME = "cassandra";
-    static final String PASSWORD = "cassandra";
+    static final String USERNAME = "username";
+    static final String PASSWORD = "password";
     private static final String CONTAINER_NAME = "cassandra";
     private static final String THROWAWAY_CONTAINER_NAME = "cassandra2";
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -57,10 +56,7 @@ public class CassandraContainer extends Container {
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .addServers(forService(name))
                 .keyspace(keyspace)
-                .credentials(ImmutableCassandraCredentialsConfig.builder()
-                        .username(USERNAME)
-                        .password(PASSWORD)
-                        .build())
+                .credentials(Optional.empty())
                 .poolSize(20)
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
