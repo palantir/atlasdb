@@ -58,7 +58,7 @@ develop
     *    - |fixed|
          - AtlasDB transaction services now handle non-positive start timestamps safely and consistently with respect to past behaviour, where these are permitted.
            Previously, the transaction service would throw when the transaction service was queried with a non-positive start timestamp.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/XXXX>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3704>`__)
 
     *    - |devbreak|
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
