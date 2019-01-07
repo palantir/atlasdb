@@ -24,9 +24,6 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 final class LeadershipLeaseLeadershipToken implements LeadershipToken {
-    // there could be a delay of refreshDuration between finding 'now' and the end of isStillLeading.get().
-    private static final int MAX_UNLIKELY_SPIN_ATTEMPTS = 3;
-
     private final Supplier<NanoTime> clock;
     private final Duration leaseRefreshDuration;
     private final LeadershipToken wrapped;
@@ -57,19 +54,23 @@ final class LeadershipLeaseLeadershipToken implements LeadershipToken {
         if (!ClockReversalDetector.canUseLeaseBasedOptimizations()) {
             return isStillLeading.get();
         }
-        for (int i = 0; i < MAX_UNLIKELY_SPIN_ATTEMPTS &&
-                (leadershipState == null || leadershipState.validUntil.isBefore(clock.get()));
-             i++) {
+        if (isStateInvalid()) {
             fetchNewState();
         }
         return leadershipState.status;
     }
 
+    private boolean isStateInvalid() {
+        return leadershipState == null || leadershipState.validUntil.isBefore(clock.get());
+    }
+
     private synchronized void fetchNewState() {
-        // take the time before fetching; this is critical and guarantees that it's conservative
-        NanoTime now = clock.get();
-        StillLeadingStatus status = isStillLeading.get();
-        leadershipState = new LeadershipState(now.plus(leaseRefreshDuration), status);
+        if (isStateInvalid()) {
+            // take the time before fetching; this is critical and guarantees that it's conservative
+            NanoTime now = clock.get();
+            StillLeadingStatus status = isStillLeading.get();
+            leadershipState = new LeadershipState(now.plus(leaseRefreshDuration), status);
+        }
     }
 
     @Override
