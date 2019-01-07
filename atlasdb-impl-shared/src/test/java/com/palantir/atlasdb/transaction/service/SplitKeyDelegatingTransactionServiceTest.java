@@ -73,8 +73,10 @@ public class SplitKeyDelegatingTransactionServiceTest {
     }
 
     @Test
-    public void getReturnsNullIfTimestampIsImpossible() {
-        assertThat(delegatingTransactionService.get(-1L)).isNull();
+    public void getHandlesNegativeTimestamps() {
+        when(delegate1.get(-9L)).thenReturn(37L);
+        assertThat(delegatingTransactionService.get(-9L)).isEqualTo(37L);
+        verify(delegate1).get(-9L);
     }
 
     @Test
@@ -125,12 +127,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 .isEqualTo(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
         verifyDelegateHadMultigetCalledWith(delegate2, 12L, 32L);
-    }
-
-    @Test
-    public void getMultipleFiltersOutImpossibleTimestamps() {
-        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -9L, -19L, 1L));
-        verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
     @Test
