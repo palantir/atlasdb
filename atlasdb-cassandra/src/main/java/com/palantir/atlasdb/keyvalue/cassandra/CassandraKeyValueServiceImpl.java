@@ -1668,7 +1668,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {
-        return new Column(ByteBuffer.wrap(insertion.getKey().getColumnName()))
+        return new Column(
+                CassandraKeyValueServices.makeCompositeBuffer(
+                        insertion.getKey().getColumnName(),
+                        CassandraConstants.CAS_TABLE_TIMESTAMP))
                 .setValue(insertion.getValue());
     }
 

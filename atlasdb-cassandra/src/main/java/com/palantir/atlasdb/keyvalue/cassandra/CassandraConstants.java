@@ -59,6 +59,8 @@ public final class CassandraConstants {
     public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
     public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
 
+    static final long CAS_TABLE_TIMESTAMP = 0L;
+
     private CassandraConstants() {
         // Utility class
     }
