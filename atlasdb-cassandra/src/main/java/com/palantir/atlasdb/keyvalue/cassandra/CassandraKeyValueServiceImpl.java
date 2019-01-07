@@ -1664,7 +1664,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                         .collect(Collectors.toList()),
                 ConsistencyLevel.SERIAL,
-                ConsistencyLevel.SERIAL);
+                WRITE_CONSISTENCY);
     }
 
     private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {
@@ -1672,6 +1672,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 CassandraKeyValueServices.makeCompositeBuffer(
                         insertion.getKey().getColumnName(),
                         CassandraConstants.CAS_TABLE_TIMESTAMP))
+                .setTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
                 .setValue(insertion.getValue());
     }
 
