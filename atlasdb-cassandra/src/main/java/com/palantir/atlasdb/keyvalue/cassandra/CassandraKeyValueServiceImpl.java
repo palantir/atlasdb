@@ -31,6 +31,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
+import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -1631,13 +1632,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                for (Entry<Cell, byte[]> e : values.entrySet()) {
-                    CheckAndSetRequest request = CheckAndSetRequest.newCell(tableRef, e.getKey(), e.getValue());
-                    CheckAndSetResult casResult = checkAndSetRunner.executeCheckAndSet(client, request);
-                    if (!casResult.successful()) {
+                Multimap<byte[], Map.Entry<Cell, byte[]>> partitionedEntries
+                        = Multimaps.index(values.entrySet(), entry -> entry.getKey().getRowName());
+
+                for (Map.Entry<byte[], Collection<Map.Entry<Cell, byte[]>>> partition
+                        : partitionedEntries.asMap().entrySet()) {
+                    CASResult casResult = putUnlessExistsSinglePartition(tableRef, client, partition);
+                    if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
-                                String.format("The row in table %s already exists.", tableRef.getQualifiedName()),
-                                ImmutableList.of(e.getKey())));
+                                String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
+                                casResult.getCurrent_values().stream().map(column ->
+                                        Cell.create(partition.getKey(), column.getName()))
+                                        .collect(Collectors.toList())));
                     }
                 }
                 return Optional.empty();
@@ -1655,6 +1661,26 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
+    }
+
+    private static CASResult putUnlessExistsSinglePartition(
+            TableReference tableRef,
+            CassandraClient client,
+            Entry<byte[], Collection<Entry<Cell, byte[]>>> partition) throws TException {
+        return client.put_unless_exists(
+                tableRef,
+                ByteBuffer.wrap(partition.getKey()),
+                partition.getValue()
+                        .stream()
+                        .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
+                        .collect(Collectors.toList()),
+                ConsistencyLevel.SERIAL,
+                ConsistencyLevel.SERIAL);
+    }
+
+    private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {
+        return new Column(ByteBuffer.wrap(insertion.getKey().getColumnName()))
+                .setValue(insertion.getValue());
     }
 
     /**
