@@ -1474,6 +1474,34 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void canPutUnlessExistsMultipleValuesInSameRow() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(0), column(1));
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)));
+
+        Map<Cell, Value> storedValues = keyValueService.get(TEST_TABLE,
+                ImmutableMap.of(firstTestCell, Long.MAX_VALUE, nextTestCell, Long.MAX_VALUE));
+        assertArrayEquals(val(0, 0), storedValues.get(firstTestCell).getContents());
+        assertArrayEquals(val(0, 1), storedValues.get(nextTestCell).getContents());
+    }
+
+    @Test
+    public void putUnlessExistsConflictsOnAnyColumnMismatch() {
+        Assume.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(0), column(1));
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(firstTestCell, val(0, 0)));
+
+        // Exact message is KVS specific so not asserting on that
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE,
+                        ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1))))
+                .isInstanceOf(KeyAlreadyExistsException.class);
+    }
+
+    @Test
     public void putUnlessExistsLargeValue() {
         Assume.assumeTrue(checkAndSetSupported());
         byte[] megabyteValue = new byte[1048576];
