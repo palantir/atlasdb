@@ -23,10 +23,13 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class SimpleTransactionService implements TransactionService {
+public class SimpleTransactionService implements EncodingTransactionService {
     private final KeyValueService keyValueService;
+    private final TimestampEncodingStrategy encodingStrategy = new V1EncodingStrategy();
 
     public SimpleTransactionService(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;
@@ -44,8 +47,7 @@ public class SimpleTransactionService implements TransactionService {
                 TransactionConstants.TRANSACTION_TABLE,
                 ImmutableMap.of(cell, MAX_TIMESTAMP));
         if (returnMap.containsKey(cell)) {
-            return TransactionConstants.getTimestampForValue(returnMap
-                    .get(cell).getContents());
+            return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, returnMap.get(cell).getContents());
         } else {
             return null;
         }
@@ -61,13 +63,10 @@ public class SimpleTransactionService implements TransactionService {
 
         Map<Cell, Value> rawResults = keyValueService.get(
                 TransactionConstants.TRANSACTION_TABLE, startTsMap);
-        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults
-                .size());
+        Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            long startTs = TransactionConstants.getTimestampForValue(e.getKey()
-                    .getRowName());
-            long commitTs = TransactionConstants.getTimestampForValue(e
-                    .getValue().getContents());
+            long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
+            long commitTs = encodingStrategy.decodeValueAsCommitTimestamp(startTs, e.getValue().getContents());
             result.put(startTs, commitTs);
         }
 
@@ -77,10 +76,8 @@ public class SimpleTransactionService implements TransactionService {
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
         Cell key = getTransactionCell(startTimestamp);
-        byte[] value = TransactionConstants
-                .getValueForTimestamp(commitTimestamp);
-        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(key, value));
+        byte[] value = encodingStrategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
+        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(key, value));
     }
 
     @Override
@@ -89,13 +86,17 @@ public class SimpleTransactionService implements TransactionService {
                 .stream()
                 .collect(Collectors.toMap(
                         entry -> getTransactionCell(entry.getKey()),
-                        entry -> TransactionConstants.getValueForTimestamp(entry.getValue())));
+                        entry -> encodingStrategy.encodeCommitTimestampAsValue(
+                                entry.getKey(), entry.getValue())));
         keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, values);
     }
 
-    private static Cell getTransactionCell(long startTimestamp) {
-        return Cell.create(
-                TransactionConstants.getValueForTimestamp(startTimestamp),
-                TransactionConstants.COMMIT_TS_COLUMN);
+    private Cell getTransactionCell(long startTimestamp) {
+        return encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
+    }
+
+    @Override
+    public TimestampEncodingStrategy getEncodingStrategy() {
+        return encodingStrategy;
     }
 }

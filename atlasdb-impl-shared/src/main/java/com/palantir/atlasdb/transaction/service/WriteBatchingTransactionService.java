@@ -24,6 +24,7 @@ import javax.annotation.CheckForNull;
 
 import org.immutables.value.Value;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -79,7 +80,8 @@ public class WriteBatchingTransactionService implements TransactionService, Auto
         autobatcher.close();
     }
 
-    private static void processBatch(
+    @VisibleForTesting
+    static void processBatch(
             TransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
         Map<Long, Long> accumulatedRequest = Maps.newHashMapWithExpectedSize(batchElements.size());
         for (BatchElement<TimestampPair, Void> batchElement : batchElements) {
@@ -94,7 +96,27 @@ public class WriteBatchingTransactionService implements TransactionService, Auto
                 return oldValue;
             });
         }
-        delegate.putUnlessExistsMultiple(accumulatedRequest);
+
+        while (!accumulatedRequest.isEmpty()) {
+            try {
+                delegate.putUnlessExistsMultiple(accumulatedRequest);
+            } catch (KeyAlreadyExistsException exception) {
+                // TODO
+            }
+        }
+
+        try {
+            delegate.putUnlessExistsMultiple(accumulatedRequest);
+        } catch (KeyAlreadyExistsException exception) {
+            // This may not match the specific row the operation was for, so propagating is semantically awkward.
+            // A RuntimeException is what we want, since the API is that the operation may or may not have occurred.
+            batchElements.forEach(element -> element.result().setException(
+                    new IllegalStateException()
+            ));
+        }
+
+        // If the result was already set to be exceptional, this will not interfere with that, so this is correct.
+        batchElements.forEach(element -> element.result().set(null));
     }
 
     @Value.Immutable
