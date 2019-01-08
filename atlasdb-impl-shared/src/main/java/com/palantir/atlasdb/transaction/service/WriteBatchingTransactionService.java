@@ -39,7 +39,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link TransactionService}, such
  * that there is at most one request in flight at a given time. Read requests (gets) are not batched.
  */
-public class WriteBatchingTransactionService implements TransactionService, AutoCloseable {
+public final class WriteBatchingTransactionService implements TransactionService, AutoCloseable {
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
