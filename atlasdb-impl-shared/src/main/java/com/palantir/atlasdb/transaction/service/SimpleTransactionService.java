@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.service;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -80,6 +81,16 @@ public class SimpleTransactionService implements TransactionService {
                 .getValueForTimestamp(commitTimestamp);
         keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE,
                 ImmutableMap.of(key, value));
+    }
+
+    @Override
+    public void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+        Map<Cell, byte[]> values = startTimestampToCommitTimestamp.entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        entry -> getTransactionCell(entry.getKey()),
+                        entry -> TransactionConstants.getValueForTimestamp(entry.getValue())));
+        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, values);
     }
 
     private static Cell getTransactionCell(long startTimestamp) {
