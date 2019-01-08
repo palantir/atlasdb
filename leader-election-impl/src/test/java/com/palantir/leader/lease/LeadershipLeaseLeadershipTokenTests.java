@@ -69,14 +69,6 @@ public final class LeadershipLeaseLeadershipTokenTests {
     }
 
     @Test
-    public void testSpinsIfImmediatelyInvalid() {
-        when(stillLeadingStatus.get()).thenReturn(StillLeadingStatus.LEADING)
-                .thenReturn(StillLeadingStatus.NOT_LEADING);
-        when(clock.get()).thenReturn(new NanoTime(0), new NanoTime(11));
-        assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.NOT_LEADING);
-    }
-
-    @Test
     public void testSelectsTimeBeforeFetchingNewState() {
         when(clock.get()).thenReturn(new NanoTime(0));
         when(stillLeadingStatus.get()).thenAnswer(inv -> {
