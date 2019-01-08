@@ -73,6 +73,7 @@ public interface TransactionService {
      *
      * @param startTimestampToCommitTimestamp map of start timestamps to corresponding commit timestamps
      * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
+     * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
      */
     default void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
