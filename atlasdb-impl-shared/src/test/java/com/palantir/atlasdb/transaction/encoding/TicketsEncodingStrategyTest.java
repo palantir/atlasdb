@@ -18,8 +18,12 @@ package com.palantir.atlasdb.transaction.encoding;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
 
@@ -27,6 +31,24 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class TicketsEncodingStrategyTest {
     private final TicketsEncodingStrategy strategy = new TicketsEncodingStrategy();
+
+    @Test
+    public void canDistinguishNumericallyCloseTimestamps() {
+        assertStartTimestampsCanBeDistinguished(LongStream.range(0, 1000).toArray());
+    }
+
+    @Test
+    public void canDistinguishTimestampsAroundPartitioningQuantum() {
+        long quantum = TicketsEncodingStrategy.PARTITIONING_QUANTUM;
+        assertStartTimestampsCanBeDistinguished(
+                0, 1, quantum - 1, quantum, quantum + 1, 2 * quantum - 1, 2 * quantum, 2 * quantum + 1);
+    }
+
+    @Test
+    public void canDistinguishTimestampsAroundRowBoundary() {
+        long numRows = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
+        assertStartTimestampsCanBeDistinguished(0, 1, numRows - 1, numRows, numRows + 1, 2 * numRows - 1);
+    }
 
     @Test
     public void cellEncodeAndDecodeAreInverses() {
@@ -48,7 +70,14 @@ public class TicketsEncodingStrategyTest {
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
-        IntStream.range(0, 1000)
-                .forEach(unused -> test.run());
+        IntStream.range(0, 1000).forEach(unused -> test.run());
+    }
+
+    private void assertStartTimestampsCanBeDistinguished(long... timestamps) {
+        Set<Cell> convertedCells = Arrays.stream(timestamps)
+                .boxed()
+                .map(strategy::encodeStartTimestampAsCell)
+                .collect(Collectors.toSet());
+        assertThat(convertedCells.size()).isEqualTo(timestamps.length);
     }
 }
