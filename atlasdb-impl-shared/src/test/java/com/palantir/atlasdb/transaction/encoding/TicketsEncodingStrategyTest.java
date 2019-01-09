@@ -33,7 +33,7 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class TicketsEncodingStrategyTest {
-    private final TicketsEncodingStrategy strategy = new TicketsEncodingStrategy();
+    private static final TicketsEncodingStrategy strategy = new TicketsEncodingStrategy();
 
     @Test
     public void canDistinguishNumericallyCloseTimestamps() {
@@ -121,7 +121,7 @@ public class TicketsEncodingStrategyTest {
         IntStream.range(0, 1000).forEach(unused -> test.run());
     }
 
-    private void assertStartTimestampsCanBeDistinguished(long... timestamps) {
+    private static void assertStartTimestampsCanBeDistinguished(long... timestamps) {
         Set<Cell> convertedCells = Arrays.stream(timestamps)
                 .boxed()
                 .map(strategy::encodeStartTimestampAsCell)
