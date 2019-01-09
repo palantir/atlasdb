@@ -21,8 +21,12 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 /**
  * Strategy for encoding start timestamps as cells, possibly for persistence.
  *
- * It is expected that decode and encode should be mutually inverse, so that encoding and then decoding is
- * a no-op.
+ * It is expected that decode and encode for both start and commit timestamps should be mutually inverse, so that
+ * encoding and then decoding is a no-op. That is, for any timestamp ts, the following should hold:
+ *
+ * - decodeCellAsStartTimestamp(encodeStartTimestampAsCell(ts)) == ts
+ * - for any timestamp ts', decodeValueAsCommitTimestamp(ts', encodeCommitTimestampAsValue(ts', ts)) == ts
+ *
  */
 public interface TimestampEncodingStrategy {
     Cell encodeStartTimestampAsCell(long startTimestamp);
