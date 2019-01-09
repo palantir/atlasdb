@@ -38,6 +38,20 @@ public class TicketsEncodingStrategyTest {
     }
 
     @Test
+    public void canDistinguishTimestampsAcrossRows() {
+        long numRows = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
+        long offset = 318557;
+        assertStartTimestampsCanBeDistinguished(offset, numRows + offset, 2 * numRows + offset);
+    }
+
+    @Test
+    public void canDistinguishTimestampsAcrossQuanta() {
+        long quantum = TicketsEncodingStrategy.PARTITIONING_QUANTUM;
+        long offset = 318557;
+        assertStartTimestampsCanBeDistinguished(offset, quantum + offset, 2 * quantum + offset);
+    }
+
+    @Test
     public void canDistinguishTimestampsAroundPartitioningQuantum() {
         long quantum = TicketsEncodingStrategy.PARTITIONING_QUANTUM;
         assertStartTimestampsCanBeDistinguished(
@@ -67,6 +81,15 @@ public class TicketsEncodingStrategyTest {
             byte[] encoded = strategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
             assertThat(strategy.decodeValueAsCommitTimestamp(startTimestamp, encoded)).isEqualTo(commitTimestamp);
         });
+    }
+
+    @Test
+    public void storesLargeCommitTimestampsCompactly() {
+        long highTimestamp = Long.MAX_VALUE - 1;
+        byte[] commitTimestampEncoding = strategy.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
+        assertThat(commitTimestampEncoding.length).isEqualTo(1);
+        assertThat(strategy.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
+                .isEqualTo(highTimestamp + 1);
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
