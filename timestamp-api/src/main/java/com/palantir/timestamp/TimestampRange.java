@@ -79,6 +79,14 @@ public class TimestampRange implements Serializable {
         return upper - lower + 1;
     }
 
+    /**
+     * @param timestamp timestamp to check for contaiment
+     * @return true if and only if the timestamp is contained in this timestamp range
+     */
+    public boolean contains(long timestamp) {
+        return lower <= timestamp && timestamp <= upper;
+    }
+
     @Override
     public String toString() {
         return "TimestampRange{"
