@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import org.immutables.value.Value;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,10 +44,33 @@ public class WriteBatchingTransactionServiceTest {
     private static final V1EncodingStrategy ENCODING_STRATEGY = new V1EncodingStrategy();
 
     private final EncodingTransactionService mockTransactionService = mock(EncodingTransactionService.class);
+    private final TransactionService writeBatchingTransactionService = WriteBatchingTransactionService.create(
+            mockTransactionService);
 
     @Before
     public void setUp() {
         when(mockTransactionService.getEncodingStrategy()).thenReturn(ENCODING_STRATEGY);
+    }
+
+    @After
+    public void verifyMocks() {
+        verifyNoMoreInteractions(mockTransactionService);
+    }
+
+    @Test
+    public void getsValuesFromUnderlying() {
+        when(mockTransactionService.get(anyLong())).thenReturn(5L);
+
+        assertThat(writeBatchingTransactionService.get(3L)).isEqualTo(5L);
+
+        verify(mockTransactionService).get(3L);
+    }
+
+    @Test
+    public void putsUnlessExistsToUnderlyingViaBatch() {
+        writeBatchingTransactionService.putUnlessExists(7, 66);
+
+        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(7L, 66L));
     }
 
     @Test
@@ -56,7 +82,6 @@ public class WriteBatchingTransactionServiceTest {
 
         verify(mockTransactionService).putUnlessExistsMultiple(
                 ImmutableMap.of(1L, 100L, 2L, 200L, 3L, 300L));
-        verifyNoMoreInteractions(mockTransactionService);
     }
 
     @Test
@@ -80,7 +105,6 @@ public class WriteBatchingTransactionServiceTest {
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L));
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(3L, 300L));
         verify(mockTransactionService).getEncodingStrategy();
-        verifyNoMoreInteractions(mockTransactionService);
     }
 
     @Test
@@ -95,7 +119,6 @@ public class WriteBatchingTransactionServiceTest {
         assertThatThrownBy(() -> secondElement.result().get()).hasCauseInstanceOf(SafeIllegalArgumentException.class);
 
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(1L, 200L));
-        verifyNoMoreInteractions(mockTransactionService);
     }
 
     @Value.Immutable
