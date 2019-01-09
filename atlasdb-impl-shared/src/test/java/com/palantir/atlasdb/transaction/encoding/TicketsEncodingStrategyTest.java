@@ -19,6 +19,8 @@ package com.palantir.atlasdb.transaction.encoding;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -27,6 +29,7 @@ import java.util.stream.LongStream;
 
 import org.junit.Test;
 
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 public class TicketsEncodingStrategyTest {
@@ -90,6 +93,28 @@ public class TicketsEncodingStrategyTest {
         assertThat(commitTimestampEncoding.length).isEqualTo(1);
         assertThat(strategy.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
                 .isEqualTo(highTimestamp + 1);
+    }
+
+    @Test
+    public void distributesTimestampsEvenlyAcrossRows() {
+        int elementsExpectedPerRow = 37;
+        int timestampsPerPartition = TicketsEncodingStrategy.ROWS_PER_QUANTUM * elementsExpectedPerRow;
+        int numPartitions = 13;
+
+        Set<Cell> associatedCells = IntStream.range(0, numPartitions)
+                .mapToObj(partitionNumber -> IntStream.range(0, timestampsPerPartition)
+                        .mapToLong(timestampIndex ->
+                                TicketsEncodingStrategy.PARTITIONING_QUANTUM * partitionNumber + timestampIndex)
+                        .mapToObj(strategy::encodeStartTimestampAsCell))
+                .flatMap(x -> x)
+                .collect(Collectors.toSet());
+
+        // groupingBy evaluates arrays on instance equality, which is a no-go, so we need ByteStrings
+        Map<ByteString, List<Cell>> cellsGroupedByRow = associatedCells.stream()
+                .collect(Collectors.groupingBy(cell -> ByteString.copyFrom(cell.getRowName())));
+        for (List<Cell> cellsInEachRow : cellsGroupedByRow.values()) {
+            assertThat(cellsInEachRow.size()).isEqualTo(elementsExpectedPerRow);
+        }
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
