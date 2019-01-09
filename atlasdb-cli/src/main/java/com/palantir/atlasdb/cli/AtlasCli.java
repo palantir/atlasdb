@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.ReadPunchTableCommand;
 import com.palantir.atlasdb.cli.command.ScrubQueueMigrationCommand;
 import com.palantir.atlasdb.cli.command.SweepCommand;
+import com.palantir.atlasdb.cli.command.debug.ComputeSweepStats;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
@@ -53,6 +54,11 @@ public final class AtlasCli {
                 .withCommand(FetchTimestamp.class)
                 .withCommand(CleanTransactionRange.class)
                 .withCommand(FastForwardTimestamp.class);
+
+        builder.withGroup("debug")
+                .withDescription("Commands useful for debugging atlas internals")
+                .withDefaultCommand(Help.class)
+                .withCommand(ComputeSweepStats.class);
 
         return builder.build();
     }
