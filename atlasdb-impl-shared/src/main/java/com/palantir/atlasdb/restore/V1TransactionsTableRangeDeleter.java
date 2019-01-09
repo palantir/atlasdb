@@ -28,20 +28,24 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 
 public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDeleter {
-    private final OptionalLong startTimestamp;
     private final KeyValueService kvs;
+    private final OptionalLong startTimestamp;
     private final boolean skipStartTimestampCheck;
+    private final OutputStateLogger stateLogger;
 
     public V1TransactionsTableRangeDeleter(
             KeyValueService kvs,
             OptionalLong startTimestamp,
-            boolean skipStartTimestampCheck) {
+            boolean skipStartTimestampCheck,
+            OutputStateLogger stateLogger) {
         this.kvs = kvs;
         this.startTimestamp = startTimestamp;
         this.skipStartTimestampCheck = skipStartTimestampCheck;
+        this.stateLogger = stateLogger;
     }
 
     @Override
@@ -74,7 +78,7 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
             long startTs = TransactionConstants.getTimestampForValue(rowName);
 
             if (lastLoggedTsCountdown == 0) {
-//                printer.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
+                stateLogger.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
                 lastLoggedTsCountdown = 100000;
             }
             lastLoggedTsCountdown -= 1;
@@ -84,8 +88,8 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
                 value = row.getOnlyColumnValue();
             } catch (IllegalStateException e) {
                 //this should never happen
-//                printer.error("Found a row in the transactions table that didn't have 1"
-//                        + " and only 1 column value: start={}", SafeArg.of("startTs", startTs));
+                stateLogger.error("Found a row in the transactions table that didn't have 1"
+                        + " and only 1 column value: start={}", SafeArg.of("startTs", startTs));
                 continue;
             }
 
@@ -94,8 +98,8 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
                 continue; // this is not a transaction we are targeting
             }
 
-//            printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
-//                    SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
+            stateLogger.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
+                    SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
 
             Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
             toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
@@ -103,9 +107,9 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
 
         if (!toDelete.isEmpty()) {
             kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-//            printer.info("Delete completed.");
+            stateLogger.info("Delete completed.");
         } else {
-//            printer.info("Found no transactions after the given timestamp to delete.");
+            stateLogger.info("Found no transactions after the given timestamp to delete.");
         }
 
     }
