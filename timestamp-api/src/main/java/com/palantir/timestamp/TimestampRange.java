@@ -80,7 +80,9 @@ public class TimestampRange implements Serializable {
     }
 
     /**
-     * @param timestamp timestamp to check for contaiment
+     * Determines if this {@link TimestampRange} contains the provided timestamp.
+     *
+     * @param timestamp timestamp to check for containment
      * @return true if and only if the timestamp is contained in this timestamp range
      */
     public boolean contains(long timestamp) {
