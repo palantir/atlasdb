@@ -30,7 +30,8 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class TransactionServicesTest {
-    public static final int COMMIT_TS = 555;
+    private static final int START_TS = 123;
+    private static final int COMMIT_TS = 555;
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final CoordinationService<InternalSchemaMetadata> coordinationService
             = CoordinationServices.createDefault(keyValueService, new InMemoryTimestampService(), false);
@@ -39,22 +40,16 @@ public class TransactionServicesTest {
 
     @Test
     public void valuesPutMayBeSubsequentlyRetrieved() {
-        transactionService.putUnlessExists(1, COMMIT_TS);
-        assertThat(transactionService.get(1)).isEqualTo(COMMIT_TS);
+        transactionService.putUnlessExists(START_TS, COMMIT_TS);
+        assertThat(transactionService.get(START_TS)).isEqualTo(COMMIT_TS);
     }
 
     @Test
-    public void canPutAndGetAtNegativeTimestamps() {
-        transactionService.putUnlessExists(-1, COMMIT_TS);
-        assertThat(transactionService.get(-1)).isEqualTo(COMMIT_TS);
-    }
-
-    @Test
-    public void cannotPutNegativeValuesTwice() {
-        transactionService.putUnlessExists(-1, COMMIT_TS);
-        assertThatThrownBy(() -> transactionService.putUnlessExists(-1, COMMIT_TS + 1))
+    public void cannotPutValuesTwice() {
+        transactionService.putUnlessExists(START_TS, COMMIT_TS);
+        assertThatThrownBy(() -> transactionService.putUnlessExists(START_TS, COMMIT_TS + 1))
                 .isInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining("already have a value for this timestamp");
-        assertThat(transactionService.get(-1)).isEqualTo(COMMIT_TS);
+        assertThat(transactionService.get(START_TS)).isEqualTo(COMMIT_TS);
     }
 }
