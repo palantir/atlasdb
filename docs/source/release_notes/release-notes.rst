@@ -90,9 +90,14 @@ v0.116.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
 
     *    - |fixed|
-         - AtlasDB transaction services now handle non-positive start timestamps safely and consistently with respect to past behaviour, where these are permitted.
-           Previously, the transaction service would throw when the transaction service was queried with a non-positive start timestamp.
+         - AtlasDB transaction services no longer throw exceptions when performing Thorough Sweep on tables with sentinels.
+           Previously, the services would throw incorrectly, meaning that Background and Targeted Sweep would become stuck if sweeping thorough tables that used to be conservative, or tables that had undergone hard delete via the scrubber.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3704>`__)
+
+    *    - |changed|
+         - AtlasDB transaction services now no longer support negative timestamps, and are permitted to exhibit undefined behaviour if queried with negative timestamps.
+           Using transaction services with negative timestamps was already broken in the past, owing to the use of negative numbers for special values (like sentinels or a marker meaning that a transaction was rolled back).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/XXXX>`__)
 
     *    - |devbreak|
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
