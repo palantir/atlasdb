@@ -63,7 +63,7 @@ public class SweepableCellFilter {
         for (long startTs : candidate.sortedTimestamps()) {
             Long commitTs = startToCommitTs.get(startTs);
             lastIsCommittedBeforeSweepTs = false;
-            if (startTs == Value.INVALID_VALUE_TIMESTAMP || commitTs == TransactionConstants.FAILED_COMMIT_TS) {
+            if (candidateIsNotFromACommittedTransaction(startTs, commitTs)) {
                 uncommittedTs.add(startTs);
             } else if (commitTs < sweepTs) {
                 tsToSweep.add(startTs);
@@ -85,6 +85,18 @@ public class SweepableCellFilter {
                     .build()
             );
         }
+    }
+
+    private static boolean candidateIsNotFromACommittedTransaction(long startTs, Long commitTs) {
+        return candidateIsASentinel(startTs) || candidateTransactionWasRolledBack(commitTs);
+    }
+
+    private static boolean candidateIsASentinel(long startTs) {
+        return startTs == Value.INVALID_VALUE_TIMESTAMP;
+    }
+
+    private static boolean candidateTransactionWasRolledBack(Long commitTs) {
+        return commitTs == TransactionConstants.FAILED_COMMIT_TS;
     }
 
     private static Set<Long> getAllValidTimestamps(Collection<CandidateCellForSweeping> candidates) {
