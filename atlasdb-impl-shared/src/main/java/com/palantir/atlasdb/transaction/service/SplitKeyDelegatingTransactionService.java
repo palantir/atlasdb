@@ -36,9 +36,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * on which timestamps are requested. This class preserves the {@link TransactionService} guarantees regardless of
  * which underlying service is contacted.
  *
- * The timestampToServiceKey function is expected to handle all possible long arguments (including negative values).
- * The function may return null; if it does, then for reads, values written at that timestamp are considered to be
- * uncommitted. The transaction service will throw if a write is attempted at such a timestamp.
+ * The timestampToServiceKey function is expected to handle all timestamps greater than or equal to
+ * {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS}. It may, but is not expected to, handle timestamps
+ * below that. The function may return null; if it does, then for reads, values written at that timestamp are
+ * considered to be uncommitted. The transaction service will throw if a write is attempted at such a timestamp.
  *
  * The transaction service will also throw an exception if the timestamp-to-service-key function returns a key which is
  * not in the keyedServices map.
