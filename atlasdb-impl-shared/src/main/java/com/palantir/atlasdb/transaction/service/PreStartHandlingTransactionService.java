@@ -23,6 +23,7 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -63,8 +64,12 @@ public class PreStartHandlingTransactionService implements TransactionService {
                 .collect(Collectors.partitioningBy(PreStartHandlingTransactionService::isTimestampValid));
 
         Map<Long, Long> result = Maps.newHashMap();
-        result.putAll(delegate.get(classifiedTimestamps.get(true)));
-        result.putAll(Maps.uniqueIndex(classifiedTimestamps.get(false), unused -> AtlasDbConstants.STARTING_TS - 1));
+        List<Long> validTimestamps = classifiedTimestamps.get(true);
+        if (!validTimestamps.isEmpty()) {
+            result.putAll(delegate.get(validTimestamps));
+        }
+        result.putAll(Maps.asMap(
+                ImmutableSet.copyOf(classifiedTimestamps.get(false)), unused -> AtlasDbConstants.STARTING_TS - 1));
         return result;
     }
 

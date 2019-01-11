@@ -17,29 +17,48 @@
 package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.AtlasDbConstants;
 
 public class PreStartHandlingTransactionServiceTest {
     private final TransactionService delegate = mock(TransactionService.class);
     private final TransactionService preStartHandlingService = new PreStartHandlingTransactionService(delegate);
 
-    private final long START_TIMESTAMP = 44L;
-    private final long COMMIT_TIMESTAMP = 88L;
-    private final long UNCOMMITTED_START_TIMESTAMP = 999L;
-    private final long ZERO_TIMESTAMP = 0L;
-    private final long NEGATIVE_TIMESTAMP = -125L;
+    private static final long START_TIMESTAMP = 44L;
+    private static final long COMMIT_TIMESTAMP = 88L;
+    private static final long UNCOMMITTED_START_TIMESTAMP = 999L;
+    private static final long ZERO_TIMESTAMP = 0L;
+    private static final long NEGATIVE_TIMESTAMP = -125L;
+    private static final long BEFORE_TIME_TIMESTAMP = AtlasDbConstants.STARTING_TS - 1;
+
+    private static final List<Long> TWO_VALID_TIMESTAMPS
+            = ImmutableList.of(START_TIMESTAMP, UNCOMMITTED_START_TIMESTAMP);
+    private static final List<Long> ONE_VALID_ONE_INVALID_TIMESTAMP = ImmutableList.of(START_TIMESTAMP, ZERO_TIMESTAMP);
+    private static final List<Long> TWO_INVALID_TIMESTAMPS = ImmutableList.of(ZERO_TIMESTAMP, NEGATIVE_TIMESTAMP);
 
     @Before
     public void setUpMocks() {
         when(delegate.get(START_TIMESTAMP)).thenReturn(COMMIT_TIMESTAMP);
         when(delegate.get(UNCOMMITTED_START_TIMESTAMP)).thenReturn(null);
+        when(delegate.get(eq(TWO_VALID_TIMESTAMPS)))
+                .thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMIT_TIMESTAMP));
+        when(delegate.get(eq(ImmutableList.of(START_TIMESTAMP))))
+                .thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMIT_TIMESTAMP));
     }
 
     @After
@@ -59,5 +78,35 @@ public class PreStartHandlingTransactionServiceTest {
         Long timestamp = preStartHandlingService.get(UNCOMMITTED_START_TIMESTAMP);
         assertThat(timestamp).isNull();
         verify(delegate).get(UNCOMMITTED_START_TIMESTAMP);
+    }
+
+    @Test
+    public void returnsTimestampBeforeStartingTimestampWhenGettingInvalidTimestamps() {
+        assertThat(preStartHandlingService.get(ZERO_TIMESTAMP)).isEqualTo(BEFORE_TIME_TIMESTAMP);
+        assertThat(preStartHandlingService.get(NEGATIVE_TIMESTAMP)).isEqualTo(BEFORE_TIME_TIMESTAMP);
+    }
+
+    @Test
+    public void passesThroughGetsOnMultipleValidTimestamps() {
+        Map<Long, Long> result = preStartHandlingService.get(TWO_VALID_TIMESTAMPS);
+        assertThat(result).containsExactly(Maps.immutableEntry(START_TIMESTAMP, COMMIT_TIMESTAMP));
+        verify(delegate).get(eq(TWO_VALID_TIMESTAMPS));
+    }
+
+    @Test
+    public void passesThroughOnlyValidTimestampsToDelegateWhenGettingMultiple() {
+        Map<Long, Long> result = preStartHandlingService.get(ONE_VALID_ONE_INVALID_TIMESTAMP);
+        assertThat(result).containsExactly(
+                Maps.immutableEntry(START_TIMESTAMP, COMMIT_TIMESTAMP),
+                Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
+        verify(delegate).get(eq(ImmutableList.of(START_TIMESTAMP)));
+    }
+
+    @Test
+    public void doesNotInvokeDelegateIfNoValidTimestamps() {
+        Map<Long, Long> result = preStartHandlingService.get(TWO_INVALID_TIMESTAMPS);
+        assertThat(result).containsExactly(
+                Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP),
+                Maps.immutableEntry(NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
     }
 }
