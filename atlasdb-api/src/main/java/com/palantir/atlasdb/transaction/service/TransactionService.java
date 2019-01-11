@@ -34,10 +34,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
  * @author carrino
  */
 public interface TransactionService {
-    @CheckForNull
     /**
      * Gets the commit timestamp associated with a given start timestamp.
-     * This may be cached on the client-side, if desired.
+     * Non-null responses may be cached on the client-side. Null responses must not be cached, as they could
+     * subsequently be updated.
      *
      * This function may return null, which means that the transaction in question had not been committed, at
      * least at some point between the request being made and it returning.
@@ -45,6 +45,7 @@ public interface TransactionService {
      * @param startTimestamp start timestamp of the transaction being looked up
      * @return timestamp which the transaction committed at, or null if the transaction had not committed yet
      */
+    @CheckForNull
     Long get(long startTimestamp);
 
     Map<Long, Long> get(Iterable<Long> startTimestamps);
