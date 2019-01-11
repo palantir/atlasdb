@@ -17,7 +17,10 @@
 package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -34,6 +37,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class PreStartHandlingTransactionServiceTest {
     private final TransactionService delegate = mock(TransactionService.class);
@@ -108,5 +113,28 @@ public class PreStartHandlingTransactionServiceTest {
         assertThat(result).containsExactly(
                 Maps.immutableEntry(ZERO_TIMESTAMP, BEFORE_TIME_TIMESTAMP),
                 Maps.immutableEntry(NEGATIVE_TIMESTAMP, BEFORE_TIME_TIMESTAMP));
+    }
+
+    @Test
+    public void putUnlessExistsValidTimestampCallsDelegate() {
+        preStartHandlingService.putUnlessExists(START_TIMESTAMP, COMMIT_TIMESTAMP);
+        verify(delegate).putUnlessExists(START_TIMESTAMP, COMMIT_TIMESTAMP);
+    }
+
+    @Test
+    public void propagatesPutUnlessExistsExceptions() {
+        KeyAlreadyExistsException exception = new KeyAlreadyExistsException("no");
+        doThrow(exception).when(delegate).putUnlessExists(anyLong(), anyLong());
+        assertThatThrownBy(() -> preStartHandlingService.putUnlessExists(START_TIMESTAMP, COMMIT_TIMESTAMP))
+                .isEqualTo(exception);
+        verify(delegate).putUnlessExists(START_TIMESTAMP, COMMIT_TIMESTAMP);
+    }
+
+    @Test
+    public void throwsIfTryingToPutUnlessExistsInvalidTimestamp() {
+        assertThatThrownBy(() -> preStartHandlingService.putUnlessExists(NEGATIVE_TIMESTAMP, COMMIT_TIMESTAMP))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Attempted to putUnlessExists")
+                .hasMessageContaining("is disallowed");
     }
 }
