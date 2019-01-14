@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="batch-asynchronous-post-transaction-unlock-calls">
-<span id="batch-asynchronous-post-transaction-unlock-calls"></span><h1>15. Batch asynchronous post-transaction unlock calls<a class="headerlink" href="#batch-asynchronous-post-transaction-unlock-calls" title="Permalink to this headline">¶</a></h1>
+<h1>15. Batch asynchronous post-transaction unlock calls<a class="headerlink" href="#batch-asynchronous-post-transaction-unlock-calls" title="Permalink to this headline">¶</a></h1>
 <p>Date: 28/06/2018</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>As part of the AtlasDB transaction protocol, write transactions acquire locks from the lock service. They typically
 acquire two types of locks:</p>
 <ul class="simple">
@@ -223,7 +223,7 @@ crash after performing <code class="docutils literal notranslate"><span class="p
 committed.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>Instead of releasing the locks synchronously, release them asynchronously so that control is returned to the user very
 quickly after transaction commit. However, maintaining relatively low latency between transaction commit and unlock
 is important to avoid unnecessarily blocking other writers or sweep.</p>
@@ -245,7 +245,7 @@ tuning depending on individual deployment and product read and write patterns, w
 latency we incur is about 0.5 RPCs on the lock service (assuming that that makes up a majority of time spent in
 unlocking tokens - it is the only network call involved).</p>
 <div class="section" id="tryunlock-api">
-<span id="tryunlock-api"></span><h3>tryUnlock() API<a class="headerlink" href="#tryunlock-api" title="Permalink to this headline">¶</a></h3>
+<h3>tryUnlock() API<a class="headerlink" href="#tryunlock-api" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">TimelockService</span></code> now exposes a <code class="docutils literal notranslate"><span class="pre">tryUnlock()</span></code> API, which functions much like a regular <code class="docutils literal notranslate"><span class="pre">unlock()</span></code> except that the user
 does not need to wait for the operation to complete. This API is only exposed in Java (not over HTTP).</p>
 <p>This is implemented as a new default method on the <code class="docutils literal notranslate"><span class="pre">TimelockService</span></code> that delegates to <code class="docutils literal notranslate"><span class="pre">unlock()</span></code>; usefully, remote
@@ -253,7 +253,7 @@ Feign proxies calling <code class="docutils literal notranslate"><span class="pr
 compatiblity; a new AtlasDB/TimeLock client can talk to an old TimeLock server that has no knowledge of this endpoint.</p>
 </div>
 <div class="section" id="concurrency-model">
-<span id="concurrency-model"></span><h3>Concurrency Model<a class="headerlink" href="#concurrency-model" title="Permalink to this headline">¶</a></h3>
+<h3>Concurrency Model<a class="headerlink" href="#concurrency-model" title="Permalink to this headline">¶</a></h3>
 <p>It is essential that adding an element to the set of outstanding tokens is efficient; yet, we also need to ensure that
 no token is left behind (at least indefinitely). We thus guard the concurrent set by a (Java) lock that permits both
 exclusive and shared modes of access.</p>
@@ -291,7 +291,7 @@ but we deemed it necessary as ‘readers’ (committing transactions) far exceed
 otherwise, the unlocking thread might be starved of the lock.</p>
 </div>
 <div class="section" id="timelock-failures">
-<span id="timelock-failures"></span><h3>TimeLock Failures<a class="headerlink" href="#timelock-failures" title="Permalink to this headline">¶</a></h3>
+<h3>TimeLock Failures<a class="headerlink" href="#timelock-failures" title="Permalink to this headline">¶</a></h3>
 <p>In some embodiments, the lock service is provided by a remote TimeLock server that may fail requests. There is retry
 logic at the transport layer underneath us.</p>
 <p>Previously, running a transaction task would throw an exception if unlocking row locks or the immutable timestamp
@@ -305,9 +305,9 @@ to refresh <em>before</em> it is put on the unlock queue.</p>
 </div>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="improvements">
-<span id="improvements"></span><h3>Improvements<a class="headerlink" href="#improvements" title="Permalink to this headline">¶</a></h3>
+<h3>Improvements<a class="headerlink" href="#improvements" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Transactions no longer need to wait for their immutable timestamp lock and row/cell write locks to be unlocked
 before returning. We anticipate this will make transactions faster (from a user-code perspective) by two
@@ -319,7 +319,7 @@ the total number of tokens is still the same, constant overheads e.g. of the tra
 </ul>
 </div>
 <div class="section" id="drawbacks">
-<span id="drawbacks"></span><h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
+<h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Transactions may hold row locks for an average of half a round-trip time between an AtlasDB client and TimeLock
 longer. This is partially mitigated by TimeLock load being lower (feeding in to performance improvement across
@@ -376,6 +376,7 @@ with small hardware.</li>
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="use-cql-for-column-paging-for-sweep">
-<span id="use-cql-for-column-paging-for-sweep"></span><h1>7. Use CQL for column paging for sweep<a class="headerlink" href="#use-cql-for-column-paging-for-sweep" title="Permalink to this headline">¶</a></h1>
+<h1>7. Use CQL for column paging for sweep<a class="headerlink" href="#use-cql-for-column-paging-for-sweep" title="Permalink to this headline">¶</a></h1>
 <p>Date: 22/08/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Proposed</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>As of version 0.12.0, our implementation of sweep for Cassandra relied upon the getPageWithRangeCreator method of
 CassandraKeyValueService, which fetches values for all columns and timestamps from Cassandra. In cases where a cell with
 a large value was overwritten (with other large values) many times, this caused Cassandra to run out of memory, even
@@ -205,7 +205,7 @@ if only a single row was fetched. (internal issue 44272).</p>
 <p>We needed a way to run sweep without Cassandra running out of memory in such cases.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>We are unaware of any way to fetch columns and timestamps without also temporarily loading values into memory (within
 Cassandra). Therefore, to avoid running out of memory, we needed to make it possible to fetch only a certain number of
 cells (rather than rows) from Cassandra at once.</p>
@@ -222,7 +222,7 @@ described above only if this parameter is set.</p>
 higher throughput.</p>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>There is an additional parameter, timestampsGetterBatchSize, in CassandraKVSConfig. If the user sets this parameter and then
 runs sweep, the sweeper will page through the columns of each row while searching for timestamps, resulting in a process
 that is possibly less efficient, but is also more flexible, and less likely to cause Cassandra to run out of memory.</p>
@@ -274,6 +274,7 @@ that is possibly less efficient, but is also more flexible, and less likely to c
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

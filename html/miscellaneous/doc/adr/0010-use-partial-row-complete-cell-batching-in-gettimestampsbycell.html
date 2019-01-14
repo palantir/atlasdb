@@ -190,20 +190,20 @@
            <div itemprop="articleBody">
             
   <div class="section" id="use-partial-row-complete-cell-batching-in-gettimestampsbycell">
-<span id="use-partial-row-complete-cell-batching-in-gettimestampsbycell"></span><h1>10. Use partial row complete cell batching in getTimestampsByCell<a class="headerlink" href="#use-partial-row-complete-cell-batching-in-gettimestampsbycell" title="Permalink to this headline">¶</a></h1>
+<h1>10. Use partial row complete cell batching in getTimestampsByCell<a class="headerlink" href="#use-partial-row-complete-cell-batching-in-gettimestampsbycell" title="Permalink to this headline">¶</a></h1>
 <p>Date: 10/03/2017</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>As of version 0.35.0 , our implementation of <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> was creating a MultiMap with all pairs of
 (Cell, timestamp) from the range determined by the row batch size. In case of wide rows, or simply a row batch size
 that is too large, this could cause us to run out of memory; see <a class="reference external" href="https://github.com/palantir/atlasdb/issues/982">issue #982</a>.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>We decided to use a block (a triple of row name, column name, and timestamp) batch size, defaulting to 1000000 to avoid
 loading too many blocks into memory. The algorithm will fetch blocks by row, column, and increasing timestamp until the
 batch size is met. In that case:</p>
@@ -251,7 +251,7 @@ In particular, there needs to be retry logic that detects that an error was thro
 </ul>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>For rows wider than the value of the batch size, <code class="docutils literal notranslate"><span class="pre">DbKvs.getTimestampsByCell</span></code> may split them into several RowResults.</p>
 </div>
 </div>
@@ -301,6 +301,7 @@ In particular, there needs to be retry logic that detects that an error was thro
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

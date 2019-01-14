@@ -50,10 +50,49 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
+========
+v0.116.1
+========
+
+20 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The completion service in the Paxos leader election service should be more resilient to individual nodes being slow.
+           Previously, if one individual node had a full thread pool, the service would throw a ``RejectedExecutionException`` even if other nodes were able to service the request.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3687>`__)
+
+========
+v0.116.0
+========
+
+14 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
          - AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
            Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
+    *    - |fixed|
+         - AtlasDB transaction services now handle non-positive start timestamps safely and consistently with respect to past behaviour, where these are permitted.
+           Previously, the transaction service would throw when the transaction service was queried with a non-positive start timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3704>`__)
 
     *    - |devbreak|
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
@@ -83,17 +122,30 @@ develop
            While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
 
-    *    - |fixed|
-         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
-           Previously, the annotation processor would generate code that wouldn't compile.
-           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
+========
+v0.115.0
+========
+
+07 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
            Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
            The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
+
+    *    - |fixed|
+         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+           Previously, the annotation processor would generate code that wouldn't compile.
+           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
 
     *    - |improved|
          - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).

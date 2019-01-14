@@ -190,19 +190,19 @@
            <div itemprop="articleBody">
             
   <div class="section" id="stop-allowing-embedded-lock-and-timestamp-services-in-production">
-<span id="stop-allowing-embedded-lock-and-timestamp-services-in-production"></span><h1>5. stop allowing embedded lock and timestamp services in production<a class="headerlink" href="#stop-allowing-embedded-lock-and-timestamp-services-in-production" title="Permalink to this headline">¶</a></h1>
+<h1>5. stop allowing embedded lock and timestamp services in production<a class="headerlink" href="#stop-allowing-embedded-lock-and-timestamp-services-in-production" title="Permalink to this headline">¶</a></h1>
 <p>Date: 13/04/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Currently a completely normal way to set up AtlasDB is to run an embedded lock and timestamp service that only your atlas client talks to in Java. If this happens with 2 different clients, then they can easily clash with each other and cause undefined issues in the KVS. It also stops CLIs that require knowledge of lock and timestamp being able to run against these atlas clients.</p>
 <p>There is no reason for this situation to arise in production. Lock and Timestamp services can still be deployed in a sensible fashion without spinning up a separate service by registering the lock and timestamp server endpoints in your application, and having your own nodes act as the servers. Alternatively, you can spin up an completely external lock and timestamp service whose whole reason for existence is to perform these roles.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <ol class="simple">
 <li>Remove the ability to run embedded lock and timestamp services in configuration</li>
 <li>Provide an easy to run Timelock Server which provides lock and timestamp services to applications</li>
@@ -210,7 +210,7 @@
 </ol>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <ol class="simple">
 <li>We have to support a new, standalone server and all related considerations (e.g. versioning, healthchecks)</li>
 </ol>
@@ -262,6 +262,7 @@
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

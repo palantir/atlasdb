@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table">
-<span id="prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table"></span><h1>2. Prevent tables from being created simultaneously in cassandra via a locks table<a class="headerlink" href="#prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table" title="Permalink to this headline">¶</a></h1>
+<h1>2. Prevent tables from being created simultaneously in cassandra via a locks table<a class="headerlink" href="#prevent-tables-from-being-created-simultaneously-in-cassandra-via-a-locks-table" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/05/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Cassandra <a class="reference external" href="https://issues.apache.org/jira/browse/CASSANDRA-10699">has an issue</a> which can cause data loss in the situation:</p>
 <ol class="simple">
 <li>Node A and node B concurrently create table “some.table”</li>
@@ -210,11 +210,11 @@
 <p>To fix this we must prevent tables from being created at the same time.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>All schema mutations will globally synchronise via a check-and-set operation on a specific cell in a _lock table.</p>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>If a node attempts to mutate the schema but dies before releasing the lock, then the lock will never be released. This will require manual intervention.</li>
 <li>We need to ensure that the lock table does not suffer from this bug, so the lock table must be created in a synchronous manner.</li>
@@ -268,6 +268,7 @@
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

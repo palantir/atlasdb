@@ -186,32 +186,79 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-116-1">
+<h2>v0.116.1<a class="headerlink" href="#v0-116-1" title="Permalink to this headline">¶</a></h2>
+<p>20 Dec 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The completion service in the Paxos leader election service should be more resilient to individual nodes being slow.
+Previously, if one individual node had a full thread pool, the service would throw a <code class="docutils literal notranslate"><span class="pre">RejectedExecutionException</span></code> even if other nodes were able to service the request.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3687">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-116-0">
+<h2>v0.116.0<a class="headerlink" href="#v0-116-0" title="Permalink to this headline">¶</a></h2>
+<p>14 Dec 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
 <td>AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
 Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3686">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB transaction services now handle non-positive start timestamps safely and consistently with respect to past behaviour, where these are permitted.
+Previously, the transaction service would throw when the transaction service was queried with a non-positive start timestamp.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3704">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>With the introduction of _coordination, creation of <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> now requires a <code class="docutils literal notranslate"><span class="pre">CoordinationService&lt;InternalSchemaMetadata&gt;</span></code>.
 Users may create a <code class="docutils literal notranslate"><span class="pre">CoordinationService</span></code> via the <code class="docutils literal notranslate"><span class="pre">CoordinationServices</span></code> factory, if needed, or retrieve it from the relevant <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code>.
 Generally speaking, <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> should not be directly used by standard AtlasDB consumers; abusing it can result in <strong>SEVERE DATA CORRUPTION</strong>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3686">Pull Request 1</a> and <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3689">Pull Request 2</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Transaction Managers now expose a <code class="docutils literal notranslate"><span class="pre">getTransactionService()</span></code> method.
 Users with custom subclasses of <code class="docutils literal notranslate"><span class="pre">TransactionManager</span></code> will need to implement this.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3689">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>With the introduction of _coordination, we expose new metrics indicating the point (in logical timestamps) till which the coordination service knows what has been agreed, as well as the transactions schema version that will eventually be applied.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3691">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>Cassandra KVS <cite>getMetadataForTables</cite> method now returns a map where table reference keys have capitalisation matching the table names in Cassandra.
 Previously there was no strict guarantee on the keys’ capitalisation, but it was in most cases all lowercase.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3649">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Cassandra KVS <cite>getMetadataForTables</cite> method now does not contain entries for tables that do not exist in Cassandra.
 Previously, when a table was dropped, an empty byte array would be written into the _metadata table to mark it as deleted.
 Now, we delete all rows of the _metadata table containing entries pertaining to the dropped table.
@@ -219,17 +266,34 @@ Note that this involves a range scan over a part of the _metadata table.
 While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3649">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>The &#64;AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
-Previously, the annotation processor would generate code that wouldn’t compile.
-Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3670">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-115-0">
+<h2>v0.115.0<a class="headerlink" href="#v0-115-0" title="Permalink to this headline">¶</a></h2>
+<p>07 Dec 2018</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
 Previously, refresh would only add discovered new servers, but never remove decommissioned hosts.
 The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3661">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The &#64;AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+Previously, the annotation processor would generate code that wouldn’t compile.
+Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3670">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
@@ -6861,6 +6925,7 @@ The error has been downgraded to INFO and made less scary.</td>
         <script type="text/javascript" src="../_static/jquery.js"></script>
         <script type="text/javascript" src="../_static/underscore.js"></script>
         <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
     
 
   

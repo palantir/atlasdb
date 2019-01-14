@@ -190,15 +190,15 @@
            <div itemprop="articleBody">
             
   <div class="section" id="create-schema-lock-table-via-a-one-off-cli-command">
-<span id="create-schema-lock-table-via-a-one-off-cli-command"></span><h1>4. Create schema lock table via a one off CLI command<a class="headerlink" href="#create-schema-lock-table-via-a-one-off-cli-command" title="Permalink to this headline">¶</a></h1>
+<h1>4. Create schema lock table via a one off CLI command<a class="headerlink" href="#create-schema-lock-table-via-a-one-off-cli-command" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/05/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
-<p>Superceded by <a class="reference external" href="0006-create-schema-lock-table-using-configuration.md">6. Create schema lock table using configuration</a></p>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>Superceded by <a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html"><span class="doc">6. Create schema lock table using configuration</span></a></p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
-<p>Due to <a class="reference external" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.md">table creation issue</a> we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>Due to <a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html"><span class="doc">table creation issue</span></a> we need to be able to safely create _lock table as a one off operation for each keyspace that atlas uses. The discussed options include:</p>
 <ul class="simple">
 <li>Have Atlas clients refuse to start if the _locks table is missing and provide a CLI to create it.<ul>
 <li>This does require manual interview for whoever is handling operations</li>
@@ -218,7 +218,7 @@
 </ul>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>We will implement the CLI based solution as:</p>
 <ul class="simple">
 <li>It is safe</li>
@@ -227,7 +227,7 @@
 </ul>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>Deployers of atlas will have to run a CLI once on initial service installation.</p>
 </div>
 </div>
@@ -277,6 +277,7 @@
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

@@ -190,16 +190,16 @@
            <div itemprop="articleBody">
             
   <div class="section" id="targeted-sweep">
-<span id="targeted-sweep"></span><h1>14. Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h1>
+<h1>14. Targeted Sweep<a class="headerlink" href="#targeted-sweep" title="Permalink to this headline">¶</a></h1>
 <p>Date: 18/06/2018</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p><strong>Accepted</strong></p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="legacy-sweep">
-<span id="legacy-sweep"></span><h3>Legacy Sweep<a class="headerlink" href="#legacy-sweep" title="Permalink to this headline">¶</a></h3>
+<h3>Legacy Sweep<a class="headerlink" href="#legacy-sweep" title="Permalink to this headline">¶</a></h3>
 <p>To achieve its transactional guarantees, AtlasDB maintains historical versions of cells that have been written to. Eventually,
 all existing and future transactions will have a start timestamp large enough that some of these historical versions will never be
 visible again, resulting in unnecessary cruft. This is not only an issue due to taking up storage space in the underlying KVS, but
@@ -228,7 +228,7 @@ therefore abort. If a table allows read-only transactions, and therefore require
 <strong>sweep strategy</strong>: <code class="docutils literal notranslate"><span class="pre">CONSERVATIVE</span></code>, which allows read-only transactions and requires sentinels, and <code class="docutils literal notranslate"><span class="pre">THOROUGH</span></code>, which does not.</p>
 <p>Over time we have identified a number of issues with the architecture and implementation of legacy sweep as outlined below.</p>
 <div class="section" id="legacy-sweep-is-slow">
-<span id="legacy-sweep-is-slow"></span><h4>Legacy Sweep is Slow<a class="headerlink" href="#legacy-sweep-is-slow" title="Permalink to this headline">¶</a></h4>
+<h4>Legacy Sweep is Slow<a class="headerlink" href="#legacy-sweep-is-slow" title="Permalink to this headline">¶</a></h4>
 <p>Even if a table has no historic versions of cells that can be swept, we still have to scan through all historic versions of
 all cells in the table, which can take weeks in extreme cases. The performance only gets worse as more data is written to the
 KVS, increasing the number of entries legacy sweep must iterate through. This is a particularly large problem for users with tables
@@ -241,13 +241,13 @@ frequently, and the slowness of legacy sweep, significant developer time must be
 effect.</p>
 </div>
 <div class="section" id="legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs">
-<span id="legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs"></span><h4>Legacy Sweep can Exert Significant Pressure on the Underlying KVS<a class="headerlink" href="#legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs" title="Permalink to this headline">¶</a></h4>
+<h4>Legacy Sweep can Exert Significant Pressure on the Underlying KVS<a class="headerlink" href="#legacy-sweep-can-exert-significant-pressure-on-the-underlying-kvs" title="Permalink to this headline">¶</a></h4>
 <p>Scanning through a table to find historic versions of cells can in some cases cause significant pressure on the underlying KVS,
 in particular for Cassandra. Even though we are only interested in the start and commit timestamp of the transaction in which the
 writes were performed, it is our understanding that Cassandra internally still loads the contents of the cell in memory regardless.</p>
 </div>
 <div class="section" id="legacy-sweep-can-get-stuck">
-<span id="legacy-sweep-can-get-stuck"></span><h4>Legacy Sweep can Get Stuck<a class="headerlink" href="#legacy-sweep-can-get-stuck" title="Permalink to this headline">¶</a></h4>
+<h4>Legacy Sweep can Get Stuck<a class="headerlink" href="#legacy-sweep-can-get-stuck" title="Permalink to this headline">¶</a></h4>
 <p>For tables that regularly have new rows added in increasing lexicographical order (for example, tables keyed on steadily  increasing
 <code class="docutils literal notranslate"><span class="pre">FIXED</span></code> or <code class="docutils literal notranslate"><span class="pre">VAR_LONG</span></code>s), legacy sweep can end up sweeping the table indefinitely as each iteration will discover a new row, therefore
 never declaring the table as fully swept. As a consequence, no other tables are swept at all until the issue is noticed and manually
@@ -256,7 +256,7 @@ resolved.</p>
 </div>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>The problems of legacy sweep are architectural, and cannot be solved by simply improving the implementation.
 We have therefore decided to change the architecture of sweep so that it does not require scanning of tables to find candidates
 to delete, and instead maintains a <strong>Sweep Queue</strong> which contains the information on all the writes into AtlasDB. This, in
@@ -264,7 +264,7 @@ conjunction with <strong>ranged tombstones</strong> (ranged deletions), which de
 in parallel without having to read data from the tables being swept. <em>Note that, at the time of writing this ADR, only the Cassandra
 KVS implementation of ranged tombstones actually avoids reading from the table</em>.</p>
 <div class="section" id="targeted-sweep-using-a-targeted-sweep-queue">
-<span id="targeted-sweep-using-a-targeted-sweep-queue"></span><h3>Targeted Sweep using a Targeted Sweep Queue<a class="headerlink" href="#targeted-sweep-using-a-targeted-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<h3>Targeted Sweep using a Targeted Sweep Queue<a class="headerlink" href="#targeted-sweep-using-a-targeted-sweep-queue" title="Permalink to this headline">¶</a></h3>
 <p>The <strong>targeted sweep queue</strong> is a persisted queue containing the relevant metadata for each write that was about to be committed into AtlasDB.
 This metadata is encapsulated in a <code class="docutils literal notranslate"><span class="pre">WriteInfo</span></code> object and contains the following:</p>
 <ul class="simple">
@@ -312,9 +312,9 @@ potentially existing sentinel, but not the write.</li>
 </div>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="benefits">
-<span id="benefits"></span><h3>Benefits<a class="headerlink" href="#benefits" title="Permalink to this headline">¶</a></h3>
+<h3>Benefits<a class="headerlink" href="#benefits" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Targeted sweep can perform sweeps several orders of magnitude times faster than legacy sweep (this has only been verified on Cassandra so far).</li>
 <li>The load on the underlying KVS is significantly reduced (this has only been verified on Cassandra so far).</li>
@@ -322,7 +322,7 @@ potentially existing sentinel, but not the write.</li>
 </ul>
 </div>
 <div class="section" id="drawbacks">
-<span id="drawbacks"></span><h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
+<h3>Drawbacks<a class="headerlink" href="#drawbacks" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Added overhead to committing transactions, as the information must be persisted to the sweep queue as part of the commit. Note
 that this has not caused significant regression in our benchmarks.</li>
@@ -330,7 +330,7 @@ that this has not caused significant regression in our benchmarks.</li>
 </div>
 </div>
 <div class="section" id="implementation">
-<span id="implementation"></span><h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
 <p>Since we assume that threads may die at any moment, for most of the implementation details below, correct ordering is crucial.
 Before we describe the targeted sweep schema, we will define the necessary terms. A <strong>Fine Timestamp Partition</strong> of a timestamp <em>ts</em>
 is <em>ts</em> divided by <em>50_000</em>, using integer division. A fine timestamp partition of a write is the fine
@@ -342,7 +342,7 @@ to enable better parallelisation of targeted sweep. The maximum number of <stron
 splitting the queue into that number of disjoint queues. Note that once that the number of shards is increased, it cannot be
 lowered again.</p>
 <div class="section" id="sweepable-cells-table">
-<span id="sweepable-cells-table"></span><h3>Sweepable Cells Table<a class="headerlink" href="#sweepable-cells-table" title="Permalink to this headline">¶</a></h3>
+<h3>Sweepable Cells Table<a class="headerlink" href="#sweepable-cells-table" title="Permalink to this headline">¶</a></h3>
 <p>This table stores the actual information about all the writes into AtlasDB. As a transaction is about to be committed, but before
 data is persisted to the KVS, all writes from the transaction are partitioned based on shard and sweep strategy
 of the table. Then, if there are 50 or fewer writes in a partition, we persist the necessary information in the same number of cells
@@ -385,7 +385,7 @@ the number of shards is greater than 1. Note that for each cell in a non-dedicat
 timestamp simply by multiplying the <em>timestamp_partition</em> by <em>50_000</em> and then adding its <em>timestamp_modulus</em>.</p>
 </div>
 <div class="section" id="sweepable-timestamps-table">
-<span id="sweepable-timestamps-table"></span><h3>Sweepable Timestamps Table<a class="headerlink" href="#sweepable-timestamps-table" title="Permalink to this headline">¶</a></h3>
+<h3>Sweepable Timestamps Table<a class="headerlink" href="#sweepable-timestamps-table" title="Permalink to this headline">¶</a></h3>
 <p>This is an auxiliary table for locating the next row of the <em>sweepableCells</em> table to read since the timestamp partitions can be
 sparse, and therefore requiring many lookups to locate a nonempty row. Each non-dedicated row of <em>sweepableCells</em> is represented
 by a single cell in this table.</p>
@@ -408,7 +408,7 @@ row if necessary. If a cell is found this way, its <em>timestamp_modulus</em> is
 were looking for.</p>
 </div>
 <div class="section" id="sweep-progress-per-shard-table">
-<span id="sweep-progress-per-shard-table"></span><h3>Sweep Progress (Per Shard) Table<a class="headerlink" href="#sweep-progress-per-shard-table" title="Permalink to this headline">¶</a></h3>
+<h3>Sweep Progress (Per Shard) Table<a class="headerlink" href="#sweep-progress-per-shard-table" title="Permalink to this headline">¶</a></h3>
 <p>This table stores targeted sweep’s progress, as well as the information about the number of shards the sweep queue is using.</p>
 <p><strong>Row components</strong>:</p>
 <ul class="simple">
@@ -425,7 +425,7 @@ were looking for.</p>
 allowed to increase. A request to update a cell to a lower value will have no effect.</p>
 </div>
 <div class="section" id="writing-to-the-sweep-queue">
-<span id="writing-to-the-sweep-queue"></span><h3>Writing to the Sweep Queue<a class="headerlink" href="#writing-to-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<h3>Writing to the Sweep Queue<a class="headerlink" href="#writing-to-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
 <p>Whenever a <code class="docutils literal notranslate"><span class="pre">SnapshotTransaction</span></code> is about to commit, before its writes are persisted into the KVS, it enqueues
 them to the sweep queue:</p>
 <ol class="simple">
@@ -449,7 +449,7 @@ row is a dedicated row and the row’s ordinal number, and the rest is the same 
 row has multiple references to dedicated rows.</p>
 </div>
 <div class="section" id="reading-from-the-sweep-queue">
-<span id="reading-from-the-sweep-queue"></span><h3>Reading from the Sweep Queue<a class="headerlink" href="#reading-from-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<h3>Reading from the Sweep Queue<a class="headerlink" href="#reading-from-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
 <p>Reading from the sweep queue is done in the same order as writing. For a given shard, strategy, <strong>minimum exclusive
 timestamp</strong> (targeted sweep reads this from the <em>sweepProgressPerShard</em> table as described later), and <strong>maximum exclusive
 timestamp</strong> (for targeted sweep, this is the sweep timestamp), we do the following:</p>
@@ -469,7 +469,7 @@ additional entries to ensure we have read all the entries with the same start ti
 </ol>
 </div>
 <div class="section" id="cleaning-the-sweep-queue">
-<span id="cleaning-the-sweep-queue"></span><h3>Cleaning the Sweep Queue<a class="headerlink" href="#cleaning-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
+<h3>Cleaning the Sweep Queue<a class="headerlink" href="#cleaning-the-sweep-queue" title="Permalink to this headline">¶</a></h3>
 <p>Once an entire non-dedicated row of <em>sweepableCells</em> or a row of <em>sweepableTimestamps</em> are not needed anymore, we remove them as
 follows.</p>
 <ol class="simple">
@@ -484,7 +484,7 @@ timestamp partition in <em>sweepableTimestamps</em>.</li>
 </ol>
 </div>
 <div class="section" id="targeted-sweep-implementation">
-<span id="targeted-sweep-implementation"></span><h3>Targeted Sweep Implementation<a class="headerlink" href="#targeted-sweep-implementation" title="Permalink to this headline">¶</a></h3>
+<h3>Targeted Sweep Implementation<a class="headerlink" href="#targeted-sweep-implementation" title="Permalink to this headline">¶</a></h3>
 <p>Targeted sweep reads the write metadata from the sweep queue instead of sequentially scanning tables to find historic versions.
 After an entry is read from the sweep queue, we check the commit timestamp of the transaction that performed the write.</p>
 <ul class="simple">
@@ -592,6 +592,7 @@ the <em>sweep timestamp</em> and the first timestamp that would be written into 
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

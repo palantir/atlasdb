@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="batch-timestamp-requests-on-the-client-side">
-<span id="batch-timestamp-requests-on-the-client-side"></span><h1>12. Batch timestamp requests on the client side<a class="headerlink" href="#batch-timestamp-requests-on-the-client-side" title="Permalink to this headline">¶</a></h1>
+<h1>12. Batch timestamp requests on the client side<a class="headerlink" href="#batch-timestamp-requests-on-the-client-side" title="Permalink to this headline">¶</a></h1>
 <p>Date: 26/09/2017</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>A TimeLock cluster can serve multiple services. Under these circumstances, each TimeLock client node can separately
 open connections to TimeLock and request timestamps and locks. As timestamp and lock requests are typically very common
 (for instance, a single write transaction needs to contact TimeLock multiple times), TimeLock tends to experience
@@ -206,7 +206,7 @@ relatively heavy loads. This affects overall throughput, as TimeLock takes longe
 already been used in production, in Palantir’s large internal product.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>Use the <code class="docutils literal notranslate"><span class="pre">RequestBatchingTimestampService</span></code> to coalesce timestamp requests to TimeLock, and enable it by default.
 This means that a TimeLock client will, at any time, have at most one timestamp request in flight to TimeLock.
@@ -230,7 +230,7 @@ applications that require real-time responses.</li>
 </ul>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li>Generally, load on TimeLock servers should be reduced, as there will be fewer network calls made to request
 timestamps. Note that lock requests (both to the legacy and async lock services), as well as compound
@@ -290,6 +290,7 @@ includes the time involved in waiting for the current batch to complete as well 
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

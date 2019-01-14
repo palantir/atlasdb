@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="retry-long-running-locks-via-blockingtimeoutexception">
-<span id="retry-long-running-locks-via-blockingtimeoutexception"></span><h1>11. Retry long-running locks via BlockingTimeoutException<a class="headerlink" href="#retry-long-running-locks-via-blockingtimeoutexception" title="Permalink to this headline">¶</a></h1>
+<h1>11. Retry long-running locks via BlockingTimeoutException<a class="headerlink" href="#retry-long-running-locks-via-blockingtimeoutexception" title="Permalink to this headline">¶</a></h1>
 <p>Date: 08/05/2017</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Our implementation of AtlasDB clients and the TimeLock server were interacting in ways that were causing the TimeLock
 server to experience large thread buildups when running with HTTP/2. This manifested in
 <a class="reference external" href="https://github.com/palantir/atlasdb/issues/1680">issue #1680</a>. The issue was eventually root caused to long-running
@@ -221,9 +221,9 @@ a backlog of requests. Also, observe that setting the idle timeout to 2 minutes 
 problem (though it does mitigate it), since multiple clients may be blocking on acquiring the same lock.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="time-limiting-lock-requests">
-<span id="time-limiting-lock-requests"></span><h3>Time Limiting Lock Requests<a class="headerlink" href="#time-limiting-lock-requests" title="Permalink to this headline">¶</a></h3>
+<h3>Time Limiting Lock Requests<a class="headerlink" href="#time-limiting-lock-requests" title="Permalink to this headline">¶</a></h3>
 <p>We decided that solutions to this problem should prevent the above pattern by satisfying one or both of the following:</p>
 <ol class="simple">
 <li>Prevent the idle timeout from reasonably occurring.</li>
@@ -241,9 +241,9 @@ believe this is reasonable as it is used for both our time limiting and for Jett
 we are relatively resilient to clock drift relative to the client or to other nodes in the TimeLock cluster.</p>
 </div>
 <div class="section" id="alternatives-considered">
-<span id="alternatives-considered"></span><h3>Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permalink to this headline">¶</a></h3>
+<h3>Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="significantly-increase-the-jetty-idle-timeout">
-<span id="significantly-increase-the-jetty-idle-timeout"></span><h4>1. Significantly increase the Jetty idle timeout<a class="headerlink" href="#significantly-increase-the-jetty-idle-timeout" title="Permalink to this headline">¶</a></h4>
+<h4>1. Significantly increase the Jetty idle timeout<a class="headerlink" href="#significantly-increase-the-jetty-idle-timeout" title="Permalink to this headline">¶</a></h4>
 <p>We could have configured the recommended idle timeout for TimeLock to be substantially longer than we expect any lock
 request to reasonably block for, such as 1 day.</p>
 <p>This solution is advantageous in that it is simple. However, the current default of 30 seconds is already longer than
@@ -253,7 +253,7 @@ We would also introduce a dependency on the idle timeout on the HTTP client-side
 increased to account for this (the current default is 60 seconds).</p>
 </div>
 <div class="section" id="convert-the-lock-service-to-a-non-blocking-api">
-<span id="convert-the-lock-service-to-a-non-blocking-api"></span><h4>2. Convert the lock service to a non-blocking API<a class="headerlink" href="#convert-the-lock-service-to-a-non-blocking-api" title="Permalink to this headline">¶</a></h4>
+<h4>2. Convert the lock service to a non-blocking API<a class="headerlink" href="#convert-the-lock-service-to-a-non-blocking-api" title="Permalink to this headline">¶</a></h4>
 <p>We could have changed the lock API such that lock requests return immediately regardless of whether the lock being
 asked for is available or not. If any lock being asked for was not available yet, the server would return a token
 indicating that the request was to be satisfied. The client can then, at a later time, poll the server with its token
@@ -262,21 +262,21 @@ to ask if its request had been satisfied; alternatively, we could investigate HT
 of the lock service which we would prefer not to make at this time.</p>
 </div>
 <div class="section" id="implement-connection-keep-alives-heartbeats">
-<span id="implement-connection-keep-alives-heartbeats"></span><h4>3. Implement connection keep-alives / heartbeats<a class="headerlink" href="#implement-connection-keep-alives-heartbeats" title="Permalink to this headline">¶</a></h4>
+<h4>3. Implement connection keep-alives / heartbeats<a class="headerlink" href="#implement-connection-keep-alives-heartbeats" title="Permalink to this headline">¶</a></h4>
 <p>We close the connection if no bytes have been sent or received for the idle timeout. Thus, we can reset this timeout
 by sending a <em>heartbeat message</em> from the client to the server or vice versa, at a frequency higher than the idle
 timeout. We would probably prefer this to live on the server, since the idle timeout is configured on the server-side.</p>
 <p>This solution seems reasonable, though it does not appear to readily be supported by Jetty.</p>
 </div>
 <div class="section" id="send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes">
-<span id="send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes"></span><h4>4. Send a last-gasp message to the lock service to free resources before the stream closes<a class="headerlink" href="#send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes" title="Permalink to this headline">¶</a></h4>
+<h4>4. Send a last-gasp message to the lock service to free resources before the stream closes<a class="headerlink" href="#send-a-last-gasp-message-to-the-lock-service-to-free-resources-before-the-stream-closes" title="Permalink to this headline">¶</a></h4>
 <p>An idea we considered was to have Jetty free resources on the lock service before closing the HTTP/2 stream.</p>
 <p>This solution appears to be the cleanest of the “free resources”-based solutions, including the one we chose to
 implement. Unfortunately, while this feature has been requested in Jetty, as at time of writing this has not
 been implemented yet; see <a class="reference external" href="https://github.com/eclipse/jetty.project/issues/824">Jetty issue #824</a>.</p>
 </div>
 <div class="section" id="have-clients-truncate-individual-requests-to-the-idle-timeout">
-<span id="have-clients-truncate-individual-requests-to-the-idle-timeout"></span><h4>5. Have clients truncate individual requests to the idle timeout<a class="headerlink" href="#have-clients-truncate-individual-requests-to-the-idle-timeout" title="Permalink to this headline">¶</a></h4>
+<h4>5. Have clients truncate individual requests to the idle timeout<a class="headerlink" href="#have-clients-truncate-individual-requests-to-the-idle-timeout" title="Permalink to this headline">¶</a></h4>
 <p>An alternative to having the server return <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code>s on long-running requests would be for clients
 to trim down any requests to an appropriate length (or, in the case of <code class="docutils literal notranslate"><span class="pre">BLOCK_INDEFINITELY</span></code>, indefinitely send
 requests of a suitable length). For example, with the default idle timeout of 30 seconds, a client wishing to block
@@ -287,7 +287,7 @@ aforementioned “appropriate length” should be (it needs to be the idle timeo
 that timeout is configured on the server side.</p>
 </div>
 <div class="section" id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry">
-<span id="implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry"></span><h4>6. Implement a “magic” HTTP status code or header to ask clients to retry<a class="headerlink" href="#implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry" title="Permalink to this headline">¶</a></h4>
+<h4>6. Implement a “magic” HTTP status code or header to ask clients to retry<a class="headerlink" href="#implement-a-magic-http-status-code-or-header-to-ask-clients-to-retry" title="Permalink to this headline">¶</a></h4>
 <p>An alternative to serializing exceptions into <code class="docutils literal notranslate"><span class="pre">SerializableError</span></code>s could be defining a specific HTTP status code
 and/or custom header to indicate that a blocking timeout has occurred and/or clients should retry. This is used
 in practice e.g. in nginx, where a 495 indicates an error with a client’s SSL certificates.</p>
@@ -299,9 +299,9 @@ for headers as well.</p>
 </div>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="block-for-at-most-behaviour">
-<span id="block-for-at-most-behaviour"></span><h3>BLOCK_FOR_AT_MOST Behaviour<a class="headerlink" href="#block-for-at-most-behaviour" title="Permalink to this headline">¶</a></h3>
+<h3>BLOCK_FOR_AT_MOST Behaviour<a class="headerlink" href="#block-for-at-most-behaviour" title="Permalink to this headline">¶</a></h3>
 <p>After implementation of the above, lock requests that block for less than the idle timeout, or that are
 <code class="docutils literal notranslate"><span class="pre">BLOCK_INDEFINITELY</span></code> will behave correctly. However, lock requests that block for more than the idle timeout will
 be incorrect:</p>
@@ -318,7 +318,7 @@ ADR (as there are some subtleties involving which sources of time one treats as 
 certain that an authoritative source of time is strictly necessary).</p>
 </div>
 <div class="section" id="exception-serialization">
-<span id="exception-serialization"></span><h3>Exception Serialization<a class="headerlink" href="#exception-serialization" title="Permalink to this headline">¶</a></h3>
+<h3>Exception Serialization<a class="headerlink" href="#exception-serialization" title="Permalink to this headline">¶</a></h3>
 <p>Exception serialization was changed. Previously, if contacting a node that was not the leader we would send a 503
 with an empty response; otherwise, we would throw a <code class="docutils literal notranslate"><span class="pre">FeignException</span></code> with the underlying cause and stack trace as
 a string. We now serialize <code class="docutils literal notranslate"><span class="pre">NotCurrentLeaderException</span></code> and the new <code class="docutils literal notranslate"><span class="pre">BlockingTimeoutException</span></code> in a manner compatible
@@ -329,7 +329,7 @@ interpret the message body of the HTTP response to see what caused said 503. We 
 services may be unavailable for reasons other than not being the leader.</p>
 </div>
 <div class="section" id="fairness-and-starvation">
-<span id="fairness-and-starvation"></span><h3>Fairness and Starvation<a class="headerlink" href="#fairness-and-starvation" title="Permalink to this headline">¶</a></h3>
+<h3>Fairness and Starvation<a class="headerlink" href="#fairness-and-starvation" title="Permalink to this headline">¶</a></h3>
 <p>Lock requests were previously fair - that is, if thread A blocks on acquiring the <code class="docutils literal notranslate"><span class="pre">LockServerSync</span></code> for a given
 lock before thread B, then under normal circumstances (barring exceptions, interruption or leader election),
 A would acquire the lock before B. While this is still true at the thread synchronization level, it no longer
@@ -342,7 +342,7 @@ flagged in <a class="reference external" href="https://github.com/palantir/atlas
 this behaviour, they need not use this feature at all (it is configurable).</p>
 </div>
 <div class="section" id="configuration">
-<span id="configuration"></span><h3>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h3>
+<h3>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h3>
 <p>TimeLock has an additional configuration parameter, though this is non-breaking as we provide a sensible default.</p>
 </div>
 </div>
@@ -393,6 +393,7 @@ this behaviour, they need not use this feature at all (it is configurable).</p>
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="load-and-read-streams-in-the-same-transaction">
-<span id="load-and-read-streams-in-the-same-transaction"></span><h1>9. Load and Read Streams in the Same Transaction<a class="headerlink" href="#load-and-read-streams-in-the-same-transaction" title="Permalink to this headline">¶</a></h1>
+<h1>9. Load and Read Streams in the Same Transaction<a class="headerlink" href="#load-and-read-streams-in-the-same-transaction" title="Permalink to this headline">¶</a></h1>
 <p>Date: 20/01/2017</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Proposed</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Reading streams from within the same transaction that calls loadStream() must
 be supported. There are a number of benefits to doing this rather than reading
 streams outside the transaction.</p>
@@ -217,7 +217,7 @@ makes sense to perform all of that in a single transaction.</li>
 </ol>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>Reading from a stream inside the same transaction that calls loadStream()
 should be the preferred method unless you have a specific reason that the reads
 must be performed later outside the transaction. Reading from a stream should
@@ -225,7 +225,7 @@ be supported both inside the same transaction where it was loaded and outside
 (after the transaction commits or aborts).</p>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>Internal products currently rely on being able to read streams in the same
 transaction that loadStream() is called. This must be supported unless you
 first ensure that all internal products have been rewritten to never read
@@ -278,6 +278,7 @@ from a stream in the same transaction that loads it.</p>
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

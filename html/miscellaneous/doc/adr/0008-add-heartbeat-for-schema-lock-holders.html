@@ -190,14 +190,14 @@
            <div itemprop="articleBody">
             
   <div class="section" id="adding-heartbeat-for-schema-lock-holders">
-<span id="adding-heartbeat-for-schema-lock-holders"></span><h1>8. Adding Heartbeat for Schema Lock Holders<a class="headerlink" href="#adding-heartbeat-for-schema-lock-holders" title="Permalink to this headline">¶</a></h1>
+<h1>8. Adding Heartbeat for Schema Lock Holders<a class="headerlink" href="#adding-heartbeat-for-schema-lock-holders" title="Permalink to this headline">¶</a></h1>
 <p>Date: 27/09/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>As of version 0.16.0, anyone trying to acquire the a schema mutation lock that is already held by someone else
 would keep trying to acquire the lock until a fixed timeout threshold. Once that threshold was reached, we would
 stop trying to acquire the lock and throw a timeout exception. This would effectively kill the client trying to grab
@@ -209,7 +209,7 @@ or dead. Once we have that information, we can keep retrying as long as we know 
 timing out needlessly.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>To inform anyone trying to acquire the lock if the lock holder is dead or alive, we decided to have the lock holder
 periodically update its lock (heartbeat) in the locks table while its still holding the lock. That way, anyone else
 trying to acquire the lock can see the updates to the lock and keep retrying as long as the updates continue.</p>
@@ -229,7 +229,7 @@ table) when a lock holder dies without releasing the lock but provides a better 
 to the human user.</p>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>There should be significantly lower instances of schema mutation lock timeouts. The only cases where we should have
 timeouts should be:</p>
 <ol class="simple">
@@ -285,6 +285,7 @@ is dead and recommend cleaning the locks table.</li>
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   

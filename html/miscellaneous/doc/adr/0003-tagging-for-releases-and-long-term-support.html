@@ -190,25 +190,25 @@
            <div itemprop="articleBody">
             
   <div class="section" id="tagging-for-releases-and-long-term-support">
-<span id="tagging-for-releases-and-long-term-support"></span><h1>3. Tagging for releases and long-term support<a class="headerlink" href="#tagging-for-releases-and-long-term-support" title="Permalink to this headline">¶</a></h1>
+<h1>3. Tagging for releases and long-term support<a class="headerlink" href="#tagging-for-releases-and-long-term-support" title="Permalink to this headline">¶</a></h1>
 <p>Date: 20/05/2016</p>
 <div class="section" id="status">
-<span id="status"></span><h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
 <p>Accepted</p>
 </div>
 <div class="section" id="context">
-<span id="context"></span><h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
 <p>Atlas needs to provide long-term support (LTS) to internal users and also iterate quickly and have frequent releases.  We need some agreed versioning and release scheme so users and developers know what is supported and what will be supported in the future.</p>
 </div>
 <div class="section" id="decision">
-<span id="decision"></span><h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
 <p>Atlas is versioned with tags of the form X.Y.Z.  For the purpose of discussion let A.B.C be the lexigraphically largest version of atlas and let a.b.c be them most recent version of atlas on your branch (these are the same if you are on <strong>develop</strong> but are different if you are working on an <strong>LTS branch</strong>).</p>
 <div class="section" id="to-publish-a-new-release-of-atlasdb">
-<span id="to-publish-a-new-release-of-atlasdb"></span><h3>To Publish A New Release of AtlasDB<a class="headerlink" href="#to-publish-a-new-release-of-atlasdb" title="Permalink to this headline">¶</a></h3>
+<h3>To Publish A New Release of AtlasDB<a class="headerlink" href="#to-publish-a-new-release-of-atlasdb" title="Permalink to this headline">¶</a></h3>
 <p>If you are on <strong>develop</strong> then you tag with <strong>a.b+1.0</strong> (which is the same as <strong>A.B+1.0</strong>) otherwise tag with <strong>a.b.c+1</strong>.  The patch version will be primarily incremented when backporting fixes to an old branch of AtlasDB.</p>
 </div>
 <div class="section" id="when-publishing-a-release-with-long-term-support">
-<span id="when-publishing-a-release-with-long-term-support"></span><h3>When Publishing A Release with Long-Term Support<a class="headerlink" href="#when-publishing-a-release-with-long-term-support" title="Permalink to this headline">¶</a></h3>
+<h3>When Publishing A Release with Long-Term Support<a class="headerlink" href="#when-publishing-a-release-with-long-term-support" title="Permalink to this headline">¶</a></h3>
 <ol class="simple">
 <li>From the tip of develop create a new protected branch on Github called <strong>A.B+1.x</strong> (e.g. “0.6.x”, x here is literally the character ‘x’)</li>
 <li>Tag the forking point of that branch with <strong>A.B+1.0</strong> (e.g. “0.6.0”)</li>
@@ -217,7 +217,7 @@
 </div>
 </div>
 <div class="section" id="consequences">
-<span id="consequences"></span><h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
 <p>Lock-step changes with internal code will always require a minor version bump irregardless of our desire to release.</p>
 </div>
 </div>
@@ -267,6 +267,7 @@
         <script type="text/javascript" src="../../../_static/jquery.js"></script>
         <script type="text/javascript" src="../../../_static/underscore.js"></script>
         <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
     
 
   
