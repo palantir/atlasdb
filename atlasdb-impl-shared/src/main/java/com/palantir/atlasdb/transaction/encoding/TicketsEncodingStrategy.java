@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.transaction.encoding;
 
+import java.util.Arrays;
+
 import org.apache.commons.lang3.ArrayUtils;
 
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -37,11 +40,17 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
  *
  * A long is 9 bytes at most, so one row here consists of at most 4 longs -> 36 bytes, and an individual row
  * is probabilistically below 1M dynamic column keys. A row is expected to be less than 14M (56M worst case).
+ *
+ * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
+ * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
 public class TicketsEncodingStrategy implements TimestampEncodingStrategy {
+    private static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
+
     // DO NOT change the following without a transactions table migration!
     public static final long PARTITIONING_QUANTUM = 25_000_000;
     public static final int ROWS_PER_QUANTUM = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
+
 
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
@@ -62,11 +71,17 @@ public class TicketsEncodingStrategy implements TimestampEncodingStrategy {
 
     @Override
     public byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp) {
+        if (commitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
+            return ABORTED_TRANSACTION_VALUE;
+        }
         return TransactionConstants.getValueForTimestamp(commitTimestamp - startTimestamp);
     }
 
     @Override
     public long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+        if (Arrays.equals(value, ABORTED_TRANSACTION_VALUE)) {
+            return TransactionConstants.FAILED_COMMIT_TS;
+        }
         return startTimestamp + TransactionConstants.getTimestampForValue(value);
     }
 

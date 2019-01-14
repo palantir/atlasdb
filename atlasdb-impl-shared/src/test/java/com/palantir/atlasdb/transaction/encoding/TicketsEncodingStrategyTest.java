@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.transaction.encoding;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,7 +31,9 @@ import java.util.stream.LongStream;
 import org.junit.Test;
 
 import com.google.protobuf.ByteString;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class TicketsEncodingStrategyTest {
     private static final TicketsEncodingStrategy strategy = new TicketsEncodingStrategy();
@@ -115,6 +118,22 @@ public class TicketsEncodingStrategyTest {
         for (List<Cell> cellsInEachRow : cellsGroupedByRow.values()) {
             assertThat(cellsInEachRow.size()).isEqualTo(elementsExpectedPerRow);
         }
+    }
+
+    @Test
+    public void canStoreTransactionsCommittingInstantaneously() {
+        assertThatCode(() -> strategy.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void canStoreAbortedTransactionCompactly() {
+        assertThat(strategy.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS)).hasSize(0);
+    }
+
+    @Test
+    public void canDecodeEmptyByteArrayAsAbortedTransaction() {
+        assertThat(strategy.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
+        assertThat(strategy.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
