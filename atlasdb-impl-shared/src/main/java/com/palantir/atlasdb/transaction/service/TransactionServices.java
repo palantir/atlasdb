@@ -42,16 +42,14 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             CoordinationService<InternalSchemaMetadata> coordinationService) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        int versionOne = 1;
-        PreStartTimestampHandler<Integer> handlerMappingNonPositivesToVersionOne
-                = new PreStartTimestampHandler<>(versionOne, transactionSchemaManager::getTransactionsSchemaVersion);
-        return new SplitKeyDelegatingTransactionService<>(
-                handlerMappingNonPositivesToVersionOne,
-                ImmutableMap.of(versionOne, createV1TransactionService(keyValueService)));
+        return new PreStartHandlingTransactionService(
+                new SplitKeyDelegatingTransactionService<>(
+                        transactionSchemaManager::getTransactionsSchemaVersion,
+                        ImmutableMap.of(1, createV1TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
-        return new SimpleTransactionService(keyValueService);
+        return new PreStartHandlingTransactionService(new SimpleTransactionService(keyValueService));
     }
 
     /**
@@ -79,10 +77,10 @@ public final class TransactionServices {
                     false);
             ReadOnlyTransactionSchemaManager readOnlyTransactionSchemaManager
                     = new ReadOnlyTransactionSchemaManager(coordinationService);
-            return new SplitKeyDelegatingTransactionService<>(
-                    readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
-                    ImmutableMap.of(1, createV1TransactionService(keyValueService))
-            );
+            return new PreStartHandlingTransactionService(
+                    new SplitKeyDelegatingTransactionService<>(
+                            readOnlyTransactionSchemaManager::getTransactionsSchemaVersion,
+                            ImmutableMap.of(1, createV1TransactionService(keyValueService))));
         }
         return createV1TransactionService(keyValueService);
     }

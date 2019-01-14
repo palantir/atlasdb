@@ -73,13 +73,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
     }
 
     @Test
-    public void getHandlesNegativeTimestamps() {
-        when(delegate1.get(-9L)).thenReturn(37L);
-        assertThat(delegatingTransactionService.get(-9L)).isEqualTo(37L);
-        verify(delegate1).get(-9L);
-    }
-
-    @Test
     public void getThrowsIfFunctionReturnsUnmappedValue() {
         assertThatThrownBy(() -> delegatingTransactionService.get(7L))
                 .isInstanceOf(IllegalStateException.class)
