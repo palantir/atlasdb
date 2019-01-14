@@ -89,6 +89,11 @@ v0.116.0
            Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
 
+    *    - |fixed|
+         - AtlasDB transaction services now handle non-positive start timestamps safely and consistently with respect to past behaviour, where these are permitted.
+           Previously, the transaction service would throw when the transaction service was queried with a non-positive start timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3704>`__)
+
     *    - |devbreak|
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
            Users may create a ``CoordinationService`` via the ``CoordinationServices`` factory, if needed, or retrieve it from the relevant ``TransactionManager``.

@@ -42,10 +42,12 @@ public final class TransactionServices {
             KeyValueService keyValueService,
             CoordinationService<InternalSchemaMetadata> coordinationService) {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+        int versionOne = 1;
+        PreStartTimestampHandler<Integer> handlerMappingNonPositivesToVersionOne
+                = new PreStartTimestampHandler<>(versionOne, transactionSchemaManager::getTransactionsSchemaVersion);
         return new SplitKeyDelegatingTransactionService<>(
-                transactionSchemaManager::getTransactionsSchemaVersion,
-                ImmutableMap.of(1, createV1TransactionService(keyValueService))
-        );
+                handlerMappingNonPositivesToVersionOne,
+                ImmutableMap.of(versionOne, createV1TransactionService(keyValueService)));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
