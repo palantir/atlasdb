@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
  * A {@link KeyAlreadyExistsException} is thrown if an operation that conditionally updates a {@link KeyValueService}
  * fails because some data is already present in the underlying database.
  */
+@SuppressWarnings("checkstyle:MutableExceptionCheck") // Java serialization.
 public class KeyAlreadyExistsException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
