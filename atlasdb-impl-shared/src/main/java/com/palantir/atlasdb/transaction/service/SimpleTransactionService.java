@@ -29,7 +29,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SimpleTransactionService implements EncodingTransactionService {
     private final KeyValueService keyValueService;
-    private final TimestampEncodingStrategy encodingStrategy = new V1EncodingStrategy();
+    private final TimestampEncodingStrategy encodingStrategy = V1EncodingStrategy.INSTANCE;
 
     public SimpleTransactionService(KeyValueService keyValueService) {
         this.keyValueService = keyValueService;

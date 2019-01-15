@@ -19,7 +19,9 @@ package com.palantir.atlasdb.transaction.encoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class V1EncodingStrategy implements TimestampEncodingStrategy {
+public enum V1EncodingStrategy implements TimestampEncodingStrategy {
+    INSTANCE;
+
     @Override
     public Cell encodeStartTimestampAsCell(long startTimestamp) {
         return Cell.create(
