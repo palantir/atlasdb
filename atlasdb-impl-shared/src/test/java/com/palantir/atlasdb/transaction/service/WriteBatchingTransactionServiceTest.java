@@ -42,7 +42,7 @@ import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public class WriteBatchingTransactionServiceTest {
-    private static final V1EncodingStrategy ENCODING_STRATEGY = new V1EncodingStrategy();
+    private static final V1EncodingStrategy ENCODING_STRATEGY = V1EncodingStrategy.INSTANCE;
 
     private final EncodingTransactionService mockTransactionService = mock(EncodingTransactionService.class);
     private final TransactionService writeBatchingTransactionService = WriteBatchingTransactionService.create(
