@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
  * A {@link KeyAlreadyExistsException} is thrown if an operation that conditionally updates a {@link KeyValueService}
  * fails because some data is already present in the underlying database.
  */
-@SuppressWarnings("checkstyle:MutableExceptionCheck") // Java serialization.
 public class KeyAlreadyExistsException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
@@ -41,7 +40,7 @@ public class KeyAlreadyExistsException extends RuntimeException {
      * committed may be placed in this list. This list may not be complete; there may be additional cells that
      * were actually successfully committed but are not in this list.
      */
-    // Not final for backwards compatibility in Java serialization.
+    @SuppressWarnings("checkstyle:MutableExceptionCheck") // Not final for backwards compatibility in serialization.
     private ImmutableList<Cell> knownSuccessfullyCommittedKeys;
 
     public KeyAlreadyExistsException(String msg, Throwable ex) {
