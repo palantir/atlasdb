@@ -252,7 +252,9 @@ public interface KeyValueService extends AutoCloseable {
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
-    boolean supportsCheckAndSet();
+    default boolean supportsCheckAndSet() {
+        return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NOT_SUPPORTED;
+    }
 
     /**
      * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.

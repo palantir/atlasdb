@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -325,8 +326,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public boolean supportsCheckAndSet() {
-        return getDelegates().stream().allMatch(KeyValueService::supportsCheckAndSet);
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.min(getDelegates().stream().map(KeyValueService::getCheckAndSetCompatibility));
     }
 
     @Override
