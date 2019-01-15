@@ -32,6 +32,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 public class KeyAlreadyExistsExceptionTest {
     @Test
     public void canDeserializeLegacyVersionsOfException() throws IOException, ClassNotFoundException {
+        // The legacy exception was created on AtlasDB 0.116.1.
         URL exceptionSerializedFormUrl = KeyAlreadyExistsExceptionTest.class.getClassLoader()
                 .getResource("serializedLegacyKeyAlreadyExistsException.dat");
         FileInputStream fileInputStream = new FileInputStream(new File(exceptionSerializedFormUrl.getPath()));
@@ -39,6 +40,7 @@ public class KeyAlreadyExistsExceptionTest {
                 new ObjectInputStream(fileInputStream).readObject();
 
         assertThat(deserialized.getMessage()).isEqualTo("aaa");
+        assertThat(deserialized.getCause()).isNull();
         assertThat(deserialized.getExistingKeys()).containsExactly(
                 Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col")));
         assertThat(deserialized.getKnownSuccessfullyCommittedKeys()).isEqualTo(ImmutableList.of());
