@@ -50,8 +50,11 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |devbreak|
+         - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
+           Refer to the contract of ``KeyValueService#getCheckAndSetCompatibility`` and the ``CheckAndSetCompatibility`` enum class to guide this decision.
+           Please be very careful if you are explicitly setting this to ``CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3713>`__)
 
 ========
 v0.116.1
