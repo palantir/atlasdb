@@ -40,7 +40,7 @@ public class KeyAlreadyExistsException extends RuntimeException {
      * committed may be placed in this list. This list may not be complete; there may be additional cells that
      * were actually successfully committed but are not in this list.
      */
-    @SuppressWarnings("checkstyle:MutableExceptionCheck") // Not final for backwards compatibility in serialization.
+    @SuppressWarnings("checkstyle:MutableException") // Not final for backwards compatibility in serialization.
     private ImmutableList<Cell> knownSuccessfullyCommittedKeys;
 
     public KeyAlreadyExistsException(String msg, Throwable ex) {
