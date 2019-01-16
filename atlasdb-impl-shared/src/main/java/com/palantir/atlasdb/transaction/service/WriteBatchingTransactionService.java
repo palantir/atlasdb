@@ -33,12 +33,17 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.annotation.Output;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 /**
- * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link TransactionService}, such
- * that there is at most one request in flight at a given time. Read requests (gets) are not batched.
+ * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link EncodingTransactionService},
+ * such that there is at most one request in flight at a given time. Read requests (gets) are not batched.
+ *
+ * Delegates are expected to throw {@link KeyAlreadyExistsException}s that have meaningful values for
+ * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
 public final class WriteBatchingTransactionService implements TransactionService, AutoCloseable {
     private final EncodingTransactionService delegate;
@@ -92,7 +97,8 @@ public final class WriteBatchingTransactionService implements TransactionService
      *   {@link SafeIllegalArgumentException}, which is fine (following the contract it means the put may or may not
      *   have happened).
      * - If a {@link KeyAlreadyExistsException} is thrown, we fail out requests for keys present in the
-     *   {@link KeyAlreadyExistsException}, and then retry our request with those keys removed.
+     *   {@link KeyAlreadyExistsException}, and then retry our request with those keys removed. If the
+     *   {@link KeyAlreadyExistsException} does not include any present keys, we throw an exception.
      */
     @VisibleForTesting
     static void processBatch(
@@ -110,6 +116,11 @@ public final class WriteBatchingTransactionService implements TransactionService
                 return;
             } catch (KeyAlreadyExistsException exception) {
                 Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, exception);
+                Preconditions.checkState(!failedTimestamps.isEmpty(),
+                        "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
+                                + " This is likely to be a product bug - please contact support.",
+                        SafeArg.of("request", accumulatedRequest),
+                        UnsafeArg.of("exception", exception));
                 failedTimestamps.forEach(timestamp -> futures.get(timestamp).setException(exception));
                 accumulatedRequest = Maps.filterKeys(
                         accumulatedRequest, timestamp -> !failedTimestamps.contains(timestamp));
