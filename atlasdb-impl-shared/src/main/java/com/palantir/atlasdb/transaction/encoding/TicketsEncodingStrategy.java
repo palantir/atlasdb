@@ -44,7 +44,9 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
  * Note the usage of {@link PtBytes#EMPTY_BYTE_ARRAY} for transactions that were rolled back; this is a space
  * optimisation, as we would otherwise store a negative value which uses 9 bytes in a VAR_LONG.
  */
-public class TicketsEncodingStrategy implements TimestampEncodingStrategy {
+public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
+    INSTANCE;
+
     private static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
     // DO NOT change the following without a transactions table migration!

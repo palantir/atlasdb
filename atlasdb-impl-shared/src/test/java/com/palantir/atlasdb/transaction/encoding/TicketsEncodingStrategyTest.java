@@ -36,7 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class TicketsEncodingStrategyTest {
-    private static final TicketsEncodingStrategy strategy = new TicketsEncodingStrategy();
+    private static final TicketsEncodingStrategy STRATEGY = TicketsEncodingStrategy.INSTANCE;
 
     @Test
     public void canDistinguishNumericallyCloseTimestamps() {
@@ -74,8 +74,8 @@ public class TicketsEncodingStrategyTest {
     public void cellEncodeAndDecodeAreInverses() {
         fuzzOneThousandTrials(() -> {
             long timestamp = ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE);
-            Cell encoded = strategy.encodeStartTimestampAsCell(timestamp);
-            assertThat(strategy.decodeCellAsStartTimestamp(encoded)).isEqualTo(timestamp);
+            Cell encoded = STRATEGY.encodeStartTimestampAsCell(timestamp);
+            assertThat(STRATEGY.decodeCellAsStartTimestamp(encoded)).isEqualTo(timestamp);
         });
     }
 
@@ -84,17 +84,17 @@ public class TicketsEncodingStrategyTest {
         fuzzOneThousandTrials(() -> {
             long startTimestamp = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE - 1);
             long commitTimestamp = ThreadLocalRandom.current().nextLong(startTimestamp, Long.MAX_VALUE);
-            byte[] encoded = strategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-            assertThat(strategy.decodeValueAsCommitTimestamp(startTimestamp, encoded)).isEqualTo(commitTimestamp);
+            byte[] encoded = STRATEGY.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
+            assertThat(STRATEGY.decodeValueAsCommitTimestamp(startTimestamp, encoded)).isEqualTo(commitTimestamp);
         });
     }
 
     @Test
     public void storesLargeCommitTimestampsCompactly() {
         long highTimestamp = Long.MAX_VALUE - 1;
-        byte[] commitTimestampEncoding = strategy.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
+        byte[] commitTimestampEncoding = STRATEGY.encodeCommitTimestampAsValue(highTimestamp, highTimestamp + 1);
         assertThat(commitTimestampEncoding.length).isEqualTo(1);
-        assertThat(strategy.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
+        assertThat(STRATEGY.decodeValueAsCommitTimestamp(highTimestamp, commitTimestampEncoding))
                 .isEqualTo(highTimestamp + 1);
     }
 
@@ -108,7 +108,7 @@ public class TicketsEncodingStrategyTest {
                 .mapToObj(partitionNumber -> IntStream.range(0, timestampsPerPartition)
                         .mapToLong(timestampIndex ->
                                 TicketsEncodingStrategy.PARTITIONING_QUANTUM * partitionNumber + timestampIndex)
-                        .mapToObj(strategy::encodeStartTimestampAsCell))
+                        .mapToObj(STRATEGY::encodeStartTimestampAsCell))
                 .flatMap(x -> x)
                 .collect(Collectors.toSet());
 
@@ -122,18 +122,18 @@ public class TicketsEncodingStrategyTest {
 
     @Test
     public void canStoreTransactionsCommittingInstantaneously() {
-        assertThatCode(() -> strategy.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
+        assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
     }
 
     @Test
     public void canStoreAbortedTransactionCompactly() {
-        assertThat(strategy.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS)).hasSize(0);
+        assertThat(STRATEGY.encodeCommitTimestampAsValue(537369, TransactionConstants.FAILED_COMMIT_TS)).hasSize(0);
     }
 
     @Test
     public void canDecodeEmptyByteArrayAsAbortedTransaction() {
-        assertThat(strategy.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
-        assertThat(strategy.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
+        assertThat(STRATEGY.decodeValueAsCommitTimestamp(1, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
+        assertThat(STRATEGY.decodeValueAsCommitTimestamp(862846378267L, PtBytes.EMPTY_BYTE_ARRAY)).isEqualTo(-1);
     }
 
     private static void fuzzOneThousandTrials(Runnable test) {
@@ -143,7 +143,7 @@ public class TicketsEncodingStrategyTest {
     private static void assertStartTimestampsCanBeDistinguished(long... timestamps) {
         Set<Cell> convertedCells = Arrays.stream(timestamps)
                 .boxed()
-                .map(strategy::encodeStartTimestampAsCell)
+                .map(STRATEGY::encodeStartTimestampAsCell)
                 .collect(Collectors.toSet());
         assertThat(convertedCells.size()).isEqualTo(timestamps.length);
     }
