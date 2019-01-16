@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Map;
 
 import org.jmock.Expectations;
@@ -24,6 +26,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -128,6 +131,22 @@ public class TableSplittingKeyValueServiceTest {
         }});
 
         splittingKvs.createTables(merge(tableSpec1, tableSpec2));
+    }
+
+    @Test
+    public void evaluatesCheckAndSetCompatibilityCorrectly() {
+        TableSplittingKeyValueService splittingKvs = TableSplittingKeyValueService.create(
+                ImmutableList.of(defaultKvs, tableDelegate),
+                ImmutableMap.of(TABLE, tableDelegate));
+
+        mockery.checking(new Expectations() {{
+            oneOf(defaultKvs).getCheckAndSetCompatibility();
+            will(returnValue(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE));
+            oneOf(tableDelegate).getCheckAndSetCompatibility();
+            will(returnValue(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE));
+        }});
+        assertThat(splittingKvs.getCheckAndSetCompatibility())
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
     }
 
     private Map<TableReference, byte[]> merge(

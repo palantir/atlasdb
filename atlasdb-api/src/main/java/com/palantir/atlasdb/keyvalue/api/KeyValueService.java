@@ -248,11 +248,23 @@ public interface KeyValueService extends AutoCloseable {
                          Map<Cell, byte[]> values) throws KeyAlreadyExistsException;
 
     /**
-     * Check whether CAS is supported. This check can go away when Rocks and JDBC KVS's are deleted.
+     * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
      */
-    boolean supportsCheckAndSet();
+    default boolean supportsCheckAndSet() {
+        return getCheckAndSetCompatibility() != CheckAndSetCompatibility.NOT_SUPPORTED;
+    }
+
+    /**
+     * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.
+     *
+     * This method should be consistent with {@link KeyValueService#supportsCheckAndSet()} - this method should
+     * return {@link CheckAndSetCompatibility#NOT_SUPPORTED} if and only if that method returns false.
+     *
+     * @return check and set compatibility
+     */
+    CheckAndSetCompatibility getCheckAndSetCompatibility();
 
     /**
      * Performs a check-and-set into the key-value store.
