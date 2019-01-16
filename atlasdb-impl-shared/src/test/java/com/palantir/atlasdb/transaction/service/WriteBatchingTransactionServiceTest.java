@@ -40,6 +40,7 @@ import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class WriteBatchingTransactionServiceTest {
     private static final V1EncodingStrategy ENCODING_STRATEGY = V1EncodingStrategy.INSTANCE;
@@ -109,16 +110,19 @@ public class WriteBatchingTransactionServiceTest {
     }
 
     @Test
-    public void doesNotBlockInfinitelyOnUnspecifiedKeyAlreadyExistsException() {
+    public void throwsOnUnspecifiedKeyAlreadyExistsExceptions() {
         KeyAlreadyExistsException keyAlreadyExistsException = new KeyAlreadyExistsException("boo");
         doThrow(keyAlreadyExistsException)
                 .doNothing()
                 .when(mockTransactionService)
                 .putUnlessExistsMultiple(anyMap());
 
-        WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                TestTransactionBatchElement.of(1L, 100L),
-                TestTransactionBatchElement.of(2L, 200L)));
+        assertThatThrownBy(() ->
+                WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
+                        TestTransactionBatchElement.of(1L, 100L),
+                        TestTransactionBatchElement.of(2L, 200L))))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("claimed no keys already existed");
 
         verify(mockTransactionService, times(1)).putUnlessExistsMultiple(ImmutableMap.of(1L, 100L, 2L, 200L));
     }
