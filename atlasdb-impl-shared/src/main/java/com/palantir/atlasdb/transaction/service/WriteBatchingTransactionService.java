@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,7 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.annotation.Output;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -122,25 +124,47 @@ public final class WriteBatchingTransactionService implements TransactionService
                 delegate.putUnlessExistsMultiple(accumulatedRequest);
 
                 // If the result was already set to be exceptional, this will not interfere with that.
-                batchElements.forEach(element -> element.result().set(null));
+                batchElements.forEach(element -> markSuccessful(element.result()));
                 return;
             } catch (KeyAlreadyExistsException exception) {
-                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, exception);
-                Preconditions.checkState(!failedTimestamps.isEmpty(),
-                        "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
-                                + " This is likely to be a product bug - please contact support.",
-                        SafeArg.of("request", accumulatedRequest),
-                        UnsafeArg.of("exception", exception));
+                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
                 failedTimestamps.forEach(timestamp -> futures.get(timestamp).setException(exception));
-                accumulatedRequest = Maps.filterKeys(
-                        accumulatedRequest, timestamp -> !failedTimestamps.contains(timestamp));
+
+                Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
+                successfulTimestamps.forEach(timestamp -> markSuccessful(futures.get(timestamp)));
+
+                accumulatedRequest = Maps.filterKeys(accumulatedRequest,
+                        timestamp -> !failedTimestamps.contains(timestamp)
+                                && !successfulTimestamps.contains(timestamp));
             }
         }
     }
 
-    private static Set<Long> getAlreadyExistingStartTimestamps(EncodingTransactionService delegate,
+    private static boolean markSuccessful(SettableFuture<Void> result) {
+        return result.set(null);
+    }
+
+    private static Set<Long> getAlreadyExistingStartTimestamps(
+            EncodingTransactionService delegate,
+            Map<Long, Long> batchRequest,
             KeyAlreadyExistsException exception) {
-        return exception.getExistingKeys().stream()
+        Set<Long> existingTimestamps = decodeCellsToTimestamps(delegate, exception.getExistingKeys());
+        Preconditions.checkState(!existingTimestamps.isEmpty(),
+                "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
+                        + " This is likely to be a product bug - please contact support.",
+                SafeArg.of("request", batchRequest),
+                UnsafeArg.of("exception", exception));
+        return existingTimestamps;
+    }
+
+    private static Set<Long> getTimestampsSuccessfullyPutUnlessExists(
+            EncodingTransactionService delegate,
+            KeyAlreadyExistsException exception) {
+        return decodeCellsToTimestamps(delegate, exception.getKnownSuccessfullyCommittedKeys());
+    }
+
+    private static Set<Long> decodeCellsToTimestamps(EncodingTransactionService delegate, Collection<Cell> cells) {
+        return cells.stream()
                 .map(key -> delegate.getEncodingStrategy().decodeCellAsStartTimestamp(key))
                 .collect(Collectors.toSet());
     }

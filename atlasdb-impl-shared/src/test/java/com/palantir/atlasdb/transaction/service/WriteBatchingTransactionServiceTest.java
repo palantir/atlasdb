@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -129,12 +130,15 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchDoesNotBreakOnItsOwnSuccessfulWrites() {
-        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", ImmutableList.of(
-                ENCODING_STRATEGY.encodeStartTimestampAsCell(3L)));
-        KeyAlreadyExistsException newExistingKeyException = new KeyAlreadyExistsException("boo", ImmutableList.of(
-                ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
+        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException(
+                "boo",
+                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(3L)),
+                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
+        KeyAlreadyExistsException newExistingKeyException = new KeyAlreadyExistsException(
+                "boo",
+                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
 
-        doThrow(originalException).doThrow(originalException)
+        doThrow(originalException)
                 .doThrow(newExistingKeyException)
                 .doNothing()
                 .when(mockTransactionService)
@@ -151,7 +155,7 @@ public class WriteBatchingTransactionServiceTest {
         assertThatThrownBy(() -> elementAlreadyExisting.result().get()).hasCause(originalException);
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
 
-        verify(mockTransactionService).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
     }
 
     @Test
