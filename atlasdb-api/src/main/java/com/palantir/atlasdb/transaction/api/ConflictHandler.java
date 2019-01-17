@@ -23,7 +23,7 @@ public enum ConflictHandler {
     IGNORE_ALL(false, false, false, false),
 
     /**
-     * If two transactions concurrently write to the same cell the one that commits later will
+     * If two transactions concurrently write to the same row the one that commits later will
      * throw a {@link TransactionConflictException} and should have details about how this happened.
      */
     RETRY_ON_WRITE_WRITE(false, true, true, false),
