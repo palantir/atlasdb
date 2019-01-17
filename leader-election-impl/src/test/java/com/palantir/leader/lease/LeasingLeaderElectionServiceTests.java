@@ -23,8 +23,6 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,7 +35,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class LeadershipLeaseLeaderElectionServiceTests {
+public final class LeasingLeaderElectionServiceTests {
     private static final Duration TIMEOUT = Duration.ofMillis(100);
     @Mock private LeaderElectionService delegate;
     @Mock private LeadershipToken token;
@@ -47,40 +45,44 @@ public final class LeadershipLeaseLeaderElectionServiceTests {
     @Before
     public void before() throws InterruptedException {
         // cache forever
-        leased = new LeadershipLeaseLeaderElectionService(delegate, Duration.ofDays(1), TIMEOUT);
+        leased = new LeasingLeaderElectionService(() -> true, delegate, Duration.ofDays(1), TIMEOUT);
         when(delegate.blockOnBecomingLeader()).thenReturn(token);
         when(delegate.getCurrentTokenIfLeading()).thenReturn(Optional.of(token));
     }
 
     @Test
-    public void testDelaysAcquiringLeadership_block() throws Exception {
-        testDelaysAcquiringLeadership(leased::blockOnBecomingLeader);
+    public void testThrowsInterruptedExceptionIfDelegateThrowsInterruptedException() throws InterruptedException {
+        when(delegate.blockOnBecomingLeader()).thenThrow(new InterruptedException());
+        assertThatExceptionOfType(InterruptedException.class).isThrownBy(() -> leased.blockOnBecomingLeader());
     }
 
-    // Yes, this test is necessary; it stops race conditions from poisoning the well
     @Test
-    public void testDelaysAcquiringLeadership_ifLeading() throws Exception {
-        testDelaysAcquiringLeadership(() -> leased.getCurrentTokenIfLeading().get());
-    }
-
-    private void testDelaysAcquiringLeadership(Callable<LeadershipToken> tokenSupplier) throws Exception {
+    public void testDelaysAcquiringLeadership() throws Exception {
         long before = System.nanoTime();
-        tokenSupplier.call();
+        leased.blockOnBecomingLeader();
         long after = System.nanoTime();
-        assertThat(after - before).isGreaterThan(TimeUnit.MILLISECONDS.toNanos(100));
+        assertThat(after - before).isGreaterThan(TIMEOUT.toNanos());
     }
 
     @Test
-    public void leasesLeadershipState_block() throws InterruptedException {
-        leasesLeadershipState(leased.blockOnBecomingLeader());
+    public void testIsNotLeadingIfWaiting() {
+        Thread thread = new Thread(() -> {
+            try {
+                leased.blockOnBecomingLeader();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        thread.start();
+        while (thread.getState() != Thread.State.TIMED_WAITING) {
+            Thread.yield();
+        }
+        assertThat(leased.getCurrentTokenIfLeading()).isEmpty();
     }
 
     @Test
-    public void leasesLeadershipState_ifLeading() {
-        leasesLeadershipState(leased.getCurrentTokenIfLeading().get());
-    }
-
-    private void leasesLeadershipState(LeadershipToken leasedToken) {
+    public void leasesLeadershipState() throws InterruptedException {
+        LeadershipToken leasedToken = leased.blockOnBecomingLeader();
         when(delegate.isStillLeading(token)).thenReturn(StillLeadingStatus.LEADING);
         assertThat(leased.isStillLeading(leasedToken)).isEqualTo(StillLeadingStatus.LEADING);
         assertThat(leased.isStillLeading(leasedToken)).isEqualTo(StillLeadingStatus.LEADING);
@@ -90,7 +92,6 @@ public final class LeadershipLeaseLeaderElectionServiceTests {
 
     @Test
     public void failsLoudlyIfWrongTypeOfLeadershipToken() {
-        assertThatExceptionOfType(ClassCastException.class)
-                .isThrownBy(() -> leased.isStillLeading(token));
+        assertThatExceptionOfType(ClassCastException.class).isThrownBy(() -> leased.isStillLeading(token));
     }
 }

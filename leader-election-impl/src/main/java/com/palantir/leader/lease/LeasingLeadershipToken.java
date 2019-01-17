@@ -23,7 +23,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
-final class LeadershipLeaseLeadershipToken implements LeadershipToken {
+final class LeasingLeadershipToken implements LeadershipToken {
+    private final LeasingRequirements leasingRequirements;
     private final Supplier<NanoTime> clock;
     private final Duration leaseRefreshDuration;
     private final LeadershipToken wrapped;
@@ -32,26 +33,29 @@ final class LeadershipLeaseLeadershipToken implements LeadershipToken {
     private volatile LeadershipState leadershipState = null;
 
     @VisibleForTesting
-    LeadershipLeaseLeadershipToken(
+    LeasingLeadershipToken(
+            LeasingRequirements leasingRequirements,
             Supplier<NanoTime> clock,
             LeadershipToken wrapped,
             Duration leaseRefreshDuration,
             Supplier<StillLeadingStatus> isStillLeading) {
+        this.leasingRequirements = leasingRequirements;
         this.clock = clock;
         this.leaseRefreshDuration = leaseRefreshDuration;
         this.wrapped = wrapped;
         this.isStillLeading = isStillLeading;
     }
 
-    LeadershipLeaseLeadershipToken(
+    LeasingLeadershipToken(
             LeadershipToken wrapped,
             Duration leaseRefreshDuration,
-            Supplier<StillLeadingStatus> isStillLeading) {
-        this(NanoTime::now, wrapped, leaseRefreshDuration, isStillLeading);
+            Supplier<StillLeadingStatus> isStillLeading,
+            LeasingRequirements leasingRequirements) {
+        this(leasingRequirements, NanoTime::now, wrapped, leaseRefreshDuration, isStillLeading);
     }
 
     StillLeadingStatus getLeadershipStatus() {
-        if (!ClockReversalDetector.canUseLeaseBasedOptimizations()) {
+        if (!leasingRequirements.canUseLeadershipLeases()) {
             return isStillLeading.get();
         }
         if (isStateInvalid()) {
@@ -66,7 +70,7 @@ final class LeadershipLeaseLeadershipToken implements LeadershipToken {
 
     private synchronized void fetchNewState() {
         if (isStateInvalid()) {
-            // take the time before fetching; this is critical and guarantees that it's conservative
+            // take the time before fetching; this is critical and guarantees that it's a safe optimization
             NanoTime now = clock.get();
             StillLeadingStatus status = isStillLeading.get();
             leadershipState = new LeadershipState(now.plus(leaseRefreshDuration), status);
@@ -78,7 +82,7 @@ final class LeadershipLeaseLeadershipToken implements LeadershipToken {
         if ((obj == null) || (obj.getClass() != this.getClass())) {
             return false;
         }
-        LeadershipLeaseLeadershipToken other = (LeadershipLeaseLeadershipToken) obj;
+        LeasingLeadershipToken other = (LeasingLeadershipToken) obj;
         return wrapped.sameAs(other.wrapped);
     }
 

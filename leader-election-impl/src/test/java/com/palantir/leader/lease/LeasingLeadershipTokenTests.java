@@ -35,19 +35,21 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class LeadershipLeaseLeadershipTokenTests {
+public final class LeasingLeadershipTokenTests {
     private static final Duration TIMEOUT = Duration.ofNanos(10);
 
+    @Mock private LeasingRequirements leasingRequirements;
     @Mock private Supplier<NanoTime> clock;
     @Mock private Supplier<StillLeadingStatus> stillLeadingStatus;
     @Mock private LeadershipToken wrappedToken;
 
-    private LeadershipLeaseLeadershipToken token;
+    private LeasingLeadershipToken token;
 
     @Before
     public void before() {
-        token = new LeadershipLeaseLeadershipToken(clock, wrappedToken, TIMEOUT, stillLeadingStatus);
+        token = new LeasingLeadershipToken(leasingRequirements, clock, wrappedToken, TIMEOUT, stillLeadingStatus);
         when(stillLeadingStatus.get()).thenReturn(StillLeadingStatus.LEADING);
+        when(leasingRequirements.canUseLeadershipLeases()).thenReturn(true);
     }
 
     @Test
@@ -79,5 +81,13 @@ public final class LeadershipLeaseLeadershipTokenTests {
         when(clock.get()).thenReturn(new NanoTime(12));
         doReturn(StillLeadingStatus.NOT_LEADING).when(stillLeadingStatus).get();
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.NOT_LEADING);
+    }
+
+    @Test
+    public void testDoesNotLeaseIfLeasingRequirementsSayNo() {
+        when(leasingRequirements.canUseLeadershipLeases()).thenReturn(false);
+        assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.LEADING);
+        assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.LEADING);
+        verify(stillLeadingStatus, times(2)).get();
     }
 }

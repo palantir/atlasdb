@@ -19,6 +19,7 @@ package com.palantir.leader.lease;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -40,9 +41,13 @@ import com.palantir.leader.PingableLeader;
  * wall clock time. This means that breaking the leadership lease would require (on default settings) one computer's
  * clock to run twice as fast as another's.
  */
-public final class LeadershipLeaseLeaderElectionService implements LeaderElectionService {
+public final class LeasingLeaderElectionService implements LeaderElectionService {
+    private static final Duration LEASE_REFRESH = Duration.ofSeconds(1);
+    private static final Duration LEASE_EXPIRY = Duration.ofSeconds(2);
+
+    private final LeasingRequirements leasingRequirements;
     private final LeaderElectionService delegate;
-    private final LoadingCache<LeadershipToken, LeadershipLeaseLeadershipToken> leaseTokens = Caffeine.newBuilder()
+    private final LoadingCache<LeadershipToken, LeasingLeadershipToken> leaseTokens = Caffeine.newBuilder()
             .maximumSize(1)
             .build(this::createLeaseToken);
 
@@ -50,37 +55,43 @@ public final class LeadershipLeaseLeaderElectionService implements LeaderElectio
     private final Duration leaseExpiry;
 
     @VisibleForTesting
-    LeadershipLeaseLeaderElectionService(
+    LeasingLeaderElectionService(
+            LeasingRequirements leasingRequirements,
             LeaderElectionService delegate,
             Duration leaseRefresh,
             Duration leaseExpiry) {
+        this.leasingRequirements = leasingRequirements;
         this.delegate = delegate;
         this.leaseRefresh = leaseRefresh;
         this.leaseExpiry = leaseExpiry;
     }
 
-    // this method exists in order to provide a rolling migration mechanism for migrating to schema leases
-    public static LeaderElectionService wrapWithoutLeasing(LeaderElectionService delegate) {
-        return new LeadershipLeaseLeaderElectionService(delegate, Duration.ZERO, Duration.ofSeconds(2));
-    }
-
     public static LeaderElectionService wrap(LeaderElectionService delegate) {
-        return new LeadershipLeaseLeaderElectionService(delegate, Duration.ofSeconds(1), Duration.ofSeconds(2));
+        LeasingRequirements weHaventRolledOutTheLeadershipDelayYet = () -> false;
+        return new LeasingLeaderElectionService(
+                weHaventRolledOutTheLeadershipDelayYet, delegate, LEASE_REFRESH, LEASE_EXPIRY);
     }
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        return leaseTokens.get(delegate.blockOnBecomingLeader());
+        try {
+            return leaseTokens.get(delegate.blockOnBecomingLeader());
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof InterruptedException) {
+                throw new InterruptedException();
+            }
+            throw e;
+        }
     }
 
     @Override
     public Optional<LeadershipToken> getCurrentTokenIfLeading() {
-        return delegate.getCurrentTokenIfLeading().map(leaseTokens::get);
+        return delegate.getCurrentTokenIfLeading().map(leaseTokens::getIfPresent);
     }
 
     @Override
     public StillLeadingStatus isStillLeading(LeadershipToken token) {
-        return ((LeadershipLeaseLeadershipToken) token).getLeadershipStatus();
+        return ((LeasingLeadershipToken) token).getLeadershipStatus();
     }
 
     @Override
@@ -93,9 +104,10 @@ public final class LeadershipLeaseLeaderElectionService implements LeaderElectio
         return delegate.getPotentialLeaders();
     }
 
-    private LeadershipLeaseLeadershipToken createLeaseToken(LeadershipToken token) throws InterruptedException {
-        LeadershipLeaseLeadershipToken wrapped =
-                new LeadershipLeaseLeadershipToken(token, leaseRefresh, () -> delegate.isStillLeading(token));
+    private LeasingLeadershipToken createLeaseToken(LeadershipToken token) throws InterruptedException {
+        LeasingLeadershipToken wrapped =
+                new LeasingLeadershipToken(token, leaseRefresh, () -> delegate.isStillLeading(token),
+                        leasingRequirements);
         NanoTime.sleepUntil(NanoTime.now().plus(leaseExpiry));
         return wrapped;
     }
