@@ -26,7 +26,7 @@ import com.palantir.logsafe.Safe;
 /**
  * ETE wrapper around a Timestamp service and a TimestampManagement service.
  */
-@Path("ete-timesatmp")
+@Path("ete-timestamp")
 public interface EteTimestampResource {
     @POST // This has to be POST because we can't allow caching.
     @Path("fresh-timestamp")
