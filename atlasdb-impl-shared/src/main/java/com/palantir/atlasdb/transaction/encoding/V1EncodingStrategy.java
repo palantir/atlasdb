@@ -35,12 +35,12 @@ public enum V1EncodingStrategy implements TimestampEncodingStrategy {
     }
 
     @Override
-    public byte[] encodeCommitTimestampAsValue(long startTimestamp, long commitTimestamp) {
+    public byte[] encodeCommitTimestampAsValue(long ignoredStartTimestamp, long commitTimestamp) {
         return TransactionConstants.getValueForTimestamp(commitTimestamp);
     }
 
     @Override
-    public long decodeValueAsCommitTimestamp(long startTimestamp, byte[] value) {
+    public long decodeValueAsCommitTimestamp(long ignoredStartTimestamp, byte[] value) {
         return TransactionConstants.getTimestampForValue(value);
     }
 }
