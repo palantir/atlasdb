@@ -16,7 +16,7 @@
 
 package com.palantir.leader.lease;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
