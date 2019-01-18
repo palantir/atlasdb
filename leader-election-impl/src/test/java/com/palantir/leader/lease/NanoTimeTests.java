@@ -37,3 +37,4 @@ public final class NanoTimeTests {
         assertThat(new NanoTime(Long.MAX_VALUE).isBefore(new NanoTime(Long.MIN_VALUE))).isTrue();
     }
 }
+
