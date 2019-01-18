@@ -46,7 +46,7 @@ import com.palantir.timestamp.TimestampService;
 
 public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     private static final int NUM_THREADS = 8;
-    
+
     private final ExecutorService service = Executors.newFixedThreadPool(NUM_THREADS);
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
