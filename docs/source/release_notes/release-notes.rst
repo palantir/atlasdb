@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - We now correctly handle host restart in the clock skew monitor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
+
     *    - |devbreak|
          - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
            Refer to the contract of ``KeyValueService#getCheckAndSetCompatibility`` and the ``CheckAndSetCompatibility`` enum class to guide this decision.

@@ -21,6 +21,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Test;
 
@@ -38,42 +40,55 @@ public class ReversalDetectingClockServiceTest {
         verifyNoMoreInteractions(events);
     }
 
+    private static IdentifiedSystemTime st(long time) {
+        return IdentifiedSystemTime.of(time, new UUID(0, 0));
+    }
+
     @Test
     public void doesNotLogIfClockDoesNotGoBackwards() {
-        when(delegate.getSystemTimeInNanos())
-                .thenReturn(1L)
-                .thenReturn(2L)
-                .thenReturn(3L);
+        when(delegate.getSystemTime())
+                .thenReturn(st(1L))
+                .thenReturn(st(2L))
+                .thenReturn(st(3L));
 
-        clock.getSystemTimeInNanos();
-        clock.getSystemTimeInNanos();
-        clock.getSystemTimeInNanos();
+        clock.getSystemTime();
+        clock.getSystemTime();
+        clock.getSystemTime();
+    }
+
+    @Test
+    public void doesNotLogIfSystemChanges() {
+        when(delegate.getSystemTime())
+                .thenReturn(IdentifiedSystemTime.of(1L, new UUID(0, 0)))
+                .thenReturn(IdentifiedSystemTime.of(-1L, new UUID(1, 1)));
+        clock.getSystemTime();
+        clock.getSystemTime();
     }
 
     @Test
     public void logsIfClockGoesBackwards() {
-        when(delegate.getSystemTimeInNanos())
-                .thenReturn(5L)
-                .thenReturn(2L);
+        when(delegate.getSystemTime())
+                .thenReturn(st(5L))
+                .thenReturn(st(2L));
 
-        clock.getSystemTimeInNanos();
-        clock.getSystemTimeInNanos();
+        clock.getSystemTime();
+        clock.getSystemTime();
 
         verify(events).clockWentBackwards(SERVER_NAME, 3L);
     }
 
     @Test
     public void returnsDelegateValueRegardlessOfWhetherClockGoesBackwards() {
-        when(delegate.getSystemTimeInNanos())
-                .thenReturn(1L)
-                .thenReturn(2L)
-                .thenReturn(1L)
-                .thenReturn(3L);
+        when(delegate.getSystemTime())
+                .thenReturn(st(1L))
+                .thenReturn(st(2L))
+                .thenReturn(st(1L))
+                .thenReturn(st(3L));
 
-        assertThat(clock.getSystemTimeInNanos()).isEqualTo(1);
-        assertThat(clock.getSystemTimeInNanos()).isEqualTo(2);
-        assertThat(clock.getSystemTimeInNanos()).isEqualTo(1);
-        assertThat(clock.getSystemTimeInNanos()).isEqualTo(3);
+        assertThat(clock.getSystemTime()).isEqualTo(st(1));
+        assertThat(clock.getSystemTime()).isEqualTo(st(2));
+        assertThat(clock.getSystemTime()).isEqualTo(st(1));
+        assertThat(clock.getSystemTime()).isEqualTo(st(3));
 
         verify(events).clockWentBackwards(SERVER_NAME, 1L);
     }

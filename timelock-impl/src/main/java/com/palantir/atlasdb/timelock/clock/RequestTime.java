@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.timelock.clock;
 
 
+import java.util.UUID;
+
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -26,6 +28,12 @@ public interface RequestTime {
     long localTimeAtEnd();
 
     long remoteSystemTime();
+
+    UUID remoteSystemId();
+
+    default boolean isFromSameSystem(RequestTime other) {
+        return remoteSystemId().equals(other.remoteSystemId());
+    }
 
     default RequestTime progressLocalClock(long delta) {
         return builder().from(this)

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +31,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.remoting3.config.ssl.TrustContext;
 
 /**
@@ -86,35 +88,34 @@ public final class ClockSkewMonitor {
     }
 
     private Map<String, RequestTime> getRemoteRequestTimes() {
-        Map<String, RequestTime> newRequestTimes = Maps.newHashMap();
-
-        clocksByServer.forEach((host, clockService) -> {
-            try {
-                RequestTime requestTime = getNewRequestTime(clockService);
-                newRequestTimes.put(host, requestTime);
-            } catch (Throwable t) {
-                events.exception(t);
-            }
-        });
-        return newRequestTimes;
+        return KeyedStream.stream(clocksByServer)
+                .flatMap(value -> {
+                    try {
+                        return Stream.of(getNewRequestTime(value));
+                    } catch (Throwable t) {
+                        events.exception(t);
+                        return Stream.empty();
+                    }
+                }).collectToMap();
     }
 
     private RequestTime getNewRequestTime(ReversalDetectingClockService remoteClockService) {
-        long localTimeAtStart = localClockService.getSystemTimeInNanos();
-        long remoteSystemTime = remoteClockService.getSystemTimeInNanos();
-        long localTimeAtEnd = localClockService.getSystemTimeInNanos();
+        long localTimeAtStart = localClockService.getSystemTime().getTimeNanos();
+        IdentifiedSystemTime remoteSystemTime = remoteClockService.getSystemTime();
+        long localTimeAtEnd = localClockService.getSystemTime().getTimeNanos();
 
         return RequestTime.builder()
                 .localTimeAtStart(localTimeAtStart)
                 .localTimeAtEnd(localTimeAtEnd)
-                .remoteSystemTime(remoteSystemTime)
+                .remoteSystemTime(remoteSystemTime.getTimeNanos())
+                .remoteSystemId(remoteSystemTime.getSystemId())
                 .build();
     }
 
     private void checkAndUpdatePreviousRequestTimes(Map<String, RequestTime> newRequests) {
         newRequests.forEach((remoteHost, newRequest) -> {
             RequestTime previousRequest = previousRequestsByServer.get(remoteHost);
-            if (previousRequest != null) {
+            if (previousRequest != null && previousRequest.isFromSameSystem(newRequest)) {
                 new ClockSkewComparer(remoteHost, events, previousRequest, newRequest).compare();
             }
             previousRequestsByServer.put(remoteHost, newRequest);
