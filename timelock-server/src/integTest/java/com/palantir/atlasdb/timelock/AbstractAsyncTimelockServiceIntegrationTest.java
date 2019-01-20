@@ -15,14 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Collection;
-
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import com.google.common.collect.ImmutableList;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
@@ -38,15 +34,5 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
     @ClassRule
     public static final RuleChain ASYNC_RULE_CHAIN = CLUSTER_WITH_ASYNC.getRuleChain();
 
-    protected final TestableTimelockCluster cluster;
-
-    @Parameterized.Parameters
-    public static Collection<TestableTimelockCluster> clusters() {
-        return ImmutableList.of(
-                CLUSTER_WITH_ASYNC);
-    }
-
-    protected AbstractAsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
-        this.cluster = cluster;
-    }
+    protected final TestableTimelockCluster cluster = CLUSTER_WITH_ASYNC;
 }

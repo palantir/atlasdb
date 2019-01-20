@@ -69,10 +69,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     private static final LockClient TEST_CLIENT_2 = LockClient.of("test2");
     private static final LockClient TEST_CLIENT_3 = LockClient.of("test3");
 
-    public AsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
-        super(cluster);
-    }
-
     @Test
     public void canLockRefreshAndUnlock() {
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();

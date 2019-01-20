@@ -61,8 +61,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final TransactionManager txnManager;
 
-    public AsyncTimelockServiceTransactionIntegrationTest(TestableTimelockCluster cluster) {
-        super(cluster);
+    public AsyncTimelockServiceTransactionIntegrationTest() {
         cluster.waitUntilLeaderIsElected();
 
         txnManager = TimeLockTestUtils.createTransactionManager(cluster);
