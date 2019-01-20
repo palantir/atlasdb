@@ -20,10 +20,6 @@ clients:
 
 useClientRequestLimit: true
 
-asyncLock:
-  useAsyncLockService: true
-  disableLegacySafetyChecksWarningPotentialDataCorruption: false
-
 server:
   minThreads: 1
   maxThreads: 100

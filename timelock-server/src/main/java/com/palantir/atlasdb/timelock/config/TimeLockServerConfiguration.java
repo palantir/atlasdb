@@ -40,7 +40,6 @@ public class TimeLockServerConfiguration extends Configuration {
     private final TimeLockAlgorithmConfiguration algorithm;
     private final ClusterConfiguration cluster;
     private final Set<String> clients;
-    private final AsyncLockConfiguration asyncLockConfiguration;
     private final boolean useClientRequestLimit;
     private final TimeLimiterConfiguration timeLimiterConfiguration;
     private final TsBoundPersisterConfiguration tsBoundPersisterConfiguration;
@@ -49,7 +48,6 @@ public class TimeLockServerConfiguration extends Configuration {
             @JsonProperty(value = "algorithm", required = false) TimeLockAlgorithmConfiguration algorithm,
             @JsonProperty(value = "cluster", required = true) ClusterConfiguration cluster,
             @JsonProperty(value = "clients", required = true) Set<String> clients,
-            @JsonProperty(value = "asyncLock", required = false) AsyncLockConfiguration asyncLockConfiguration,
             @JsonProperty(value = "timeLimiter", required = false) TimeLimiterConfiguration timeLimiterConfiguration,
             @JsonProperty(value = "timestampBoundPersister", required = false)
                     TsBoundPersisterConfiguration tsBoundPersisterConfiguration,
@@ -63,8 +61,6 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.asyncLockConfiguration = MoreObjects.firstNonNull(
-                asyncLockConfiguration, ImmutableAsyncLockConfiguration.builder().build());
         this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
@@ -118,10 +114,6 @@ public class TimeLockServerConfiguration extends Configuration {
 
     public TimeLimiterConfiguration timeLimiterConfiguration() {
         return timeLimiterConfiguration;
-    }
-
-    public AsyncLockConfiguration asyncLockConfiguration() {
-        return asyncLockConfiguration;
     }
 
     public TsBoundPersisterConfiguration getTsBoundPersisterConfiguration() {

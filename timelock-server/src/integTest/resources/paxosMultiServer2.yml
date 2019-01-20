@@ -14,10 +14,6 @@ cluster:
     - localhost:9081
     - localhost:9082
 
-asyncLock:
-  useAsyncLockService: true
-  disableLegacySafetyChecksWarningPotentialDataCorruption: false
-
 clients:
   - test
   - test2
