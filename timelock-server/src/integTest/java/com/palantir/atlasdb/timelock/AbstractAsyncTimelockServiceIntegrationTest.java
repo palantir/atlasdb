@@ -17,10 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     protected static final String LOCALHOST = "https://localhost";
