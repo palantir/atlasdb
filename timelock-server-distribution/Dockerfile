@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-oraclejdk8:slim
+FROM abrtech/alpine-oraclejdk8
 MAINTAINER AtlasDB Team
 
 # Bash is useful for monitoring; curl is used by our healthchecks.
