@@ -54,6 +54,10 @@ develop
          - We now correctly handle host restart in the clock skew monitor.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
 
+    *    - |improved|
+         - AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3701>`__)
+
     *    - |devbreak|
          - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
            Refer to the contract of ``KeyValueService#getCheckAndSetCompatibility`` and the ``CheckAndSetCompatibility`` enum class to guide this decision.
