@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ContractedLockResponse;
+import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -72,7 +73,18 @@ public class LeasingTimelockClient implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return delegate.startIdentifiedAtlasDbTransaction(request);
+        long startTime = System.nanoTime();
+        ContractedStartIdentifiedAtlasDbTransactionResponse contractedResponse =
+                delegate.contractedStartIdentifiedAtlasDbTransaction(request);
+
+        StartIdentifiedAtlasDbTransactionResponse response = contractedResponse.getStartTransactionResponse();
+        Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
+
+        leasePeriod.ifPresent(period -> lockLeaseManager.updateLease(
+                response.immutableTimestamp().getLock(),
+                startTime + period.toNanos()));
+
+        return response;
     }
 
     @Override
@@ -86,10 +98,10 @@ public class LeasingTimelockClient implements TimelockService {
         ContractedLockResponse contractedResponse = delegate.contractedLock(request);
 
         LockResponse lockResponse = contractedResponse.getLockResponse();
-        Optional<Duration> lockPeriod = contractedResponse.getLeasePeriod();
+        Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
 
         if (lockResponse.wasSuccessful()) {
-            lockPeriod.ifPresent(period -> lockLeaseManager.updateLease(
+            leasePeriod.ifPresent(period -> lockLeaseManager.updateLease(
                     lockResponse.getToken(),
                     startTime + period.toNanos()));
         }
