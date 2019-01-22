@@ -129,12 +129,10 @@ public class ClockSkewMonitorIntegrationTest {
 
     @Test
     public void logsIfLocalTimeGoesBackwards() {
-        when(mockedLocalClockService.getSystemTime())
-                .thenReturn(remote(-1L));
+        when(mockedLocalClockService.getSystemTime()).thenReturn(local(-1L));
         tickOneIteration();
 
-        verify(mockedEvents, times(1))
-                .clockWentBackwards("local", 2);
+        verify(mockedEvents, times(1)).clockWentBackwards("local", 2);
     }
 
     @Test

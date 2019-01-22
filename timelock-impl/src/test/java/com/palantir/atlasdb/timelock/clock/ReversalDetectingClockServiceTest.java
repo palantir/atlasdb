@@ -21,10 +21,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Random;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Test;
+import org.mpierce.metrics.reservoir.hdrhistogram.HdrHistogramReservoir;
+
+import com.codahale.metrics.Histogram;
 
 public class ReversalDetectingClockServiceTest {
 
@@ -54,6 +58,37 @@ public class ReversalDetectingClockServiceTest {
         clock.getSystemTime();
         clock.getSystemTime();
         clock.getSystemTime();
+    }
+
+    @Test
+    public void testAimd() {
+        int windowSize = 10;
+        Random rand = new Random(0);
+
+        for (double slope = 1; slope <= 6; slope += 0.2) {
+            for (double x0 = 1.0; x0 <= 3; x0 += 0.2) {
+               for (double systemLoadAvg = 0.5; systemLoadAvg <= 1; systemLoadAvg += 0.1) {
+                   Histogram histogram = new Histogram(new HdrHistogramReservoir());
+                   double qosProbability = Math.pow(systemLoadAvg / x0, slope) * Math.exp((systemLoadAvg / x0) - 1);
+                   int currentSuccessCount = 0;
+                   for (int i = 0; i < 100_000; i++) {
+                       windowSize = Math.max(windowSize, 1);
+                       histogram.update(windowSize);
+                       if (currentSuccessCount == 10) {
+                           currentSuccessCount = 0;
+                           windowSize++;
+                       }
+                       if (rand.nextDouble() > 1 - qosProbability) {
+                           currentSuccessCount = 0;
+                           windowSize = (windowSize * 9) / 10;
+                       } else {
+                           currentSuccessCount++;
+                       }
+                   }
+                   System.out.println("slope: " + slope + " x0: " + x0 + " systemLoad: " + systemLoadAvg + "redirect-probability " + qosProbability + " concurrent-requests " + histogram.getSnapshot().getMean());
+               }
+            }
+        }
     }
 
     @Test
