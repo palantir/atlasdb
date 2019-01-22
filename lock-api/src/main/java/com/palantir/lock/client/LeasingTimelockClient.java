@@ -81,9 +81,7 @@ public class LeasingTimelockClient implements TimelockService {
         StartIdentifiedAtlasDbTransactionResponse response = contractedResponse.getStartTransactionResponse();
         Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
 
-        leasePeriod.ifPresent(period -> lockLeaseManager.updateLease(
-                response.immutableTimestamp().getLock(),
-                startTime + period.toNanos()));
+        updateLockLeases(response.immutableTimestamp().getLock(), startTime, leasePeriod);
 
         return response;
     }
@@ -102,9 +100,7 @@ public class LeasingTimelockClient implements TimelockService {
         Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
 
         if (lockResponse.wasSuccessful()) {
-            leasePeriod.ifPresent(period -> lockLeaseManager.updateLease(
-                    lockResponse.getToken(),
-                    startTime + period.toNanos()));
+            updateLockLeases(lockResponse.getToken(), startTime, leasePeriod);
         }
 
         return lockResponse;
@@ -129,8 +125,7 @@ public class LeasingTimelockClient implements TimelockService {
         Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
         Optional<Duration> leasePeriod = refreshLockResponse.getLeasePeriod();
 
-        leasePeriod.ifPresent(period -> refreshed.forEach(lockToken ->
-            lockLeaseManager.updateLease(lockToken, startTime + period.toNanos())));
+        updateLockLeases(refreshed, startTime, leasePeriod);
 
         //register refreshed tokens to lock lease manager, probably it is better to have a bulk method on manager.
         return Sets.union(refreshed, validByLease);
@@ -145,5 +140,16 @@ public class LeasingTimelockClient implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return 0;
+    }
+
+    private void updateLockLeases(LockToken token, long startTimeNanos, Optional<Duration> leasePeriod) {
+        leasePeriod.ifPresent(period ->
+                lockLeaseManager.updateLease(token,
+                        startTimeNanos + period.toNanos()));
+    }
+
+    private void updateLockLeases(Set<LockToken> tokens, long startTimeNanos, Optional<Duration> leasePeriod) {
+        leasePeriod.ifPresent(period -> tokens.forEach(lockToken ->
+                lockLeaseManager.updateLease(lockToken, startTimeNanos + period.toNanos())));
     }
 }
