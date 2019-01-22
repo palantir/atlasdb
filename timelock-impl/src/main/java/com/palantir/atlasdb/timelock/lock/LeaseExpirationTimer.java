@@ -33,6 +33,7 @@ public class LeaseExpirationTimer {
         lastRefreshTimeMillis = clock.getTimeMillis();
     }
 
+    // we should use nanotime in the class
     public boolean isExpired() {
         return clock.getTimeMillis() > lastRefreshTimeMillis + LEASE_TIMEOUT_MILLIS;
     }
