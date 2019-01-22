@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.ContractedLockResponse;
+import com.palantir.lock.v2.ContractedRefreshLockResponse;
 import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -121,7 +122,16 @@ public class LeasingTimelockClient implements TimelockService {
                 .collect(Collectors.toSet());
 
         Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
-        Set<LockToken> refreshed = delegate.refreshLockLeases(toRefresh); //call contracted refresh here
+
+        long startTime = System.nanoTime();
+        ContractedRefreshLockResponse refreshLockResponse = delegate.contractedRefreshLockLeases(toRefresh);
+
+        Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
+        Optional<Duration> leasePeriod = refreshLockResponse.getLeasePeriod();
+
+        leasePeriod.ifPresent(period -> refreshed.forEach(lockToken ->
+            lockLeaseManager.updateLease(lockToken, startTime + period.toNanos())));
+
         //register refreshed tokens to lock lease manager, probably it is better to have a bulk method on manager.
         return Sets.union(refreshed, validByLease);
     }
