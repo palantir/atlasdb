@@ -65,9 +65,9 @@ public final class SimpleCoordinationResource implements CoordinationResource {
 
     @Override
     public void forceInstallNewTransactionsSchemaVersion(int newVersion) {
-        while (transactionSchemaManager.getTransactionsSchemaVersion(
-                timestampService.getFreshTimestamp()) != newVersion) {
-            transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
+        boolean successful = false;
+        while (!successful) {
+            successful = transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(newVersion);
             advanceOneHundredMillionTimestamps();
         }
     }
@@ -91,7 +91,6 @@ public final class SimpleCoordinationResource implements CoordinationResource {
     public long resetStateAndGetFreshTimestamp() {
         forceInstallNewTransactionsSchemaVersion(1);
         KeyValueService kvs = transactionManager.getKeyValueService();
-        kvs.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.truncateTable(TEST_TABLE);
         return timestampService.getFreshTimestamp();
