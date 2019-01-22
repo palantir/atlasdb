@@ -50,4 +50,6 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
+    //add the leasing methods here - is there a better way to ensure client-server api contract for async resource?
+
 }

@@ -17,15 +17,20 @@ package com.palantir.lock.client;
 
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.v2.ContractedLockResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -45,32 +50,43 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
-    private final TimelockService delegate;
+    private final TimelockServerInterface delegate;
     private final CloseableTimestampService timestampService;
     private final LockRefresher lockRefresher;
     private final TimeLockUnlocker unlocker;
+    private final LockLeaseManager lockLeaseManager;
 
-    public static TimeLockClient createDefault(TimelockService timelockService) {
+    public static TimeLockClient createDefault(TimelockServerInterface timelockService) {
         AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
         RequestBatchingTimestampService timestampService =
                 RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService));
+        LockLeaseManager lockLeaseManager = LockLeaseManager.create();
         return new TimeLockClient(
-                timelockService, timestampService, createLockRefresher(timelockService), asyncUnlocker);
+                timelockService,
+                timestampService,
+                createLockRefresher(timelockService),
+                asyncUnlocker,
+                lockLeaseManager);
     }
 
-    public static TimeLockClient withSynchronousUnlocker(TimelockService timelockService) {
+    public static TimeLockClient withSynchronousUnlocker(TimelockServerInterface timelockService) {
         CloseableTimestampService timestampService = new TimelockServiceErrorDecorator(timelockService);
         return new TimeLockClient(
-                timelockService, timestampService, createLockRefresher(timelockService), timelockService::unlock);
+                timelockService,
+                timestampService,
+                createLockRefresher(timelockService),
+                timelockService::unlock,
+                LockLeaseManager.create());
     }
 
     @VisibleForTesting
-    TimeLockClient(TimelockService delegate, CloseableTimestampService timestampService,
-            LockRefresher lockRefresher, TimeLockUnlocker unlocker) {
+    TimeLockClient(TimelockServerInterface delegate, CloseableTimestampService timestampService,
+            LockRefresher lockRefresher, TimeLockUnlocker unlocker, LockLeaseManager lockLeaseManager) {
         this.delegate = delegate;
         this.timestampService = timestampService;
         this.lockRefresher = lockRefresher;
         this.unlocker = unlocker;
+        this.lockLeaseManager = lockLeaseManager;
     }
 
     @Override
@@ -118,11 +134,20 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponse response = executeOnTimeLock(() -> delegate.lock(request));
-        if (response.wasSuccessful()) {
-            lockRefresher.registerLock(response.getToken());
+        long startTime = System.nanoTime();
+
+        ContractedLockResponse contractedResponse = executeOnTimeLock(() -> delegate.contractedLock(request));
+
+        LockResponse lockResponse = contractedResponse.getLockResponse();
+        Optional<Duration> lockPeriod = contractedResponse.getLeasePeriod();
+
+        if (lockResponse.wasSuccessful()) {
+            lockRefresher.registerLock(lockResponse.getToken());
+            lockPeriod.ifPresent(period -> lockLeaseManager.updateLease(
+                    lockResponse.getToken(),
+                    startTime + period.toNanos()));
         }
-        return response;
+        return lockResponse;
     }
 
     @Override
@@ -132,11 +157,19 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return executeOnTimeLock(() -> delegate.refreshLockLeases(tokens));
+        Set<LockToken> validByLease = tokens.stream()
+                .filter(lockLeaseManager::isValid)
+                .collect(Collectors.toSet());
+
+        Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
+        Set<LockToken> refreshed = executeOnTimeLock(() -> delegate.refreshLockLeases(toRefresh)); //call contracted refresh here
+        //register refreshed tokens to lock lease manager, probably it is better to have a bulk method on manager.
+        return Sets.union(refreshed, validByLease);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
+        tokens.forEach(lockLeaseManager::invalidate);
         lockRefresher.unregisterLocks(tokens);
         return executeOnTimeLock(() -> delegate.unlock(tokens));
     }
@@ -173,7 +206,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         timestampService.close();
     }
 
-    private static LockRefresher createLockRefresher(TimelockService timelockService) {
+    private static LockRefresher createLockRefresher(TimelockServerInterface timelockService) {
         ScheduledExecutorService refreshExecutor = createSingleThreadScheduledExecutor("refresh");
         return new LockRefresher(refreshExecutor, timelockService, REFRESH_INTERVAL_MILLIS);
     }
@@ -187,9 +220,9 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     private static final class TimelockServiceErrorDecorator implements CloseableTimestampService {
-        private final TimelockService delegate;
+        private final TimelockServerInterface delegate;
 
-        private TimelockServiceErrorDecorator(TimelockService delegate) {
+        private TimelockServiceErrorDecorator(TimelockServerInterface delegate) {
             this.delegate = delegate;
         }
 

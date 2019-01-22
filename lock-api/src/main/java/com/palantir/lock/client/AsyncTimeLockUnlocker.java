@@ -43,7 +43,7 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
         this.autobatcher = autobatcher;
     }
 
-    public static AsyncTimeLockUnlocker create(TimelockService timelockService) {
+    public static AsyncTimeLockUnlocker create(TimelockServerInterface timelockService) {
         return new AsyncTimeLockUnlocker(DisruptorAutobatcher.create(batch -> {
             Set<LockToken> allTokensToUnlock = batch.stream()
                     .map(BatchElement::argument)

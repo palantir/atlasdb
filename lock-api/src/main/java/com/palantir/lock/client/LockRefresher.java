@@ -33,12 +33,12 @@ public class LockRefresher implements AutoCloseable {
     private final Logger log = LoggerFactory.getLogger(LockRefresher.class);
 
     private final ScheduledExecutorService executor;
-    private final TimelockService timelockService;
+    private final TimelockServerInterface timelockService;
     private final Set<LockToken> tokensToRefresh = Sets.newConcurrentHashSet();
 
     public LockRefresher(
             ScheduledExecutorService executor,
-            TimelockService timelockService,
+            TimelockServerInterface timelockService,
             long refreshIntervalMillis) {
         this.executor = executor;
         this.timelockService = timelockService;
