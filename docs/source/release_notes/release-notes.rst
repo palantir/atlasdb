@@ -163,6 +163,10 @@ v0.115.0
          - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3676>`__)
 
+    *    - |improved|
+         - Adds com.palantir.common.collect.IterableView#stream method for simplified conversion to Java Stream API usage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3703>`__)
+
 ========
 v0.114.0
 ========
