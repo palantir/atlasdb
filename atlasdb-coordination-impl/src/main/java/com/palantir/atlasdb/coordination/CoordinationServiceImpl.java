@@ -83,7 +83,9 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         if (currentValue.bound() > nextValue.bound()) {
             return currentValue;
         }
-        log.info("Updating cached coordination value to a new value, valid till {}",
+        log.info("Updating cached coordination value {} to a new value {}, valid till {}",
+                SafeArg.of("current", currentValue),
+                SafeArg.of("next", nextValue),
                 SafeArg.of("newBound", nextValue.bound()));
         return nextValue;
     }

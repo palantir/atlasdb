@@ -28,11 +28,11 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        ServiceExposureEteTest.class,
-        MultiCassandraSingleNodeDownEteTest.class,
-        MultiCassandraDoubleNodeDownEteTest.class,
-        TimestampManagementEteTest.class,
+//        TodoEteTest.class,
+//        ServiceExposureEteTest.class,
+//        MultiCassandraSingleNodeDownEteTest.class,
+//        MultiCassandraDoubleNodeDownEteTest.class,
+//        TimestampManagementEteTest.class,
         CoordinationEteTest.class
         })
 public class MultiCassandraTestSuite extends EteSetup {

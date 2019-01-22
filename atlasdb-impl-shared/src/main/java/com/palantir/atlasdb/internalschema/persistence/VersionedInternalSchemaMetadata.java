@@ -16,10 +16,14 @@
 
 package com.palantir.atlasdb.internalschema.persistence;
 
+import java.io.IOException;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 /**
  * A serialized form of {@link com.palantir.atlasdb.internalschema.InternalSchemaMetadata} that includes both a
@@ -35,4 +39,13 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface VersionedInternalSchemaMetadata {
     int version();
     byte[] payload();
+
+    @Value.Default
+    default String stringyPayload() {
+        try {
+            return ObjectMappers.newServerObjectMapper().readValue(payload(), InternalSchemaMetadata.class).toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

@@ -106,6 +106,7 @@ public class TransactionSchemaManager {
                 SafeArg.of("newVersion", newVersion),
                 SafeArg.of("oldDataValidity", valueAndBound.bound()));
         InternalSchemaMetadata internalSchemaMetadata = valueAndBound.value().get();
+        log.info("ISM = {}", internalSchemaMetadata.timestampToTransactionsTableSchemaVersion());
         return InternalSchemaMetadata.builder()
                 .from(internalSchemaMetadata)
                 .timestampToTransactionsTableSchemaVersion(
