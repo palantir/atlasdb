@@ -27,7 +27,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimeLockInstallConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
-@JsonIgnoreProperties(value = {"asyncLock"})
+@JsonIgnoreProperties(value = "asyncLock")
 public interface TimeLockInstallConfiguration {
 
     PaxosInstallConfiguration paxos();
