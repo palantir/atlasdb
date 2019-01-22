@@ -186,7 +186,11 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3701">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Key value services now require their <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility</span></code> to be specified.
 Refer to the contract of <code class="docutils literal notranslate"><span class="pre">KeyValueService#getCheckAndSetCompatibility</span></code> and the <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility</span></code> enum class to guide this decision.
 Please be very careful if you are explicitly setting this to <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE</span></code>.
