@@ -56,7 +56,7 @@ develop
            Please be very careful if you are explicitly setting this to ``CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3713>`__)
 
-    *    - |userbreak|
+    *    - |changed|
          - Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting `install.asyncLock.useAsyncLockService` to `false` (default is `true`) should migrate to `AsyncLockService` before taking this upgrade.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3718>`__)
 
