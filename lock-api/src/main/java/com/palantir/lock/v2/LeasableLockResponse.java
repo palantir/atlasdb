@@ -30,10 +30,10 @@ public interface LeasableLockResponse {
     Optional<Duration> getLeasePeriod();
 
     static LeasableLockResponse of(LockResponse lockResponse) {
-        return ImmutableContractedLockResponse.of(lockResponse, Optional.empty());
+        return ImmutableLeasableLockResponse.of(lockResponse, Optional.empty());
     }
 
     static LeasableLockResponse of(LockResponse lockResponse, Duration duration) {
-        return ImmutableContractedLockResponse.of(lockResponse, Optional.of(duration));
+        return ImmutableLeasableLockResponse.of(lockResponse, Optional.of(duration));
     }
 }

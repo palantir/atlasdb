@@ -75,11 +75,11 @@ public class LeasingTimelockClient implements TimelockService {
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         long startTime = System.nanoTime();
-        LeasableStartIdentifiedAtlasDbTransactionResponse contractedResponse =
+        LeasableStartIdentifiedAtlasDbTransactionResponse leasableResponse =
                 delegate.leasableStartIdentifiedAtlasDbTransaction(request);
 
-        StartIdentifiedAtlasDbTransactionResponse response = contractedResponse.getStartTransactionResponse();
-        Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
+        StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.getStartTransactionResponse();
+        Optional<Duration> leasePeriod = leasableResponse.getLeasePeriod();
 
         updateLockLeases(response.immutableTimestamp().getLock(), startTime, leasePeriod);
 
@@ -94,10 +94,10 @@ public class LeasingTimelockClient implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         long startTime = System.nanoTime();
-        LeasableLockResponse contractedResponse = delegate.leasableLock(request);
+        LeasableLockResponse leasableResponse = delegate.leasableLock(request);
 
-        LockResponse lockResponse = contractedResponse.getLockResponse();
-        Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
+        LockResponse lockResponse = leasableResponse.getLockResponse();
+        Optional<Duration> leasePeriod = leasableResponse.getLeasePeriod();
 
         if (lockResponse.wasSuccessful()) {
             updateLockLeases(lockResponse.getToken(), startTime, leasePeriod);

@@ -31,10 +31,10 @@ public interface LeasableRefreshLockResponse {
     Optional<Duration> getLeasePeriod();
 
     static LeasableRefreshLockResponse of(Set<LockToken> tokens) {
-        return ImmutableContractedRefreshLockResponse.of(tokens, Optional.empty());
+        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.empty());
     }
 
     static LeasableRefreshLockResponse of(Set<LockToken> tokens, Duration leasePeriod) {
-        return ImmutableContractedRefreshLockResponse.of(tokens, Optional.of(leasePeriod));
+        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.of(leasePeriod));
     }
 }
