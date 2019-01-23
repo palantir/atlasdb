@@ -22,9 +22,14 @@ import java.util.UUID;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
+import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.lock.LockResponse;
+import com.palantir.lock.v2.ContractedLockResponse;
+import com.palantir.lock.v2.ContractedRefreshLockResponse;
+import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -36,6 +41,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
+import com.sun.org.apache.bcel.internal.generic.InstructionConstants;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
@@ -125,6 +131,29 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return StartIdentifiedAtlasDbTransactionResponse.of(
                 lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
                 getFreshTimestampForClient(request.requestorId()));
+    }
+
+    @Override
+    public ContractedRefreshLockResponse contractedRefreshLockLeases(Set<LockToken> tokens) {
+        if (ClientContract.shouldUseLease()) {
+            return ContractedRefreshLockResponse.of(
+                    refreshLockLeases(tokens),
+                    ClientContract.getLeasePeriod());
+        }
+
+        return ContractedRefreshLockResponse.of(refreshLockLeases(tokens));
+    }
+
+    @Override
+    public ContractedStartIdentifiedAtlasDbTransactionResponse contractedStartIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        if (ClientContract.shouldUseLease()) {
+            return ContractedStartIdentifiedAtlasDbTransactionResponse.of(
+                    startIdentifiedAtlasDbTransaction(request),
+                    ClientContract.getLeasePeriod());
+        }
+
+        return ContractedStartIdentifiedAtlasDbTransactionResponse.of(startIdentifiedAtlasDbTransaction(request));
     }
 
     @Override

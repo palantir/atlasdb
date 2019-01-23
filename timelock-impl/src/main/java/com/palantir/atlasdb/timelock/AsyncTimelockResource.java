@@ -28,6 +28,10 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
+import com.palantir.lock.v2.ContractedLockResponse;
+import com.palantir.lock.v2.ContractedRefreshLockResponse;
+import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -126,6 +130,39 @@ public class AsyncTimelockResource {
     @Path("refresh-locks")
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
+    }
+
+    @POST
+    @Path("contracted-refresh-locks")
+    ContractedRefreshLockResponse contractedRefreshLockLeases(Set<LockToken> tokens) {
+        return timelock.contractedRefreshLockLeases(tokens);
+    }
+
+    @POST
+    @Path("contracted-lock")
+    public void contractedLock(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<LockToken> result = timelock.lock(request);
+        lockLog.registerRequest(request, result);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(ContractedLockResponse.of(
+                        LockResponse.timedOut(),
+                        ClientContract.getLeasePeriod()));
+            } else {
+                response.resume(ContractedLockResponse.of(
+                        LockResponse.successful(result.get()),
+                        ClientContract.getLeasePeriod()));
+            }
+        });
+    }
+
+    @POST
+    @Path("contracted-start-identified-atlasdb-transaction")
+    ContractedStartIdentifiedAtlasDbTransactionResponse contractedStartIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return timelock.contractedStartIdentifiedAtlasDbTransaction(request);
     }
 
     @POST

@@ -20,6 +20,9 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.lock.v2.ContractedLockResponse;
+import com.palantir.lock.v2.ContractedRefreshLockResponse;
+import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -48,6 +51,11 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request);
+
+    ContractedRefreshLockResponse contractedRefreshLockLeases(Set<LockToken> tokens);
+
+    ContractedStartIdentifiedAtlasDbTransactionResponse contractedStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     //add the leasing methods here - is there a better way to ensure client-server api contract for async resource?
