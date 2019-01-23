@@ -196,6 +196,10 @@ Refer to the contract of <code class="docutils literal notranslate"><span class=
 Please be very careful if you are explicitly setting this to <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3713">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting <cite>install.asyncLock.useAsyncLockService</cite> to <cite>false</cite> (default is <cite>true</cite>) should migrate to <cite>AsyncLockService</cite> before taking this upgrade.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3718">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
