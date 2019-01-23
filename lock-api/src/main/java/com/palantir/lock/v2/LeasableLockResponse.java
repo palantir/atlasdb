@@ -22,18 +22,18 @@ import java.util.Optional;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ContractedLockResponse {
+public interface LeasableLockResponse {
     @Value.Parameter
     LockResponse getLockResponse();
 
     @Value.Parameter
     Optional<Duration> getLeasePeriod();
 
-    static ContractedLockResponse of(LockResponse lockResponse) {
+    static LeasableLockResponse of(LockResponse lockResponse) {
         return ImmutableContractedLockResponse.of(lockResponse, Optional.empty());
     }
 
-    static ContractedLockResponse of(LockResponse lockResponse, Duration duration) {
+    static LeasableLockResponse of(LockResponse lockResponse, Duration duration) {
         return ImmutableContractedLockResponse.of(lockResponse, Optional.of(duration));
     }
 }

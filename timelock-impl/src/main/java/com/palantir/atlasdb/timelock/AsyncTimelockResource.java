@@ -29,9 +29,9 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
-import com.palantir.lock.v2.ContractedLockResponse;
-import com.palantir.lock.v2.ContractedRefreshLockResponse;
-import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -133,25 +133,25 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("contracted-refresh-locks")
-    ContractedRefreshLockResponse contractedRefreshLockLeases(Set<LockToken> tokens) {
-        return timelock.contractedRefreshLockLeases(tokens);
+    @Path("leasable-refresh-locks")
+    LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
+        return timelock.leasableRefreshLockLeases(tokens);
     }
 
     @POST
-    @Path("contracted-lock")
-    public void contractedLock(@Suspended final AsyncResponse response, LockRequest request) {
+    @Path("leasable-lock")
+    public void leasableLock(@Suspended final AsyncResponse response, LockRequest request) {
         AsyncResult<LockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
                 response.resume(result.getError());
             } else if (result.isTimedOut()) {
-                response.resume(ContractedLockResponse.of(
+                response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
                         ClientContract.getLeasePeriod()));
             } else {
-                response.resume(ContractedLockResponse.of(
+                response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
                         ClientContract.getLeasePeriod()));
             }
@@ -159,10 +159,10 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("contracted-start-identified-atlasdb-transaction")
-    ContractedStartIdentifiedAtlasDbTransactionResponse contractedStartIdentifiedAtlasDbTransaction(
+    @Path("leasable-start-identified-atlasdb-transaction")
+    LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.contractedStartIdentifiedAtlasDbTransaction(request);
+        return timelock.leasableStartIdentifiedAtlasDbTransaction(request);
     }
 
     @POST

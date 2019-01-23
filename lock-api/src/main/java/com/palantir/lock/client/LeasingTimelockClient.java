@@ -22,9 +22,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
-import com.palantir.lock.v2.ContractedLockResponse;
-import com.palantir.lock.v2.ContractedRefreshLockResponse;
-import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -75,8 +75,8 @@ public class LeasingTimelockClient implements TimelockService {
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         long startTime = System.nanoTime();
-        ContractedStartIdentifiedAtlasDbTransactionResponse contractedResponse =
-                delegate.contractedStartIdentifiedAtlasDbTransaction(request);
+        LeasableStartIdentifiedAtlasDbTransactionResponse contractedResponse =
+                delegate.leasableStartIdentifiedAtlasDbTransaction(request);
 
         StartIdentifiedAtlasDbTransactionResponse response = contractedResponse.getStartTransactionResponse();
         Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
@@ -94,7 +94,7 @@ public class LeasingTimelockClient implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         long startTime = System.nanoTime();
-        ContractedLockResponse contractedResponse = delegate.contractedLock(request);
+        LeasableLockResponse contractedResponse = delegate.leasableLock(request);
 
         LockResponse lockResponse = contractedResponse.getLockResponse();
         Optional<Duration> leasePeriod = contractedResponse.getLeasePeriod();
@@ -120,7 +120,7 @@ public class LeasingTimelockClient implements TimelockService {
         Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
 
         long startTime = System.nanoTime();
-        ContractedRefreshLockResponse refreshLockResponse = delegate.contractedRefreshLockLeases(toRefresh);
+        LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
 
         Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
         Optional<Duration> leasePeriod = refreshLockResponse.getLeasePeriod();

@@ -25,9 +25,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.v2.ContractedLockResponse;
-import com.palantir.lock.v2.ContractedRefreshLockResponse;
-import com.palantir.lock.v2.ContractedStartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -103,16 +103,16 @@ public interface TimelockServerInterface {
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     @POST
-    @Path("contracted-refresh-locks")
-    ContractedRefreshLockResponse contractedRefreshLockLeases(Set<LockToken> tokens);
+    @Path("leasable-refresh-locks")
+    LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens);
 
     @POST
-    @Path("contracted-lock")
-    ContractedLockResponse contractedLock(LockRequest request);
+    @Path("leasable-lock")
+    LeasableLockResponse leasableLock(LockRequest request);
 
     @POST
-    @Path("contracted-start-identified-atlasdb-transaction")
-    ContractedStartIdentifiedAtlasDbTransactionResponse contractedStartIdentifiedAtlasDbTransaction(
+    @Path("leasable-start-identified-atlasdb-transaction")
+    LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     /**

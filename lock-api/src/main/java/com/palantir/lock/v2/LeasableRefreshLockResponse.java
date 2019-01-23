@@ -18,28 +18,23 @@ package com.palantir.lock.v2;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ContractedStartIdentifiedAtlasDbTransactionResponse {
+public interface LeasableRefreshLockResponse {
     @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse();
+    Set<LockToken> refreshedTokens();
 
     @Value.Parameter
     Optional<Duration> getLeasePeriod();
 
-    static ContractedStartIdentifiedAtlasDbTransactionResponse of(StartIdentifiedAtlasDbTransactionResponse response) {
-        return ImmutableContractedStartIdentifiedAtlasDbTransactionResponse.of(
-                response,
-                Optional.empty());
+    static LeasableRefreshLockResponse of(Set<LockToken> tokens) {
+        return ImmutableContractedRefreshLockResponse.of(tokens, Optional.empty());
     }
 
-    static ContractedStartIdentifiedAtlasDbTransactionResponse of(
-            StartIdentifiedAtlasDbTransactionResponse response,
-            Duration leasePeriod) {
-        return ImmutableContractedStartIdentifiedAtlasDbTransactionResponse.of(
-                response,
-                Optional.of(leasePeriod));
+    static LeasableRefreshLockResponse of(Set<LockToken> tokens, Duration leasePeriod) {
+        return ImmutableContractedRefreshLockResponse.of(tokens, Optional.of(leasePeriod));
     }
 }
