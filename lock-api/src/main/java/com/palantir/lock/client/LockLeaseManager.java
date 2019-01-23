@@ -27,22 +27,15 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.lock.v2.LockToken;
 
 public class LockLeaseManager {
-    private final Duration leaseExpiry;
     private final Supplier<Long> clock;
-
     private final Cache<LockToken, Long> leasedTokens;
 
     public static LockLeaseManager create() {
         return new LockLeaseManager(System::nanoTime, Duration.ofSeconds(1));
     }
 
-    public static LockLeaseManager createNoOp() {
-        return new LockLeaseManager(System::nanoTime, Duration.ofSeconds(0));
-    }
-
     @VisibleForTesting
     LockLeaseManager(Supplier<Long> clock, Duration leaseExpiry) {
-        this.leaseExpiry = leaseExpiry;
         this.clock = clock;
         this.leasedTokens = Caffeine.newBuilder()
                 .expireAfterWrite(leaseExpiry.toNanos(), TimeUnit.NANOSECONDS)
