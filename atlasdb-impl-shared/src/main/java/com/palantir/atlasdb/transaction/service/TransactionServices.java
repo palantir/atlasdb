@@ -32,17 +32,16 @@ public final class TransactionServices {
     }
 
     public static TransactionService createTransactionService(
-            KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
+            KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
         if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
-            return createSplitKeyTransactionService(keyValueService, coordinationService);
+            return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
         }
         return createV1TransactionService(keyValueService);
     }
 
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
-        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+            TransactionSchemaManager transactionSchemaManager) {
         return new PreStartHandlingTransactionService(
                 new SplitKeyDelegatingTransactionService<>(
                         transactionSchemaManager::getTransactionsSchemaVersion,
@@ -69,7 +68,7 @@ public final class TransactionServices {
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService
                 = CoordinationServices.createDefault(keyValueService, timestampService, initializeAsync);
-        return createTransactionService(keyValueService, coordinationService);
+        return createTransactionService(keyValueService, new TransactionSchemaManager(coordinationService));
     }
 
     public static TransactionService createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(

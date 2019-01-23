@@ -73,6 +73,7 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -330,11 +331,12 @@ public abstract class TransactionManagers {
 
         CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
                 metricsManager, lockAndTimestampServices, keyValueService);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
         TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService, coordinationService)),
+                TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
