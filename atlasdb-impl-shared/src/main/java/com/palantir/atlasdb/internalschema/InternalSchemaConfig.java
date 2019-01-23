@@ -36,7 +36,7 @@ import com.palantir.logsafe.SafeArg;
 public abstract class InternalSchemaConfig {
     /**
      * If specified, attempts to install the provided transactions schema version to this AtlasDB installation.
-     * This
+     * This is expected to be supported by the version of AtlasDB deployed on this service node.
      *
      * If unspecified, this AtlasDB installation should not attempt to install any new schema versions for
      * transaction persistence.
