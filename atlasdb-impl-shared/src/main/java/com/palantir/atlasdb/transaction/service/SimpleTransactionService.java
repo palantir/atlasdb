@@ -23,16 +23,22 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SimpleTransactionService implements EncodingTransactionService {
     private final KeyValueService keyValueService;
-    private final TimestampEncodingStrategy encodingStrategy = V1EncodingStrategy.INSTANCE;
+    private final TimestampEncodingStrategy encodingStrategy;
 
     public SimpleTransactionService(KeyValueService keyValueService) {
+        this(keyValueService, V1EncodingStrategy.INSTANCE);
+    }
+
+    public SimpleTransactionService(KeyValueService keyValueService, TimestampEncodingStrategy strategy) {
         this.keyValueService = keyValueService;
+        this.encodingStrategy = strategy;
     }
 
     // The maximum key-value store timestamp (exclusive) at which data is stored

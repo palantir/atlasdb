@@ -22,6 +22,7 @@ import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 
@@ -45,11 +46,18 @@ public final class TransactionServices {
         return new PreStartHandlingTransactionService(
                 new SplitKeyDelegatingTransactionService<>(
                         transactionSchemaManager::getTransactionsSchemaVersion,
-                        ImmutableMap.of(1, createV1TransactionService(keyValueService))));
+                        ImmutableMap.of(
+                                1, createV1TransactionService(keyValueService),
+                                2, createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(new SimpleTransactionService(keyValueService));
+    }
+
+    private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
+        return new PreStartHandlingTransactionService(
+                new SimpleTransactionService(keyValueService, TicketsEncodingStrategy.INSTANCE));
     }
 
     /**

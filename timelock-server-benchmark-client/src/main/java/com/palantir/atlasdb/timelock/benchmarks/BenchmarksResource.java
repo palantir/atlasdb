@@ -22,6 +22,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsPutUnlessExistsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
@@ -36,6 +38,7 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynam
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public class BenchmarksResource implements BenchmarksService {
@@ -52,6 +55,18 @@ public class BenchmarksResource implements BenchmarksService {
                 .allowHiddenTableAccess(true)
                 .runtimeConfigSupplier(Optional::empty)
                 .build().serializable();
+
+        installV2();
+    }
+
+    void installV2() {
+        TimestampService ts = txnManager.getTimestampService();
+        TransactionSchemaManager schemaManager = new TransactionSchemaManager(
+                CoordinationServices.createDefault(txnManager.getKeyValueService(), ts, false));
+        while (schemaManager.getTransactionsSchemaVersion(ts.getFreshTimestamp()) != 2) {
+            schemaManager.tryInstallNewTransactionsSchemaVersion(2);
+            txnManager.getTimestampManagementService().fastForwardTimestamp(ts.getFreshTimestamp() + 100_000_000);
+        }
     }
 
     @Override
