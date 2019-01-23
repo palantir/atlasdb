@@ -23,7 +23,3 @@ useClientRequestLimit: true
 timeLimiter:
   enableTimeLimiting: true
   blockingTimeoutErrorMargin: 0.03
-
-asyncLock:
-  useAsyncLockService: true
-  disableLegacySafetyChecksWarningPotentialDataCorruption: false

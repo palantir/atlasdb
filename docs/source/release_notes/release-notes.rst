@@ -50,11 +50,19 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3701>`__)
+
     *    - |devbreak|
          - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
            Refer to the contract of ``KeyValueService#getCheckAndSetCompatibility`` and the ``CheckAndSetCompatibility`` enum class to guide this decision.
            Please be very careful if you are explicitly setting this to ``CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3713>`__)
+
+    *    - |changed|
+         - Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting `install.asyncLock.useAsyncLockService` to `false` (default is `true`) should migrate to `AsyncLockService` before taking this upgrade.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3718>`__)
 
 ========
 v0.116.1
