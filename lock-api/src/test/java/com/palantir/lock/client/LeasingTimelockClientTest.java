@@ -17,7 +17,9 @@
 package com.palantir.lock.client;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +93,35 @@ public class LeasingTimelockClientTest {
 
         verify(timelockService).contractedStartIdentifiedAtlasDbTransaction(request);
         assertEquals(response, clientResponse);
+    }
+
+    @Test
+    public void shouldInvalidateLocalCacheAfterUnlock() {
+        LockRequest lockRequest = mock(LockRequest.class);
+        when(timelockService.contractedLock(lockRequest)).thenReturn(
+                ContractedLockResponse.of(LOCK_RESPONSE, leaseDuration));
+        when(timelockService.contractedRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN)))
+                .thenReturn(ContractedRefreshLockResponse.of(ImmutableSet.of(LOCK_TOKEN), Duration.ofSeconds(1)));
+
+        timelockClient.lock(lockRequest);
+        timelockClient.unlock(ImmutableSet.of(LOCK_TOKEN));
+        timelockClient.refreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+
+        verify(timelockService).contractedRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+    }
+
+    @Test
+    public void shouldNotCallRemoteIfLockIsNotExpired() {
+        LockRequest lockRequest = mock(LockRequest.class);
+        when(timelockService.contractedLock(lockRequest)).thenReturn(
+                ContractedLockResponse.of(LOCK_RESPONSE, leaseDuration));
+        when(timelockService.contractedRefreshLockLeases(any()))
+                .thenReturn(ContractedRefreshLockResponse.of(ImmutableSet.of(LOCK_TOKEN), Duration.ofSeconds(1)));
+
+        timelockClient.lock(lockRequest);
+        timelockClient.refreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+
+        verify(timelockService, times(0)).contractedRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
     }
 
     private StartIdentifiedAtlasDbTransactionResponse startTransactionResponseWith(LockToken lockToken) {
