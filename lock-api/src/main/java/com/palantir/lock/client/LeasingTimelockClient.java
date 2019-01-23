@@ -22,10 +22,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -38,7 +38,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class LeasingTimelockClient implements TimelockService {
+public final class LeasingTimelockClient implements TimelockService {
     private TimelockServerInterface delegate;
     private LockLeaseManager lockLeaseManager;
 
@@ -139,7 +139,7 @@ public class LeasingTimelockClient implements TimelockService {
 
     @Override
     public long currentTimeMillis() {
-        return 0;
+        return delegate.currentTimeMillis();
     }
 
     private void updateLockLeases(LockToken token, long startTimeNanos, Optional<Duration> leasePeriod) {

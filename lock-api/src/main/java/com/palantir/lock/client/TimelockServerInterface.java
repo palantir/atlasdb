@@ -25,10 +25,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -47,7 +47,7 @@ import com.palantir.timestamp.TimestampRange;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @AutoDelegate
-public interface TimelockServerInterface {
+public interface TimelockServerInterface { //needs a better name
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
