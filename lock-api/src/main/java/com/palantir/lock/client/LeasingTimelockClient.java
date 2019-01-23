@@ -127,7 +127,6 @@ public final class LeasingTimelockClient implements TimelockService {
 
         updateLockLeases(refreshed, startTime, leasePeriod);
 
-        //register refreshed tokens to lock lease manager, probably it is better to have a bulk method on manager.
         return Sets.union(refreshed, validByLease);
     }
 
