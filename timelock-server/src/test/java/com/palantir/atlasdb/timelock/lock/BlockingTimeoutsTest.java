@@ -70,7 +70,6 @@ public class BlockingTimeoutsTest {
                 null,
                 CLUSTER,
                 CLIENTS,
-                null,
                 ImmutableTimeLimiterConfiguration.of(true, TEST_ERROR_MARGIN),
                 null,
                 null);
