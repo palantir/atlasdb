@@ -31,7 +31,9 @@ import com.palantir.logsafe.SafeArg;
 
 public class TransactionSchemaInstaller implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaInstaller.class);
-    private static final Duration POLLING_INTERVAL = Duration.ofMinutes(10);
+
+    @VisibleForTesting
+    static final Duration POLLING_INTERVAL = Duration.ofMinutes(10);
 
     private final TransactionSchemaManager manager;
     private final Supplier<Optional<Integer>> versionToInstall;

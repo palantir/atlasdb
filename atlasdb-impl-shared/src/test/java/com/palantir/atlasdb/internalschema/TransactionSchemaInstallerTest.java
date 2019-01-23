@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.After;
 import org.junit.Test;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 @SuppressWarnings("unchecked") // Generics usage in mocks
@@ -48,17 +49,29 @@ public class TransactionSchemaInstallerTest {
     @Test
     public void triesToInstallNewVersionIfPresent() {
         when(versionToInstall.get()).thenReturn(Optional.of(1));
-        createAndStartTransactionSchemaInstaller();
-        scheduler.runUntilIdle();
+        runAndWaitForPollingIntervals(0);
         verify(versionToInstall).get();
         verify(manager).tryInstallNewTransactionsSchemaVersion(1);
     }
 
     @Test
+    public void responsiveToChangesInVersionToInstall() {
+        when(versionToInstall.get()).thenReturn(Optional.of(1))
+                .thenReturn(Optional.of(2))
+                .thenReturn(Optional.of(3));
+        runAndWaitForPollingIntervals(2);
+        verify(versionToInstall, times(3)).get();
+
+        InOrder inOrder = Mockito.inOrder(manager);
+        inOrder.verify(manager).tryInstallNewTransactionsSchemaVersion(1);
+        inOrder.verify(manager).tryInstallNewTransactionsSchemaVersion(2);
+        inOrder.verify(manager).tryInstallNewTransactionsSchemaVersion(3);
+    }
+
+    @Test
     public void doesNotTryToInstallAnyVersionIfAbsent() {
         when(versionToInstall.get()).thenReturn(Optional.empty());
-        createAndStartTransactionSchemaInstaller();
-        scheduler.runUntilIdle();
+        runAndWaitForPollingIntervals(0);
         verify(versionToInstall).get();
     }
 
@@ -67,9 +80,7 @@ public class TransactionSchemaInstallerTest {
         when(versionToInstall.get())
                 .thenThrow(new IllegalStateException("boo"))
                 .thenReturn(Optional.of(2));
-        createAndStartTransactionSchemaInstaller();
-        scheduler.tick(15, TimeUnit.MINUTES); // TODO (jkong): Replace with expressions on the latency interval
-        scheduler.runUntilIdle();
+        runAndWaitForPollingIntervals(1);
         verify(versionToInstall, times(2)).get();
         verify(manager).tryInstallNewTransactionsSchemaVersion(2);
     }
@@ -80,11 +91,16 @@ public class TransactionSchemaInstallerTest {
         when(manager.tryInstallNewTransactionsSchemaVersion(anyInt()))
                 .thenThrow(new IllegalStateException("boo"))
                 .thenReturn(true);
-        createAndStartTransactionSchemaInstaller();
-        scheduler.tick(15, TimeUnit.MINUTES); // TODO (jkong): Replace with expressions on the latency interval
-        scheduler.runUntilIdle();
+        runAndWaitForPollingIntervals(1);
         verify(versionToInstall, times(2)).get();
         verify(manager, times(2)).tryInstallNewTransactionsSchemaVersion(1);
+    }
+
+    private void runAndWaitForPollingIntervals(int intervals) {
+        createAndStartTransactionSchemaInstaller();
+        scheduler.tick(TransactionSchemaInstaller.POLLING_INTERVAL.toMinutes() * intervals,
+                TimeUnit.MINUTES);
+        scheduler.runUntilIdle();
     }
 
     private void createAndStartTransactionSchemaInstaller() {
