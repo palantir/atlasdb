@@ -1,5 +1,5 @@
 atlas:
-  namespace: benchmarks123
+  namespace: <random>
   timelock:
     serversList:
       servers:

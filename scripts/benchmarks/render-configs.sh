@@ -19,5 +19,5 @@ RENDERED_DIR="./timelock-server-benchmark-client/var/conf"
 
 config="benchmark-server.yml"
 
-cat "$TEMPLATE_DIR/$config" | sed "s/SERVER1/$SERVER1/g" | sed "s/SERVER2/$SERVER2/g" | sed "s/SERVER3/$SERVER3/g" | sed "s/CASSANDRA1/$CASSANDRA1/g" | sed "s/CASSANDRA2/$CASSANDRA2/g" | sed "s/CASSANDRA3/$CASSANDRA3/g" | sed "s/KEYSTORE_PASSWORD/$KEYSTORE_PASSWORD/g" > "$RENDERED_DIR/$config"
+cat "$TEMPLATE_DIR/$config" | sed "s/SERVER1/$SERVER1/g" | sed "s/SERVER2/$SERVER2/g" | sed "s/SERVER3/$SERVER3/g" | sed "s/CASSANDRA1/$CASSANDRA1/g" | sed "s/CASSANDRA2/$CASSANDRA2/g" | sed "s/CASSANDRA3/$CASSANDRA3/g" | sed "s/KEYSTORE_PASSWORD/$KEYSTORE_PASSWORD/g" | sed "s/<random>/benchmarks$RANDOM$RANDOM/g" > "$RENDERED_DIR/$config"
 
