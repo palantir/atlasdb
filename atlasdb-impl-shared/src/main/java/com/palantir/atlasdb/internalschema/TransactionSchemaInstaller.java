@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 
@@ -50,11 +51,20 @@ public class TransactionSchemaInstaller implements AutoCloseable {
             Supplier<Optional<Integer>> versionToInstall) {
         ScheduledExecutorService scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
                 PTExecutors.newNamedThreadFactory(true));
+        return createAndStart(manager, versionToInstall, scheduledExecutor);
+    }
+
+    @VisibleForTesting
+    static TransactionSchemaInstaller createAndStart(
+            TransactionSchemaManager manager,
+            Supplier<Optional<Integer>> versionToInstall,
+            ScheduledExecutorService scheduledExecutor) {
         TransactionSchemaInstaller installer = new TransactionSchemaInstaller(
                 manager, versionToInstall, scheduledExecutor);
         scheduledExecutor.scheduleAtFixedRate(
                 installer::runOneIteration, 0, POLLING_INTERVAL.toMinutes(), TimeUnit.MINUTES);
         return installer;
+
     }
 
     private void runOneIteration() {
@@ -79,7 +89,7 @@ public class TransactionSchemaInstaller implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         scheduledExecutorService.shutdown();
     }
 }
