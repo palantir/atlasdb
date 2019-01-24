@@ -57,7 +57,8 @@ public final class TransactionServices {
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
         return new PreStartHandlingTransactionService(
-                new SimpleTransactionService(keyValueService, TicketsEncodingStrategy.INSTANCE));
+                WriteBatchingTransactionService.create(
+                new SimpleTransactionService(keyValueService, TicketsEncodingStrategy.INSTANCE)));
     }
 
     /**

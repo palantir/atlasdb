@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.CASResult;
@@ -51,6 +52,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -1632,17 +1634,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                Multimap<byte[], Map.Entry<Cell, byte[]>> partitionedEntries
-                        = Multimaps.index(values.entrySet(), entry -> entry.getKey().getRowName());
+                // D'oh
+                Multimap<ByteString, Map.Entry<Cell, byte[]>> partitionedEntries
+                        = Multimaps.index(values.entrySet(), entry -> ByteString.of(entry.getKey().getRowName()));
 
-                for (Map.Entry<byte[], Collection<Map.Entry<Cell, byte[]>>> partition
+                for (Map.Entry<ByteString, Collection<Map.Entry<Cell, byte[]>>> partition
                         : partitionedEntries.asMap().entrySet()) {
                     CASResult casResult = putUnlessExistsSinglePartition(tableRef, client, partition);
                     if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
                                 casResult.getCurrent_values().stream().map(column ->
-                                        Cell.create(partition.getKey(), column.getName()))
+                                        Cell.create(partition.getKey().toByteArray(), column.getName()))
                                         .collect(Collectors.toList())));
                     }
                 }
@@ -1666,16 +1669,23 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private static CASResult putUnlessExistsSinglePartition(
             TableReference tableRef,
             CassandraClient client,
-            Entry<byte[], Collection<Entry<Cell, byte[]>>> partition) throws TException {
-        return client.put_unless_exists(
+            Entry<ByteString, Collection<Entry<Cell, byte[]>>> partition) throws TException {
+//        LoggerFactory.getLogger(CassandraKeyValueServiceImpl.class).warn("putUnlessExistsSinglePartition {}",
+//                SafeArg.of("partition", partition));
+        Stopwatch s = Stopwatch.createStarted();
+        CASResult r = client.put_unless_exists(
                 tableRef,
-                ByteBuffer.wrap(partition.getKey()),
+                ByteBuffer.wrap(partition.getKey().toByteArray()),
                 partition.getValue()
                         .stream()
                         .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                         .collect(Collectors.toList()),
                 ConsistencyLevel.SERIAL,
                 WRITE_CONSISTENCY);
+        s.stop();
+        LoggerFactory.getLogger(CassandraKeyValueServiceImpl.class).warn("t = {}",
+                SafeArg.of("timeMicros", s.elapsed(TimeUnit.MICROSECONDS)));
+        return r;
     }
 
     private static Column prepareColumnForPutUnlessExists(Entry<Cell, byte[]> insertion) {

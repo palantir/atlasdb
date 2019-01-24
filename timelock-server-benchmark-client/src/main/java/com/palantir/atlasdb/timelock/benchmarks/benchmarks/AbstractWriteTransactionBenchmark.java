@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -26,7 +27,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmark {
 
-    private final TransactionManager txnManager;
+    private final Supplier<TransactionManager> txnManagerSupplier;
     private final List<byte[]> allValues;
 
     protected final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
@@ -35,16 +36,36 @@ public abstract class AbstractWriteTransactionBenchmark extends AbstractBenchmar
             int numRows, int dataSize) {
         super(numClients, requestsPerClient);
 
-        this.txnManager = txnManager;
+        this.txnManagerSupplier = () -> txnManager;
 
         this.allValues = IntStream.range(0, numRows)
                 .mapToObj(i -> RandomBytes.ofLength(dataSize))
                 .collect(Collectors.toList());
     }
 
+    protected AbstractWriteTransactionBenchmark(List<TransactionManager> txnManagers,
+            int numClients, int requestsPerClient,
+            int numRows, int dataSize) {
+        super(numClients, requestsPerClient);
+
+        this.txnManagerSupplier = new Supplier<TransactionManager>() {
+            int offset = 0;
+
+            @Override
+            public TransactionManager get() {
+                return txnManagers.get((++offset) % txnManagers.size());
+            }
+        };
+
+        this.allValues = IntStream.range(0, numRows)
+                .mapToObj(i -> RandomBytes.ofLength(dataSize))
+                .collect(Collectors.toList());
+    }
+
+
     @Override
     public final void performOneCall() {
-        txnManager.runTaskWithRetry(txn -> {
+        txnManagerSupplier.get().runTaskWithRetry(txn -> {
             writeValues(txn, allValues);
             return null;
         });

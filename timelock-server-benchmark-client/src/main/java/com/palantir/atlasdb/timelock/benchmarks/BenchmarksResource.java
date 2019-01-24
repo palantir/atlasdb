@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.UserAgents;
@@ -55,7 +56,6 @@ public class BenchmarksResource implements BenchmarksService {
                 .allowHiddenTableAccess(true)
                 .runtimeConfigSupplier(Optional::empty)
                 .build().serializable();
-
         installV2();
     }
 
@@ -72,7 +72,8 @@ public class BenchmarksResource implements BenchmarksService {
     @Override
     public Map<String, Object> transactionWriteRows(int numClients, int numRequestsPerClient, int numRows,
             int dataSize) {
-        return TransactionWriteRowsBenchmark.execute(txnManager, numClients, numRequestsPerClient, numRows, dataSize);
+        return TransactionWriteRowsBenchmark.execute(
+                ImmutableList.of(txnManager), numClients, numRequestsPerClient, numRows, dataSize);
     }
 
     @Override

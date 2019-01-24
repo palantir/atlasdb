@@ -26,15 +26,15 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public final class TransactionWriteRowsBenchmark extends AbstractWriteTransactionBenchmark {
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(List<TransactionManager> txnManagers, int numClients,
             int requestsPerClient, int numRows, int dataSize) {
-        return new TransactionWriteRowsBenchmark(txnManager, numClients, requestsPerClient, numRows,
+        return new TransactionWriteRowsBenchmark(txnManagers, numClients, requestsPerClient, numRows,
                 dataSize).execute();
     }
 
-    private TransactionWriteRowsBenchmark(TransactionManager txnManager, int numClients, int requestsPerClient,
+    private TransactionWriteRowsBenchmark(List<TransactionManager> txnManagers, int numClients, int requestsPerClient,
             int numRows, int dataSize) {
-        super(txnManager, numClients, requestsPerClient, numRows, dataSize);
+        super(txnManagers, numClients, requestsPerClient, numRows, dataSize);
     }
 
     @Override

@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -48,6 +50,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
 public final class WriteBatchingTransactionService implements TransactionService, AutoCloseable {
+    private static final Logger log = LoggerFactory.getLogger(WriteBatchingTransactionService.class);
+
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
@@ -119,6 +123,9 @@ public final class WriteBatchingTransactionService implements TransactionService
 
         while (!accumulatedRequest.isEmpty()) {
             try {
+//                log.warn("Processing batch elements - {} remaining, on attempt {}",
+//                        SafeArg.of("elements", accumulatedRequest.size()),
+//                        SafeArg.of("attempt", ++att));
                 delegate.putUnlessExistsMultiple(accumulatedRequest);
 
                 // If the result was already set to be exceptional, this will not interfere with that.
