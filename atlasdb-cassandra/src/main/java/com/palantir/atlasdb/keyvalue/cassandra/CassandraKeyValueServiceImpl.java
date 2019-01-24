@@ -1626,11 +1626,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                Map<ByteString, Map<Cell, byte[]>> partitionedEntries =
-                        values.entrySet().stream()
-                                .collect(Collectors.groupingBy(
-                                        entry -> ByteString.of(entry.getKey().getRowName()),
-                                        Collectors.toMap(Entry::getKey, Entry::getValue)));
+                Map<ByteString, Map<Cell, byte[]>> partitionedEntries = partitionPerRow(values);
 
                 for (Map.Entry<ByteString, Map<Cell, byte[]>> partition : partitionedEntries.entrySet()) {
                     CASResult casResult = putUnlessExistsSinglePartition(
@@ -1653,6 +1649,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    public static Map<ByteString, Map<Cell, byte[]>> partitionPerRow(Map<Cell, byte[]> values) {
+        return values.entrySet().stream()
+                .collect(Collectors.groupingBy(
+                        entry -> ByteString.of(entry.getKey().getRowName()),
+                        Collectors.toMap(Entry::getKey, Entry::getValue)));
     }
 
     private static CASResult putUnlessExistsSinglePartition(
