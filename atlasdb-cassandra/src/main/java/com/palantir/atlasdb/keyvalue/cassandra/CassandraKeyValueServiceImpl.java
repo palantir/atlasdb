@@ -1626,17 +1626,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             throws KeyAlreadyExistsException {
         try {
             Optional<KeyAlreadyExistsException> failure = clientPool.runWithRetry(client -> {
-                Multimap<byte[], Map.Entry<Cell, byte[]>> partitionedEntries
-                        = Multimaps.index(values.entrySet(), entry -> entry.getKey().getRowName());
+                Map<ByteString, Map<Cell, byte[]>> partitionedEntries =
+                        values.entrySet().stream()
+                                .collect(Collectors.groupingBy(
+                                        entry -> ByteString.of(entry.getKey().getRowName()),
+                                        Collectors.toMap(Entry::getKey, Entry::getValue)));
 
-                for (Map.Entry<byte[], Collection<Map.Entry<Cell, byte[]>>> partition
-                        : partitionedEntries.asMap().entrySet()) {
-                    CASResult casResult = putUnlessExistsSinglePartition(tableRef, client, partition);
+                for (Map.Entry<ByteString, Map<Cell, byte[]>> partition : partitionedEntries.entrySet()) {
+                    CASResult casResult = putUnlessExistsSinglePartition(
+                            tableRef, client, partition.getKey(), partition.getValue());
                     if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
                                 casResult.getCurrent_values().stream().map(column ->
-                                        Cell.create(partition.getKey(), column.getName()))
+                                        Cell.create(partition.getKey().toByteArray(), column.getName()))
                                         .collect(Collectors.toList())));
                     }
                 }
@@ -1655,11 +1658,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private static CASResult putUnlessExistsSinglePartition(
             TableReference tableRef,
             CassandraClient client,
-            Entry<byte[], Collection<Entry<Cell, byte[]>>> partition) throws TException {
+            ByteString row,
+            Map<Cell, byte[]> partition) throws TException {
         return client.put_unless_exists(
                 tableRef,
-                ByteBuffer.wrap(partition.getKey()),
-                partition.getValue()
+                ByteBuffer.wrap(row.toByteArray()),
+                partition.entrySet()
                         .stream()
                         .map(CassandraKeyValueServiceImpl::prepareColumnForPutUnlessExists)
                         .collect(Collectors.toList()),
