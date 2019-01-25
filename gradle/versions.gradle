@@ -10,7 +10,6 @@ ext.libVersions =
     mockito: '1.10.17',
     dropwizard:   '0.8.2',
     commons_codec: '1.10',
-    commons_lang: '2.6',
     commons_lang3: '3.1',
     commons_io: '2.1',
     commons_dbutils: '1.3',
