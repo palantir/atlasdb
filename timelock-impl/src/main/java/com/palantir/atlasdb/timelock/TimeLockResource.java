@@ -75,8 +75,8 @@ public class TimeLockResource {
     }
 
     @Path("/timelock")
-    public Object getTimelockService(@Safe @PathParam("namespace") String namespace) {
-        return getOrCreateServices(namespace).getTimelockService().getPresentService();
+    public AsyncTimelockResource getTimelockService(@Safe @PathParam("namespace") String namespace) {
+        return getOrCreateServices(namespace).getTimelockService();
     }
 
     @Path("/timestamp-management")

@@ -1,11 +1,11 @@
 install:
-  paxos: {}
+  paxos:
+    is-new-service: true
   cluster:
     local-server: SERVER2:9421
     cluster:
       security:
-        keyStoreKeyAlias: palantir-dev
-        keyStorePassword: keystore
+        keyStorePassword: KEYSTORE_PASSWORD
         keyStorePath: ./var/security/keystore.jks
         trustStorePath: ./var/security/truststore.jks
       uris:
@@ -28,7 +28,7 @@ server:
   - type: h2
     port: 9421
     keyStorePath: var/security/keystore.jks
-    keyStorePassword: keystore
+    keyStorePassword: KEYSTORE_PASSWORD
     trustStorePath: var/security/truststore.jks
     validateCerts: false
     supportedCipherSuites:

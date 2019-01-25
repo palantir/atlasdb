@@ -15,16 +15,9 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.util.Collection;
-
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import com.google.common.collect.ImmutableList;
-
-@RunWith(Parameterized.class)
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     protected static final String LOCALHOST = "https://localhost";
@@ -34,37 +27,9 @@ public abstract class AbstractAsyncTimelockServiceIntegrationTest {
             LOCALHOST,
             CLIENT,
             "paxosSingleServerWithAsyncLock.yml");
-    protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC_CHECK_DISABLED = new TestableTimelockCluster(
-            LOCALHOST,
-            CLIENT,
-            "paxosSingleServerWithAsyncLockCheckDisabled.yml");
-    protected static final TestableTimelockCluster CLUSTER_WITH_SYNC_ADAPTER = new TestableTimelockCluster(
-            LOCALHOST,
-            CLIENT,
-            "paxosSingleServerWithSyncLockAdapter.yml");
 
     @ClassRule
     public static final RuleChain ASYNC_RULE_CHAIN = CLUSTER_WITH_ASYNC.getRuleChain();
-    @ClassRule
-    public static final RuleChain ASYNC_CHECK_DISABLED_RULE_CHAIN = CLUSTER_WITH_ASYNC_CHECK_DISABLED.getRuleChain();
-    @ClassRule
-    public static final RuleChain SYNC_ADAPTER_RULE_CHAIN = CLUSTER_WITH_SYNC_ADAPTER.getRuleChain();
 
-    protected final TestableTimelockCluster cluster;
-
-    @Parameterized.Parameters
-    public static Collection<TestableTimelockCluster> clusters() {
-        return ImmutableList.of(
-                CLUSTER_WITH_ASYNC,
-                CLUSTER_WITH_ASYNC_CHECK_DISABLED,
-                CLUSTER_WITH_SYNC_ADAPTER);
-    }
-
-    protected AbstractAsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
-        this.cluster = cluster;
-    }
-
-    protected static boolean isUsingSyncAdapter(TestableTimelockCluster cluster) {
-        return cluster == CLUSTER_WITH_SYNC_ADAPTER;
-    }
+    protected final TestableTimelockCluster cluster = CLUSTER_WITH_ASYNC;
 }
