@@ -21,12 +21,15 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import org.immutables.value.Value;
 import org.junit.After;
@@ -37,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -129,29 +133,31 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchDoesNotBreakOnItsOwnSuccessfulWrites() {
-        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", ImmutableList.of(
-                ENCODING_STRATEGY.encodeStartTimestampAsCell(3L)));
-        KeyAlreadyExistsException newExistingKeyException = new KeyAlreadyExistsException("boo", ImmutableList.of(
-                ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
+        List<Cell> failed = ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(3L));
+        List<Cell> succeeded = ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L));
 
-        doThrow(originalException).doThrow(originalException)
-                .doThrow(newExistingKeyException)
+        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", failed, succeeded);
+
+        doThrow(originalException)
                 .doNothing()
                 .when(mockTransactionService)
                 .putUnlessExistsMultiple(anyMap());
 
         TestTransactionBatchElement elementNotExisting = TestTransactionBatchElement.of(2L, 200L);
         TestTransactionBatchElement elementAlreadyExisting = TestTransactionBatchElement.of(3L, 300L);
+        TestTransactionBatchElement elementToRetry = TestTransactionBatchElement.of(4L, 400L);
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                elementNotExisting, elementAlreadyExisting));
+                elementNotExisting, elementAlreadyExisting, elementToRetry));
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L));
+        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(2L, 200L, 3L, 300L, 4L, 400L));
+        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(4L, 400L));
 
         assertThatThrownBy(() -> elementAlreadyExisting.result().get()).hasCause(originalException);
         assertThatCode(() -> elementNotExisting.result().get()).doesNotThrowAnyException();
+        assertThatCode(() -> elementToRetry.result().get()).doesNotThrowAnyException();
 
-        verify(mockTransactionService).getEncodingStrategy();
+        verify(mockTransactionService, atLeastOnce()).getEncodingStrategy();
     }
 
     @Test
