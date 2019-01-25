@@ -30,7 +30,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
  *
  * We divide the first PARTITIONING_QUANTUM timestamps among the first ROW_PER_QUANTUM rows.
  * We aim to distribute start timestamps as evenly as possible among these rows as numbers increase, by taking the
- * least significant bits of the timestamp and using that as the row number. For example, we might store timestamps
+ * least significant bits of the timestamp and using that as the row number. For example, we would store timestamps
  * 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
  *
  * We store the row name as a little-endian representation of the row number to ensure even distribution in key-value
