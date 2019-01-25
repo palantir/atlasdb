@@ -69,10 +69,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     private static final LockClient TEST_CLIENT_2 = LockClient.of("test2");
     private static final LockClient TEST_CLIENT_3 = LockClient.of("test3");
 
-    public AsyncTimelockServiceIntegrationTest(TestableTimelockCluster cluster) {
-        super(cluster);
-    }
-
     @Test
     public void canLockRefreshAndUnlock() {
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
@@ -186,11 +182,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLocksRequestCanTimeOut() {
-        if (isUsingSyncAdapter(cluster)) {
-            // legacy API does not support timeouts on this endpoint
-            return;
-        }
-
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
         WaitForLocksResponse response = cluster.waitForLocks(waitRequestFor(SHORT_TIMEOUT, LOCK_A));
 
@@ -307,11 +298,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestsAreIdempotent() {
-        if (isUsingSyncAdapter(cluster)) {
-            // legacyModeForTestsOnly API does not support idempotence
-            return;
-        }
-
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
 
         LockRequest request = requestFor(LOCK_A);
@@ -327,11 +313,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void waitForLockRequestsAreIdempotent() {
-        if (isUsingSyncAdapter(cluster)) {
-            // legacyModeForTestsOnly API does not support idempotence
-            return;
-        }
-
         LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
 
         WaitForLocksRequest request = waitRequestFor(LOCK_A);

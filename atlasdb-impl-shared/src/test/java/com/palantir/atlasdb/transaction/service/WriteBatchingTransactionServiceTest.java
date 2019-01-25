@@ -29,6 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 import org.junit.After;
 import org.junit.Before;
@@ -38,6 +40,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -130,11 +133,10 @@ public class WriteBatchingTransactionServiceTest {
 
     @Test
     public void repeatedProcessBatchDoesNotBreakOnItsOwnSuccessfulWrites() {
-        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException(
-                "boo",
-                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(3L)),
-                ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L)));
+        List<Cell> failed = ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(3L));
+        List<Cell> succeeded = ImmutableList.of(ENCODING_STRATEGY.encodeStartTimestampAsCell(2L));
 
+        KeyAlreadyExistsException originalException = new KeyAlreadyExistsException("boo", failed, succeeded);
 
         doThrow(originalException)
                 .doNothing()

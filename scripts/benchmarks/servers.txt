@@ -5,3 +5,4 @@ CLIENT=<hostname>
 CASSANDRA1=<hostname>
 CASSANDRA2=<hostname>
 CASSANDRA3=<hostname>
+KEYSTORE_PASSWORD=<password>
