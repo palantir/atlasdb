@@ -149,11 +149,11 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
-                        ClientContract.getLeasePeriod()));
+                        ClientContract.getLease()));
             } else {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
-                        ClientContract.getLeasePeriod()));
+                        ClientContract.getLease()));
             }
         });
     }

@@ -31,6 +31,7 @@ import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -138,7 +139,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         if (ClientContract.shouldUseLease()) {
             return LeasableRefreshLockResponse.of(
                     refreshLockLeases(tokens),
-                    ClientContract.getLeasePeriod());
+                    ClientContract.getLease());
         }
 
         return LeasableRefreshLockResponse.of(refreshLockLeases(tokens));
@@ -150,7 +151,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         if (ClientContract.shouldUseLease()) {
             return LeasableStartIdentifiedAtlasDbTransactionResponse.of(
                     startIdentifiedAtlasDbTransaction(request),
-                    ClientContract.getLeasePeriod());
+                    ClientContract.getLease());
         }
 
         return LeasableStartIdentifiedAtlasDbTransactionResponse.of(startIdentifiedAtlasDbTransaction(request));

@@ -26,6 +26,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -74,14 +75,13 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        long startTime = System.nanoTime();
         LeasableStartIdentifiedAtlasDbTransactionResponse leasableResponse =
                 delegate.leasableStartIdentifiedAtlasDbTransaction(request);
 
         StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.getStartTransactionResponse();
-        Optional<Duration> leasePeriod = leasableResponse.getLeasePeriod();
+        Optional<Lease> lease = leasableResponse.getLease();
 
-        updateLockLeases(response.immutableTimestamp().getLock(), startTime, leasePeriod);
+        lease.ifPresent(l -> updateLockLeases(response.immutableTimestamp().getLock(), l.startTime(), l.period()));
 
         return response;
     }
@@ -93,14 +93,14 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        long startTime = System.nanoTime();
         LeasableLockResponse leasableResponse = delegate.leasableLock(request);
 
         LockResponse lockResponse = leasableResponse.getLockResponse();
-        Optional<Duration> leasePeriod = leasableResponse.getLeasePeriod();
+        Optional<Lease> optionalLease = leasableResponse.getLease();
 
-        if (lockResponse.wasSuccessful()) {
-            updateLockLeases(lockResponse.getToken(), startTime, leasePeriod);
+        if (lockResponse.wasSuccessful() && optionalLease.isPresent()) {
+            Lease lease = optionalLease.get();
+            updateLockLeases(lockResponse.getToken(), lease.startTime(), lease.period());
         }
 
         return lockResponse;
@@ -119,13 +119,12 @@ public final class LeasingTimelockClient implements TimelockService {
 
         Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
 
-        long startTime = System.nanoTime();
         LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
 
         Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
-        Optional<Duration> leasePeriod = refreshLockResponse.getLeasePeriod();
+        Optional<Lease> lease = refreshLockResponse.getLease();
 
-        updateLockLeases(refreshed, startTime, leasePeriod);
+        lease.ifPresent(l -> updateLockLeases(refreshed, l.startTime(), l.period()));
 
         return Sets.union(refreshed, validByLease);
     }
@@ -141,14 +140,11 @@ public final class LeasingTimelockClient implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
-    private void updateLockLeases(LockToken token, long startTimeNanos, Optional<Duration> leasePeriod) {
-        leasePeriod.ifPresent(period ->
-                lockLeaseManager.updateLease(token,
-                        startTimeNanos + period.toNanos()));
+    private void updateLockLeases(LockToken token, long startTimeNanos, Duration leasePeriod) {
+        lockLeaseManager.updateLease(token,startTimeNanos + leasePeriod.toNanos());
     }
 
-    private void updateLockLeases(Set<LockToken> tokens, long startTimeNanos, Optional<Duration> leasePeriod) {
-        leasePeriod.ifPresent(period -> tokens.forEach(lockToken ->
-                lockLeaseManager.updateLease(lockToken, startTimeNanos + period.toNanos())));
+    private void updateLockLeases(Set<LockToken> tokens, long startTimeNanos, Duration leasePeriod) {
+        tokens.forEach(lockToken -> updateLockLeases(lockToken, startTimeNanos, leasePeriod));
     }
 }

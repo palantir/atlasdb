@@ -33,13 +33,13 @@ public interface LeasableRefreshLockResponse {
     Set<LockToken> refreshedTokens();
 
     @Value.Parameter
-    Optional<Duration> getLeasePeriod();
+    Optional<Lease> getLease();
 
     static LeasableRefreshLockResponse of(Set<LockToken> tokens) {
         return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.empty());
     }
 
-    static LeasableRefreshLockResponse of(Set<LockToken> tokens, Duration leasePeriod) {
-        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.of(leasePeriod));
+    static LeasableRefreshLockResponse of(Set<LockToken> tokens, Lease lease) {
+        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.of(lease));
     }
 }

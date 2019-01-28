@@ -16,7 +16,7 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Optional;
+import java.time.Duration;
 
 import org.immutables.value.Value;
 
@@ -24,20 +24,16 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLeasableLockResponse.class)
-@JsonDeserialize(as = ImmutableLeasableLockResponse.class)
-public interface LeasableLockResponse {
+@JsonSerialize(as = ImmutableLease.class)
+@JsonDeserialize(as = ImmutableLease.class)
+public interface Lease {
     @Value.Parameter
-    LockResponse getLockResponse();
+    long startTime();
 
     @Value.Parameter
-    Optional<Lease> getLease();
+    Duration period();
 
-    static LeasableLockResponse of(LockResponse lockResponse) {
-        return ImmutableLeasableLockResponse.of(lockResponse, Optional.empty());
-    }
-
-    static LeasableLockResponse of(LockResponse lockResponse, Lease lease) {
-        return ImmutableLeasableLockResponse.of(lockResponse, Optional.of(lease));
+    static Lease of(long startTime, Duration period) {
+        return ImmutableLease.of(startTime, period);
     }
 }

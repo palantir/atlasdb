@@ -32,7 +32,7 @@ public interface LeasableStartIdentifiedAtlasDbTransactionResponse {
     StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse();
 
     @Value.Parameter
-    Optional<Duration> getLeasePeriod();
+    Optional<Lease> getLease();
 
     static LeasableStartIdentifiedAtlasDbTransactionResponse of(StartIdentifiedAtlasDbTransactionResponse response) {
         return ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.of(
@@ -42,9 +42,9 @@ public interface LeasableStartIdentifiedAtlasDbTransactionResponse {
 
     static LeasableStartIdentifiedAtlasDbTransactionResponse of(
             StartIdentifiedAtlasDbTransactionResponse response,
-            Duration leasePeriod) {
+            Lease lease) {
         return ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.of(
                 response,
-                Optional.of(leasePeriod));
+                Optional.of(lease));
     }
 }
