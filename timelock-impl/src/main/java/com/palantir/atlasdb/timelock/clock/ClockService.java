@@ -23,7 +23,7 @@ import javax.ws.rs.core.MediaType;
 @Path("/clock")
 public interface ClockService {
     @POST
-    @Path("system-time-nanos")
+    @Path("system-time")
     @Produces(MediaType.APPLICATION_JSON)
-    long getSystemTimeInNanos();
+    IdentifiedSystemTime getSystemTime();
 }
