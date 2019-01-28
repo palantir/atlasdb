@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.BadRequestException;
@@ -54,6 +55,9 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
     @Before
     public void setUp() {
         clockSkewMonitor.runInBackground();
+        when(localClock.getSystemTime()).thenReturn(st(0));
+        when(remoteClock1.getSystemTime()).thenReturn(st(0));
+        when(remoteClock2.getSystemTime()).thenReturn(st(0));
 
         // Causes the clock skew monitor to get past its initial run.
         executor.tick(1, TimeUnit.NANOSECONDS);
@@ -64,8 +68,8 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
         Exception serviceNotAvailable = new ServiceNotAvailableException("foo");
         Exception badRequest = new BadRequestException("bar");
 
-        when(remoteClock1.getSystemTimeInNanos()).thenThrow(serviceNotAvailable);
-        when(remoteClock2.getSystemTimeInNanos()).thenThrow(badRequest);
+        when(remoteClock1.getSystemTime()).thenThrow(serviceNotAvailable);
+        when(remoteClock2.getSystemTime()).thenThrow(badRequest);
         tickOneIteration();
 
         verify(events).exception(eq(serviceNotAvailable));
@@ -74,8 +78,8 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
     @Test
     public void registersMultipleClockWentBackwardsEvents() {
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(-1L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(-2L);
+        when(remoteClock1.getSystemTime()).thenReturn(st(-1L));
+        when(remoteClock2.getSystemTime()).thenReturn(st(-2L));
 
         tickOneIteration();
 
@@ -85,10 +89,10 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
     @Test
     public void registersCombinationsOfFailuresCorrectly() {
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(-1L);
+        when(remoteClock1.getSystemTime()).thenReturn(st(-1L));
 
         Exception badRequest = new BadRequestException("bar");
-        when(remoteClock2.getSystemTimeInNanos()).thenThrow(badRequest);
+        when(remoteClock2.getSystemTime()).thenThrow(badRequest);
 
         tickOneIteration();
 
@@ -98,9 +102,9 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
 
     @Test
     public void registersClockSkewFromMultipleNodes() {
-        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L, 120L, 130L);
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(105L);
-        when(remoteClock2.getSystemTimeInNanos()).thenReturn(125L);
+        when(localClock.getSystemTime()).thenReturn(st(100L), st(110L), st(120L), st(130L));
+        when(remoteClock1.getSystemTime()).thenReturn(st(105L));
+        when(remoteClock2.getSystemTime()).thenReturn(st(125L));
         tickOneIteration();
 
         verify(events).clockSkew(REMOTE_HOST_1, clockSkewEventOf(100L, 110L, 105L), 10L);
@@ -110,10 +114,11 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
     @Test
     public void registersBothFailuresAndClockSkew() {
         Exception serviceNotAvailable = new ServiceNotAvailableException("foo");
-        when(remoteClock2.getSystemTimeInNanos()).thenThrow(serviceNotAvailable);
+        when(remoteClock2.getSystemTime()).thenThrow(serviceNotAvailable);
 
-        when(localClock.getSystemTimeInNanos()).thenReturn(100L, 110L);
-        when(remoteClock1.getSystemTimeInNanos()).thenReturn(115L);
+        when(localClock.getSystemTime()).thenReturn(st(100L), st(110L));
+
+        when(remoteClock1.getSystemTime()).thenReturn(st(115L));
         tickOneIteration();
 
         verify(events).clockSkew(REMOTE_HOST_1, clockSkewEventOf(100L, 110L, 115L), 10L);
@@ -135,5 +140,9 @@ public class MultiNodeClockSkewMonitorIntegrationTest {
     @After
     public void tearDown() {
         verifyNoMoreInteractions(events);
+    }
+
+    private static IdentifiedSystemTime st(long time) {
+        return IdentifiedSystemTime.of(time, new UUID(0, 0));
     }
 }

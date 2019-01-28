@@ -19,10 +19,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -31,6 +33,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ClockSkewMonitorIntegrationTest {
+    private static final UUID LOCAL_ID = new UUID(0, 0);
+    private static final UUID REMOTE_ID = new UUID(1, 1);
+    private static final UUID DIFFERENT_REMOTE_ID = new UUID(2, 2);
+
     private final String server = "test";
     private final ClockService mockedLocalClockService = mock(ClockService.class);
     private final ClockService mockedRemoteClockService = mock(ClockService.class);
@@ -56,6 +62,7 @@ public class ClockSkewMonitorIntegrationTest {
                 .localTimeAtStart(0)
                 .localTimeAtEnd(1)
                 .remoteSystemTime(0)
+                .remoteSystemId(REMOTE_ID)
                 .build();
 
         mockLocalAndRemoteClockSuppliers(originalRequest);
@@ -122,22 +129,28 @@ public class ClockSkewMonitorIntegrationTest {
 
     @Test
     public void logsIfLocalTimeGoesBackwards() {
-        when(mockedLocalClockService.getSystemTimeInNanos())
-                .thenReturn(-1L);
+        when(mockedLocalClockService.getSystemTime()).thenReturn(local(-1L));
         tickOneIteration();
 
-        verify(mockedEvents, times(1))
-                .clockWentBackwards("local", 2);
+        verify(mockedEvents, times(1)).clockWentBackwards("local", 2);
     }
 
     @Test
     public void logsIfRemoteTimeGoesBackwards() {
-        when(mockedRemoteClockService.getSystemTimeInNanos())
-                .thenReturn(-1L);
+        when(mockedRemoteClockService.getSystemTime())
+                .thenReturn(remote(-1L));
         tickOneIteration();
 
         verify(mockedEvents, times(1))
                 .clockWentBackwards(server, 1);
+    }
+
+    @Test
+    public void doesNotLogIfRemoteChanges() {
+        when(mockedRemoteClockService.getSystemTime())
+                .thenReturn(differentRemote(-1L));
+        tickOneIteration();
+        verifyZeroInteractions(mockedEvents);
     }
 
     private void tickOneIteration() {
@@ -145,13 +158,25 @@ public class ClockSkewMonitorIntegrationTest {
     }
 
     private void mockLocalAndRemoteClockSuppliers(RequestTime request) {
-        when(mockedLocalClockService.getSystemTimeInNanos()).thenReturn(request.localTimeAtStart(),
-                request.localTimeAtEnd());
-        when(mockedRemoteClockService.getSystemTimeInNanos()).thenReturn(request.remoteSystemTime());
+        when(mockedLocalClockService.getSystemTime()).thenReturn(local(request.localTimeAtStart()),
+                local(request.localTimeAtEnd()));
+        when(mockedRemoteClockService.getSystemTime()).thenReturn(remote(request.remoteSystemTime()));
     }
 
     @After
     public void tearDown() {
         verifyNoMoreInteractions(mockedEvents);
+    }
+
+    private static IdentifiedSystemTime local(long time) {
+        return IdentifiedSystemTime.of(time, LOCAL_ID);
+    }
+
+    private static IdentifiedSystemTime remote(long time) {
+        return IdentifiedSystemTime.of(time, REMOTE_ID);
+    }
+
+    private static IdentifiedSystemTime differentRemote(long time) {
+        return IdentifiedSystemTime.of(time, DIFFERENT_REMOTE_ID);
     }
 }
