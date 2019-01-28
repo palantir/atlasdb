@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -26,6 +27,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LeaderTimeResponse;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -139,6 +141,10 @@ public interface TimelockServerInterface { //needs a better name
     default void tryUnlock(Set<LockToken> tokens) {
         unlock(tokens);
     }
+
+    @GET
+    @Path("leader-time")
+    LeaderTimeResponse getLeaderTime();
 
     @POST
     @Path("current-time-millis")
