@@ -91,7 +91,7 @@ public class CassandraKeyValueServicePueTest {
         return Maps.transformValues(result.get(ByteString.of(getBytes(row))), ByteString::of);
     }
 
-    private static byte[] getBytes(int i) {
-        return new byte[] {(byte) i};
+    private static byte[] getBytes(int num) {
+        return new byte[] {(byte) num};
     }
 }
