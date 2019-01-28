@@ -26,7 +26,7 @@ import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
-import com.palantir.lock.v2.LeaderTimeResponse;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -157,8 +157,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LeaderTimeResponse getLeaderTime() {
-        return LeaderTimeResponse.of(serviceId, System.nanoTime());
+    public LeaderTime getLeaderTime() {
+        return LeaderTime.of(serviceId, System.nanoTime());
     }
 
     @Override

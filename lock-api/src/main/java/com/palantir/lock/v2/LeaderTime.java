@@ -24,16 +24,16 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLeaderTimeResponse.class)
-@JsonDeserialize(as = ImmutableLeaderTimeResponse.class)
-public interface LeaderTimeResponse {
+@JsonSerialize(as = ImmutableLeaderTime.class)
+@JsonDeserialize(as = ImmutableLeaderTime.class)
+public interface LeaderTime {
     @Value.Parameter
     UUID getLeaderUUID();
 
     @Value.Parameter
     long currentTimeNanos();
 
-    static LeaderTimeResponse of(UUID id, long time) {
-        return ImmutableLeaderTimeResponse.of(id, time);
+    static LeaderTime of(UUID id, long time) {
+        return ImmutableLeaderTime.of(id, time);
     }
 }

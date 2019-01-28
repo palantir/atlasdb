@@ -17,28 +17,37 @@
 package com.palantir.lock.client;
 
 import java.time.Duration;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 
 public class LockLeaseManager {
-    private final Supplier<Long> clock;
+    private final Supplier<LeaderTime> leaderTimeSupplier;
     private final Cache<LockToken, Long> leasedTokens;
+    private final AtomicReference<UUID> currentLeaderId;
 
-    public static LockLeaseManager create() {
-        return new LockLeaseManager(System::nanoTime, Duration.ofSeconds(1));
+    public static LockLeaseManager create(Supplier<LeaderTime> clock) {
+        return new LockLeaseManager(clock, Duration.ofSeconds(1));
     }
 
     @VisibleForTesting
-    LockLeaseManager(Supplier<Long> clock, Duration leaseExpiry) {
-        this.clock = clock;
+    LockLeaseManager(Supplier<LeaderTime> leaderTimeSupplier, Duration leaseExpiry) {
+        this.leaderTimeSupplier = leaderTimeSupplier;
         this.leasedTokens = Caffeine.newBuilder()
                 .expireAfterWrite(leaseExpiry.toNanos(), TimeUnit.NANOSECONDS)
                 .build();
+        currentLeaderId = new AtomicReference<>(leaderTimeSupplier.get().getLeaderUUID());
     }
 
     public void updateLease(LockToken lockToken, long expiry) {
@@ -50,7 +59,23 @@ public class LockLeaseManager {
     }
 
     public boolean isValid(LockToken lockToken) {
-        Long expiry = leasedTokens.getIfPresent(lockToken);
-        return expiry != null && expiry > clock.get();
+        return !isValid(ImmutableSet.of(lockToken)).isEmpty();
+    }
+
+    public Set<LockToken> isValid(Set<LockToken> lockTokens) {
+        LeaderTime leaderTime = leaderTimeSupplier.get();
+        checkClockId(leaderTime.getLeaderUUID());
+        return leasedTokens.getAllPresent(lockTokens).entrySet().stream()
+                .filter(leasedToken -> leasedToken.getValue() > leaderTime.currentTimeNanos())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+
+    private synchronized void checkClockId(UUID id) { //does this need to be synchronized?
+        UUID previousId = currentLeaderId.getAndSet(id);
+        if (previousId != id) {
+            leasedTokens.invalidateAll();
+        }
     }
 }

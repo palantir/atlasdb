@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 
 public class LockLeaseManagerTest {
@@ -86,12 +87,13 @@ public class LockLeaseManagerTest {
         assertFalse(lockLeaseManager.isValid(TOKEN_1));
     }
 
-    private class MockClock implements Supplier<Long> {
+    private class MockClock implements Supplier<LeaderTime> {
         private long currentTime = 0;
+        private final UUID id = UUID.randomUUID();
 
         @Override
-        public Long get() {
-            return currentTime;
+        public LeaderTime get() {
+            return LeaderTime.of(id, currentTime);
         }
 
         public synchronized void setCurrentTime(long target) {

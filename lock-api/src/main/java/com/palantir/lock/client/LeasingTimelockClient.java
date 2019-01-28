@@ -49,7 +49,7 @@ public final class LeasingTimelockClient implements TimelockService {
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
-        return new LeasingTimelockClient(timelockRpcClient, LockLeaseManager.create());
+        return new LeasingTimelockClient(timelockRpcClient, LockLeaseManager.create(timelockRpcClient::getLeaderTime));
     }
 
     @Override
@@ -113,9 +113,7 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        Set<LockToken> validByLease = tokens.stream()
-                .filter(lockLeaseManager::isValid)
-                .collect(Collectors.toSet());
+        Set<LockToken> validByLease = lockLeaseManager.isValid(tokens);
 
         Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
 

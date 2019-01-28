@@ -27,7 +27,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTimeResponse;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -144,7 +144,7 @@ public interface TimelockRpcClient { //needs a better name
 
     @GET
     @Path("leader-time")
-    LeaderTimeResponse getLeaderTime();
+    LeaderTime getLeaderTime();
 
     @POST
     @Path("current-time-millis")
