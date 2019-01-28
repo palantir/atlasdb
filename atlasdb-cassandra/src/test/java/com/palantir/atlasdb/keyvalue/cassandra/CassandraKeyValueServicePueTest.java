@@ -31,7 +31,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import okio.ByteString;
 
 public class CassandraKeyValueServicePueTest {
-
     @Test
     public void multipleEntriesFromSameRowAreBatchedTogether() {
         Map<Cell, byte[]> entries = ImmutableMap.of(

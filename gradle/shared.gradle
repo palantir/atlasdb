@@ -20,10 +20,6 @@ repositories {
     maven {
         url 'https://dl.bintray.com/marshallpierce/maven/'
     }
-    maven {
-        // TODO Remove when the needed jars are open-sourced.
-        url "https://artifactory.palantir.build/artifactory/internal-jar-release"
-    }
 }
 
 jar {

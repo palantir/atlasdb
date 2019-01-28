@@ -1693,6 +1693,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
     }
+
     /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request,
