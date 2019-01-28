@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 import com.google.common.base.Preconditions;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer implements AutoDelegate_KeyValueService {
@@ -61,6 +62,11 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
     @Override
     public boolean supportsCheckAndSet() {
         return true;
+    }
+
+    @Override
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE;
     }
 
     @Override

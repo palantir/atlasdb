@@ -87,9 +87,7 @@ public class TimeLockAgent {
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
-        this.timelockCreator = install.asyncLock().useAsyncLockService()
-                ? new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator, install.asyncLock())
-                : new LegacyTimeLockServicesCreator(metricsManager.getRegistry(), leadershipCreator);
+        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
     }
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {

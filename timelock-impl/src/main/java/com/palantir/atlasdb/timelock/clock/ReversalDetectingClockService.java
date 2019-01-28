@@ -24,7 +24,7 @@ class ReversalDetectingClockService implements ClockService {
     private final String server;
 
     @GuardedBy("this")
-    private long lastReturnedTime = Long.MIN_VALUE;
+    private IdentifiedSystemTime lastReturnedTime = null;
 
     ReversalDetectingClockService(ClockService delegate, String server, ClockSkewEvents events) {
         this.delegate = delegate;
@@ -33,13 +33,15 @@ class ReversalDetectingClockService implements ClockService {
     }
 
     @Override
-    public synchronized long getSystemTimeInNanos() {
-        long time = delegate.getSystemTimeInNanos();
-        if (time < lastReturnedTime) {
-            events.clockWentBackwards(server, Math.abs(lastReturnedTime - time));
+    public synchronized IdentifiedSystemTime getSystemTime() {
+        IdentifiedSystemTime time = delegate.getSystemTime();
+        if (lastReturnedTime != null
+                && time.getTimeNanos() < lastReturnedTime.getTimeNanos()
+                && time.getSystemId().equals(lastReturnedTime.getSystemId())) {
+            events.clockWentBackwards(server, Math.abs(lastReturnedTime.getTimeNanos() - time.getTimeNanos()));
         }
-
         lastReturnedTime = time;
-        return lastReturnedTime;
+        return time;
     }
+
 }

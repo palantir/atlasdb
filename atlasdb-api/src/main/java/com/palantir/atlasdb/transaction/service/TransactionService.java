@@ -23,7 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 
 /**
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
- * committed or aborted.
+ * committed or aborted. Transaction services may assume that data tables are written at timestamps greater than
+ * or equal to AtlasDbConstants.STARTING_TS (1).
  *
  * A given startTimestamp will only ever have one non-null value.  This means that non-null values
  * returned from this service can be aggressively cached.  Caching negative look ups should not be
@@ -33,6 +34,17 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
  * @author carrino
  */
 public interface TransactionService {
+    /**
+     * Gets the commit timestamp associated with a given start timestamp.
+     * Non-null responses may be cached on the client-side. Null responses must not be cached, as they could
+     * subsequently be updated.
+     *
+     * This function may return null, which means that the transaction in question had not been committed, at
+     * least at some point between the request being made and it returning.
+     *
+     * @param startTimestamp start timestamp of the transaction being looked up
+     * @return timestamp which the transaction committed at, or null if the transaction had not committed yet
+     */
     @CheckForNull
     Long get(long startTimestamp);
 

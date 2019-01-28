@@ -77,6 +77,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -157,6 +158,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         @Override
         public boolean supportsCheckAndSet() {
             return CassandraKeyValueServiceImpl.this.supportsCheckAndSet();
+        }
+
+        @Override
+        public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+            return CassandraKeyValueServiceImpl.this.getCheckAndSetCompatibility();
         }
 
         @Override
@@ -1683,6 +1689,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .setValue(insertion.getValue());
     }
 
+    @Override
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
+    }
     /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request,

@@ -17,10 +17,9 @@ package com.palantir.timelock.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
-import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 
 /**
  * Static (not live-reloaded) portions of TimeLock's configuration.
@@ -28,6 +27,7 @@ import com.palantir.atlasdb.timelock.config.ImmutableAsyncLockConfiguration;
 @JsonDeserialize(as = ImmutableTimeLockInstallConfiguration.class)
 @JsonSerialize(as = ImmutableTimeLockInstallConfiguration.class)
 @Value.Immutable
+@JsonIgnoreProperties(value = "asyncLock")
 public interface TimeLockInstallConfiguration {
 
     PaxosInstallConfiguration paxos();
@@ -37,10 +37,5 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default TsBoundPersisterConfiguration timestampBoundPersistence() {
         return ImmutablePaxosTsBoundPersisterConfiguration.builder().build();
-    }
-
-    @Value.Default
-    default AsyncLockConfiguration asyncLock() {
-        return ImmutableAsyncLockConfiguration.builder().build();
     }
 }

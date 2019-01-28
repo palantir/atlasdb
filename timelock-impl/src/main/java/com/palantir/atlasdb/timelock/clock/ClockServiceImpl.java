@@ -15,9 +15,13 @@
  */
 package com.palantir.atlasdb.timelock.clock;
 
+import java.util.UUID;
+
 public class ClockServiceImpl implements ClockService {
+    private static final UUID SYSTEM_ID = UUID.randomUUID();
+
     @Override
-    public long getSystemTimeInNanos() {
-        return System.nanoTime();
+    public IdentifiedSystemTime getSystemTime() {
+        return IdentifiedSystemTime.of(System.nanoTime(), SYSTEM_ID);
     }
 }

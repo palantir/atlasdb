@@ -130,6 +130,11 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void supportsCheckAndSetIsConsistentWithExpectations() {
+        assertThat(keyValueService.supportsCheckAndSet(), is(checkAndSetSupported()));
+    }
+
+    @Test
     public void testGetRowColumnSelection() {
         Cell cell1 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col1"));
         Cell cell2 = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col2"));

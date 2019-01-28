@@ -73,11 +73,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
     }
 
     @Test
-    public void getReturnsNullIfTimestampIsImpossible() {
-        assertThat(delegatingTransactionService.get(-1L)).isNull();
-    }
-
-    @Test
     public void getThrowsIfFunctionReturnsUnmappedValue() {
         assertThatThrownBy(() -> delegatingTransactionService.get(7L))
                 .isInstanceOf(IllegalStateException.class)
@@ -125,12 +120,6 @@ public class SplitKeyDelegatingTransactionServiceTest {
                 .isEqualTo(ImmutableMap.of(1L, 8L, 12L, 28L, 32L, 38L, 41L, 48L));
         verifyDelegateHadMultigetCalledWith(delegate1, 1L, 41L);
         verifyDelegateHadMultigetCalledWith(delegate2, 12L, 32L);
-    }
-
-    @Test
-    public void getMultipleFiltersOutImpossibleTimestamps() {
-        delegatingTransactionService.get(ImmutableList.of(-1L, -3L, -9L, -19L, 1L));
-        verifyDelegateHadMultigetCalledWith(delegate1, 1L);
     }
 
     @Test

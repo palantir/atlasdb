@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -178,8 +179,8 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public boolean supportsCheckAndSet() {
-        return delegate().supportsCheckAndSet();
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return delegate().getCheckAndSetCompatibility();
     }
 
     @Override
@@ -211,6 +212,7 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
         delegate().putMetadataForTable(tableRef, metadata);
     }
+
     @Override
     public void putMetadataForTables(final Map<TableReference, byte[]> tableRefToMetadata) {
         delegate().putMetadataForTables(tableRefToMetadata);

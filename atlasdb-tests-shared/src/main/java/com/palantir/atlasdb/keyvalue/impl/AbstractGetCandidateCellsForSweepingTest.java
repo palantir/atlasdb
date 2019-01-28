@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -177,6 +178,17 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         assertThat(getAllCandidates(thoroughRequest(cell(2, 2).getRowName(), 30L, 100))
                 .stream().map(CandidateCellForSweeping::cell).collect(Collectors.toList()))
                 .containsExactly(cell(2, 1), cell(2, 2), cell(3, 1), cell(3, 2));
+    }
+
+    @Test
+    public void considersSentinelsForThorough() {
+        new TestDataBuilder()
+                .put(1, 1, -1L)
+                .put(1, 1, 5L)
+                .store();
+        CandidateCellForSweeping candidateCellForSweeping = Iterables.getOnlyElement(
+                getAllCandidates(thoroughRequest(PtBytes.EMPTY_BYTE_ARRAY, 30L, 100)));
+        assertThat(candidateCellForSweeping.sortedTimestamps()).containsExactly(-1L, 5L);
     }
 
     @Test

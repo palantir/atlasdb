@@ -263,12 +263,12 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void returnWhenMoreThanSweepBatchSize() {
         useSingleShard();
         long iterationWrites = 1 + SWEEP_BATCH_SIZE / 5;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             writeCommittedConservativeRowForTimestamp(i, iterationWrites);
         }
         SweepBatch conservativeBatch = readConservative(0, 0L, -1L, SMALL_SWEEP_TS);
         assertThat(conservativeBatch.writes().size()).isEqualTo(SWEEP_BATCH_SIZE + 5);
-        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(5);
         SweepMetricsAssert.assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(
                 10 * iterationWrites + 1);
         SweepMetricsAssert.assertThat(metricsManager).hasEntriesReadConservativeEqualTo(
@@ -280,12 +280,12 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void returnWhenMoreThanSweepBatchSizeWithRepeatsHasFewerEntries() {
         useSingleShard();
         int iterationWrites = 1 + SWEEP_BATCH_SIZE / 5;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             writeCommittedConservativeRowZero(i, iterationWrites);
         }
         SweepBatch conservativeBatch = readConservative(0, 0L, -1L, SMALL_SWEEP_TS);
         assertThat(conservativeBatch.writes().size()).isEqualTo(iterationWrites);
-        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(5);
         SweepMetricsAssert.assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(
                 10 * iterationWrites + 1);
         SweepMetricsAssert.assertThat(metricsManager).hasEntriesReadConservativeEqualTo(
@@ -297,13 +297,13 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     public void returnNothingWhenMoreThanSweepBatchUncommitted() {
         useSingleShard();
         int iterationWrites = 1 + SWEEP_BATCH_SIZE / 5;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 1; i <= 10; i++) {
             writeWithoutCommitConservative(i, i, iterationWrites);
         }
         writeCommittedConservativeRowForTimestamp(10, iterationWrites);
         SweepBatch conservativeBatch = readConservative(0, 0L, -1L, SMALL_SWEEP_TS);
         assertThat(conservativeBatch.writes()).isEmpty();
-        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(4);
+        assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(5);
         SweepMetricsAssert.assertThat(metricsManager).hasEnqueuedWritesConservativeEqualTo(
                 11 * iterationWrites + 1);
         SweepMetricsAssert.assertThat(metricsManager).hasEntriesReadConservativeEqualTo(
