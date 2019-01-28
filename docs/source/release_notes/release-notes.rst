@@ -51,6 +51,13 @@ develop
          - Change
 
     *    - |improved|
+         - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
+           This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
+           The Cassandra KVS putUnlessExists method has been updated to use the above call.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
+
+
+    *    - |improved|
          - We now correctly handle host restart in the clock skew monitor.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
 

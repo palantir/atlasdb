@@ -80,8 +80,8 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     @Override
     public AtlasBytesToken midpoint(Token lt, Token rt)
     {
-        byte[] leftTokenValue = (byte[]) ((AtlasBytesToken) lt).getTokenValue();
-        byte[] rightTokenValue = (byte[]) ((AtlasBytesToken) rt).getTokenValue();
+        byte[] leftTokenValue = (byte[]) lt.getTokenValue();
+        byte[] rightTokenValue = (byte[]) rt.getTokenValue();
 
         int sigbytes = Math.max(leftTokenValue.length, rightTokenValue.length);
         BigInteger left = bigForBytes(leftTokenValue, sigbytes);
