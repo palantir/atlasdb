@@ -134,7 +134,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("leasable-refresh-locks")
-    LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
+    public LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
         return timelock.leasableRefreshLockLeases(tokens);
     }
 
@@ -160,7 +160,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("leasable-start-identified-atlasdb-transaction")
-    LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
+    public LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelock.leasableStartIdentifiedAtlasDbTransaction(request);
     }
