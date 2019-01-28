@@ -46,6 +46,7 @@ public class LockLeaseManager {
         this.leaderTimeSupplier = leaderTimeSupplier;
         this.leasedTokens = Caffeine.newBuilder()
                 .expireAfterWrite(leaseExpiry.toNanos(), TimeUnit.NANOSECONDS)
+                .weakKeys()
                 .build();
         currentLeaderId = new AtomicReference<>(leaderTimeSupplier.get().getLeaderUUID());
     }

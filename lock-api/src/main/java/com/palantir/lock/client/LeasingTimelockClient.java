@@ -19,7 +19,6 @@ package com.palantir.lock.client;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -40,8 +39,8 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 public final class LeasingTimelockClient implements TimelockService {
-    private TimelockRpcClient delegate;
-    private LockLeaseManager lockLeaseManager;
+    private final TimelockRpcClient delegate;
+    private final LockLeaseManager lockLeaseManager;
 
     private LeasingTimelockClient(TimelockRpcClient timelockService, LockLeaseManager lockLeaseManager) {
         this.delegate = timelockService;
