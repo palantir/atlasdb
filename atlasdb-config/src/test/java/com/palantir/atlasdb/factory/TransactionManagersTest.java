@@ -93,7 +93,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
-import com.palantir.lock.client.TimelockServerInterface;
+import com.palantir.lock.client.TimelockRpcClient;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -110,9 +110,9 @@ public class TransactionManagersTest {
     private static final long EMBEDDED_BOUND = 3;
 
     private static final String TIMELOCK_SERVICE_FRESH_TIMESTAMP_METRIC =
-            MetricRegistry.name(TimelockServerInterface.class, "getFreshTimestamp");
+            MetricRegistry.name(TimelockRpcClient.class, "getFreshTimestamp");
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
-            MetricRegistry.name(TimelockServerInterface.class, "currentTimeMillis");
+            MetricRegistry.name(TimelockRpcClient.class, "currentTimeMillis");
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(LockService.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =

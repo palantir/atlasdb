@@ -49,7 +49,7 @@ import com.palantir.timestamp.TimestampRange;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @AutoDelegate
-public interface TimelockServerInterface { //needs a better name
+public interface TimelockRpcClient { //needs a better name
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default

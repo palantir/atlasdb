@@ -45,7 +45,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.TimestampAndPartition;
 
 public class LeasingTimelockClientTest {
-    private TimelockServerInterface timelockService = mock(TimelockServerInterface.class);
+    private TimelockRpcClient timelockService = mock(TimelockRpcClient.class);
     private TimelockService timelockClient;
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());

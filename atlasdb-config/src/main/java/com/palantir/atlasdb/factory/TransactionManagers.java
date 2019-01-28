@@ -130,7 +130,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LeasingTimelockClient;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.TimeLockClient;
-import com.palantir.lock.client.TimelockServerInterface;
+import com.palantir.lock.client.TimelockRpcClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
@@ -795,8 +795,8 @@ public abstract class TransactionManagers {
         LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
 
-        TimelockServerInterface rawTimelockService = new ServiceCreator<>(metricsManager,
-                TimelockServerInterface.class,
+        TimelockRpcClient rawTimelockService = new ServiceCreator<>(metricsManager,
+                TimelockRpcClient.class,
                 userAgent).applyDynamic(timelockServerListConfig);
 
         TimelockService timelockService = LeasingTimelockClient.create(rawTimelockService);

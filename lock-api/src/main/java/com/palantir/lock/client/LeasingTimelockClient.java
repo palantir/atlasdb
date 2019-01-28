@@ -40,16 +40,16 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 public final class LeasingTimelockClient implements TimelockService {
-    private TimelockServerInterface delegate;
+    private TimelockRpcClient delegate;
     private LockLeaseManager lockLeaseManager;
 
-    private LeasingTimelockClient(TimelockServerInterface timelockService, LockLeaseManager lockLeaseManager) {
+    private LeasingTimelockClient(TimelockRpcClient timelockService, LockLeaseManager lockLeaseManager) {
         this.delegate = timelockService;
         this.lockLeaseManager = lockLeaseManager;
     }
 
-    public static LeasingTimelockClient create(TimelockServerInterface timelockServerInterface) {
-        return new LeasingTimelockClient(timelockServerInterface, LockLeaseManager.create());
+    public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
+        return new LeasingTimelockClient(timelockRpcClient, LockLeaseManager.create());
     }
 
     @Override
