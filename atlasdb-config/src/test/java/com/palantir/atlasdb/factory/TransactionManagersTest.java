@@ -95,7 +95,6 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.client.TimelockServerInterface;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
