@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.lease;
+package com.palantir.common.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-public final class NanoTimeTests {
+public class NanoTimeTests {
 
     @Test
     public void testIsBefore_usual() {
@@ -37,4 +37,3 @@ public final class NanoTimeTests {
         assertThat(new NanoTime(Long.MAX_VALUE).isBefore(new NanoTime(Long.MIN_VALUE))).isTrue();
     }
 }
-
