@@ -60,6 +60,4 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     LeaderTime getLeaderTime();
 
-    //add the leasing methods here - is there a better way to ensure client-server api contract for async resource?
-
 }
