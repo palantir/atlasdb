@@ -44,7 +44,7 @@ public class HeldLocksCollection {
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
         for (LockToken token : unlocked) {
-            heldLocksById.remove(token.getRequestId());
+            heldLocksById.remove(token.getId());
         }
         return unlocked;
     }
@@ -78,7 +78,7 @@ public class HeldLocksCollection {
         Set<LockToken> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
 
         for (LockToken token : tokens) {
-            AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
+            AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getId());
             if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);
             }

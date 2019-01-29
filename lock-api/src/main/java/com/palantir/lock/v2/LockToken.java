@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface LockToken {
 
     @Value.Parameter
-    UUID getRequestId();
+    UUID getId();
 
     static LockToken of(UUID requestId) {
         return ImmutableLockToken.of(requestId);
