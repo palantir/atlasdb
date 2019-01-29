@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -137,7 +138,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
         if (ClientContract.shouldUseLease()) {
-            long startTime = System.nanoTime();
+            NanoTime startTime = NanoTime.now();
             return LeasableRefreshLockResponse.of(
                     refreshLockLeases(tokens),
                     Lease.of(startTime, ClientContract.getLeasePeriod()));
@@ -150,7 +151,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     public LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         if (ClientContract.shouldUseLease()) {
-            long startTime = System.nanoTime();
+            NanoTime startTime = NanoTime.now();
             return LeasableStartIdentifiedAtlasDbTransactionResponse.of(
                     startIdentifiedAtlasDbTransaction(request),
                     Lease.of(startTime, ClientContract.getLeasePeriod()));
@@ -161,7 +162,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public LeaderTime getLeaderTime() {
-        return LeaderTime.of(serviceId, System.nanoTime());
+        return LeaderTime.of(serviceId, NanoTime.now());
     }
 
     @Override

@@ -29,12 +29,13 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 
 public class LockLeaseManager {
     private final Supplier<LeaderTime> leaderTimeSupplier;
-    private final Cache<LockToken, Long> leasedTokens;
+    private final Cache<LockToken, NanoTime> leasedTokens;
     private final AtomicReference<UUID> currentLeaderId;
 
     public static LockLeaseManager create(Supplier<LeaderTime> clock) {
@@ -51,7 +52,7 @@ public class LockLeaseManager {
         currentLeaderId = new AtomicReference<>(leaderTimeSupplier.get().getLeaderUUID());
     }
 
-    public void updateLease(LockToken lockToken, long expiry) {
+    public void updateLease(LockToken lockToken, NanoTime expiry) {
         leasedTokens.put(lockToken, expiry);
     }
 
@@ -67,7 +68,7 @@ public class LockLeaseManager {
         LeaderTime leaderTime = leaderTimeSupplier.get();
         checkClockId(leaderTime.getLeaderUUID());
         return leasedTokens.getAllPresent(lockTokens).entrySet().stream()
-                .filter(leasedToken -> leasedToken.getValue() > leaderTime.currentTimeNanos())
+                .filter(leasedToken -> leaderTime.currentTimeNanos().isBefore(leasedToken.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }

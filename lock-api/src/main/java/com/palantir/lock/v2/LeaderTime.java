@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.common.time.NanoTime;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLeaderTime.class)
@@ -31,9 +32,9 @@ public interface LeaderTime {
     UUID getLeaderUUID();
 
     @Value.Parameter
-    long currentTimeNanos();
+    NanoTime currentTimeNanos();
 
-    static LeaderTime of(UUID id, long time) {
+    static LeaderTime of(UUID id, NanoTime time) {
         return ImmutableLeaderTime.of(id, time);
     }
 }

@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
@@ -137,11 +138,11 @@ public final class LeasingTimelockClient implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
-    private void updateLockLeases(LockToken token, long startTimeNanos, Duration leasePeriod) {
-        lockLeaseManager.updateLease(token,startTimeNanos + leasePeriod.toNanos());
+    private void updateLockLeases(LockToken token, NanoTime startTimeNanos, Duration leasePeriod) {
+        lockLeaseManager.updateLease(token,startTimeNanos.plus(leasePeriod));
     }
 
-    private void updateLockLeases(Set<LockToken> tokens, long startTimeNanos, Duration leasePeriod) {
+    private void updateLockLeases(Set<LockToken> tokens, NanoTime startTimeNanos, Duration leasePeriod) {
         tokens.forEach(lockToken -> updateLockLeases(lockToken, startTimeNanos, leasePeriod));
     }
 }

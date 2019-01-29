@@ -22,18 +22,19 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.common.time.NanoTime;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLease.class)
 @JsonDeserialize(as = ImmutableLease.class)
 public interface Lease {
     @Value.Parameter
-    long startTime();
+    NanoTime startTime();
 
     @Value.Parameter
     Duration period();
 
-    static Lease of(long startTime, Duration period) {
+    static Lease of(NanoTime startTime, Duration period) {
         return ImmutableLease.of(startTime, period);
     }
 }

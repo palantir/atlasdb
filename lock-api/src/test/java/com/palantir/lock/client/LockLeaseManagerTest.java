@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 
@@ -46,22 +47,22 @@ public class LockLeaseManagerTest {
 
     @Test
     public void lockIsValidBeforeExpiry() {
-        lockLeaseManager.updateLease(TOKEN_1, 10L);
+        lockLeaseManager.updateLease(TOKEN_1, new NanoTime(10));
         clock.setCurrentTime(5);
         assertTrue(lockLeaseManager.isValid(TOKEN_1));
     }
 
     @Test
     public void lockIsNotValidAfterExpiry() {
-        lockLeaseManager.updateLease(TOKEN_1, 10L);
+        lockLeaseManager.updateLease(TOKEN_1, new NanoTime(10));
         clock.setCurrentTime(11);
         assertFalse(lockLeaseManager.isValid(TOKEN_1));
     }
 
     @Test
     public void shouldKeepMultipleLocks() {
-        lockLeaseManager.updateLease(TOKEN_1, 10L);
-        lockLeaseManager.updateLease(TOKEN_2, 10L);
+        lockLeaseManager.updateLease(TOKEN_1, new NanoTime(10));
+        lockLeaseManager.updateLease(TOKEN_2, new NanoTime(10));
 
         assertTrue(lockLeaseManager.isValid(TOKEN_1));
         assertTrue(lockLeaseManager.isValid(TOKEN_2));
@@ -69,8 +70,8 @@ public class LockLeaseManagerTest {
 
     @Test
     public void multipleExpiredLocks() {
-        lockLeaseManager.updateLease(TOKEN_1, 10L);
-        lockLeaseManager.updateLease(TOKEN_2, 10L);
+        lockLeaseManager.updateLease(TOKEN_1, new NanoTime(10));
+        lockLeaseManager.updateLease(TOKEN_2, new NanoTime(10));
 
         clock.setCurrentTime(11);
 
@@ -80,7 +81,7 @@ public class LockLeaseManagerTest {
 
     @Test
     public void invalidatesLocks() {
-        lockLeaseManager.updateLease(TOKEN_1, 10L);
+        lockLeaseManager.updateLease(TOKEN_1, new NanoTime(10));
 
         lockLeaseManager.invalidate(TOKEN_1);
 
@@ -93,7 +94,7 @@ public class LockLeaseManagerTest {
 
         @Override
         public LeaderTime get() {
-            return LeaderTime.of(id, currentTime);
+            return LeaderTime.of(id, new NanoTime(currentTime));
         }
 
         public synchronized void setCurrentTime(long target) {

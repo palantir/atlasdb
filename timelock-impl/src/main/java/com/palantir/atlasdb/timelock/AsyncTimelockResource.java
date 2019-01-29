@@ -30,6 +30,7 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
@@ -144,7 +145,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("leasable-lock")
     public void leasableLock(@Suspended final AsyncResponse response, LockRequest request) {
-        long start = System.nanoTime();
+        NanoTime startTime = NanoTime.now();
         AsyncResult<LockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -153,11 +154,11 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
-                        Lease.of(start, ClientContract.getLeasePeriod())));
+                        Lease.of(startTime, ClientContract.getLeasePeriod())));
             } else {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
-                        Lease.of(start, ClientContract.getLeasePeriod())));
+                        Lease.of(startTime, ClientContract.getLeasePeriod())));
             }
         });
     }

@@ -31,6 +31,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -54,6 +56,7 @@ public class LeasingTimelockClientTest {
 
     @Before
     public void setUp() {
+        when(timelockService.getLeaderTime()).thenReturn(LeaderTime.of(UUID.randomUUID(), NanoTime.now()));
         timelockClient = LeasingTimelockClient.create(timelockService);
     }
 
@@ -132,6 +135,6 @@ public class LeasingTimelockClientTest {
     }
 
     private Lease getLease() {
-        return Lease.of(System.nanoTime(), Duration.ofSeconds(1L));
+        return Lease.of(NanoTime.now(), Duration.ofSeconds(1L));
     }
 }
