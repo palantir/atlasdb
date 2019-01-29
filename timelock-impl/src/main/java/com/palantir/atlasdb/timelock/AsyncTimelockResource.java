@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -29,10 +30,13 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
+import com.palantir.leader.lease.NanoTime;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -141,6 +145,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("leasable-lock")
     public void leasableLock(@Suspended final AsyncResponse response, LockRequest request) {
+        long start = System.nanoTime();
         AsyncResult<LockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -149,11 +154,11 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
-                        ClientContract.getLease()));
+                        Lease.of(start, ClientContract.getLeasePeriod())));
             } else {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
-                        ClientContract.getLease()));
+                        Lease.of(start, ClientContract.getLeasePeriod())));
             }
         });
     }
@@ -169,6 +174,12 @@ public class AsyncTimelockResource {
     @Path("unlock")
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         return timelock.unlock(tokens);
+    }
+
+    @GET
+    @Path("leader-time")
+    LeaderTime getLeaderTime() {
+        return timelock.getLeaderTime();
     }
 
     @POST
