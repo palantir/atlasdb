@@ -58,11 +58,11 @@ public class LeasedLockToken implements LockToken {
     }
 
     synchronized void inValidate() {
-        inValidated = false;
+        inValidated = true;
     }
 
     @Override
     public UUID getId() {
-        return null;
+        return clientToken.getId();
     }
 }

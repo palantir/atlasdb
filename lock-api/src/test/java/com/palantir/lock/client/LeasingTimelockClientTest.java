@@ -17,10 +17,13 @@
 package com.palantir.lock.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -31,8 +34,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.IdentifiedTime;
+import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -68,22 +73,9 @@ public class LeasingTimelockClientTest {
         when(timelockService.leasableLock(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
 
-        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        timelockClient.lock(lockRequest);
 
         verify(timelockService).leasableLock(lockRequest);
-        assertEquals(LOCK_RESPONSE, lockResponse);
-    }
-
-    @Test
-    public void delegatesRefreshLockRequest() {
-        Set<LockToken> lockTokens = ImmutableSet.of(LOCK_TOKEN, LOCK_TOKEN_2);
-        when(timelockService.leasableRefreshLockLeases(lockTokens)).thenReturn(
-                LeasableRefreshLockResponse.of(lockTokens, getLease()));
-
-        Set<LockToken> refreshedTokens = timelockClient.refreshLockLeases(lockTokens);
-
-        verify(timelockService).leasableRefreshLockLeases(refreshedTokens);
-        assertEquals(lockTokens, refreshedTokens);
     }
 
     @Test
@@ -97,36 +89,50 @@ public class LeasingTimelockClientTest {
                 timelockClient.startIdentifiedAtlasDbTransaction(request);
 
         verify(timelockService).leasableStartIdentifiedAtlasDbTransaction(request);
-        assertEquals(response, clientResponse);
     }
 
     @Test
-    public void shouldInvalidateLocalCacheAfterUnlock() {
+    public void returnedTokenShouldHaveCorrectServerToken() {
         LockRequest lockRequest = mock(LockRequest.class);
         when(timelockService.leasableLock(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
-        when(timelockService.leasableRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN)))
-                .thenReturn(LeasableRefreshLockResponse.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
-        timelockClient.lock(lockRequest);
-        timelockClient.unlock(ImmutableSet.of(LOCK_TOKEN));
-        timelockClient.refreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
-
-        verify(timelockService).leasableRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        LeasedLockToken leasedToken = (LeasedLockToken)lockResponse.getToken();
+        assertEquals(leasedToken.serverToken(), LOCK_RESPONSE.getToken());
     }
 
     @Test
-    public void shouldNotCallRemoteIfLockIsNotExpired() {
+    public void leasedTokenShouldHaveValidLeaseForTheLeasePeriod() {
         LockRequest lockRequest = mock(LockRequest.class);
         when(timelockService.leasableLock(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
-        when(timelockService.leasableRefreshLockLeases(any()))
-                .thenReturn(LeasableRefreshLockResponse.of(ImmutableSet.of(LOCK_TOKEN), getLease()));
 
-        timelockClient.lock(lockRequest);
-        timelockClient.refreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        assertValid(lockResponse.getToken());
+    }
 
-        verify(timelockService, times(0)).leasableRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN));
+    @Test
+    public void unlockShouldInvalidateLease() {
+        LockRequest lockRequest = mock(LockRequest.class);
+        when(timelockService.leasableLock(lockRequest)).thenReturn(
+                LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
+
+        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        LockToken token = lockResponse.getToken();
+        timelockClient.unlock(ImmutableSet.of(token));
+
+        assertInvalid(token);
+    }
+
+    @Test
+    public void shouldOnlyCallIdentifiedTimeIfLeaseIsValid() {
+        LeasedLockToken validToken = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        when(timelockService.getLeaderTime()).thenReturn(getIdentifiedTime());
+        timelockClient.refreshLockLeases(ImmutableSet.of(validToken));
+
+        verify(timelockService).getLeaderTime();
+        verifyNoMoreInteractions(timelockService);
     }
 
     private StartIdentifiedAtlasDbTransactionResponse startTransactionResponseWith(LockToken lockToken) {
@@ -136,7 +142,21 @@ public class LeasingTimelockClientTest {
         );
     }
 
+    private void assertValid(LockToken token) {
+        LeasedLockToken leasedLockToken = (LeasedLockToken)token;
+        assertTrue(leasedLockToken.isValid(getIdentifiedTime()));
+    }
+
+    private void assertInvalid(LockToken token) {
+        LeasedLockToken leasedLockToken = (LeasedLockToken)token;
+        assertFalse(leasedLockToken.isValid(getIdentifiedTime()));
+    }
+
     private Lease getLease() {
-        return Lease.of(IdentifiedTime.of(LEADER_ID, NanoTime.now()), Duration.ofSeconds(1L));
+        return Lease.of(getIdentifiedTime(), Duration.ofSeconds(1L));
+    }
+
+    private IdentifiedTime getIdentifiedTime() {
+        return IdentifiedTime.of(LEADER_ID, NanoTime.now());
     }
 }

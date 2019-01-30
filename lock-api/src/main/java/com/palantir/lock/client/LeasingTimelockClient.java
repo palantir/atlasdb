@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -125,16 +126,18 @@ public final class LeasingTimelockClient implements TimelockService {
                 .map(token -> (LockToken) token)
                 .collect(Collectors.toSet());
 
-        LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
+        Set<LeasedLockToken> refreshedTokens = ImmutableSet.of();
 
-        Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
-        Lease lease = refreshLockResponse.getLease();
+        if (!toRefresh.isEmpty()) {
+            LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
+            Lease lease = refreshLockResponse.getLease();
 
-        Set<LeasedLockToken> leasedRefreshedTokens = refreshed.stream()
-                .map(token -> LeasedLockToken.of(token, lease))
-                .collect(Collectors.toSet());
+            refreshedTokens = refreshLockResponse.refreshedTokens().stream()
+                    .map(token -> LeasedLockToken.of(token, lease))
+                    .collect(Collectors.toSet());
+        }
 
-        return Sets.union(leasedRefreshedTokens, validByLease);
+        return Sets.union(refreshedTokens, validByLease);
     }
 
     @Override
