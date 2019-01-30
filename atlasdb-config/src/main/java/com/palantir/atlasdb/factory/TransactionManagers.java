@@ -73,6 +73,7 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
@@ -338,6 +339,7 @@ public abstract class TransactionManagers {
                 TransactionService.class,
                 TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
+        initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -430,6 +432,13 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private void initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier, TransactionSchemaManager transactionSchemaManager) {
+        initializeCloseable(() -> TransactionSchemaInstaller.createStarted(transactionSchemaManager,
+                () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()),
+                closeables);
     }
 
     private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(

@@ -23,3 +23,6 @@ sweep:
       - "atlas2.immutable_log"
     priorityTables:
       - "atlas.mission_critical_table"
+
+internalSchema:
+  targetTransactionsSchemaVersion: 1
