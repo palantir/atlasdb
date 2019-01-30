@@ -16,9 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.time.Duration;
-import java.util.Optional;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -32,19 +29,13 @@ public interface LeasableStartIdentifiedAtlasDbTransactionResponse {
     StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse();
 
     @Value.Parameter
-    Optional<Lease> getLease();
-
-    static LeasableStartIdentifiedAtlasDbTransactionResponse of(StartIdentifiedAtlasDbTransactionResponse response) {
-        return ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.of(
-                response,
-                Optional.empty());
-    }
+    Lease getLease();
 
     static LeasableStartIdentifiedAtlasDbTransactionResponse of(
             StartIdentifiedAtlasDbTransactionResponse response,
             Lease lease) {
         return ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.of(
                 response,
-                Optional.of(lease));
+                lease);
     }
 }

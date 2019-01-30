@@ -32,7 +32,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -50,13 +50,15 @@ public class LeasingTimelockClientTest {
     private TimelockRpcClient timelockService = mock(TimelockRpcClient.class);
     private TimelockService timelockClient;
 
+    private static final UUID LEADER_ID = UUID.randomUUID();
+
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
 
     @Before
     public void setUp() {
-        when(timelockService.getLeaderTime()).thenReturn(LeaderTime.of(UUID.randomUUID(), NanoTime.now()));
+        when(timelockService.getLeaderTime()).thenReturn(IdentifiedTime.of(UUID.randomUUID(), NanoTime.now()));
         timelockClient = LeasingTimelockClient.create(timelockService);
     }
 
@@ -135,6 +137,6 @@ public class LeasingTimelockClientTest {
     }
 
     private Lease getLease() {
-        return Lease.of(NanoTime.now(), Duration.ofSeconds(1L));
+        return Lease.of(IdentifiedTime.of(LEADER_ID, NanoTime.now()), Duration.ofSeconds(1L));
     }
 }

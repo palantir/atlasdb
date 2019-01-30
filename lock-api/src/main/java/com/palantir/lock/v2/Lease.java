@@ -17,6 +17,7 @@
 package com.palantir.lock.v2;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -27,14 +28,33 @@ import com.palantir.common.time.NanoTime;
 @Value.Immutable
 @JsonSerialize(as = ImmutableLease.class)
 @JsonDeserialize(as = ImmutableLease.class)
-public interface Lease {
+public abstract class Lease {
     @Value.Parameter
-    NanoTime startTime();
+    public abstract UUID leaseOwnerId();
 
     @Value.Parameter
-    Duration period();
+    public abstract NanoTime startTime();
 
-    static Lease of(NanoTime startTime, Duration period) {
-        return ImmutableLease.of(startTime, period);
+    @Value.Parameter
+    public abstract Duration period();
+
+    public boolean isValid(IdentifiedTime identifiedTime) {
+        return leaseOwnerId() == identifiedTime.getLeaderUUID()
+                && identifiedTime.currentTimeNanos().isBefore(expiry());
+    }
+
+    public static Lease of(IdentifiedTime identifiedTime, Duration period) {
+        return ImmutableLease.of(
+                identifiedTime.getLeaderUUID(),
+                identifiedTime.currentTimeNanos(),
+                period);
+    }
+
+    public static Lease of(UUID leaseOwnerId,NanoTime startTime, Duration period) {
+        return ImmutableLease.of(leaseOwnerId, startTime, period);
+    }
+
+    private NanoTime expiry() {
+        return startTime().plus(period());
     }
 }

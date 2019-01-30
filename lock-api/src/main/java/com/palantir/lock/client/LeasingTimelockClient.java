@@ -16,13 +16,16 @@
 
 package com.palantir.lock.client;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
-import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
+import com.palantir.lock.v2.ImmutableLockResponse;
+import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -41,15 +44,13 @@ import com.palantir.timestamp.TimestampRange;
 
 public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
-    private final LockLeaseManager lockLeaseManager;
 
-    private LeasingTimelockClient(TimelockRpcClient timelockService, LockLeaseManager lockLeaseManager) {
-        this.delegate = timelockService;
-        this.lockLeaseManager = lockLeaseManager;
+    private LeasingTimelockClient(TimelockRpcClient timelockRpcClient) {
+        this.delegate = timelockRpcClient;
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
-        return new LeasingTimelockClient(timelockRpcClient, LockLeaseManager.create(timelockRpcClient::getLeaderTime));
+        return new LeasingTimelockClient(timelockRpcClient);
     }
 
     @Override
@@ -79,11 +80,13 @@ public final class LeasingTimelockClient implements TimelockService {
                 delegate.leasableStartIdentifiedAtlasDbTransaction(request);
 
         StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.getStartTransactionResponse();
-        Optional<Lease> lease = leasableResponse.getLease();
+        Lease lease = leasableResponse.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
+        long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
-        lease.ifPresent(l -> updateLockLeases(response.immutableTimestamp().getLock(), l.startTime(), l.period()));
-
-        return response;
+        return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
+                ImmutableLockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
+                response.startTimestampAndPartition());
     }
 
     @Override
@@ -96,14 +99,10 @@ public final class LeasingTimelockClient implements TimelockService {
         LeasableLockResponse leasableResponse = delegate.leasableLock(request);
 
         LockResponse lockResponse = leasableResponse.getLockResponse();
-        Optional<Lease> optionalLease = leasableResponse.getLease();
+        Lease lease = leasableResponse.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(lockResponse.getToken(), lease);
 
-        if (lockResponse.wasSuccessful() && optionalLease.isPresent()) {
-            Lease lease = optionalLease.get();
-            updateLockLeases(lockResponse.getToken(), lease.startTime(), lease.period());
-        }
-
-        return lockResponse;
+        return ImmutableLockResponse.of(Optional.of(leasedLockToken));
     }
 
     @Override
@@ -113,23 +112,34 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        Set<LockToken> validByLease = lockLeaseManager.isValid(tokens);
+        IdentifiedTime identifiedTime = delegate.getLeaderTime();
+        Set<LeasedLockToken> allTokens = tokens.stream()
+                .map(token -> (LeasedLockToken)token)
+                .collect(Collectors.toSet());
 
-        Set<LockToken> toRefresh = Sets.difference(tokens, validByLease);
+        Set<LeasedLockToken> validByLease = allTokens.stream()
+                .filter(token -> token.isValid(identifiedTime))
+                .collect(Collectors.toSet());
+
+        Set<LockToken> toRefresh = Sets.difference(allTokens, validByLease).stream()
+                .map(token -> (LockToken) token)
+                .collect(Collectors.toSet());
 
         LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
 
         Set<LockToken> refreshed = refreshLockResponse.refreshedTokens();
-        Optional<Lease> lease = refreshLockResponse.getLease();
+        Lease lease = refreshLockResponse.getLease();
 
-        lease.ifPresent(l -> updateLockLeases(refreshed, l.startTime(), l.period()));
+        Set<LeasedLockToken> leasedRefreshedTokens = refreshed.stream()
+                .map(token -> LeasedLockToken.of(token, lease))
+                .collect(Collectors.toSet());
 
-        return Sets.union(refreshed, validByLease);
+        return Sets.union(leasedRefreshedTokens, validByLease);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        tokens.forEach(lockLeaseManager::invalidate);
+        tokens.stream().map(token -> (LeasedLockToken)token).forEach(LeasedLockToken::inValidate);
         return delegate.unlock(tokens);
     }
 
@@ -138,11 +148,4 @@ public final class LeasingTimelockClient implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
-    private void updateLockLeases(LockToken token, NanoTime startTimeNanos, Duration leasePeriod) {
-        lockLeaseManager.updateLease(token,startTimeNanos.plus(leasePeriod));
-    }
-
-    private void updateLockLeases(Set<LockToken> tokens, NanoTime startTimeNanos, Duration leasePeriod) {
-        tokens.forEach(lockToken -> updateLockLeases(lockToken, startTimeNanos, leasePeriod));
-    }
 }

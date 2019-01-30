@@ -30,8 +30,7 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.lease.ClientContract;
-import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -145,7 +144,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("leasable-lock")
     public void leasableLock(@Suspended final AsyncResponse response, LockRequest request) {
-        NanoTime startTime = NanoTime.now();
+        IdentifiedTime identifiedStartTime = timelock.identifiedTime();
         AsyncResult<LockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -154,11 +153,11 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
-                        Lease.of(startTime, ClientContract.getLeasePeriod())));
+                        Lease.of(identifiedStartTime, ClientContract.getLeasePeriod())));
             } else {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
-                        Lease.of(startTime, ClientContract.getLeasePeriod())));
+                        Lease.of(identifiedStartTime, ClientContract.getLeasePeriod())));
             }
         });
     }
@@ -178,8 +177,8 @@ public class AsyncTimelockResource {
 
     @GET
     @Path("leader-time")
-    LeaderTime getLeaderTime() {
-        return timelock.getLeaderTime();
+    IdentifiedTime getLeaderTime() {
+        return timelock.identifiedTime();
     }
 
     @POST

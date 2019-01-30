@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -137,32 +137,24 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
-        if (ClientContract.shouldUseLease()) {
-            NanoTime startTime = NanoTime.now();
-            return LeasableRefreshLockResponse.of(
-                    refreshLockLeases(tokens),
-                    Lease.of(startTime, ClientContract.getLeasePeriod()));
-        }
-
-        return LeasableRefreshLockResponse.of(refreshLockLeases(tokens));
+        IdentifiedTime identifiedStartTime = identifiedTime();
+        return LeasableRefreshLockResponse.of(
+                refreshLockLeases(tokens),
+                Lease.of(identifiedStartTime, ClientContract.getLeasePeriod()));
     }
 
     @Override
     public LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        if (ClientContract.shouldUseLease()) {
-            NanoTime startTime = NanoTime.now();
-            return LeasableStartIdentifiedAtlasDbTransactionResponse.of(
-                    startIdentifiedAtlasDbTransaction(request),
-                    Lease.of(startTime, ClientContract.getLeasePeriod()));
-        }
-
-        return LeasableStartIdentifiedAtlasDbTransactionResponse.of(startIdentifiedAtlasDbTransaction(request));
+        IdentifiedTime identifiedStartTime = identifiedTime();
+        return LeasableStartIdentifiedAtlasDbTransactionResponse.of(
+                startIdentifiedAtlasDbTransaction(request),
+                Lease.of(identifiedStartTime, ClientContract.getLeasePeriod()));
     }
 
     @Override
-    public LeaderTime getLeaderTime() {
-        return LeaderTime.of(serviceId, NanoTime.now());
+    public IdentifiedTime identifiedTime() {
+        return IdentifiedTime.of(serviceId, NanoTime.now());
     }
 
     @Override

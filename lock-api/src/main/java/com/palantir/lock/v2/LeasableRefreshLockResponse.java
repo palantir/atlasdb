@@ -16,8 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.time.Duration;
-import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -33,13 +31,9 @@ public interface LeasableRefreshLockResponse {
     Set<LockToken> refreshedTokens();
 
     @Value.Parameter
-    Optional<Lease> getLease();
-
-    static LeasableRefreshLockResponse of(Set<LockToken> tokens) {
-        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.empty());
-    }
+    Lease getLease();
 
     static LeasableRefreshLockResponse of(Set<LockToken> tokens, Lease lease) {
-        return ImmutableLeasableRefreshLockResponse.of(tokens, Optional.of(lease));
+        return ImmutableLeasableRefreshLockResponse.of(tokens, lease);
     }
 }

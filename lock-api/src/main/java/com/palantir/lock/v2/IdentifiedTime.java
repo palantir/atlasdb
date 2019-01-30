@@ -25,16 +25,16 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.common.time.NanoTime;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLeaderTime.class)
-@JsonDeserialize(as = ImmutableLeaderTime.class)
-public interface LeaderTime {
+@JsonSerialize(as = ImmutableIdentifiedTime.class)
+@JsonDeserialize(as = ImmutableIdentifiedTime.class)
+public interface IdentifiedTime {
     @Value.Parameter
     UUID getLeaderUUID();
 
     @Value.Parameter
     NanoTime currentTimeNanos();
 
-    static LeaderTime of(UUID id, NanoTime time) {
-        return ImmutableLeaderTime.of(id, time);
+    static IdentifiedTime of(UUID id, NanoTime time) {
+        return ImmutableIdentifiedTime.of(id, time);
     }
 }

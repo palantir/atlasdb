@@ -16,8 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Optional;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -31,13 +29,9 @@ public interface LeasableLockResponse {
     LockResponse getLockResponse();
 
     @Value.Parameter
-    Optional<Lease> getLease();
-
-    static LeasableLockResponse of(LockResponse lockResponse) {
-        return ImmutableLeasableLockResponse.of(lockResponse, Optional.empty());
-    }
+    Lease getLease();
 
     static LeasableLockResponse of(LockResponse lockResponse, Lease lease) {
-        return ImmutableLeasableLockResponse.of(lockResponse, Optional.of(lease));
+        return ImmutableLeasableLockResponse.of(lockResponse, lease);
     }
 }

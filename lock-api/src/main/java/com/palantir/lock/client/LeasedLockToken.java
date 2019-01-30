@@ -18,40 +18,46 @@ package com.palantir.lock.client;
 
 import java.util.UUID;
 
-import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.IdentifiedTime;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
 public class LeasedLockToken implements LockToken {
     private final LockToken serverToken;
     private final LockToken clientToken;
-    private final NanoTime expiry;
+
+    private Lease lease;
     private volatile boolean inValidated = false;
 
-    public LeasedLockToken of(LockToken serverToken, NanoTime expiry) {
+    static LeasedLockToken of(LockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken,
                 LockToken.of(UUID.randomUUID()),
-                expiry);
+                lease);
     }
 
-    private LeasedLockToken(LockToken serverToken, LockToken clientToken, NanoTime expiry) {
+    private LeasedLockToken(LockToken serverToken, LockToken clientToken, Lease lease) {
         this.serverToken = serverToken;
         this.clientToken = clientToken;
-        this.expiry = expiry;
+        this.lease = lease;
     }
 
-    public LockToken serverToken() {
+    LockToken serverToken() {
         return serverToken;
     }
 
-    public LockToken clientToken() {
+    LockToken clientToken() {
         return clientToken;
     }
 
-    public boolean isValid(NanoTime currentTime) {
-        return !inValidated && currentTime.isBefore(expiry);
+    synchronized void updateLease(Lease lease) {
+        this.lease = lease;
     }
 
-    public synchronized void inValidate() {
+    synchronized boolean isValid(IdentifiedTime identifiedCurrentTime) {
+        return !inValidated && lease.isValid(identifiedCurrentTime);
+    }
+
+    synchronized void inValidate() {
         inValidated = false;
     }
 
