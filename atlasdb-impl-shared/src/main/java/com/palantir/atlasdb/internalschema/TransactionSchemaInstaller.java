@@ -29,7 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 
-public class TransactionSchemaInstaller implements AutoCloseable {
+public final class TransactionSchemaInstaller implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaInstaller.class);
 
     @VisibleForTesting
@@ -87,7 +87,8 @@ public class TransactionSchemaInstaller implements AutoCloseable {
                                 + " but this was unsuccessful because another service changed the database. This is"
                                 + " probably benign, but note that such version changes may be delayed.",
                         SafeArg.of("version", presentVersion));
-            }});
+            }
+        });
     }
 
     @Override
