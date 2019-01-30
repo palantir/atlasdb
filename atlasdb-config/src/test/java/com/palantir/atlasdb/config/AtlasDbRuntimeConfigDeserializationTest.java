@@ -57,6 +57,8 @@ public class AtlasDbRuntimeConfigDeserializationTest {
                     assertThat(overrides.blacklistTables()).containsExactlyInAnyOrder(
                             "atlas.bad_table", "atlas2.immutable_log");
                 });
+
+        assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion()).contains(1);
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {
