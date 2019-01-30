@@ -64,7 +64,7 @@ public class CassandraTimestampsEteTest {
         sweepUntilNoValueExistsAtTimestamp(ID, firstWriteTimestamp);
 
         CassandraCommands.nodetoolFlush(CASSANDRA_CONTAINER_NAME);
-        CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
+        //CassandraCommands.nodetoolCompact(CASSANDRA_CONTAINER_NAME);
 
         List<String> ssTables = CassandraCommands.nodetoolGetSsTables(
                 CASSANDRA_CONTAINER_NAME,
