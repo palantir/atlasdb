@@ -21,7 +21,6 @@ import org.junit.ClassRule;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
 
-// todo(gmaretic): unignore once we have a docker container that supports multicas; verified locally
 public class CassandraMultiNodeMultiCasTest extends AbstractMultiCasTest {
     @ClassRule
     public static final ThreeNodeCassandraResource CASSANDRA = new ThreeNodeCassandraResource();
