@@ -25,7 +25,8 @@ public interface CassandraVersion {
     }
 
     static CassandraVersion from(String version) {
-        if (version.startsWith("2.2.")) {
+        // TODO (jkong): Consider versioning and how that might change if the default moves to 3.x.
+        if (version.startsWith("2.2.") || version.equals(CassandraEnvironment.DEFAULT_VERSION)) {
             return new Cassandra22XVersion();
         } else if (version.startsWith("3.")) {
             return new Cassandra3XVersion();

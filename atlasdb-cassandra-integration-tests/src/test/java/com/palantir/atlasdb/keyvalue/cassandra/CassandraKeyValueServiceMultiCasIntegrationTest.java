@@ -17,13 +17,11 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
 
 // todo(gmaretic): unignore once we have a docker container that supports multicas; verified locally
-@Ignore
 public class CassandraKeyValueServiceMultiCasIntegrationTest extends AbstractMultiCasTest {
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource();

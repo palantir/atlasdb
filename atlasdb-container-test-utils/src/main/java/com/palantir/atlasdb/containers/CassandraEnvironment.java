@@ -30,7 +30,7 @@ public final class CassandraEnvironment {
     static final String CASSANDRA_HEAP_NEWSIZE = "CASSANDRA_HEAP_NEWSIZE";
 
     @VisibleForTesting
-    static final String DEFAULT_VERSION = "2.2.9";
+    static final String DEFAULT_VERSION = "atlasdb-testing-palantir-cassandra";
     @VisibleForTesting
     static final String DEFAULT_MAX_HEAP_SIZE = "512m";
     @VisibleForTesting
