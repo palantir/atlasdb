@@ -137,20 +137,20 @@ public class LeasingTimelockClientTest {
 
     @Test
     public void unlockShouldCallRemoteServer_validLeases() {
-        LockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
         assertValid(token);
         timelockClient.unlock(ImmutableSet.of(token));
 
-        verify(timelockService).unlock(ImmutableSet.of(token));
+        verify(timelockService).unlock(ImmutableSet.of(token.serverToken()));
     }
 
     @Test
     public void unlockShouldCallRemoteServer_inValidLeases() {
-        LockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
         assertInvalid(token);
         timelockClient.unlock(ImmutableSet.of(token));
 
-        verify(timelockService).unlock(ImmutableSet.of(token));
+        verify(timelockService).unlock(ImmutableSet.of(token.serverToken()));
     }
 
     @Test
