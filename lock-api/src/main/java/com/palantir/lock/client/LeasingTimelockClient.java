@@ -115,7 +115,7 @@ public final class LeasingTimelockClient implements TimelockService {
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         IdentifiedTime identifiedTime = delegate.getLeaderTime();
         Set<LeasedLockToken> allTokens = tokens.stream()
-                .map(token -> (LeasedLockToken)token)
+                .map(token -> (LeasedLockToken) token)
                 .collect(Collectors.toSet());
 
         Set<LeasedLockToken> validByLease = allTokens.stream()
@@ -144,7 +144,7 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = tokens.stream()
-                .map(token -> (LeasedLockToken)token)
+                .map(token -> (LeasedLockToken) token)
                 .collect(Collectors.toSet());
         leasedLockTokens.forEach(LeasedLockToken::inValidate);
         return delegate.unlock(leasedLockTokens.stream()

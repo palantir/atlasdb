@@ -23,7 +23,7 @@ import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
-public class LeasedLockToken implements LockToken {
+public final class LeasedLockToken implements LockToken {
     private final LockToken serverToken;
     private final LockToken clientToken;
 
@@ -50,8 +50,8 @@ public class LeasedLockToken implements LockToken {
         return lease;
     }
 
-    synchronized void updateLease(Lease lease) {
-        this.lease = lease;
+    synchronized void updateLease(Lease newLease) {
+        this.lease = newLease;
     }
 
     synchronized boolean isValid(IdentifiedTime identifiedCurrentTime) {

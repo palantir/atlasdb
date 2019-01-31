@@ -19,9 +19,7 @@ package com.palantir.lock.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -34,10 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.common.annotation.Immutable;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.IdentifiedTime;
-import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartIdentifiedAtlasDbTransactionResponse;
@@ -125,7 +121,7 @@ public class LeasingTimelockClientTest {
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
 
         LockResponse lockResponse = timelockClient.lock(lockRequest);
-        LeasedLockToken leasedToken = (LeasedLockToken)lockResponse.getToken();
+        LeasedLockToken leasedToken = (LeasedLockToken) lockResponse.getToken();
         assertEquals(leasedToken.serverToken(), LOCK_RESPONSE.getToken());
     }
 
@@ -203,12 +199,12 @@ public class LeasingTimelockClientTest {
     }
 
     private void assertValid(LockToken token) {
-        LeasedLockToken leasedLockToken = (LeasedLockToken)token;
+        LeasedLockToken leasedLockToken = (LeasedLockToken) token;
         assertTrue(leasedLockToken.isValid(getIdentifiedTime()));
     }
 
     private void assertInvalid(LockToken token) {
-        LeasedLockToken leasedLockToken = (LeasedLockToken)token;
+        LeasedLockToken leasedLockToken = (LeasedLockToken) token;
         assertFalse(leasedLockToken.isValid(getIdentifiedTime()));
     }
 

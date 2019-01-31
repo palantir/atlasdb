@@ -29,7 +29,7 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableIdentifiedTime.class)
 public interface IdentifiedTime {
     @Value.Parameter
-    UUID getLeaderUUID();
+    UUID getLeaderUuid();
 
     @Value.Parameter
     NanoTime currentTimeNanos();
