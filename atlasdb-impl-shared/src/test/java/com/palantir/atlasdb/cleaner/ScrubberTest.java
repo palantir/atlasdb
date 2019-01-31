@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -52,7 +53,7 @@ public class ScrubberTest {
     public void before() {
         kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
         kvs.createTable(TransactionConstants.TRANSACTION_TABLE, new byte[] {});
-        transactions = new SimpleTransactionService(kvs);
+        transactions = new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE);
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
         scrubber = getScrubber(kvs, scrubStore, transactions);
     }
