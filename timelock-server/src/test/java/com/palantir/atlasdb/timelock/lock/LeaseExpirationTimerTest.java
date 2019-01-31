@@ -16,24 +16,25 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import com.palantir.common.time.Clock;
+import com.palantir.common.time.NanoTime;
 
 public class LeaseExpirationTimerTest {
 
-    private static final long START_TIME_MILLIS = 123L;
+    private static final long START_TIME_NANOS = 123L;
 
-    private final Clock clock = mock(Clock.class);
+    private long currentTimeNanos = START_TIME_NANOS;
+    private final Supplier<NanoTime> clock = () -> new NanoTime(currentTimeNanos);
     private LeaseExpirationTimer timer;
 
     @Before
     public void before() {
-        when(clock.getTimeMillis()).thenReturn(START_TIME_MILLIS);
+        currentTimeNanos = START_TIME_NANOS;
         timer = new LeaseExpirationTimer(clock);
     }
 
@@ -44,24 +45,24 @@ public class LeaseExpirationTimerTest {
 
     @Test
     public void isExpiredWhenAppropriateTimeHasElapsed() {
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS + 1L);
+        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos() + 1L);
 
         assertThat(timer.isExpired()).isTrue();
     }
 
     @Test
     public void refreshResetsTimer() {
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS);
+        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos());
         timer.refresh();
 
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS * 2);
+        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos() * 2);
         timer.refresh();
 
         assertThat(timer.isExpired()).isFalse();
     }
 
     private void mockOffsetFromStartTime(long offset) {
-        when(clock.getTimeMillis()).thenReturn(START_TIME_MILLIS + offset);
+        currentTimeNanos = START_TIME_NANOS + offset;
     }
 
 }
