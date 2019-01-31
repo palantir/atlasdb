@@ -20,12 +20,19 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.locks.LockSupport;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 
 public final class NanoTime implements Comparable<NanoTime> {
+    @JsonProperty("time")
     private final long time;
 
-    public NanoTime(long time) {
+    @JsonCreator
+    public NanoTime(@JsonProperty("time") long time) {
         this.time = time;
     }
 

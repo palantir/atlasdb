@@ -177,7 +177,7 @@ public class AsyncTimelockResource {
 
     @GET
     @Path("leader-time")
-    IdentifiedTime getLeaderTime() {
+    public IdentifiedTime getLeaderTime() {
         return timelock.identifiedTime();
     }
 

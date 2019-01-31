@@ -143,8 +143,13 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        tokens.stream().map(token -> (LeasedLockToken)token).forEach(LeasedLockToken::inValidate);
-        return delegate.unlock(tokens);
+        Set<LeasedLockToken> leasedLockTokens = tokens.stream()
+                .map(token -> (LeasedLockToken)token)
+                .collect(Collectors.toSet());
+        leasedLockTokens.forEach(LeasedLockToken::inValidate);
+        return delegate.unlock(leasedLockTokens.stream()
+                .map(LeasedLockToken::serverToken)
+                .collect(Collectors.toSet()));
     }
 
     @Override
