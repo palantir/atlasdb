@@ -22,6 +22,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
@@ -58,8 +59,10 @@ public interface CoordinationResource {
 
     /**
      * After this method returns, the state of the {@link CoordinationService} that is backing this
-     * {@link CoordinationResource} should be reset. In particular, caches should be reset, and the value the
-     * {@link CoordinationService} believes to be agreed upon should be reset to zero.
+     * {@link CoordinationResource} should be reset. The latest value of the
+     * {@link InternalSchemaMetadata#timestampToTransactionsTableSchemaVersion()} should be
+     * {@link com.palantir.atlasdb.transaction.impl.TransactionConstants#TRANSACTIONS_TABLE_SCHEMA_VERSION},
+     * and that version of the transaction schema should already be in effect, with no pending installs.
      *
      * @return a fresh timestamp after the reset has been executed
      */
