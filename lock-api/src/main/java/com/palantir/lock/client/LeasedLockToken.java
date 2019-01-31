@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import com.palantir.lock.v2.IdentifiedTime;
@@ -45,10 +46,6 @@ public class LeasedLockToken implements LockToken {
         return serverToken;
     }
 
-    LockToken clientToken() {
-        return clientToken;
-    }
-
     synchronized void updateLease(Lease lease) {
         this.lease = lease;
     }
@@ -64,5 +61,26 @@ public class LeasedLockToken implements LockToken {
     @Override
     public UUID getId() {
         return clientToken.getId();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(serverToken);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        LeasedLockToken otherToken = (LeasedLockToken) other;
+
+        return serverToken.equals(otherToken.serverToken)
+                && clientToken.equals(otherToken.clientToken)
+                && lease.equals(otherToken.lease)
+                && inValidated == otherToken.inValidated;
     }
 }

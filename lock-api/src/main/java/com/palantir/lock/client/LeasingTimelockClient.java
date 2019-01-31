@@ -122,19 +122,20 @@ public final class LeasingTimelockClient implements TimelockService {
                 .filter(token -> token.isValid(identifiedTime))
                 .collect(Collectors.toSet());
 
-        Set<LockToken> toRefresh = Sets.difference(allTokens, validByLease).stream()
-                .map(token -> (LockToken) token)
-                .collect(Collectors.toSet());
+        Set<LeasedLockToken> toRefresh = Sets.difference(allTokens, validByLease);
 
         Set<LeasedLockToken> refreshedTokens = ImmutableSet.of();
 
         if (!toRefresh.isEmpty()) {
-            LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(toRefresh);
+            LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(
+                    toRefresh.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet()));
             Lease lease = refreshLockResponse.getLease();
 
-            refreshedTokens = refreshLockResponse.refreshedTokens().stream()
-                    .map(token -> LeasedLockToken.of(token, lease))
+            refreshedTokens = toRefresh.stream()
+                    .filter(t -> refreshLockResponse.refreshedTokens().contains(t.serverToken()))
                     .collect(Collectors.toSet());
+
+            refreshedTokens.forEach(t -> t.updateLease(lease));
         }
 
         return Sets.union(refreshedTokens, validByLease);

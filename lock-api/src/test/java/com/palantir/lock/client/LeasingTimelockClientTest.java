@@ -58,7 +58,6 @@ public class LeasingTimelockClientTest {
     private static final UUID LEADER_ID = UUID.randomUUID();
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
-    private static final LockToken LOCK_TOKEN_2 = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
 
     @Before
@@ -85,8 +84,7 @@ public class LeasingTimelockClientTest {
         when(timelockService.leasableStartIdentifiedAtlasDbTransaction(request)).thenReturn(
                 LeasableStartIdentifiedAtlasDbTransactionResponse.of(response, getLease()));
 
-        StartIdentifiedAtlasDbTransactionResponse clientResponse =
-                timelockClient.startIdentifiedAtlasDbTransaction(request);
+        timelockClient.startIdentifiedAtlasDbTransaction(request);
 
         verify(timelockService).leasableStartIdentifiedAtlasDbTransaction(request);
     }
@@ -135,6 +133,26 @@ public class LeasingTimelockClientTest {
         verifyNoMoreInteractions(timelockService);
     }
 
+    @Test
+    public void shouldRefreshTheLease_invalidOnClient_validOnServer() {
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
+        assertInvalid(leasedLockToken);
+
+        when(timelockService.leasableRefreshLockLeases(ImmutableSet.of(LOCK_TOKEN)))
+                .thenReturn(LeasableRefreshLockResponse.of(
+                        ImmutableSet.of(LOCK_TOKEN),
+                        getLease()
+                ));
+
+        Set<LockToken> refreshed = timelockClient.refreshLockLeases(ImmutableSet.of(leasedLockToken));
+        verify(timelockService).leasableRefreshLockLeases(ImmutableSet.of(leasedLockToken.serverToken()));
+
+        LeasedLockToken refreshedLeasedLockToken = (LeasedLockToken) refreshed.iterator().next();
+        assertValid(refreshedLeasedLockToken);
+        assertValid(leasedLockToken);
+        assertEquals(leasedLockToken, refreshedLeasedLockToken);
+    }
+
     private StartIdentifiedAtlasDbTransactionResponse startTransactionResponseWith(LockToken lockToken) {
         return StartIdentifiedAtlasDbTransactionResponse.of(
                 LockImmutableTimestampResponse.of(1L, lockToken),
@@ -150,6 +168,10 @@ public class LeasingTimelockClientTest {
     private void assertInvalid(LockToken token) {
         LeasedLockToken leasedLockToken = (LeasedLockToken)token;
         assertFalse(leasedLockToken.isValid(getIdentifiedTime()));
+    }
+
+    private Lease getLease(Duration period) {
+        return Lease.of(getIdentifiedTime(), period);
     }
 
     private Lease getLease() {
