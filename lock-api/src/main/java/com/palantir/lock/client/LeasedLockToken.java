@@ -46,6 +46,10 @@ public class LeasedLockToken implements LockToken {
         return serverToken;
     }
 
+    synchronized Lease getLease() {
+        return lease;
+    }
+
     synchronized void updateLease(Lease lease) {
         this.lease = lease;
     }
