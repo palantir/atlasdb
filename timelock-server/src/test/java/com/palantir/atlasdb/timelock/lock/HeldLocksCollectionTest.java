@@ -66,7 +66,7 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void removesExpiredAndFailedRequests() {
-        UUID nonExpiredRequest = mockNonExpiredRequest().getId();
+        UUID nonExpiredRequest = mockNonExpiredRequest().getRequestId();
         mockExpiredRequest();
         mockFailedRequest();
 
@@ -151,7 +151,7 @@ public class HeldLocksCollectionTest {
         AsyncResult failedLocks = new AsyncResult();
         failedLocks.fail(new RuntimeException());
 
-        heldLocksCollection.getExistingOrAcquire(request.getId(), () -> failedLocks);
+        heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> failedLocks);
 
         return request;
     }
@@ -161,7 +161,7 @@ public class HeldLocksCollectionTest {
         AsyncResult timedOutResult = new AsyncResult();
         timedOutResult.timeout();
 
-        heldLocksCollection.getExistingOrAcquire(request.getId(), () -> timedOutResult);
+        heldLocksCollection.getExistingOrAcquire(request.getRequestId(), () -> timedOutResult);
 
         return request;
     }
@@ -173,7 +173,7 @@ public class HeldLocksCollectionTest {
 
         AsyncResult<HeldLocks> completedResult = new AsyncResult<>();
         completedResult.complete(heldLocks);
-        heldLocksCollection.getExistingOrAcquire(request.getId(),
+        heldLocksCollection.getExistingOrAcquire(request.getRequestId(),
                 () -> completedResult);
 
         return request;

@@ -59,8 +59,8 @@ public class LeasedLockToken implements LockToken {
     }
 
     @Override
-    public UUID getId() {
-        return clientToken.getId();
+    public UUID getRequestId() {
+        return clientToken.getRequestId();
     }
 
     @Override

@@ -55,7 +55,7 @@ public class HeldLocks {
     public synchronized boolean unlockIfExpired() {
         if (expirationTimer.isExpired()) {
             if (unlock()) {
-                lockLog.lockExpired(token.getId(), getLockDescriptors());
+                lockLog.lockExpired(token.getRequestId(), getLockDescriptors());
             }
         }
         return isUnlocked;
@@ -77,7 +77,7 @@ public class HeldLocks {
         isUnlocked = true;
 
         for (AsyncLock lock : acquiredLocks) {
-            lock.unlock(token.getId());
+            lock.unlock(token.getRequestId());
         }
 
         return true;
@@ -88,7 +88,7 @@ public class HeldLocks {
     }
 
     public UUID getRequestId() {
-        return token.getId();
+        return token.getRequestId();
     }
 
     @VisibleForTesting
