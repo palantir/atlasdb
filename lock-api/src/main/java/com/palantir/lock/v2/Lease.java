@@ -39,13 +39,13 @@ public abstract class Lease {
     public abstract Duration period();
 
     public boolean isValid(IdentifiedTime identifiedTime) {
-        return leaseOwnerId() == identifiedTime.getLeaderUuid()
+        return leaseOwnerId().equals(identifiedTime.clockId())
                 && identifiedTime.currentTimeNanos().isBefore(expiry());
     }
 
     public static Lease of(IdentifiedTime identifiedTime, Duration period) {
         return ImmutableLease.of(
-                identifiedTime.getLeaderUuid(),
+                identifiedTime.clockId(),
                 identifiedTime.currentTimeNanos(),
                 period);
     }

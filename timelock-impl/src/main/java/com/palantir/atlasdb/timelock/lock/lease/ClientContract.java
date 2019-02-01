@@ -18,11 +18,8 @@ package com.palantir.atlasdb.timelock.lock.lease;
 
 import java.time.Duration;
 
-public class ClientContract {
-    public static boolean shouldUseLease() {
-        return false;
-    }
-    public static Duration getLeasePeriod() {
-        return Duration.ofNanos(0);
-    }
+public final class ClientContract {
+    private ClientContract() {}
+
+    public static Duration LEASE_PERIOD = Duration.ZERO;
 }

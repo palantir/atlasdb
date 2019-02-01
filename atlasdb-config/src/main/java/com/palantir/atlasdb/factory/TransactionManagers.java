@@ -795,11 +795,11 @@ public abstract class TransactionManagers {
         LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent)
                 .applyDynamic(timelockServerListConfig);
 
-        TimelockRpcClient rawTimelockService = new ServiceCreator<>(metricsManager,
+        TimelockRpcClient timelockRpcClient = new ServiceCreator<>(metricsManager,
                 TimelockRpcClient.class,
                 userAgent).applyDynamic(timelockServerListConfig);
 
-        TimelockService timelockService = LeasingTimelockClient.create(rawTimelockService);
+        TimelockService timelockService = LeasingTimelockClient.create(timelockRpcClient);
 
         TimestampManagementService timestampManagementService =
                 new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)

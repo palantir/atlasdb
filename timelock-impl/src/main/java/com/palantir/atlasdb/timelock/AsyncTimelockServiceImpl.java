@@ -140,7 +140,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         IdentifiedTime identifiedStartTime = identifiedTime();
         return LeasableRefreshLockResponse.of(
                 refreshLockLeases(tokens),
-                Lease.of(identifiedStartTime, ClientContract.getLeasePeriod()));
+                Lease.of(identifiedStartTime, ClientContract.LEASE_PERIOD));
     }
 
     @Override
@@ -149,7 +149,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         IdentifiedTime identifiedStartTime = identifiedTime();
         return LeasableStartIdentifiedAtlasDbTransactionResponse.of(
                 startIdentifiedAtlasDbTransaction(request),
-                Lease.of(identifiedStartTime, ClientContract.getLeasePeriod()));
+                Lease.of(identifiedStartTime, ClientContract.LEASE_PERIOD));
     }
 
     @Override

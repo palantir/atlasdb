@@ -28,7 +28,7 @@ public final class LeasedLockToken implements LockToken {
     private final LockToken clientToken;
 
     private Lease lease;
-    private volatile boolean inValidated = false;
+    private boolean inValidated = false;
 
     static LeasedLockToken of(LockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken,

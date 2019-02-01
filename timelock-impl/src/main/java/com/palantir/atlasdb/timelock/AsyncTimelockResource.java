@@ -153,11 +153,11 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.timedOut(),
-                        Lease.of(identifiedStartTime, ClientContract.getLeasePeriod())));
+                        Lease.of(identifiedStartTime, ClientContract.LEASE_PERIOD)));
             } else {
                 response.resume(LeasableLockResponse.of(
                         LockResponse.successful(result.get()),
-                        Lease.of(identifiedStartTime, ClientContract.getLeasePeriod())));
+                        Lease.of(identifiedStartTime, ClientContract.LEASE_PERIOD)));
             }
         });
     }
