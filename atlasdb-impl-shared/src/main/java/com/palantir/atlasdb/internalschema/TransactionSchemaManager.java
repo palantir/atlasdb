@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -132,5 +133,10 @@ public class TransactionSchemaManager {
                 .flatMap(ValueAndBound::value)
                 .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
                 .map(versionMap -> versionMap.getValueForTimestamp(timestamp));
+    }
+
+    @VisibleForTesting
+    CoordinationService<InternalSchemaMetadata> getCoordinationService() {
+        return coordinationService;
     }
 }
