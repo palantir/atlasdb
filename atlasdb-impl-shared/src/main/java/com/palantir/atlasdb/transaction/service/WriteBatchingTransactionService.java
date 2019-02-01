@@ -49,7 +49,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  * Delegates are expected to throw {@link KeyAlreadyExistsException}s that have meaningful values for
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
-public final class WriteBatchingTransactionService implements TransactionService, AutoCloseable {
+public final class WriteBatchingTransactionService implements TransactionService {
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
