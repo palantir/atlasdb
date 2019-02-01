@@ -308,6 +308,7 @@ import com.palantir.timestamp.TimestampService;
             super.close();
             cleaner.close();
             keyValueService.close();
+            transactionService.close();
             shutdownExecutor(deleteExecutor);
             shutdownExecutor(getRangesExecutor);
             closeLockServiceIfPossible();
