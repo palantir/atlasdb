@@ -25,7 +25,7 @@ import org.junit.runners.Suite;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
-import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationTest;
+import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
@@ -33,7 +33,7 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationT
         ServiceExposureEteTest.class,
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
-        MultipleSchemaVersionsCoordinationTest.class
+        MultipleSchemaVersionsCoordinationEteTest.class
         })
 public class CassandraMultinodeTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");
