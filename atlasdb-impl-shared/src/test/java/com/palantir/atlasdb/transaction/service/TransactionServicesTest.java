@@ -56,7 +56,7 @@ public class TransactionServicesTest {
     private final CoordinationService<InternalSchemaMetadata> coordinationService
             = CoordinationServices.createDefault(keyValueService, timestampService, false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
-            keyValueService, coordinationService);
+            keyValueService, new TransactionSchemaManager(coordinationService));
 
     private long startTs;
     private long commitTs;
