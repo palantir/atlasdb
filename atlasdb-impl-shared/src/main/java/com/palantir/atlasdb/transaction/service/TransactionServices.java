@@ -64,7 +64,7 @@ public final class TransactionServices {
      * are intermediate services like the {@link CoordinationService} this creates where metrics or other forms of
      * lifecycle management may be useful.
      */
-    public static TransactionService createForTesting(
+    public static TransactionService createRaw(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {
         CoordinationService<InternalSchemaMetadata> coordinationService
                 = CoordinationServices.createDefault(keyValueService, timestampService, initializeAsync);
