@@ -89,6 +89,7 @@ public final class AtlasDbConstants {
 
     public static final Set<TableReference> HIDDEN_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
+            TransactionConstants.TRANSACTIONS2_TABLE,
             PUNCH_TABLE,
             OLD_SCRUB_TABLE,
             SCRUB_TABLE,
@@ -106,6 +107,7 @@ public final class AtlasDbConstants {
      */
     public static final Set<TableReference> ATOMIC_TABLES = ImmutableSet.of(
             TransactionConstants.TRANSACTION_TABLE,
+            TransactionConstants.TRANSACTIONS2_TABLE,
             NAMESPACE_TABLE,
             PERSISTED_LOCKS_TABLE,
             COORDINATION_TABLE);

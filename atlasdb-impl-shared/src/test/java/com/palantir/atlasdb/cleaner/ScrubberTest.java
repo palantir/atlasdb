@@ -20,13 +20,17 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.SortedMap;
+import java.util.function.Function;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -37,23 +41,31 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitables;
 
+@RunWith(Parameterized.class)
 public class ScrubberTest {
     private KeyValueService kvs;
     private TransactionService transactions;
     private ScrubberStore scrubStore;
     private Scrubber scrubber;
 
+    @Parameterized.Parameter
+    public Function<KeyValueService, TransactionService> transactionServiceForKvs;
+
+    @Parameterized.Parameters
+    public static Collection<Function<KeyValueService, TransactionService>> parameters() {
+        return ImmutableList.of(SimpleTransactionService::createV1, SimpleTransactionService::createV2);
+    }
+
     @Before
     public void before() {
         kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
-        kvs.createTable(TransactionConstants.TRANSACTION_TABLE, new byte[] {});
-        transactions = new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE);
+        TransactionTables.createTables(kvs);
+        transactions = transactionServiceForKvs.apply(kvs);
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
         scrubber = getScrubber(kvs, scrubStore, transactions);
     }

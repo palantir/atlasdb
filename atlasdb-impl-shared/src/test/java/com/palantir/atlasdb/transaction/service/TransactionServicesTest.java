@@ -18,13 +18,20 @@ package com.palantir.atlasdb.transaction.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
@@ -36,68 +43,109 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 public class TransactionServicesTest {
-    private static final int START_TS = 123;
-    private static final int COMMIT_TS = 555;
-    private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
+    private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
     private final TimestampService timestampService = new InMemoryTimestampService();
     private final CoordinationService<InternalSchemaMetadata> coordinationService
             = CoordinationServices.createDefault(keyValueService, timestampService, false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
             keyValueService, coordinationService);
 
+    private long startTs;
+    private long commitTs;
+
+    @Before
+    public void setup() {
+        TransactionTables.createTables(keyValueService);
+    }
+    
     @Test
-    public void valuesPutMayBeSubsequentlyRetrieved() {
-        transactionService.putUnlessExists(START_TS, COMMIT_TS);
-        assertThat(transactionService.get(START_TS)).isEqualTo(COMMIT_TS);
+    public void valuesPutMayBeSubsequentlyRetrievedV1() {
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
     @Test
-    public void cannotPutValuesTwice() {
-        transactionService.putUnlessExists(START_TS, COMMIT_TS);
-        assertThatThrownBy(() -> transactionService.putUnlessExists(START_TS, COMMIT_TS + 1))
+    public void valuesPutMayBeSubsequentlyRetrievedV2() {
+        forceInstallV2();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
+    }
+
+    @Test
+    public void cannotPutValuesTwiceV1() {
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
                 .isInstanceOf(KeyAlreadyExistsException.class)
                 .hasMessageContaining("already have a value for this timestamp");
-        assertThat(transactionService.get(START_TS)).isEqualTo(COMMIT_TS);
+        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
+    }
+
+    @Test
+    public void cannotPutValuesTwiceV2() {
+        forceInstallV2();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+        assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .hasMessageContaining("already have a value for this timestamp");
+        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
     }
 
     @Test
     public void commitsV1TransactionByDefault() {
-        long startTs = COMMIT_TS + 1;
-        transactionService.putUnlessExists(startTs, startTs + 1);
-        assertThat(transactionService.get(startTs)).isEqualTo(startTs + 1);
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
+        verify(keyValueService).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), argument.capture());
 
         Cell v1Cell = V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
-        assertThat(keyValueService.get(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(v1Cell, 1L)).get(v1Cell)
-                .getContents()).containsExactly(
-                V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, startTs + 1));
+        byte[] v1Value = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs);
+        Map<Cell, byte[]> actualArgument = argument.getValue();
 
-        assertThat(keyValueService.get(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs), 1L))).isEmpty();
+        assertThat(actualArgument.keySet()).containsExactly(v1Cell);
+        assertThat(actualArgument.get(v1Cell)).containsExactly(v1Value);
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
     }
 
     @Test
     public void canCommitV2Transaction() {
-        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-        forceInstallV2(transactionSchemaManager);
-        long startTs = timestampService.getFreshTimestamp();
-        transactionService.putUnlessExists(startTs, startTs + 1);
-        assertThat(transactionService.get(startTs)).isEqualTo(startTs + 1);
+        forceInstallV2();
+        initializeTimestamps();
+        transactionService.putUnlessExists(startTs, commitTs);
 
-        assertThat(keyValueService.get(TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs), 1L))).isEmpty();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
+        verify(keyValueService).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), argument.capture());
+
         Cell v2Cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
+        byte[] v2Value = TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs);
+        Map<Cell, byte[]> actualArgument = argument.getValue();
 
-        assertThat(keyValueService.get(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(v2Cell, 1L)).get(v2Cell)
-                .getContents()).containsExactly(
-                TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, startTs + 1));
+        assertThat(actualArgument.keySet()).containsExactly(v2Cell);
+        assertThat(actualArgument.get(v2Cell)).containsExactly(v2Value);
+
+        verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
     }
 
-    private void forceInstallV2(TransactionSchemaManager transactionSchemaManager) {
+    private void initializeTimestamps() {
+        startTs = timestampService.getFreshTimestamp();
+        commitTs = timestampService.getFreshTimestamp();
+    }
+
+    private void forceInstallV2() {
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
         Awaitility.await().atMost(1, TimeUnit.SECONDS)
                 .until(() -> {
                     transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(2);
