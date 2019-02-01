@@ -60,8 +60,8 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class AtlasDbTestCase {
-    protected static LockClient lockClient;
-    protected static LockService lockService;
+    protected LockClient lockClient;
+    protected LockService lockService;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
@@ -76,32 +76,10 @@ public class AtlasDbTestCase {
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
 
-    @BeforeClass
-    public static void setupLockClient() {
-        if (lockClient == null) {
-            lockClient = LockClient.of("fake lock client");
-        }
-    }
-
-    @BeforeClass
-    public static void setupLockService() {
-        if (lockService == null) {
-            lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        }
-    }
-
-    @AfterClass
-    public static void tearDownLockService() throws IOException {
-        if (lockService instanceof Closeable) {
-            ((Closeable) lockService).close();
-        }
-        if (lockService != null) {
-            lockService = null;
-        }
-    }
-
     @Before
     public void setUp() throws Exception {
+        lockClient = LockClient.of("fake lock client");
+        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
