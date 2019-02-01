@@ -316,7 +316,7 @@ public class KeyValueServiceMigratorsTest {
         TimestampService timestampService = new InMemoryTimestampService();
 
         TransactionTables.createTables(kvs);
-        TransactionService transactionService = spy(TransactionServices.createForTesting(kvs, timestampService, false));
+        TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
 
         AtlasDbServices mockServices = mock(AtlasDbServices.class);
         when(mockServices.getTimestampService()).thenReturn(timestampService);

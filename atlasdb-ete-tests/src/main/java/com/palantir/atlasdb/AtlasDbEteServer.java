@@ -131,7 +131,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         KeyValueService kvs = transactionManager.getKeyValueService();
         LongSupplier ts = transactionManager.getTimestampService()::getFreshTimestamp;
         TransactionService txnService
-                = TransactionServices.createForTesting(kvs, transactionManager.getTimestampService(), false);
+                = TransactionServices.createRaw(kvs, transactionManager.getTimestampService(), false);
         SweepStrategyManager ssm = SweepStrategyManagers.completelyConservative(kvs); // maybe createDefault
         PersistentLockManager noLocks = new PersistentLockManager(
                 MetricsManagers.of(metricRegistry, taggedMetricRegistry),
@@ -147,7 +147,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),
-                TransactionServices.createForTesting(
+                TransactionServices.createRaw(
                         txManager.getKeyValueService(), txManager.getTimestampService(), false),
                 new TargetedSweepFollower(ImmutableList.of(FOLLOWER), txManager));
         sweeper.runInBackground();
