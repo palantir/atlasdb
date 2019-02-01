@@ -50,9 +50,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -98,18 +98,15 @@ public class StreamTest extends AtlasDbTestCase {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
     private PersistentStreamStore defaultStore;
-    private boolean useStoreWithHashedComponents;
     private PersistentStreamStore compressedStore;
     private PersistentStreamStore maxMemStore;
 
-    @Parameters
-    public static Collection<Object[]> data() {
-        // Used to specify if testing StreamStore with or without row component hashing.
-        return Arrays.asList(new Object[][] {{true}, {false}});
-    }
+    @Parameterized.Parameter
+    public boolean useStoreWithHashedComponents;
 
-    public StreamTest(boolean useStoreWithHashedComponents) {
-        this.useStoreWithHashedComponents = useStoreWithHashedComponents;
+    @Parameterized.Parameters
+    public static Collection<Boolean> options() {
+        return ImmutableList.of(true, false);
     }
 
     @Rule
@@ -138,7 +135,7 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testAddDelete() throws Exception {
         final byte[] data = PtBytes.toBytes("streamed");
-        final long streamId = txManager.runTaskWithRetry((TransactionTask<Long, Exception>) t -> {
+        final long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
             byte[] reference = "ref".getBytes();
 
@@ -157,7 +154,7 @@ public class StreamTest extends AtlasDbTestCase {
     @Test
     public void testLoadStreamWithWrongId() throws Exception {
         final byte[] data = PtBytes.toBytes("streamed");
-        long streamId = txManager.runTaskWithRetry((TransactionTask<Long, Exception>) t -> {
+        long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
             byte[] reference = "ref".getBytes();
 
