@@ -102,7 +102,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
     }
 
     /**
-     * Validates that a set of {@link ValueAndBound<TimestampPartitioningMap<Integer>>} is internally consistent.
+     * Validates that a set of {@link ValueAndBound}s of {@link TimestampPartitioningMap}s is internally consistent.
      * That is, there is a linear ordering on the values.
      *
      * @param snapshots snapshots to validate
