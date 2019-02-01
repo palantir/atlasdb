@@ -23,7 +23,7 @@ import org.junit.Test;
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.EteSetup;
 
-public class MultipleSchemaVersionsCoordinationTest {
+public class MultipleSchemaVersionsCoordinationEteTest {
     private static final int VERSION_ONE = 1;
     private static final int NEW_VERSION = 5888888;
 
