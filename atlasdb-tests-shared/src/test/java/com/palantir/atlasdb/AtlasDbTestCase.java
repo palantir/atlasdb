@@ -17,17 +17,13 @@ package com.palantir.atlasdb;
 
 import static org.mockito.Mockito.spy;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -72,7 +68,6 @@ public class AtlasDbTestCase {
     protected TestTransactionManagerImpl serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
-    protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
 
