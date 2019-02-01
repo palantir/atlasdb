@@ -1684,7 +1684,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return new Column(
                 CassandraKeyValueServices.makeCompositeBuffer(
                         insertion.getKey().getColumnName(),
+                        // Atlas timestamp
                         CassandraConstants.CAS_TABLE_TIMESTAMP))
+                // Cassandra timestamp
                 .setTimestamp(CassandraConstants.CAS_TABLE_TIMESTAMP)
                 .setValue(insertion.getValue());
     }
