@@ -80,8 +80,8 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     @Override
     public AtlasBytesToken midpoint(Token lt, Token rt)
     {
-        byte[] leftTokenValue = (byte[]) ((AtlasBytesToken) lt).getTokenValue();
-        byte[] rightTokenValue = (byte[]) ((AtlasBytesToken) rt).getTokenValue();
+        byte[] leftTokenValue = (byte[]) lt.getTokenValue();
+        byte[] rightTokenValue = (byte[]) rt.getTokenValue();
 
         int sigbytes = Math.max(leftTokenValue.length, rightTokenValue.length);
         BigInteger left = bigForBytes(leftTokenValue, sigbytes);
@@ -246,44 +246,5 @@ public class AtlasDbOrderedPartitioner extends ByteOrderedPartitioner {
     public Token.TokenFactory getTokenFactory()
     {
         return tokenFactory;
-    }
-
-    /**
-     * Convert a byte array containing the most significant of 'sigbytes' bytes
-     * representing a big-endian magnitude into a BigInteger.
-     */
-    private BigInteger bigForBytes(byte[] bytes, int sigbytes)
-    {
-        byte[] b;
-        if (sigbytes != bytes.length)
-        {
-            b = new byte[sigbytes];
-            System.arraycopy(bytes, 0, b, 0, bytes.length);
-        } else
-            b = bytes;
-        return new BigInteger(1, b);
-    }
-
-    /**
-     * Convert a (positive) BigInteger into a byte array representing its magnitude.
-     * If remainder is true, an additional byte with the high order bit enabled
-     * will be added to the end of the array
-     */
-    private byte[] bytesForBig(BigInteger big, int sigbytes, boolean remainder)
-    {
-        byte[] bytes = new byte[sigbytes + (remainder ? 1 : 0)];
-        if (remainder)
-        {
-            // remaining bit is the most significant in the last byte
-            bytes[sigbytes] |= 0x80;
-        }
-        // bitmask for a single byte
-        for (int i = 0; i < sigbytes; i++)
-        {
-            int maskpos = 8 * (sigbytes - (i + 1));
-            // apply bitmask and get byte value
-            bytes[i] = (byte)(big.and(BYTE_MASK.shiftLeft(maskpos)).shiftRight(maskpos).intValue() & 0xFF);
-        }
-        return bytes;
     }
 }

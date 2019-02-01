@@ -25,7 +25,7 @@ dependencies {
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
 
-  explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude(group: 'de.jflex', module: 'jflex')
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
