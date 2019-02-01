@@ -24,12 +24,13 @@ public final class TransactionTables {
         // Utility class
     }
 
+    // todo(gmaretic): consider creating the transaction table(s) dynamically as needed to avoid having an empty one
     public static void createTables(KeyValueService keyValueService) {
         keyValueService.createTables(ImmutableMap.of(
                 TransactionConstants.TRANSACTION_TABLE,
                 TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
                 TransactionConstants.TRANSACTIONS2_TABLE,
-                TransactionConstants.TRANSACTIONS2_METADATA.persistToBytes()));
+                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes()));
     }
 
     public static void truncateTables(KeyValueService keyValueService) {
