@@ -21,9 +21,8 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 
@@ -34,7 +33,7 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
-        if (keyValueService.supportsCheckAndSet()) {
+        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
             return createSplitKeyTransactionService(keyValueService, coordinationService);
         }
         return createV1TransactionService(keyValueService);
@@ -53,14 +52,12 @@ public final class TransactionServices {
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(
-                new SimpleTransactionService(keyValueService, V1EncodingStrategy.INSTANCE));
+        return new PreStartHandlingTransactionService(SimpleTransactionService.createV1(keyValueService));
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(
-                WriteBatchingTransactionService.create(
-                        new SimpleTransactionService(keyValueService, TicketsEncodingStrategy.INSTANCE)));
+        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
+                        SimpleTransactionService.createV2(keyValueService)));
     }
 
     /**

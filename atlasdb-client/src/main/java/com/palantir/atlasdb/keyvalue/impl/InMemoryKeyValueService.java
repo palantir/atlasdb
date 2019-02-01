@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -54,6 +55,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -402,17 +404,26 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             Collection<Map.Entry<Cell, Value>> values,
             boolean doNotOverwriteWithSameValue) {
         Table table = getTableMap(tableRef);
-        for (Map.Entry<Cell, Value> e : values) {
-            byte[] contents = e.getValue().getContents();
-            long timestamp = e.getValue().getTimestamp();
+        List<Cell> knownSuccessfullyCommittedKeys = new ArrayList<>();
+        for (Map.Entry<Cell, Value> entry : values) {
+            byte[] contents = entry.getValue().getContents();
+            long timestamp = entry.getValue().getTimestamp();
 
-            Key key = getKey(table, e.getKey(), timestamp);
+            Key key = getKey(table, entry.getKey(), timestamp);
             byte[] oldContents = putIfAbsent(table, key, contents);
             if (oldContents != null && (doNotOverwriteWithSameValue || !Arrays.equals(oldContents, contents))) {
-                throw new KeyAlreadyExistsException("We already have a value for this timestamp");
+                throw new KeyAlreadyExistsException("We already have a value for this timestamp",
+                        ImmutableList.of(entry.getKey()), knownSuccessfullyCommittedKeys);
             }
+            knownSuccessfullyCommittedKeys.add(entry.getKey());
         }
     }
+
+    @Override
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
+    }
+
 
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {

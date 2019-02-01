@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepPriorityTable;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
 public class KeyValueServiceValidatorsTest {
     private static final TableReference SWEEP_PRIORITY = TableReference.create(
@@ -53,9 +53,8 @@ public class KeyValueServiceValidatorsTest {
     }
 
     @Test
-    public void transactionTableNotValidated() {
-        kvs.createTable(TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
+    public void transactionTablesNotValidated() {
+        TransactionTables.createTables(kvs);
         assertThat(KeyValueServiceValidators.getValidatableTableNames(kvs, ImmutableSet.of())).isEmpty();
     }
 

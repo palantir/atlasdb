@@ -26,6 +26,7 @@ import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -35,6 +36,8 @@ public class TransactionConstants {
     private TransactionConstants() {/* */}
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
+    public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
+
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
@@ -67,4 +70,14 @@ public class TransactionConstants {
             ConflictHandler.IGNORE_ALL,
             TableMetadataPersistence.LogSafety.SAFE);
 
+
+    public static final TableMetadata TRANSACTIONS2_METADATA = new TableDefinition() {{
+        allSafeForLoggingByDefault();
+        rowName();
+        rowComponent("start_ts_row", ValueType.BLOB);
+        dynamicColumns();
+        columnComponent("start_ts_col", ValueType.BLOB);
+        value(ValueType.BLOB);
+        sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+    }}.toTableMetadata();
 }

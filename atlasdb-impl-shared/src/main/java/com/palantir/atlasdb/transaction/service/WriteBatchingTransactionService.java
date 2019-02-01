@@ -84,7 +84,11 @@ public final class WriteBatchingTransactionService implements TransactionService
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
-            throw new RuntimeException(e);
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new RuntimeException(cause);
         }
     }
 
