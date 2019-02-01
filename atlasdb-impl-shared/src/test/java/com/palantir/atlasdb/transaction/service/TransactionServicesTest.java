@@ -39,8 +39,10 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
+import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
@@ -63,7 +65,7 @@ public class TransactionServicesTest {
     public void setup() {
         TransactionTables.createTables(keyValueService);
     }
-    
+
     @Test
     public void valuesPutMayBeSubsequentlyRetrievedV1() {
         initializeTimestamps();
@@ -82,17 +84,17 @@ public class TransactionServicesTest {
     @Test
     public void cannotPutValuesTwiceV1() {
         initializeTimestamps();
-        transactionService.putUnlessExists(startTs, commitTs);
-        assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
-                .isInstanceOf(KeyAlreadyExistsException.class)
-                .hasMessageContaining("already have a value for this timestamp");
-        assertThat(transactionService.get(startTs)).isEqualTo(commitTs);
+        assertCannotPutValuesTwice();
     }
 
     @Test
     public void cannotPutValuesTwiceV2() {
         forceInstallV2();
         initializeTimestamps();
+        assertCannotPutValuesTwice();
+    }
+
+    private void assertCannotPutValuesTwice() {
         transactionService.putUnlessExists(startTs, commitTs);
         assertThatThrownBy(() -> transactionService.putUnlessExists(startTs, commitTs))
                 .isInstanceOf(KeyAlreadyExistsException.class)
@@ -105,16 +107,8 @@ public class TransactionServicesTest {
         initializeTimestamps();
         transactionService.putUnlessExists(startTs, commitTs);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
-        verify(keyValueService).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), argument.capture());
-
-        Cell v1Cell = V1EncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
-        byte[] v1Value = V1EncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs);
-        Map<Cell, byte[]> actualArgument = argument.getValue();
-
-        assertThat(actualArgument.keySet()).containsExactly(v1Cell);
-        assertThat(actualArgument.get(v1Cell)).containsExactly(v1Value);
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTION_TABLE);
+        assertExpectedArgument(actualArgument, V1EncodingStrategy.INSTANCE);
 
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), anyMap());
     }
@@ -125,16 +119,8 @@ public class TransactionServicesTest {
         initializeTimestamps();
         transactionService.putUnlessExists(startTs, commitTs);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
-        verify(keyValueService).putUnlessExists(eq(TransactionConstants.TRANSACTIONS2_TABLE), argument.capture());
-
-        Cell v2Cell = TicketsEncodingStrategy.INSTANCE.encodeStartTimestampAsCell(startTs);
-        byte[] v2Value = TicketsEncodingStrategy.INSTANCE.encodeCommitTimestampAsValue(startTs, commitTs);
-        Map<Cell, byte[]> actualArgument = argument.getValue();
-
-        assertThat(actualArgument.keySet()).containsExactly(v2Cell);
-        assertThat(actualArgument.get(v2Cell)).containsExactly(v2Value);
+        Map<Cell, byte[]> actualArgument = verifyPueInTableAndReturnArgument(TransactionConstants.TRANSACTIONS2_TABLE);
+        assertExpectedArgument(actualArgument, TicketsEncodingStrategy.INSTANCE);
 
         verify(keyValueService, never()).putUnlessExists(eq(TransactionConstants.TRANSACTION_TABLE), anyMap());
     }
@@ -154,5 +140,20 @@ public class TransactionServicesTest {
                     return transactionSchemaManager
                             .getTransactionsSchemaVersion(timestampService.getFreshTimestamp()) == 2;
                 });
+    }
+
+    private Map<Cell, byte[]> verifyPueInTableAndReturnArgument(TableReference tableReference) {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<Cell, byte[]>> argument = ArgumentCaptor.forClass(Map.class);
+        verify(keyValueService).putUnlessExists(eq(tableReference), argument.capture());
+        return argument.getValue();
+    }
+
+    private void assertExpectedArgument(Map<Cell, byte[]> actualArgument, TimestampEncodingStrategy strategy) {
+        Cell cell = strategy.encodeStartTimestampAsCell(startTs);
+        byte[] value = strategy.encodeCommitTimestampAsValue(startTs, commitTs);
+
+        assertThat(actualArgument.keySet()).containsExactly(cell);
+        assertThat(actualArgument.get(cell)).containsExactly(value);
     }
 }

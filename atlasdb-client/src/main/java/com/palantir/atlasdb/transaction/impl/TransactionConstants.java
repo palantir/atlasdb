@@ -71,7 +71,7 @@ public class TransactionConstants {
             TableMetadataPersistence.LogSafety.SAFE);
 
 
-    public static final TableMetadata TRANSACTIONS2_METADATA = new TableDefinition() {{
+    public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = new TableDefinition() {{
         allSafeForLoggingByDefault();
         rowName();
         rowComponent("start_ts_row", ValueType.BLOB);
@@ -79,5 +79,6 @@ public class TransactionConstants {
         columnComponent("start_ts_col", ValueType.BLOB);
         value(ValueType.BLOB);
         sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        conflictHandler(ConflictHandler.IGNORE_ALL);
     }}.toTableMetadata();
 }
