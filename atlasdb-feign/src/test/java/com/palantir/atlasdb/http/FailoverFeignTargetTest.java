@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,6 +34,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
@@ -68,6 +70,7 @@ public class FailoverFeignTargetTest {
 
     private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
+    private Supplier<Long> clock;
 
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
@@ -80,7 +83,9 @@ public class FailoverFeignTargetTest {
 
     @Before
     public void setup() {
-        normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
+        clock = mock(Supplier.class);
+        when(clock.get()).thenReturn(System.currentTimeMillis());
+        normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class, clock);
         spiedTarget = spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
     }
 
@@ -218,12 +223,13 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
-    public void fastFailoverShouldTryAllPossibleServersBeforeThrowing() throws Exception {
+    public void fastFailoverShouldTryAllPossibleServersBeforeThrowing() {
         simulateRequest(normalTarget);
+        setCurrentTime(1);
         normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
 
         simulateRequest(normalTarget);
-        Thread.sleep(11000);
+        setCurrentTime(11000);
         normalTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
     }
 
@@ -236,5 +242,9 @@ public class FailoverFeignTargetTest {
     @SuppressWarnings("unchecked")
     private Matcher<Long> isWithinBounds(long lowerBoundInclusive, long upperBoundExclusive) {
         return is(allOf(greaterThanOrEqualTo(lowerBoundInclusive), lessThan(upperBoundExclusive)));
+    }
+
+    private void setCurrentTime(long time) {
+        when(clock.get()).thenReturn(time);
     }
 }

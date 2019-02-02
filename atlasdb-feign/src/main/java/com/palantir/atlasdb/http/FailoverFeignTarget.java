@@ -20,6 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,15 +62,23 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
+    private final Supplier<Long> currentTimeMillis;
+
     public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
         this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
     }
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        this(servers, maxBackoffMillis, type, System::currentTimeMillis);
+    }
+
+    @VisibleForTesting
+    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, Supplier<Long> clock) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
+        this.currentTimeMillis = clock;
     }
 
     public void sucessfulCall() {
@@ -123,7 +132,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             // We did talk to a node successfully. It was shutting down but nodes are available
             // so we shouldn't keep making the backoff higher.
             numSwitches.set(0);
-            startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
+            startTimeOfFastFailover.compareAndSet(0, currentTimeMillis.get());
         } else {
             numSwitches.incrementAndGet();
             startTimeOfFastFailover.set(0);
@@ -134,11 +143,11 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private void checkAndHandleFailure(RetryableException ex) {
         final long fastFailoverStartTime = startTimeOfFastFailover.get();
-        final long currentTime = System.currentTimeMillis();
+        final long currentTime = currentTimeMillis.get();
         boolean failedDueToFastFailover = fastFailoverStartTime != 0
-                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
+                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis
+                && numSwitches.get() > servers.size();
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
-
         if (failedDueToFastFailover) {
             log.error("This connection has been instructed to fast failover for {}"
                     + " seconds without establishing a successful connection."
