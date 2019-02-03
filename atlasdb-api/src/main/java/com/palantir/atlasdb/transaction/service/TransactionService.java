@@ -82,7 +82,5 @@ public interface TransactionService extends AutoCloseable {
     /**
      * Frees up resources associated with the transaction service.
      */
-    default void close() {
-        // do nothing
-    }
+    void close();
 }

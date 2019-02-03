@@ -67,4 +67,9 @@ public final class PaxosTransactionService implements TransactionService {
         }
     }
 
+    @Override
+    public void close() {
+        // do nothing
+    }
+
 }
