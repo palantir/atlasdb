@@ -121,7 +121,7 @@ public class SnapshotTransactionManagerTest {
                         LockClient.of("lock")),
                 ts,
                 mock(LockService.class), // not closeable
-                null,
+                mock(TransactionService.class),
                 null,
                 null,
                 null,
