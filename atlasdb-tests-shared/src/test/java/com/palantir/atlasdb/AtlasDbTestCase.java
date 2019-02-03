@@ -116,6 +116,7 @@ public class AtlasDbTestCase {
         txManager.close();
         keyValueService = null;
         timestampService = null;
+        transactionService = null;
         txManager = null;
     }
 
