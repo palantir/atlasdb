@@ -45,6 +45,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -94,6 +95,7 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 @RunWith(Parameterized.class)
+@Ignore
 public class StreamTest extends AtlasDbTestCase {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
