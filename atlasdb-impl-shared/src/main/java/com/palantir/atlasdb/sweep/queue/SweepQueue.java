@@ -179,8 +179,9 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Supplier<Integer> shardsConfig) {
             // It is OK that the transaction service is different from the one used by the transaction manager,
             // as transaction services must not hold any local state in them that would affect correctness.
-            TransactionService transaction = TransactionServices.createTransactionService(kvs,
-                    CoordinationServices.createDefault(kvs, timelock::getFreshTimestamp, false));
+            TransactionService transaction = TransactionServices.createV1TransactionService(kvs);
+//                    TransactionServices.createTransactionService(kvs,
+//                    CoordinationServices.createDefault(kvs, timelock::getFreshTimestamp, false));
             return create(metrics, kvs, timelock, shardsConfig, transaction);
         }
 
