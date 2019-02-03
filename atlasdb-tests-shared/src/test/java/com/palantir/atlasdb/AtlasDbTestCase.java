@@ -17,8 +17,6 @@ package com.palantir.atlasdb;
 
 import static org.mockito.Mockito.spy;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
