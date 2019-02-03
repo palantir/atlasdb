@@ -111,4 +111,9 @@ public final class SimpleTransactionService implements EncodingTransactionServic
     public TimestampEncodingStrategy getEncodingStrategy() {
         return encodingStrategy;
     }
+
+    @Override
+    public void close() {
+        // todo(gmaretic): is it correct not to close the kvs?
+    }
 }

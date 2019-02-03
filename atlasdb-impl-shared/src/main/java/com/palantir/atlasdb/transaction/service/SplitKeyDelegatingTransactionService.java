@@ -99,7 +99,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     @Override
     public void close() {
         keyedServices.values().forEach(TransactionService::close);
-        keyedServices.clear();
     }
 
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
