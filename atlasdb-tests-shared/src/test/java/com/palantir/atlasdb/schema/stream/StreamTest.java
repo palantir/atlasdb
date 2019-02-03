@@ -95,7 +95,6 @@ import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 
 @RunWith(Parameterized.class)
-@Ignore
 public class StreamTest extends AtlasDbTestCase {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
@@ -261,6 +260,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void testStoreByteStreamJustBiggerThanOneBlock_compressedStream() throws IOException {
         storeAndCheckByteStreams(compressedStore,
                 getCompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500));
@@ -287,6 +287,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void testStoreByteStreamFiveMegaBytes_compressedStream_incompressible() throws IOException {
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(5_000_000));
     }
@@ -584,6 +585,7 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void testStoreCopy() {
         final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         Random rand = new Random();
