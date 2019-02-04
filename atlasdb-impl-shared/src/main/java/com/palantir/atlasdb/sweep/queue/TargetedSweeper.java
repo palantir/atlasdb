@@ -117,11 +117,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),
-                TransactionServices.createTransactionService(txManager.getKeyValueService(),
-                        CoordinationServices.createDefault(
-                                txManager.getKeyValueService(),
-                                txManager.getTimestampService(),
-                                false)),
+                txManager.getTransactionService(),
                 new TargetedSweepFollower(followers, txManager));
     }
 
