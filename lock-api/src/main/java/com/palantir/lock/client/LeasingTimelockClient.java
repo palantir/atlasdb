@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
@@ -122,20 +123,7 @@ public final class LeasingTimelockClient implements TimelockService {
                 .collect(Collectors.toSet());
 
         Set<LeasedLockToken> toRefresh = Sets.difference(allTokens, validByLease);
-
-        Set<LeasedLockToken> refreshedTokens = ImmutableSet.of();
-
-        if (!toRefresh.isEmpty()) {
-            LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(
-                    toRefresh.stream().map(LeasedLockToken::serverToken).collect(Collectors.toSet()));
-            Lease lease = refreshLockResponse.getLease();
-
-            refreshedTokens = toRefresh.stream()
-                    .filter(t -> refreshLockResponse.refreshedTokens().contains(t.serverToken()))
-                    .collect(Collectors.toSet());
-
-            refreshedTokens.forEach(t -> t.updateLease(lease));
-        }
+        Set<LeasedLockToken> refreshedTokens = refreshTokens(toRefresh);
 
         return Sets.union(refreshedTokens, validByLease);
     }
@@ -145,9 +133,7 @@ public final class LeasingTimelockClient implements TimelockService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::inValidate);
 
-        return delegate.unlock(leasedLockTokens.stream()
-                .map(LeasedLockToken::serverToken)
-                .collect(Collectors.toSet()));
+        return delegate.unlock(serverTokens(leasedLockTokens));
     }
 
     @Override
@@ -155,11 +141,34 @@ public final class LeasingTimelockClient implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
+    private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
+        if (leasedTokens.isEmpty()) {
+            return leasedTokens;
+        }
+
+        LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(
+                serverTokens(leasedTokens));
+        Lease lease = refreshLockResponse.getLease();
+
+        Set<LeasedLockToken> refreshedTokens = leasedTokens.stream()
+                .filter(t -> refreshLockResponse.refreshedTokens().contains(t.serverToken()))
+                .collect(Collectors.toSet());
+
+        refreshedTokens.forEach(t -> t.updateLease(lease));
+        return refreshedTokens;
+    }
+
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
         Preconditions.checkArgument(tokens.stream()
                         .allMatch(token -> token instanceof LeasedLockToken),
                 "All lock tokens should be an instance of LeasedLockToken");
         return (Set<LeasedLockToken>) (Set<?>) tokens;
+    }
+
+    private static Set<LockToken> serverTokens(Set<LeasedLockToken> leasedTokens) {
+        return leasedTokens.stream()
+                .map(LeasedLockToken::serverToken)
+                .collect(Collectors.toSet());
     }
 
 }
