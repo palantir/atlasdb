@@ -95,6 +95,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     @Override
     public void close() {
         autobatcher.close();
+        delegate.close();
     }
 
     /**

@@ -424,7 +424,6 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
     }
 
-
     @Override
     public void checkAndSet(CheckAndSetRequest request) throws CheckAndSetException {
         TableReference tableRef = request.table();

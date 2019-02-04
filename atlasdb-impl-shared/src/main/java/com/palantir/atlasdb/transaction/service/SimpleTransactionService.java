@@ -114,6 +114,6 @@ public final class SimpleTransactionService implements EncodingTransactionServic
 
     @Override
     public void close() {
-        // todo(gmaretic): is it correct not to close the kvs?
+        // we do not close the injected kvs
     }
 }
