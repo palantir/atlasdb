@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTime;
@@ -114,9 +115,7 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         IdentifiedTime identifiedTime = delegate.getLeaderTime();
-        Set<LeasedLockToken> allTokens = uncastedTokens.stream()
-                .map(token -> (LeasedLockToken) token)
-                .collect(Collectors.toSet());
+        Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
         Set<LeasedLockToken> validByLease = allTokens.stream()
                 .filter(token -> token.isValid(identifiedTime))
@@ -143,10 +142,9 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LeasedLockToken> leasedLockTokens = tokens.stream()
-                .map(token -> (LeasedLockToken) token)
-                .collect(Collectors.toSet());
+        Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::inValidate);
+
         return delegate.unlock(leasedLockTokens.stream()
                 .map(LeasedLockToken::serverToken)
                 .collect(Collectors.toSet()));
@@ -155,6 +153,13 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
+    }
+
+    private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
+        Preconditions.checkArgument(tokens.stream()
+                        .allMatch(token -> token instanceof LeasedLockToken),
+                "All lock tokens should be an instance of LeasedLockToken");
+        return (Set<LeasedLockToken>) (Set<?>) tokens;
     }
 
 }
