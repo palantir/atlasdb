@@ -36,7 +36,7 @@ public abstract class Lease {
     public abstract NanoTime startTime();
 
     @Value.Parameter
-    public abstract Duration period();
+    public abstract Duration validity();
 
     public boolean isValid(IdentifiedTime identifiedTime) {
         return leaseOwnerId().equals(identifiedTime.clockId())
@@ -44,14 +44,14 @@ public abstract class Lease {
     }
 
     public NanoTime expiry() {
-        return startTime().plus(period());
+        return startTime().plus(validity());
     }
 
-    public static Lease of(IdentifiedTime identifiedTime, Duration period) {
+    public static Lease of(IdentifiedTime identifiedTime, Duration validity) {
         return ImmutableLease.of(
                 identifiedTime.clockId(),
                 identifiedTime.currentTimeNanos(),
-                period);
+                validity);
     }
 
     public static Lease of(UUID leaseOwnerId, NanoTime startTime, Duration period) {
