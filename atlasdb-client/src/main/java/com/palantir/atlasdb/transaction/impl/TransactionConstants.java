@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
@@ -33,7 +32,6 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-
 
 public class TransactionConstants {
     private TransactionConstants() {/* */}
