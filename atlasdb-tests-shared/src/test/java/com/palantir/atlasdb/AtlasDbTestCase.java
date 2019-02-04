@@ -117,6 +117,7 @@ public class AtlasDbTestCase {
         keyValueService = null;
         timestampService = null;
         transactionService = null;
+        sweepQueue = null;
         txManager = null;
     }
 
