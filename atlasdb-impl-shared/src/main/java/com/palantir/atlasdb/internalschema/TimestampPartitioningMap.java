@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.internalschema;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -82,6 +83,22 @@ public abstract class TimestampPartitioningMap<T> {
         return rangeMapView().get(timestamp);
     }
 
+    /**
+     * Copies an existing {@link TimestampPartitioningMap}, installing a new value V for timestamps that are at least
+     * a provided lower bound L. Existing mappings are unchanged, apart from the largest range [C, +∞)=O for some
+     * timestamp C and value O. If O and V are not equal (using {@link Objects#equals(Object, Object)}, this range will
+     * be split, resulting in [C, L)=O and [L, +∞)=V; if they are equal, the range will remain as [C, +∞)=O (but
+     * the method still returns a copy).
+     *
+     * This method will throw an exception if L is smaller than C.
+     *
+     * @param lowerBoundForNewVersion lowest timestamp at which the new value should be mapped to
+     * @param newValue new value to map timestamps to
+     * @return a new timestamp partitioning map
+     *
+     * @throws IllegalArgumentException if the lowerBoundForNewVersion parameter is not greater than all existing
+     *         range boundaries.
+     */
     public TimestampPartitioningMap<T> copyInstallingNewValue(
             long lowerBoundForNewVersion,
             T newValue) {
@@ -110,9 +127,14 @@ public abstract class TimestampPartitioningMap<T> {
             T newValue,
             RangeAndValue<T> latestRangeAndValue,
             @Output ImmutableRangeMap.Builder<Long, T> builder) {
-        builder.put(Range.closedOpen(latestRangeAndValue.longRange().lowerEndpoint(), lowerBoundForNewVersion),
-                latestRangeAndValue.value());
-        builder.put(Range.atLeast(lowerBoundForNewVersion), newValue);
+        // RangeMaps do not coalesce adjacent entries.
+        if (Objects.equals(latestRangeAndValue.value(), newValue)) {
+            builder.put(latestRangeAndValue.longRange(), latestRangeAndValue.value());
+        } else {
+            builder.put(Range.closedOpen(latestRangeAndValue.longRange().lowerEndpoint(), lowerBoundForNewVersion),
+                    latestRangeAndValue.value());
+            builder.put(Range.atLeast(lowerBoundForNewVersion), newValue);
+        }
     }
 
     private void copyOldRangesFromPreviousMap(
