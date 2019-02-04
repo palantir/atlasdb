@@ -50,10 +50,75 @@ develop
     *    - Type
          - Change
 
+    *    - |improved| |devbreak|
+         - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
+           This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
+           The Cassandra KVS putUnlessExists method has been updated to use the above call.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
+
+    *    - |improved|
+         - We now correctly handle host restart in the clock skew monitor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
+
+    *    - |improved|
+         - AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3701>`__)
+
+    *    - |devbreak|
+         - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
+           Refer to the contract of ``KeyValueService#getCheckAndSetCompatibility`` and the ``CheckAndSetCompatibility`` enum class to guide this decision.
+           Please be very careful if you are explicitly setting this to ``CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3713>`__)
+
+    *    - |changed|
+         - Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting `install.asyncLock.useAsyncLockService` to `false` (default is `true`) should migrate to `AsyncLockService` before taking this upgrade.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3718>`__)
+
+========
+v0.116.1
+========
+
+20 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The completion service in the Paxos leader election service should be more resilient to individual nodes being slow.
+           Previously, if one individual node had a full thread pool, the service would throw a ``RejectedExecutionException`` even if other nodes were able to service the request.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3687>`__)
+
+========
+v0.116.0
+========
+
+14 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |new|
          - AtlasDB now writes to the _coordination table, a new table which is used to coordinate changes to schema metadata internal to AtlasDB across a multi-node cluster.
            Services which want to adopt _transactions2 will need to go through this version, to ensure that nodes are able to reach a consensus on when to switch the transaction schema version forwards.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3686>`__)
+
+    *    - |fixed|
+         - AtlasDB transaction services no longer throw exceptions when performing Thorough Sweep on tables with sentinels.
+           Previously, the services would throw when trying to delete the sentinel, meaning that Background and Targeted Sweep would become stuck if sweeping thorough tables that used to be conservative, or tables that had undergone hard delete via the scrubber.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3704>`__)
+
+    *    - |changed| |devbreak|
+         - AtlasDB transaction services now no longer support negative timestamps.
+           Users are unlikely to be affected, since using transaction services with negative timestamps was already broken in the past owing to the use of negative numbers for special values (like sentinels or a marker meaning that a transaction was rolled back).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3709>`__)
 
     *    - |devbreak|
          - With the introduction of _coordination, creation of ``TransactionService`` now requires a ``CoordinationService<InternalSchemaMetadata>``.
@@ -83,11 +148,18 @@ develop
            While it is not expected that this significantly affects performance of table dropping, please contact the AtlasDB team if this causes issues.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3649>`__)
 
-    *    - |fixed|
-         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
-           Previously, the annotation processor would generate code that wouldn't compile.
-           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
+========
+v0.115.0
+========
+
+07 Dec 2018
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Cassandra KVS now correctly decommissions servers from the client pool that do not appear in the current token range if autoRefreshNodes is set to true (default value).
@@ -95,9 +167,19 @@ develop
            The new behaviour enables live decommissioning of Cassandra nodes, without having to update the configuration and restart of AtlasDB to stop trying to talk to that server.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3661>`__)
 
+    *    - |fixed|
+         - The @AutoDelegate annotation now works correctly for interfaces which have static methods, and for simple cases of generics.
+           Previously, the annotation processor would generate code that wouldn't compile.
+           Note that some cases (e.g. sub-interfaces of generics that refine type parameters) are still not supported correctly.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3670>`__)
+
     *    - |improved|
          - TimeLock Server now logs that a new client has been registered the first time a service makes a request (for each lifetime of each server).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3676>`__)
+
+    *    - |improved|
+         - Adds com.palantir.common.collect.IterableView#stream method for simplified conversion to Java Stream API usage.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3703>`__)
 
 ========
 v0.114.0

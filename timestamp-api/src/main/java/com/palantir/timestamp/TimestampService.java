@@ -24,6 +24,15 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 
+/**
+ * A {@link TimestampService} serves a sequence of timestamps. Requests to {@link TimestampService#getFreshTimestamp()}
+ * and {@link TimestampService#getFreshTimestamps(int)} should return results that are unique and increasing, in that
+ * requests to each method must return timestamps greater than any timestamps observable before a request was
+ * initiated.
+ *
+ * Where used in the context of AtlasDB, it is expected that timestamp services begin their sequences at or above
+ * AtlasDbConstants#STARTING_TS (1). Failure to do so may result in unexpected behaviour.
+ */
 @Path("/timestamp")
 @AutoDelegate
 public interface TimestampService {
@@ -38,8 +47,8 @@ public interface TimestampService {
     }
 
     /**
-     * A request to this method should return a timestamp greater than any timestamp
-     * that may have been observed before the request was initiated.
+     * A request to this method should return a timestamp that is globally unique, and greater than any timestamp that
+     * may have been observed before the request was initiated.
      */
     @POST // This has to be POST because we can't allow caching.
     @Path("fresh-timestamp")
@@ -47,6 +56,9 @@ public interface TimestampService {
     long getFreshTimestamp();
 
     /**
+     * A request to this method should return a {@link TimestampRange}, where all of the timestamps are globally unique
+     * and greater than any timestamp that may have been observed before the request was initiated.
+     *
      * @return never null; inclusive LongRange of timestamps that always has at least 1 value
      * This range may have less than the requested amount.
      */

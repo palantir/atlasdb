@@ -88,6 +88,13 @@ public interface CassandraClient {
             ConsistencyLevel commit_consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    public CASResult put_unless_exists(TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
     CqlResult execute_cql3_query(CqlQuery cqlQuery,
             Compression compression,
             ConsistencyLevel consistency)

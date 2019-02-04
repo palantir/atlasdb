@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra:
-    image: palantirtechnologies/docker-cassandra-atlasdb:2.2.9
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
     ports:
       - "9160"
       - "9042"
@@ -11,4 +11,3 @@ services:
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
       - LOCAL_JMX=no
-      - CASSANDRA_VERSION=2.2.9

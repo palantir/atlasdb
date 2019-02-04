@@ -26,6 +26,7 @@ import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -35,6 +36,8 @@ public class TransactionConstants {
     private TransactionConstants() {/* */}
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
+    public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
+
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
@@ -43,6 +46,7 @@ public class TransactionConstants {
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
+    // DO NOT change without a transactions table migration!
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 
     public static final int TRANSACTIONS_TABLE_SCHEMA_VERSION = 1;
@@ -66,4 +70,15 @@ public class TransactionConstants {
             ConflictHandler.IGNORE_ALL,
             TableMetadataPersistence.LogSafety.SAFE);
 
+
+    public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = new TableDefinition() {{
+        allSafeForLoggingByDefault();
+        rowName();
+        rowComponent("start_ts_row", ValueType.BLOB);
+        dynamicColumns();
+        columnComponent("start_ts_col", ValueType.BLOB);
+        value(ValueType.BLOB);
+        sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+        conflictHandler(ConflictHandler.IGNORE_ALL);
+    }}.toTableMetadata();
 }

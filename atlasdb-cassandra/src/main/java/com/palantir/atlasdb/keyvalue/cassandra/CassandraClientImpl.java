@@ -240,6 +240,20 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public CASResult put_unless_exists(
+            TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        String internalTableName = AbstractKeyValueService.internalTableName(tableReference);
+
+        return executeHandlingExceptions(() -> client.put_unless_exists(
+                key, internalTableName, updates, serial_consistency_level, commit_consistency_level));
+    }
+
+    @Override
     public CqlResult execute_cql3_query(CqlQuery cqlQuery,
             Compression compression,
             ConsistencyLevel consistency)

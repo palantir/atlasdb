@@ -269,7 +269,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
-        for (long i = 0; i <= lastWriteTs; i++) {
+        for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -281,7 +281,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
-        for (long i = 0; i <= lastWriteTs; i++) {
+        for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));

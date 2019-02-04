@@ -26,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.validation.constraints.NotNull;
+
 import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
@@ -95,7 +97,7 @@ import com.palantir.timestamp.TimestampService;
             TimelockService timelockService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
-            TransactionService transactionService,
+            @NotNull TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,

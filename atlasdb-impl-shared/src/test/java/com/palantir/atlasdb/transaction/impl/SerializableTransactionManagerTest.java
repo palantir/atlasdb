@@ -47,6 +47,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -268,7 +269,7 @@ public class SerializableTransactionManagerTest {
                 mockTimelockService,
                 mockTimestampManagementService,
                 null, // lockService
-                null, // transactionService
+                mock(TransactionService.class),
                 () -> null, // constraintMode
                 null, // conflictDetectionManager
                 null, // sweepStrategyManager

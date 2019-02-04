@@ -23,7 +23,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 
 /**
  * Transaction service is used by the atlas protocol to determine is a given transaction has been
- * committed or aborted.
+ * committed or aborted. Transaction services may assume that data tables are written at timestamps greater than
+ * or equal to AtlasDbConstants.STARTING_TS (1).
  *
  * A given startTimestamp will only ever have one non-null value.  This means that non-null values
  * returned from this service can be aggressively cached.  Caching negative look ups should not be
@@ -32,7 +33,18 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
  *
  * @author carrino
  */
-public interface TransactionService {
+public interface TransactionService extends AutoCloseable {
+    /**
+     * Gets the commit timestamp associated with a given start timestamp.
+     * Non-null responses may be cached on the client-side. Null responses must not be cached, as they could
+     * subsequently be updated.
+     *
+     * This function may return null, which means that the transaction in question had not been committed, at
+     * least at some point between the request being made and it returning.
+     *
+     * @param startTimestamp start timestamp of the transaction being looked up
+     * @return timestamp which the transaction committed at, or null if the transaction had not committed yet
+     */
     @CheckForNull
     Long get(long startTimestamp);
 
@@ -48,4 +60,27 @@ public interface TransactionService {
      */
     void putUnlessExists(long startTimestamp, long commitTimestamp)
             throws KeyAlreadyExistsException;
+
+    /**
+     * This operation seeks to commit multiple transactions; implementations may override it if this can be
+     * done more efficiently than performing individual {@link TransactionService#putUnlessExists(long, long)}
+     * operations.
+     *
+     * This operation is NOT atomic. On success, it is guaranteed that all start/commit timestamp pairs have been
+     * successfully stored. However, on failure, start/commit timestamp pairs may or may not have been stored;
+     * users should check the state of the transaction service with {@link TransactionService#get(Iterable)} if
+     * they need to know what has happened.
+     *
+     * @param startTimestampToCommitTimestamp map of start timestamps to corresponding commit timestamps
+     * @throws KeyAlreadyExistsException if the value corresponding to some start timestamp in the map already existed.
+     * @throws RuntimeException if an error occurred; in this case, the operation may or may not have ran.
+     */
+    default void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
+        startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
+    }
+
+    /**
+     * Frees up resources associated with the transaction service.
+     */
+    void close();
 }

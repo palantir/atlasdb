@@ -39,7 +39,7 @@ import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.coordination.InstanceManagingCoordinationResource;
+import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -105,7 +105,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 txManager,
                 sweepTaskRunner,
                 sweeperSupplier)));
-        environment.jersey().register(InstanceManagingCoordinationResource.create(txManager));
+        environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());

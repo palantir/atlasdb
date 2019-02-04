@@ -37,6 +37,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -84,8 +85,8 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     }
 
     @Override
-    public boolean supportsCheckAndSet() {
-        return true;
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE;
     }
 
     @Override

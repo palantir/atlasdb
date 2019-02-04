@@ -45,48 +45,20 @@ public class CoordinationEteTest {
 
     @Test
     public void transactionSucceedsUnderKnownSchemaVersion() {
-        assertTransactionsSchemaVersionIsNow(VERSION_ONE);
+        assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
         assertThat(coordinationResource.doTransactionAndReportOutcome()).isTrue();
-    }
-
-    @Test
-    public void transactionFailsUnderUnknownSchemaVersion() {
-        coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        assertTransactionsSchemaVersionIsNow(NEW_VERSION);
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
-    }
-
-    @Test
-    public void tryInstallNewVersionDoesNotForceImmediateChangeover() {
-        coordinationResource.tryInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        assertTransactionsSchemaVersionIsNow(VERSION_ONE);
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isTrue();
-    }
-
-    @Test
-    public void transactionOnKnownVersionFailsOnValueWithUnknownVersion() {
-        coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        assertTransactionsSchemaVersionIsNow(NEW_VERSION);
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
-        coordinationResource.forceInstallNewTransactionsSchemaVersion(VERSION_ONE);
-        assertTransactionsSchemaVersionIsNow(VERSION_ONE);
-
-        // This must still determine whether the transaction that started under a NEW_VERSION regime committed
-        // or not, when performing conflict checking. We can't tell, hence we must fail.
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
     }
 
     @Test
     public void transactionOnKnownVersionAndFreshCellSucceedsEvenIfWePassedThroughAnUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        assertTransactionsSchemaVersionIsNow(NEW_VERSION);
+        assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
         coordinationResource.forceInstallNewTransactionsSchemaVersion(VERSION_ONE);
-        assertTransactionsSchemaVersionIsNow(VERSION_ONE);
+        assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
         assertThat(coordinationResource.doTransactionAndReportOutcome()).isTrue();
     }
 
-    private void assertTransactionsSchemaVersionIsNow(int expectedVersion) {
-        assertThat(coordinationResource.getTransactionsSchemaVersion(coordinationResource.getFreshTimestamp()))
-                .isEqualTo(expectedVersion);
+    public static void assertTransactionsSchemaVersionIsNow(int expectedVersion, CoordinationResource resource) {
+        assertThat(resource.getTransactionsSchemaVersion(resource.getFreshTimestamp())).isEqualTo(expectedVersion);
     }
 }

@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -48,10 +47,6 @@ public class ThreeNodeCassandraCluster extends Container {
             .addServers(new InetSocketAddress(THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_PORT))
             .poolSize(20)
             .keyspace("atlasdb")
-            .credentials(ImmutableCassandraCredentialsConfig.builder()
-                    .username(CassandraContainer.USERNAME)
-                    .password(CassandraContainer.PASSWORD)
-                    .build())
             .replicationFactor(3)
             .mutationBatchCount(10000)
             .mutationBatchSizeBytes(10000000)
@@ -79,20 +74,10 @@ public class ThreeNodeCassandraCluster extends Container {
     @Override
     public SuccessOrFailure isReady(DockerComposeRule rule) {
         return SuccessOrFailure.onResultOf(() -> {
-
             try {
-                ThreeNodeCassandraClusterOperations cassandraOperations =
-                        new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION);
+                return new ThreeNodeCassandraClusterOperations(rule,
+                        CASSANDRA_VERSION).nodetoolShowsThreeCassandraNodesUp() && canCreateCassandraKeyValueService();
 
-                if (!cassandraOperations.nodetoolShowsThreeCassandraNodesUp()) {
-                    return false;
-                }
-
-                // slightly hijacking the isReady function here - using it
-                // to actually modify the cluster
-                cassandraOperations.replicateSystemAuthenticationDataOnAllNodes();
-
-                return canCreateCassandraKeyValueService();
             } catch (Exception e) {
                 log.info("Exception while checking if the Cassandra cluster was ready", e);
                 return false;

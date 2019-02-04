@@ -27,7 +27,6 @@ import javax.annotation.CheckForNull;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -37,7 +36,12 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * on which timestamps are requested. This class preserves the {@link TransactionService} guarantees regardless of
  * which underlying service is contacted.
  *
- * The timestamp service will throw an exception if the timestamp-to-service-key function returns a key which is
+ * The timestampToServiceKey function is expected to handle all timestamps greater than or equal to
+ * {@link com.palantir.atlasdb.AtlasDbConstants#STARTING_TS}. It may, but is not expected to, handle timestamps
+ * below that. The function may return null; if it does, then for reads, values written at that timestamp are
+ * considered to be uncommitted. The transaction service will throw if a write is attempted at such a timestamp.
+ *
+ * The transaction service will also throw an exception if the timestamp-to-service-key function returns a key which is
  * not in the keyedServices map.
  *
  * Service keys are expected to be safe for logging.
@@ -56,9 +60,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     @CheckForNull
     @Override
     public Long get(long startTimestamp) {
-        if (startTimestamp < AtlasDbConstants.STARTING_TS) {
-            return null;
-        }
         return getServiceForTimestamp(startTimestamp).map(service -> service.get(startTimestamp)).orElse(null);
     }
 
@@ -66,9 +67,6 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
     public Map<Long, Long> get(Iterable<Long> startTimestamps) {
         Multimap<T, Long> queryMap = HashMultimap.create();
         for (Long startTimestamp : startTimestamps) {
-            if (startTimestamp < AtlasDbConstants.STARTING_TS) {
-                continue;
-            }
             T mappedValue = timestampToServiceKey.apply(startTimestamp);
             if (mappedValue != null) {
                 queryMap.put(mappedValue, startTimestamp);
@@ -96,6 +94,11 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         TransactionService service = getServiceForTimestamp(startTimestamp).orElseThrow(
                 () -> new UnsupportedOperationException("putUnlessExists shouldn't be used with null services"));
         service.putUnlessExists(startTimestamp, commitTimestamp);
+    }
+
+    @Override
+    public void close() {
+        keyedServices.values().forEach(TransactionService::close);
     }
 
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {

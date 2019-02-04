@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -370,8 +371,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
-    public boolean supportsCheckAndSet() {
-        return delegate().supportsCheckAndSet();
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return delegate().getCheckAndSetCompatibility();
     }
 
     @Override

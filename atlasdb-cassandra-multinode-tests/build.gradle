@@ -10,7 +10,7 @@ dependencies {
     testCompile project(":atlasdb-ete-test-utils")
     testCompile project(":flake-rule")
 
-    testCompile ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+    testCompile ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
        exclude module: 'junit'
 
        // override ant to a newer one that is shared with the version in jmock-->cglib
