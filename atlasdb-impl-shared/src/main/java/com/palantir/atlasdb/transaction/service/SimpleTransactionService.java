@@ -22,30 +22,43 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class SimpleTransactionService implements EncodingTransactionService {
-    private final KeyValueService keyValueService;
-    private final TimestampEncodingStrategy encodingStrategy = V1EncodingStrategy.INSTANCE;
-
-    public SimpleTransactionService(KeyValueService keyValueService) {
-        this.keyValueService = keyValueService;
-    }
+public final class SimpleTransactionService implements EncodingTransactionService {
+    private final KeyValueService kvs;
+    private final TimestampEncodingStrategy encodingStrategy;
+    private final TableReference transactionsTable;
 
     // The maximum key-value store timestamp (exclusive) at which data is stored
     // in transaction table.
     // All entries in transaction table are stored with timestamp 0
     private static final long MAX_TIMESTAMP = 1L;
 
+    private SimpleTransactionService(KeyValueService kvs, TimestampEncodingStrategy encodingStrategy,
+            TableReference transactionsTable) {
+        this.kvs = kvs;
+        this.encodingStrategy = encodingStrategy;
+        this.transactionsTable = transactionsTable;
+    }
+
+    public static SimpleTransactionService createV1(KeyValueService kvs) {
+        return new SimpleTransactionService(kvs, V1EncodingStrategy.INSTANCE, TransactionConstants.TRANSACTION_TABLE);
+    }
+
+    public static SimpleTransactionService createV2(KeyValueService kvs) {
+        return new SimpleTransactionService(kvs, TicketsEncodingStrategy.INSTANCE,
+                TransactionConstants.TRANSACTIONS2_TABLE);
+    }
+
     @Override
     public Long get(long startTimestamp) {
         Cell cell = getTransactionCell(startTimestamp);
-        Map<Cell, Value> returnMap = keyValueService.get(
-                TransactionConstants.TRANSACTION_TABLE,
-                ImmutableMap.of(cell, MAX_TIMESTAMP));
+        Map<Cell, Value> returnMap = kvs.get(transactionsTable, ImmutableMap.of(cell, MAX_TIMESTAMP));
         if (returnMap.containsKey(cell)) {
             return encodingStrategy.decodeValueAsCommitTimestamp(startTimestamp, returnMap.get(cell).getContents());
         } else {
@@ -61,8 +74,7 @@ public class SimpleTransactionService implements EncodingTransactionService {
             startTsMap.put(cell, MAX_TIMESTAMP);
         }
 
-        Map<Cell, Value> rawResults = keyValueService.get(
-                TransactionConstants.TRANSACTION_TABLE, startTsMap);
+        Map<Cell, Value> rawResults = kvs.get(transactionsTable, startTsMap);
         Map<Long, Long> result = Maps.newHashMapWithExpectedSize(rawResults.size());
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             long startTs = encodingStrategy.decodeCellAsStartTimestamp(e.getKey());
@@ -77,7 +89,7 @@ public class SimpleTransactionService implements EncodingTransactionService {
     public void putUnlessExists(long startTimestamp, long commitTimestamp) {
         Cell key = getTransactionCell(startTimestamp);
         byte[] value = encodingStrategy.encodeCommitTimestampAsValue(startTimestamp, commitTimestamp);
-        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, ImmutableMap.of(key, value));
+        kvs.putUnlessExists(transactionsTable, ImmutableMap.of(key, value));
     }
 
     @Override
@@ -88,7 +100,7 @@ public class SimpleTransactionService implements EncodingTransactionService {
                         entry -> getTransactionCell(entry.getKey()),
                         entry -> encodingStrategy.encodeCommitTimestampAsValue(
                                 entry.getKey(), entry.getValue())));
-        keyValueService.putUnlessExists(TransactionConstants.TRANSACTION_TABLE, values);
+        kvs.putUnlessExists(transactionsTable, values);
     }
 
     private Cell getTransactionCell(long startTimestamp) {
@@ -98,5 +110,10 @@ public class SimpleTransactionService implements EncodingTransactionService {
     @Override
     public TimestampEncodingStrategy getEncodingStrategy() {
         return encodingStrategy;
+    }
+
+    @Override
+    public void close() {
+        // we do not close the injected kvs
     }
 }

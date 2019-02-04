@@ -21,6 +21,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.ReadOnlyTransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
@@ -32,7 +33,7 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, CoordinationService<InternalSchemaMetadata> coordinationService) {
-        if (keyValueService.supportsCheckAndSet()) {
+        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
             return createSplitKeyTransactionService(keyValueService, coordinationService);
         }
         return createV1TransactionService(keyValueService);
@@ -45,17 +46,24 @@ public final class TransactionServices {
         return new PreStartHandlingTransactionService(
                 new SplitKeyDelegatingTransactionService<>(
                         transactionSchemaManager::getTransactionsSchemaVersion,
-                        ImmutableMap.of(1, createV1TransactionService(keyValueService))));
+                        ImmutableMap.of(
+                                1, createV1TransactionService(keyValueService),
+                                2, createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(new SimpleTransactionService(keyValueService));
+        return new PreStartHandlingTransactionService(SimpleTransactionService.createV1(keyValueService));
+    }
+
+    private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
+        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
+                        SimpleTransactionService.createV2(keyValueService)));
     }
 
     /**
-     * This method should only be used to create {@link TransactionService}s for testing, because in production
-     * there are intermediate services like the {@link CoordinationService} this creates where metrics or other
-     * forms of lifecycle management may be useful.
+     * This method should only be used to create {@link TransactionService}s for testing, because in production there
+     * are intermediate services like the {@link CoordinationService} this creates where metrics or other forms of
+     * lifecycle management may be useful.
      */
     public static TransactionService createForTesting(
             KeyValueService keyValueService, TimestampService timestampService, boolean initializeAsync) {

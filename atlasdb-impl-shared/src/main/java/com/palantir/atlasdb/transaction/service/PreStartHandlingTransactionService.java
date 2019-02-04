@@ -83,6 +83,11 @@ public class PreStartHandlingTransactionService implements TransactionService {
         delegate.putUnlessExists(startTimestamp, commitTimestamp);
     }
 
+    @Override
+    public void close() {
+        delegate.close();
+    }
+
     private static boolean isTimestampValid(Long startTimestamp) {
         return startTimestamp >= AtlasDbConstants.STARTING_TS;
     }

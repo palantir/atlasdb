@@ -30,7 +30,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
-import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -40,7 +39,6 @@ import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.NamedThreadFactory;
@@ -117,11 +115,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         initializeWithoutRunning(SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
                 txManager.getKeyValueService(),
-                TransactionServices.createTransactionService(txManager.getKeyValueService(),
-                        CoordinationServices.createDefault(
-                                txManager.getKeyValueService(),
-                                txManager.getTimestampService(),
-                                false)),
+                txManager.getTransactionService(),
                 new TargetedSweepFollower(followers, txManager));
     }
 

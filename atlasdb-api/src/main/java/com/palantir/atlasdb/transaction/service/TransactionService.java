@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
  *
  * @author carrino
  */
-public interface TransactionService {
+public interface TransactionService extends AutoCloseable {
     /**
      * Gets the commit timestamp associated with a given start timestamp.
      * Non-null responses may be cached on the client-side. Null responses must not be cached, as they could
@@ -78,4 +78,9 @@ public interface TransactionService {
     default void putUnlessExistsMultiple(Map<Long, Long> startTimestampToCommitTimestamp) {
         startTimestampToCommitTimestamp.forEach(this::putUnlessExists);
     }
+
+    /**
+     * Frees up resources associated with the transaction service.
+     */
+    void close();
 }

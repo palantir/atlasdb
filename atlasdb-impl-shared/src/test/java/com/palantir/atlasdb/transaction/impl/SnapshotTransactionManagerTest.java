@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.CloseableLockService;
@@ -73,7 +74,7 @@ public class SnapshotTransactionManagerTest {
                     LockClient.of("lock")),
             timestampService,
             closeableLockService,
-            null,
+            mock(TransactionService.class),
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
             null,
             null,
@@ -120,7 +121,7 @@ public class SnapshotTransactionManagerTest {
                         LockClient.of("lock")),
                 ts,
                 mock(LockService.class), // not closeable
-                null,
+                mock(TransactionService.class),
                 null,
                 null,
                 null,

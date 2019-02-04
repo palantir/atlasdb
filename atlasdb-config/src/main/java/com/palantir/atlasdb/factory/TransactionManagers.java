@@ -331,10 +331,11 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
                 metricsManager, lockAndTimestampServices, keyValueService);
 
-        TransactionService transactionService = AtlasDbMetrics.instrument(
+        TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService, coordinationService));
+                TransactionServices.createTransactionService(keyValueService, coordinationService)),
+                closeables);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -395,6 +396,7 @@ public abstract class TransactionManagers {
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        instrumentedTransactionManager.registerClosingCallback(transactionService::close);
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
