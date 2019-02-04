@@ -339,7 +339,8 @@ public abstract class TransactionManagers {
                 TransactionService.class,
                 TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
-        initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager);
+        TransactionSchemaInstaller schemaInstaller = initializeTransactionSchemaInstaller(
+                closeables, runtimeConfigSupplier, transactionSchemaManager);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -401,6 +402,7 @@ public abstract class TransactionManagers {
 
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
         instrumentedTransactionManager.registerClosingCallback(transactionService::close);
+        instrumentedTransactionManager.registerClosingCallback(schemaInstaller::close);
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
@@ -434,9 +436,9 @@ public abstract class TransactionManagers {
         return instrumentedTransactionManager;
     }
 
-    private void initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
+    private TransactionSchemaInstaller initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier, TransactionSchemaManager transactionSchemaManager) {
-        initializeCloseable(() -> TransactionSchemaInstaller.createStarted(transactionSchemaManager,
+        return initializeCloseable(() -> TransactionSchemaInstaller.createStarted(transactionSchemaManager,
                 () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()),
                 closeables);
     }

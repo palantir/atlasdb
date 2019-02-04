@@ -53,11 +53,11 @@ public final class TransactionSchemaInstaller implements AutoCloseable {
             Supplier<Optional<Integer>> versionToInstall) {
         ScheduledExecutorService scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
                 PTExecutors.newNamedThreadFactory(true));
-        return createAndStart(manager, versionToInstall, scheduledExecutor);
+        return createStarted(manager, versionToInstall, scheduledExecutor);
     }
 
     @VisibleForTesting
-    static TransactionSchemaInstaller createAndStart(
+    static TransactionSchemaInstaller createStarted(
             TransactionSchemaManager manager,
             Supplier<Optional<Integer>> versionToInstall,
             ScheduledExecutorService scheduledExecutor) {

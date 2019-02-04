@@ -18,6 +18,7 @@ package com.palantir.atlasdb.internalschema;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,14 @@ public class TransactionSchemaInstallerTest {
         runAndWaitForPollingIntervals(0);
         verify(versionToInstall).get();
         verify(manager).tryInstallNewTransactionsSchemaVersion(1);
+    }
+
+    @Test
+    public void doesNotInstallVersionsMoreFrequentlyThanPollingInterval() {
+        when(versionToInstall.get()).thenReturn(Optional.of(1));
+        runAndWaitForPollingIntervals(10);
+        verify(versionToInstall, atMost(11)).get();
+        verify(manager, atMost(11)).tryInstallNewTransactionsSchemaVersion(1);
     }
 
     @Test
@@ -98,7 +107,7 @@ public class TransactionSchemaInstallerTest {
     @Test
     public void shutsDownExecutorWhenClosed() {
         ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
-        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createAndStart(manager, versionToInstall,
+        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createStarted(manager, versionToInstall,
                 executorService);
         installer.close();
         verify(executorService).shutdown();
@@ -107,7 +116,7 @@ public class TransactionSchemaInstallerTest {
     @Test
     public void closeIsIdempotent() {
         ScheduledExecutorService executorService = mock(ScheduledExecutorService.class);
-        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createAndStart(manager, versionToInstall,
+        TransactionSchemaInstaller installer = TransactionSchemaInstaller.createStarted(manager, versionToInstall,
                 executorService);
         installer.close();
         installer.close();
@@ -123,6 +132,6 @@ public class TransactionSchemaInstallerTest {
     }
 
     private void createAndStartTransactionSchemaInstaller() {
-        TransactionSchemaInstaller.createAndStart(manager, versionToInstall, scheduler);
+        TransactionSchemaInstaller.createStarted(manager, versionToInstall, scheduler);
     }
 }

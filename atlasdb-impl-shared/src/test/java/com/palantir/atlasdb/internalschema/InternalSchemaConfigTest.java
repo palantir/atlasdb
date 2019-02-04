@@ -19,7 +19,6 @@ package com.palantir.atlasdb.internalschema;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
@@ -38,7 +37,6 @@ public class InternalSchemaConfigTest {
 
     @Test
     public void throwsIfCreatingConfigWithUnrecognizedSchemaVersions() {
-        Assume.assumeTrue(!TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS.contains(Integer.MIN_VALUE));
         assertThatThrownBy(() -> ImmutableInternalSchemaConfig.builder()
                 .targetTransactionsSchemaVersion(Integer.MIN_VALUE)
                 .build())

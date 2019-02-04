@@ -23,6 +23,7 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 
@@ -42,12 +43,15 @@ public final class TransactionServices {
     private static TransactionService createSplitKeyTransactionService(
             KeyValueService keyValueService,
             TransactionSchemaManager transactionSchemaManager) {
+        // TODO (jkong): Is there a way to disallow DIRECT -> V2 transaction service in the map?
         return new PreStartHandlingTransactionService(
                 new SplitKeyDelegatingTransactionService<>(
                         transactionSchemaManager::getTransactionsSchemaVersion,
                         ImmutableMap.of(
-                                1, createV1TransactionService(keyValueService),
-                                2, createV2TransactionService(keyValueService))));
+                                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                                createV1TransactionService(keyValueService),
+                                TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+                                createV2TransactionService(keyValueService))));
     }
 
     public static TransactionService createV1TransactionService(KeyValueService keyValueService) {
