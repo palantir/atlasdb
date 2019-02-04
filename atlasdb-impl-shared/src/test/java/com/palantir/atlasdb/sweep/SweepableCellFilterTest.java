@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
@@ -123,6 +124,23 @@ public class SweepableCellFilterTest {
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
+    }
+
+    @Test
+    public void thorough_getTimestampsToSweep_oneSentinel_returnsIt() {
+        List<CandidateCellForSweeping> candidate = ImmutableList.of(
+                ImmutableCandidateCellForSweeping.builder()
+                        .cell(SINGLE_CELL)
+                        .sortedTimestamps(ImmutableList.of(Value.INVALID_VALUE_TIMESTAMP))
+                        .isLatestValueEmpty(true)
+                        .build());
+        when(mockTransactionService.get(anyCollection()))
+                .thenReturn(ImmutableMap.of());
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
+        List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
+        assertThat(cells.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(Value.INVALID_VALUE_TIMESTAMP);
     }
 
     @Test

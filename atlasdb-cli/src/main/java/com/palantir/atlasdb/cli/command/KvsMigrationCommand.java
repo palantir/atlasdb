@@ -32,7 +32,6 @@ import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -116,12 +115,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
             printer.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
+
         KeyValueServiceMigrator migrator;
-        try {
-            migrator = getMigrator(fromServices, toServices);
-        } catch (IOException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        migrator = getMigrator(fromServices, toServices);
         if (setup) {
             migrator.setup();
         }
@@ -169,8 +165,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
-            throws IOException {
+    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) {
         return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toServices)

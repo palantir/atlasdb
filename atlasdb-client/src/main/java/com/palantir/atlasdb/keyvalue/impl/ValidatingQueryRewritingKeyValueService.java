@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +98,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
-                        || AtlasDbConstants.hiddenTables.contains(tableRef)
+                        || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "invalid tableName: %s", tableName);
     }

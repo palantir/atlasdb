@@ -20,11 +20,22 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.processors.AutoDelegate;
 
 /**
  * A {@link CoordinationStore} stores data that a {@link CoordinationService} may use.
  */
+@AutoDelegate
 public interface CoordinationStore<T> {
+    /**
+     * Coordination stores may require asynchronous initialization, if dependencies aren't initially available.
+     *
+     * @return true iff the coordination store is ready to service requests
+     */
+    default boolean isInitialized() {
+        return true;
+    }
+
     /**
      * Gets the value stored in this {@link CoordinationStore}. This value may not be the most recent value; however,
      * it is guaranteed that any value returned by this method will be at least as current as any value returned by
@@ -36,10 +47,12 @@ public interface CoordinationStore<T> {
 
     /**
      * Proposes a new value to be stored in this {@link CoordinationStore} based on applying the transform passed
-     * to an existing bound. It is the responsibility of users to confirm whether their transform succeeded or not.
+     * to an existing {@link ValueAndBound}. It is the responsibility of users to confirm whether their transform
+     * succeeded or not.
      *
      * @param transform transformation of the original value passed
      * @return a {@link CheckAndSetResult} indicating if the proposal was successful and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<Optional<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(
+            Function<ValueAndBound<T>, T> transform);
 }

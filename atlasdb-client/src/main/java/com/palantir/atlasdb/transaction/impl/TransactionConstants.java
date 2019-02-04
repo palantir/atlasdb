@@ -40,6 +40,8 @@ public class TransactionConstants {
 
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 
+    public static final int TRANSACTIONS_TABLE_SCHEMA_VERSION = 1;
+
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
     }

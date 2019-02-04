@@ -51,12 +51,27 @@ public interface CoordinationService<T> {
     Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
 
     /**
-     * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform.
+     * Attempts to update the value stored in the {@link CoordinationService} by applying the provided transform
+     * to the existing {@link ValueAndBound} that is stored in this coordination service.
      *
      * Evolutions of the value must be compatible in terms of backwards consistency as defined in the class docs.
      *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
      * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
      */
-    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<Optional<T>, T> transform);
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
+
+    /**
+     * Returns the most recent value that this coordination service knows about locally.
+     *
+     * This method should be cheap to compute, and is not expected to make calls to remote services.
+     * Consequently, it is possible that the value returned is not actually the last known local value globally
+     * (or, for that matter, it is possible that it bears little or no degree of recency).
+     *
+     * This should only be used for metrics and monitoring of the system; product decisions must not be taken based on
+     * any values this returns.
+     *
+     * @return the last locally known value and bound agreed by this coordination service
+     */
+    Optional<ValueAndBound<T>> getLastKnownLocalValue();
 }

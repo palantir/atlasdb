@@ -33,12 +33,10 @@ import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.atlasdb.timelock.config.AsyncLockConfiguration;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.atlasdb.timelock.util.AsyncOrLegacyTimelockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -53,15 +51,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final MetricsManager metricsManager;
     private final LockLog lockLog;
     private final PaxosLeadershipCreator leadershipCreator;
-    private final AsyncLockConfiguration asyncLockConfiguration;
 
     public AsyncTimeLockServicesCreator(MetricsManager metricsManager,
-            LockLog lockLog, PaxosLeadershipCreator leadershipCreator,
-            AsyncLockConfiguration asyncLockConfiguration) {
+            LockLog lockLog, PaxosLeadershipCreator leadershipCreator) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
         this.leadershipCreator = leadershipCreator;
-        this.asyncLockConfiguration = asyncLockConfiguration;
     }
 
     @Override
@@ -75,16 +70,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
                 client);
-        AsyncOrLegacyTimelockService asyncOrLegacyTimelockService =
-                AsyncOrLegacyTimelockService.createFromAsyncTimelock(
-                        new AsyncTimelockResource(lockLog, asyncTimelockService));
+        AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
 
         LockService lockService = instrumentInLeadershipProxy(
                 metricsManager.getTaggedRegistry(),
                 LockService.class,
-                asyncLockConfiguration.disableLegacySafetyChecksWarningPotentialDataCorruption()
-                        ? rawLockServiceSupplier
-                        : Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
+                Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
                 client);
 
         leadershipCreator.executeWhenLostLeadership(() ->
@@ -96,7 +87,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         return TimeLockServices.create(
                 asyncTimelockService,
                 lockService,
-                asyncOrLegacyTimelockService,
+                asyncTimelockResource,
                 asyncTimelockService);
     }
 

@@ -87,7 +87,6 @@ This can be useful for improving performance if having too many dead cells is im
 The command allows you to specify a namespace or a specific set of tables.
 For more information, check out :ref:`the sweep CLI documentation <atlasdb-sweep-cli>`, or run ``./bin/atlasdb help sweep``.
 
-
 timestamp
 ---------
 
@@ -98,21 +97,7 @@ Read or recalculate the immutable timestamp. Run ``./bin/atlasdb help timestamp`
 migrate
 -------
 
-This CLI can help you migrate your AtlasDB client product from one KVS to another.
-You will need to supply two different KVS configurations to the script.
-In the general case you first call ``–-setup``, then ``-–migrate``, then ``-–validate`` each time supplying the old and new configurations.
-
-We currently only support doing KVS migrations offline (using the ``--offline`` flag), so you must shut down your AtlasDB backed service to perform the migration.
-For more information run ``./bin/atlasdb help migrate`` for more information.
-
-.. code-block:: bash
-
-     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml –-setup
-     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --migrate
-     ./bin/atlasdb-cli --offline migrate –-fromConfig from.yml --migrateConfig to.yml --validate
-
-Note that the `migrate` CLI can safely be resumed (with the same arguments) if it fails during a step.
-The CLI will check and skip past tables that have already been processed.
+Migrate data from one KVS to another. See :ref:`KVS migration<kvs-migration>` for details.
 
 read-punch-table
 ----------------

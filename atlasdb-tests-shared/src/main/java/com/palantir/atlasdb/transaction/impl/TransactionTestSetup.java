@@ -117,8 +117,7 @@ public abstract class TransactionTestSetup {
         timestampService = ts;
         timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-
-        transactionService = TransactionServices.createTransactionService(keyValueService);
+        transactionService = TransactionServices.createForTesting(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = getManager();

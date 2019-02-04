@@ -54,4 +54,8 @@ public abstract class TargetedSweepRuntimeConfig {
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {
         return ImmutableTargetedSweepRuntimeConfig.builder().build();
     }
+
+    public static TargetedSweepRuntimeConfig disabled() {
+        return ImmutableTargetedSweepRuntimeConfig.builder().enabled(false).build();
+    }
 }

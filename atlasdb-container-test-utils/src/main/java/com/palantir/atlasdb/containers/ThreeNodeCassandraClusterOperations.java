@@ -28,15 +28,12 @@ import com.palantir.docker.compose.execution.ImmutableDockerComposeRunOption;
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
-    private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 60;
 
     private final DockerComposeRule dockerComposeRule;
     private final CassandraCliParser cassandraCliParser;
-    private final CassandraVersion cassandraVersion;
 
     public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, CassandraVersion version) {
         this.dockerComposeRule = dockerComposeRule;
-        this.cassandraVersion = version;
         this.cassandraCliParser = new CassandraCliParser(version);
     }
 
@@ -49,41 +46,6 @@ public class ThreeNodeCassandraClusterOperations {
             log.warn("Failed while running nodetool status", e);
             return false;
         }
-    }
-
-    public void replicateSystemAuthenticationDataOnAllNodes()
-            throws IOException, InterruptedException {
-        if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
-            setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
-            runNodetoolRepair();
-        }
-    }
-
-    private void runNodetoolRepair() throws IOException, InterruptedException {
-        runNodetoolCommand("repair system_auth", NODETOOL_REPAIR_TIMEOUT_SECONDS);
-    }
-
-    private void setReplicationFactorOfSystemAuthenticationKeyspaceToThree()
-            throws IOException, InterruptedException {
-        runCql("ALTER KEYSPACE system_auth "
-                + "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
-    }
-
-    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
-            throws IOException, InterruptedException {
-        String getAllKeyspaces = cassandraVersion.getAllKeyspacesCql();
-        String output = runCql(getAllKeyspaces);
-        int replicationFactor = cassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
-        return replicationFactor == 3;
-    }
-
-    private String runCql(String cql) throws IOException, InterruptedException {
-        return runCommandInCliContainer(
-                "cqlsh",
-                "--username", CassandraContainer.USERNAME,
-                "--password", CassandraContainer.PASSWORD,
-                ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
-                "--execute", cql);
     }
 
     private String runNodetoolCommand(String nodetoolCommand, int timeoutSeconds) throws IOException,

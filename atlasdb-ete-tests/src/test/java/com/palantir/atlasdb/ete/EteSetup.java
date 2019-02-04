@@ -120,7 +120,7 @@ public abstract class EteSetup {
                 DockerComposeExecArgument.arguments("bash", "-c", command));
     }
 
-    static <T> T createClientToSingleNode(Class<T> clazz) {
+    public static <T> T createClientToSingleNode(Class<T> clazz) {
         return createClientFor(clazz, Iterables.getFirst(availableClients, null), SERVER_PORT);
     }
 

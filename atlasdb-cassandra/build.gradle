@@ -25,7 +25,7 @@ dependencies {
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
 
-  explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude(group: 'de.jflex', module: 'jflex')
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
@@ -56,6 +56,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
+  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
@@ -89,5 +90,12 @@ recommendedProductDependencies {
         productName = 'rescue'
         minimumVersion = '3.22.0'
         maximumVersion = '4.x.x'
+    }
+
+    productDependency {
+        productGroup = 'com.palantir.cassandra'
+        productName = 'sls-cassandra'
+        minimumVersion = '3.24.0'
+        maximumVersion = '3.x.x'
     }
 }

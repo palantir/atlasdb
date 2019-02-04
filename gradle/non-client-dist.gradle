@@ -1,0 +1,9 @@
+// Used to ignore product dependencies for distributions we produce that aren't standard AtlasDB consumers.
+
+apply plugin: 'com.palantir.sls-java-service-distribution'
+
+distribution {
+    ignoredProductDependency('com.palantir.cassandra', 'sls-cassandra')
+    ignoredProductDependency('com.palantir.rescue', 'rescue')
+    ignoredProductDependency('com.palantir.timelock', 'timelock-server')
+}

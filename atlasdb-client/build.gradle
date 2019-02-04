@@ -52,7 +52,6 @@ dependencies {
   compile (group: 'com.googlecode.json-simple', name: 'json-simple') {
     exclude group: 'junit'
   }
-  compile group: "commons-lang", name: "commons-lang", version: libVersions.commons_lang
   compile group: "org.xerial.snappy", name: "snappy-java", version: libVersions.snappy
   compile group: "com.github.ben-manes.caffeine", name: "caffeine"
   compile group: "com.googlecode.protobuf-java-format", name: "protobuf-java-format", version: "1.2"
@@ -83,7 +82,6 @@ dependencies {
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
   compile group: 'com.squareup', name:'javapoet'
-  compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'org.hdrhistogram', name: 'HdrHistogram'
   compile group: 'com.palantir.common', name: 'streams'
 

@@ -21,13 +21,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -39,7 +37,6 @@ import com.palantir.common.concurrent.PTExecutors;
 
 public class KeyValueServiceMigrator {
     private final TableReference checkpointTable;
-    private static final String CHECKPOINT_TABLE_NAME = "tmp_migrate_progress";
     private static final int PARTITIONS = 256;
 
     private final TransactionManager fromTransactionManager;
@@ -71,18 +68,19 @@ public class KeyValueServiceMigrator {
     private final TaskProgress taskProgress;
 
     public KeyValueServiceMigrator(Namespace checkpointNamespace,
-                                   TransactionManager fromTransactionManager,
-                                   TransactionManager toTransactionManager,
-                                   KeyValueService fromKvs,
-                                   KeyValueService toKvs,
-                                   Supplier<Long> migrationTimestampSupplier,
-                                   int threads,
-                                   int defaultBatchSize,
-                                   Map<TableReference, Integer> readBatchSizeOverrides,
-                                   KvsMigrationMessageProcessor messageProcessor,
-                                   TaskProgress taskProgress,
-                                   Set<TableReference> unmigratableTables) {
-        this.checkpointTable = TableReference.create(checkpointNamespace, CHECKPOINT_TABLE_NAME);
+            TransactionManager fromTransactionManager,
+            TransactionManager toTransactionManager,
+            KeyValueService fromKvs,
+            KeyValueService toKvs,
+            Supplier<Long> migrationTimestampSupplier,
+            int threads,
+            int defaultBatchSize,
+            Map<TableReference, Integer> readBatchSizeOverrides,
+            KvsMigrationMessageProcessor messageProcessor,
+            TaskProgress taskProgress,
+            Set<TableReference> unmigratableTables) {
+        this.checkpointTable =
+                TableReference.create(checkpointNamespace, KeyValueServiceMigratorUtils.CHECKPOINT_TABLE_NAME);
         this.fromTransactionManager = fromTransactionManager;
         this.toTransactionManager = toTransactionManager;
         this.fromKvs = fromKvs;
@@ -97,27 +95,26 @@ public class KeyValueServiceMigrator {
     }
 
     private void processMessage(String string, KvsMigrationMessageLevel level) {
-        KeyValueServiceMigrators.processMessage(messageProcessor, string, level);
+        KeyValueServiceMigratorUtils.processMessage(messageProcessor, string, level);
     }
 
     private void processMessage(String string, Throwable ex, KvsMigrationMessageLevel level) {
-        KeyValueServiceMigrators.processMessage(messageProcessor, string, ex, level);
+        KeyValueServiceMigratorUtils.processMessage(messageProcessor, string, ex, level);
     }
 
     /**
-     * Drop and create tables before starting migration.
+     * Drop and create tables before starting migration. Note that we do not want to drop atomic tables since there
+     * are legacy use cases where a migration is done using a
+     * {@link com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService} that delegates all atomic tables access
+     * (including dropTable) back to the source KVS.
      */
     public void setup() {
-        /*
-         * We do *not* want to drop tables that aren't getting migrated (since that would drop them
-         * ON THE SOURCE KVS), but we *do* actually want to create metadata for those tables,
-         * because they might be migrated later by dbcopy.
-         */
-        processMessage("dropping tables: " + getCreatableTableNames(toKvs), KvsMigrationMessageLevel.INFO);
-        toKvs.dropTables(getCreatableTableNames(toKvs));
+        Set<TableReference> tablesToDrop = KeyValueServiceMigratorUtils.getCreatableTables(toKvs, unmigratableTables);
+        processMessage("dropping tables: " + tablesToDrop, KvsMigrationMessageLevel.INFO);
+        toKvs.dropTables(tablesToDrop);
 
         Map<TableReference, byte[]> metadataByTableName = Maps.newHashMap();
-        for (TableReference tableRef : getCreatableTableNames(fromKvs)) {
+        for (TableReference tableRef : KeyValueServiceMigratorUtils.getCreatableTables(fromKvs, unmigratableTables)) {
             processMessage("retrieving metadata for table " + tableRef, KvsMigrationMessageLevel.INFO);
             byte[] metadata = fromKvs.getMetadataForTable(tableRef);
             Preconditions.checkArgument(
@@ -128,29 +125,16 @@ public class KeyValueServiceMigrator {
         processMessage("creating tables", KvsMigrationMessageLevel.INFO);
         toKvs.createTables(metadataByTableName);
         processMessage("setup complete", KvsMigrationMessageLevel.INFO);
-    }
 
-    /**
-     * Tables that are eligible for dropping and creating.
-     */
-    private Set<TableReference> getCreatableTableNames(KeyValueService kvs) {
-        /*
-         * Tables that cannot be migrated because they are not controlled by the transaction table,
-         * but that don't necessarily live on the legacy DB KVS, should still be created on the new
-         * KVS, even if they don't get populated. That's why this method is subtly different from
-         * getMigratableTableNames().
-         */
-        Set<TableReference> tableNames = Sets.newHashSet(kvs.getAllTableNames());
-        tableNames.removeAll(AtlasDbConstants.ATOMIC_TABLES);
-        tableNames.removeAll(unmigratableTables);
-        return tableNames;
+
+
     }
 
     public void migrate() {
         try {
             internalMigrate();
         } catch (InterruptedException e) {
-            Throwables.throwUncheckedException(e);
+            throw Throwables.throwUncheckedException(e);
         }
     }
 
@@ -158,10 +142,8 @@ public class KeyValueServiceMigrator {
      * On success, delete the checkpoint table.
      */
     public void cleanup() {
-        TransactionManager txManager = toTransactionManager;
-
         GeneralTaskCheckpointer checkpointer =
-                new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
+                new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
 
         processMessage("Deleting checkpoint table...", KvsMigrationMessageLevel.INFO);
         checkpointer.deleteCheckpoints();
@@ -170,20 +152,18 @@ public class KeyValueServiceMigrator {
     }
 
     private void internalMigrate() throws InterruptedException {
-        Set<TableReference> tables = KeyValueServiceMigrators.getMigratableTableNames(fromKvs, unmigratableTables);
-        TransactionManager txManager = toTransactionManager;
-
-        TransactionManager readTxManager = fromTransactionManager;
+        Set<TableReference> tables = KeyValueServiceMigratorUtils.getMigratableTableNames(fromKvs, unmigratableTables,
+                checkpointTable);
 
         GeneralTaskCheckpointer checkpointer =
-                new GeneralTaskCheckpointer(checkpointTable, toKvs, txManager);
+                new GeneralTaskCheckpointer(checkpointTable, toKvs, toTransactionManager);
 
         ExecutorService executor = PTExecutors.newFixedThreadPool(threads);
         try {
             migrateTables(
                     tables,
-                    readTxManager,
-                    txManager,
+                    fromTransactionManager,
+                    toTransactionManager,
                     toKvs,
                     migrationTimestampSupplier.get(),
                     executor,
@@ -191,7 +171,7 @@ public class KeyValueServiceMigrator {
             processMessage("Data migration complete.", KvsMigrationMessageLevel.INFO);
         } catch (Throwable t) {
             processMessage("Migration failed.", t, KvsMigrationMessageLevel.ERROR);
-            Throwables.throwUncheckedException(t);
+            throw Throwables.throwUncheckedException(t);
         } finally {
             executor.shutdown();
             executor.awaitTermination(10000L, TimeUnit.MILLISECONDS);

@@ -64,14 +64,17 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.factory.timelock.ImmutableTimestampBridgingTimeLockService;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -325,10 +328,13 @@ public abstract class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
+        CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
+                metricsManager, lockAndTimestampServices, keyValueService);
+
         TransactionService transactionService = AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService));
+                TransactionServices.createTransactionService(keyValueService, coordinationService));
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -395,6 +401,8 @@ public abstract class TransactionManagers {
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
+        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
                         metricsManager,
@@ -418,6 +426,21 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
+            MetricsManager metricsManager, LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService) {
+        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationService.class,
+                CoordinationServices.createDefault(
+                        keyValueService,
+                        lockAndTimestampServices.timestamp(),
+                        config().initializeAsync()));
+        MetadataCoordinationServiceMetrics.registerMetrics(metricsManager, metadataCoordinationService);
+        return metadataCoordinationService;
     }
 
     private Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
@@ -649,8 +672,7 @@ public abstract class TransactionManagers {
                 userAgent);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
-                        withRefreshingLockService(
-                                withBridgingTimelockService(lockAndTimestampServices))));
+                        withRefreshingLockService(lockAndTimestampServices)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
@@ -663,14 +685,6 @@ public abstract class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .timelock(timelockService)
                 .timestamp(corroboratingTimestampService)
-                .build();
-    }
-
-    private static LockAndTimestampServices withBridgingTimelockService(
-            LockAndTimestampServices lockAndTimestampServices) {
-        return ImmutableLockAndTimestampServices.builder()
-                .from(lockAndTimestampServices)
-                .timelock(ImmutableTimestampBridgingTimeLockService.create(lockAndTimestampServices.timelock()))
                 .build();
     }
 

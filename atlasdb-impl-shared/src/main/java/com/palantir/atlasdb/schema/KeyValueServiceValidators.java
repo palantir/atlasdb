@@ -38,7 +38,8 @@ public final class KeyValueServiceValidators {
     public static Set<TableReference> getValidatableTableNames(
             KeyValueService kvs,
             Set<TableReference> unmigratableTables) {
-        Set<TableReference> tableNames = KeyValueServiceMigrators.getMigratableTableNames(kvs, unmigratableTables);
+        Set<TableReference> tableNames = KeyValueServiceMigratorUtils
+                .getMigratableTableNames(kvs, unmigratableTables, null);
         return removeSweepTableReferences(tableNames);
     }
 

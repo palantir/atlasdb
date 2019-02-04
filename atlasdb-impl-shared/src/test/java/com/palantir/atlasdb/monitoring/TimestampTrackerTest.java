@@ -45,7 +45,7 @@ public class TimestampTrackerTest {
     private static final String UNREADABLE_TIMESTAMP_NAME = "timestamp.unreadable";
     private static final String FAKE_METRIC = "metric.fake";
 
-    private static final long CACHE_INTERVAL_NANOS = TimestampTracker.CACHE_INTERVAL.toNanos();
+    private static final long CACHE_INTERVAL_NANOS = TrackerUtils.DEFAULT_CACHE_INTERVAL.toNanos();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);

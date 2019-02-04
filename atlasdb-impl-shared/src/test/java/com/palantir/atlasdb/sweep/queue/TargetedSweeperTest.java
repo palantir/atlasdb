@@ -103,11 +103,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         mockFollower = mock(TargetedSweepFollower.class);
 
         timelockService = mock(TimelockService.class);
-        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, mockFollower);
+        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
-        sweepableCells = new SweepableCells(spiedKvs, partitioner, null);
+        sweepableCells = new SweepableCells(spiedKvs, partitioner, null, txnService);
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 
@@ -128,7 +128,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(null);
         assertThatThrownBy(() -> sweeper.initializeWithoutRunning(
-                null, mock(TimelockService.class), uninitializedKvs, mock(TargetedSweepFollower.class)))
+                null, mock(TimelockService.class), uninitializedKvs, txnService, mock(TargetedSweepFollower.class)))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -269,7 +269,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
-        for (long i = 0; i <= lastWriteTs; i++) {
+        for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
         sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -281,7 +281,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
         long lastWriteTs = TS_FINE_GRANULARITY - 1;
-        for (long i = 0; i <= lastWriteTs; i++) {
+        for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
         sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
@@ -1114,7 +1114,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TargetedSweeper getSingleShardSweeper() {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
         sweeper.initializeWithoutRunning(
-                timestampsSupplier, mock(TimelockService.class), spiedKvs, mock(TargetedSweepFollower.class));
+                timestampsSupplier,
+                mock(TimelockService.class),
+                spiedKvs,
+                txnService,
+                mock(TargetedSweepFollower.class));
         return sweeper;
     }
 
@@ -1142,7 +1146,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper sweeperInstance = TargetedSweeper
                     .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of());
-            sweeperInstance.initializeWithoutRunning(timestampsSupplier, stickyLockService, spiedKvs, mockFollower);
+            sweeperInstance.initializeWithoutRunning(
+                    timestampsSupplier,
+                    stickyLockService,
+                    spiedKvs,
+                    txnService,
+                    mockFollower);
             sweeperInstance.runInBackground();
         }
         waitUntilBackgroundSweepRunsOneIteration();

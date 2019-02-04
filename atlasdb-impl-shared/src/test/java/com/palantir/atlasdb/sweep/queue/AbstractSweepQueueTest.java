@@ -83,7 +83,7 @@ public abstract class AbstractSweepQueueTest {
         spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
-        txnService = TransactionServices.createTransactionService(spiedKvs);
+        txnService = TransactionServices.createV1TransactionService(spiedKvs);
     }
 
     static byte[] metadataBytes(SweepStrategy sweepStrategy) {

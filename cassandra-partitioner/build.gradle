@@ -2,7 +2,7 @@ apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    compile('org.apache.cassandra:cassandra-all:' + libVersions.cassandra) {
+    compile('com.palantir.cassandra:cassandra-all:' + libVersions.palantir_cassandra_thrift) {
         transitive = false
     }
     compile(group: 'org.apache.commons', name: 'commons-lang3', version: libVersions.commons_lang3)
