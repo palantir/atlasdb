@@ -30,6 +30,7 @@ public class TimestampPartitioningMapTest {
 
     private static final long TIMESTAMP_1 = 77L;
     private static final long TIMESTAMP_2 = 777L;
+    private static final long TIMESTAMP_3 = 7777L;
 
     @Test
     public void throwsIfInitialMapIsEmpty() {
@@ -83,6 +84,22 @@ public class TimestampPartitioningMapTest {
                 .copyInstallingNewValue(TIMESTAMP_2, 1);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_2 - 1)).isEqualTo(2);
         assertThat(newMap.getValueForTimestamp(TIMESTAMP_2)).isEqualTo(1);
+    }
+
+    @Test
+    public void coalescesRangesOnEquivalentValues() {
+        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2)
+                .copyInstallingNewValue(TIMESTAMP_2, 2)
+                .copyInstallingNewValue(TIMESTAMP_3, 2);
+        assertThat(newMap.rangeMapView().asMapOfRanges().size()).isEqualTo(2);
+    }
+
+    @Test
+    public void doesNotCoalesceRangesOnDifferentValues() {
+        TimestampPartitioningMap newMap = DEFAULT_INITIAL_MAPPING.copyInstallingNewValue(TIMESTAMP_1, 2)
+                .copyInstallingNewValue(TIMESTAMP_2, 1)
+                .copyInstallingNewValue(TIMESTAMP_3, 2);
+        assertThat(newMap.rangeMapView().asMapOfRanges().size()).isEqualTo(4);
     }
 
     @Test
