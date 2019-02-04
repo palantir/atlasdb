@@ -86,8 +86,11 @@ public abstract class TimestampPartitioningMap<T> {
     /**
      * Copies an existing {@link TimestampPartitioningMap}, installing a new value V for timestamps that are at least
      * a provided lower bound L. Existing mappings are unchanged, apart from the largest range [C, +∞)=O for some
-     * timestamp C and value O. This range will be split, resulting in [C, L)=O and [L, +∞)=V. This method
-     * will throw an exception if L is smaller than C.
+     * timestamp C and value O. If O and V are not equal (using {@link Objects#equals(Object, Object)}, this range will
+     * be split, resulting in [C, L)=O and [L, +∞)=V; if they are equal, the range will remain as [C, +∞)=O (but
+     * the method still returns a copy).
+     * 
+     * This method will throw an exception if L is smaller than C.
      *
      * @param lowerBoundForNewVersion lowest timestamp at which the new value should be mapped to
      * @param newValue new value to map timestamps to
