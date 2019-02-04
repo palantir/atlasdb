@@ -113,11 +113,14 @@ public class AtlasDbTestCase {
     public void tearDown() throws Exception {
         // JUnit keeps instantiated test cases in memory, so we need to null out
         // some fields to prevent OOMs.
-        txManager.close();
+        keyValueService.close();
         keyValueService = null;
-        timestampService = null;
+        transactionService.close();
         transactionService = null;
+        sweepQueue.close();
         sweepQueue = null;
+        timestampService = null;
+        txManager.close();
         txManager = null;
     }
 

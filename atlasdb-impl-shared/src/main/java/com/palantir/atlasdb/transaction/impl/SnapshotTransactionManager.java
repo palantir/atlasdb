@@ -319,8 +319,7 @@ import com.palantir.timestamp.TimestampService;
                 runShutdownCallbackSafely(callback).ifPresent(suppressedExceptions::add);
             }
             metricsManager.deregisterMetrics();
-            transactionService.close();
-            sweepQueueWriter.close();
+
             if (!suppressedExceptions.isEmpty()) {
                 RuntimeException closeFailed = new RuntimeException(
                         "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");

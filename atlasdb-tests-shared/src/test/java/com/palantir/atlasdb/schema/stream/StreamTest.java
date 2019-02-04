@@ -45,7 +45,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -260,7 +259,6 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
-    @Ignore
     public void testStoreByteStreamJustBiggerThanOneBlock_compressedStream() throws IOException {
         storeAndCheckByteStreams(compressedStore,
                 getCompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500));
@@ -287,7 +285,6 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
-    @Ignore
     public void testStoreByteStreamFiveMegaBytes_compressedStream_incompressible() throws IOException {
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(5_000_000));
     }
@@ -585,7 +582,6 @@ public class StreamTest extends AtlasDbTestCase {
     }
 
     @Test
-    @Ignore
     public void testStoreCopy() {
         final byte[] bytes = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         Random rand = new Random();
