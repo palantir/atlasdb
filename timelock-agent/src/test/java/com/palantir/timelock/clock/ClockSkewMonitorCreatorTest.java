@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.factory.timelock.clock.ClockServiceImpl;
 import com.palantir.atlasdb.util.MetricsManagers;
 
 public class ClockSkewMonitorCreatorTest {

@@ -69,6 +69,7 @@ import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
+import com.palantir.atlasdb.factory.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
@@ -768,6 +769,8 @@ public abstract class TransactionManagers {
                 TimeLockMigrator.create(metricsManager,
                         serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+
+        ClockSkewMonitor.create(metricsManager, getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier).get().servers(), Optional.empty());
         return ImmutableLockAndTimestampServices.copyOf(
                 getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent))
                 .withMigrator(migrator);

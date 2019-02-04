@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.clock;
+package com.palantir.atlasdb.factory.timelock.clock;
 
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import java.util.UUID;
 
-@Path("/clock")
-public interface ClockService {
-    @POST
-    @Path("system-time")
-    @Produces(MediaType.APPLICATION_JSON)
-    IdentifiedSystemTime getSystemTime();
+public class ClockServiceImpl implements ClockService {
+    private static final UUID SYSTEM_ID = UUID.randomUUID();
+
+    @Override
+    public IdentifiedSystemTime getSystemTime() {
+        return IdentifiedSystemTime.of(System.nanoTime(), SYSTEM_ID);
+    }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.clock;
+package com.palantir.atlasdb.factory.timelock.clock;
 
 import java.util.UUID;
 

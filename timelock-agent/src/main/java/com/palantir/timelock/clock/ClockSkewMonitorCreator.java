@@ -20,8 +20,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.timelock.clock.ClockServiceImpl;
-import com.palantir.atlasdb.timelock.clock.ClockSkewMonitor;
+import com.palantir.atlasdb.factory.timelock.clock.ClockServiceImpl;
+import com.palantir.atlasdb.factory.timelock.clock.ClockSkewMonitor;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.remoting3.config.ssl.TrustContext;
