@@ -112,9 +112,9 @@ public final class LeasingTimelockClient implements TimelockService {
     }
 
     @Override
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         IdentifiedTime identifiedTime = delegate.getLeaderTime();
-        Set<LeasedLockToken> allTokens = tokens.stream()
+        Set<LeasedLockToken> allTokens = uncastedTokens.stream()
                 .map(token -> (LeasedLockToken) token)
                 .collect(Collectors.toSet());
 

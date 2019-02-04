@@ -43,6 +43,10 @@ public abstract class Lease {
                 && identifiedTime.currentTimeNanos().isBefore(expiry());
     }
 
+    public NanoTime expiry() {
+        return startTime().plus(period());
+    }
+
     public static Lease of(IdentifiedTime identifiedTime, Duration period) {
         return ImmutableLease.of(
                 identifiedTime.clockId(),
@@ -52,9 +56,5 @@ public abstract class Lease {
 
     public static Lease of(UUID leaseOwnerId, NanoTime startTime, Duration period) {
         return ImmutableLease.of(leaseOwnerId, startTime, period);
-    }
-
-    private NanoTime expiry() {
-        return startTime().plus(period());
     }
 }

@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import java.util.Objects;
 import java.util.UUID;
 
+import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
@@ -51,7 +52,12 @@ public final class LeasedLockToken implements LockToken {
     }
 
     synchronized void updateLease(Lease newLease) {
-        this.lease = newLease;
+        Preconditions.checkArgument(newLease.leaseOwnerId().equals(lease.leaseOwnerId()),
+                "Lock leases can only be refreshed by lease owners");
+
+        if (this.lease.expiry().isBefore(newLease.expiry())) {
+            this.lease = newLease;
+        }
     }
 
     synchronized boolean isValid(IdentifiedTime identifiedCurrentTime) {
