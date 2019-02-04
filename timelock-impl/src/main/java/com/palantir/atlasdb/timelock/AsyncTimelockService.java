@@ -53,9 +53,9 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
-    LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens);
+    LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens);
 
-    LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
+    LeasableStartIdentifiedAtlasDbTransactionResponse startAtlasDbTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     IdentifiedTime identifiedTime();

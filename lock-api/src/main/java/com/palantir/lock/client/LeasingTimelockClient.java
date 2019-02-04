@@ -21,9 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
@@ -80,7 +78,7 @@ public final class LeasingTimelockClient implements TimelockService {
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         LeasableStartIdentifiedAtlasDbTransactionResponse leasableResponse =
-                delegate.leasableStartIdentifiedAtlasDbTransaction(request);
+                delegate.startAtlasDbTransactionV3(request);
 
         StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.getStartTransactionResponse();
         Lease lease = leasableResponse.getLease();
@@ -99,7 +97,7 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LeasableLockResponse leasableResponse = delegate.leasableLock(request);
+        LeasableLockResponse leasableResponse = delegate.lockV2(request);
 
         LockResponse lockResponse = leasableResponse.getLockResponse();
         Lease lease = leasableResponse.getLease();
@@ -150,7 +148,7 @@ public final class LeasingTimelockClient implements TimelockService {
             return leasedTokens;
         }
 
-        LeasableRefreshLockResponse refreshLockResponse = delegate.leasableRefreshLockLeases(
+        LeasableRefreshLockResponse refreshLockResponse = delegate.refreshLockLeasesV2(
                 serverTokens(leasedTokens));
         Lease lease = refreshLockResponse.getLease();
 

@@ -38,17 +38,14 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@AutoDelegate
 public interface TimelockRpcClient {
 
     @POST
@@ -65,16 +62,21 @@ public interface TimelockRpcClient {
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     /**
-     * @deprecated Please use {@link TimelockService#startIdentifiedAtlasDbTransaction(
-     *StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
+     * @deprecated Please use {@link TimelockRpcClient#startAtlasDbTransactionV3(
+     * StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
      */
     @POST
     @Path("start-atlasdb-transaction")
     @Deprecated
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
+    /**
+     * @deprecated Please use {@link TimelockRpcClient#startAtlasDbTransactionV3(
+     * StartIdentifiedAtlasDbTransactionRequest)} instead
+     */
     @POST
     @Path("start-identified-atlasdb-transaction")
+    @Deprecated
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
@@ -82,29 +84,37 @@ public interface TimelockRpcClient {
     @Path("immutable-timestamp")
     long getImmutableTimestamp();
 
+    /**
+     * @deprecated Please use {@link TimelockRpcClient#lockV2(LockRequest) instead}
+     */
     @POST
     @Path("lock")
+    @Deprecated
     LockResponse lock(LockRequest request);
 
     @POST
     @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
+    /**
+     * @deprecated Please use {@link TimelockRpcClient#refreshLockLeasesV2(Set)} instead}
+     */
     @POST
     @Path("refresh-locks")
+    @Deprecated
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     @POST
-    @Path("leasable-refresh-locks")
-    LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens);
+    @Path("refresh-locks-v2")
+    LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens);
 
     @POST
-    @Path("leasable-lock")
-    LeasableLockResponse leasableLock(LockRequest request);
+    @Path("lock-v2")
+    LeasableLockResponse lockV2(LockRequest request);
 
     @POST
-    @Path("leasable-start-identified-atlasdb-transaction")
-    LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
+    @Path("start-atlasdb-transaction-v3")
+    LeasableStartIdentifiedAtlasDbTransactionResponse startAtlasDbTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     /**
@@ -119,18 +129,6 @@ public interface TimelockRpcClient {
     @POST
     @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);
-
-    /**
-     * A version of {@link TimelockService#unlock(Set)} where one does not need to know whether the locks associated
-     * with the provided tokens were successfully unlocked or not.
-     *
-     * In some implementations, this may be more performant than a standard unlock.
-     *
-     * @param tokens Tokens for which associated locks should be unlocked.
-     */
-    default void tryUnlock(Set<LockToken> tokens) {
-        unlock(tokens);
-    }
 
     @GET
     @Path("leader-time")

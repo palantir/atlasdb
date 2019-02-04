@@ -136,7 +136,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
+    public LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens) {
         IdentifiedTime identifiedStartTime = identifiedTime();
         return LeasableRefreshLockResponse.of(
                 refreshLockLeases(tokens),
@@ -144,7 +144,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
+    public LeasableStartIdentifiedAtlasDbTransactionResponse startAtlasDbTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request) {
         IdentifiedTime identifiedStartTime = identifiedTime();
         return LeasableStartIdentifiedAtlasDbTransactionResponse.of(

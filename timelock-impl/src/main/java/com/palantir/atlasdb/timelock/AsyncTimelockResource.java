@@ -136,14 +136,14 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("leasable-refresh-locks")
-    public LeasableRefreshLockResponse leasableRefreshLockLeases(Set<LockToken> tokens) {
-        return timelock.leasableRefreshLockLeases(tokens);
+    @Path("refresh-locks-v2")
+    public LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens) {
+        return timelock.refreshLockLeasesV2(tokens);
     }
 
     @POST
-    @Path("leasable-lock")
-    public void leasableLock(@Suspended final AsyncResponse response, LockRequest request) {
+    @Path("lock-v2")
+    public void lockV2(@Suspended final AsyncResponse response, LockRequest request) {
         IdentifiedTime identifiedStartTime = timelock.identifiedTime();
         AsyncResult<LockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
@@ -163,10 +163,10 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("leasable-start-identified-atlasdb-transaction")
-    public LeasableStartIdentifiedAtlasDbTransactionResponse leasableStartIdentifiedAtlasDbTransaction(
+    @Path("start-atlasdb-transaction-v3")
+    public LeasableStartIdentifiedAtlasDbTransactionResponse startAtlasDbTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.leasableStartIdentifiedAtlasDbTransaction(request);
+        return timelock.startAtlasDbTransactionV3(request);
     }
 
     @POST
