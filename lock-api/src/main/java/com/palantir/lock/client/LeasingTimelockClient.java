@@ -103,9 +103,13 @@ public final class LeasingTimelockClient implements TimelockService {
 
         LockResponse lockResponse = leasableResponse.getLockResponse();
         Lease lease = leasableResponse.getLease();
-        LeasedLockToken leasedLockToken = LeasedLockToken.of(lockResponse.getToken(), lease);
 
-        return ImmutableLockResponse.of(Optional.of(leasedLockToken));
+        if (lockResponse.wasSuccessful()) {
+            LeasedLockToken leasedLockToken = LeasedLockToken.of(lockResponse.getToken(), lease);
+            return ImmutableLockResponse.of(Optional.of(leasedLockToken));
+        }
+
+        return LockResponse.timedOut();
     }
 
     @Override

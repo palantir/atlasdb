@@ -55,6 +55,7 @@ public class LeasingTimelockClientTest {
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
+    private static final LockResponse FAILED_LOCK_RESPONSE = LockResponse.timedOut();
 
     @Before
     public void setUp() {
@@ -84,6 +85,17 @@ public class LeasingTimelockClientTest {
         LeasedLockToken leasedLockToken = (LeasedLockToken) clientResponse.getToken();
         assertEquals(LOCK_TOKEN, leasedLockToken.serverToken());
         assertEquals(lease, leasedLockToken.getLease());
+    }
+
+    @Test
+    public void shouldHandleUnsuccessfulLockResponses() {
+        LockRequest lockRequest = mock(LockRequest.class);
+        Lease lease = getLease();
+        when(timelockService.leasableLock(lockRequest)).thenReturn(
+                LeasableLockResponse.of(FAILED_LOCK_RESPONSE, lease));
+
+        LockResponse clientResponse = timelockClient.lock(lockRequest);
+        assertFalse(clientResponse.wasSuccessful());
     }
 
     @Test

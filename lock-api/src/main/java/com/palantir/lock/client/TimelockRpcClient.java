@@ -49,17 +49,7 @@ import com.palantir.timestamp.TimestampRange;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @AutoDelegate
-public interface TimelockRpcClient { //needs a better name
-    /**
-     * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
-     * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
-     * implementation, and return true (they're trivially fully initialized).
-     *
-     * @return true iff the TimelockService has been fully initialized and is ready to use
-     */
-    default boolean isInitialized() {
-        return true;
-    }
+public interface TimelockRpcClient {
 
     @POST
     @Path("fresh-timestamp")
