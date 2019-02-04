@@ -45,7 +45,7 @@ public class ClockSkewEvents {
     }
 
     public void clockSkew(
-            String server, ClockSkewEvent event , long requestDuration) {
+            String server, ClockSkewEvent event, long requestDuration) {
         if (event.getClockSkew() >= WARN_SKEW_THRESHOLD_NANOS) {
             log.info("Skew of {} ns over at least {} ns was detected on the remote server {}."
                             + " (Our request took approximately {} ns.)",

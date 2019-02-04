@@ -64,6 +64,7 @@ import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
+import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.ConsistencyCheckRunner;
@@ -134,6 +135,8 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.remoting3.config.ssl.TrustContext;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -770,10 +773,33 @@ public abstract class TransactionManagers {
                         serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
 
-        ClockSkewMonitor.create(metricsManager, getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier).get().servers(), Optional.empty());
+        setClockSkewMonitor(metricsManager, runtimeConfigSupplier, config);
+
         return ImmutableLockAndTimestampServices.copyOf(
                 getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent))
                 .withMigrator(migrator);
+    }
+
+    private static void setClockSkewMonitor(
+            MetricsManager metricsManager,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            AtlasDbConfig installConfig) {
+        Optional<TrustContext> trustContext;
+        Optional<TimeLockRuntimeConfig> timeLockRuntimeConfig = runtimeConfigSupplier.get().timelockRuntime();
+
+        if (timeLockRuntimeConfig.isPresent()) {
+            trustContext = timeLockRuntimeConfig.get()
+                    .serversList()
+                    .sslConfiguration().map(SslSocketFactories::createTrustContext);
+        } else {
+            trustContext = installConfig.timelock().get()
+                    .toNamespacedServerList()
+                    .sslConfiguration().map(SslSocketFactories::createTrustContext);
+        }
+
+        ClockSkewMonitor.create(metricsManager,
+                getServerListConfigSupplierForTimeLock(installConfig, runtimeConfigSupplier).get().servers(),
+                trustContext).runInBackground();
     }
 
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
