@@ -18,24 +18,36 @@ package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.class)
 @JsonDeserialize(as = ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.class)
-public interface LeasableStartIdentifiedAtlasDbTransactionResponse {
+public abstract class LeasableStartIdentifiedAtlasDbTransactionResponse {
     @Value.Parameter
-    StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse();
+    public abstract LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    Lease getLease();
+    public abstract TimestampAndPartition startTimestampAndPartition();
 
-    static LeasableStartIdentifiedAtlasDbTransactionResponse of(
+    @Value.Parameter
+    public abstract Lease getLease();
+
+    @JsonIgnore
+    public StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse() {
+        return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
+                immutableTimestamp(),
+                startTimestampAndPartition());
+    }
+
+    public static LeasableStartIdentifiedAtlasDbTransactionResponse of(
             StartIdentifiedAtlasDbTransactionResponse response,
             Lease lease) {
         return ImmutableLeasableStartIdentifiedAtlasDbTransactionResponse.of(
-                response,
+                response.immutableTimestamp(),
+                response.startTimestampAndPartition(),
                 lease);
     }
 }

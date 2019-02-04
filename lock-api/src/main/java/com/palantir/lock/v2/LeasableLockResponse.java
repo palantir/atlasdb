@@ -16,22 +16,30 @@
 
 package com.palantir.lock.v2;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableLeasableLockResponse.class)
 @JsonDeserialize(as = ImmutableLeasableLockResponse.class)
-public interface LeasableLockResponse {
+public abstract class LeasableLockResponse {
     @Value.Parameter
-    LockResponse getLockResponse();
+    public abstract Optional<LockToken> getTokenOrEmpty();
 
     @Value.Parameter
-    Lease getLease();
+    public abstract Lease getLease();
 
-    static LeasableLockResponse of(LockResponse lockResponse, Lease lease) {
-        return ImmutableLeasableLockResponse.of(lockResponse, lease);
+    @JsonIgnore
+    public LockResponse getLockResponse() {
+        return ImmutableLockResponse.of(getTokenOrEmpty());
+    }
+
+    public static LeasableLockResponse of(LockResponse lockResponse, Lease lease) {
+        return ImmutableLeasableLockResponse.of(lockResponse.getTokenOrEmpty(), lease);
     }
 }
