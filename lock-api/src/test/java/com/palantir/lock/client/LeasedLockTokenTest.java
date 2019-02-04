@@ -16,8 +16,7 @@
 
 package com.palantir.lock.client;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -36,21 +35,21 @@ public class LeasedLockTokenTest {
     @Test
     public void shouldCreateValidTokensUntilExpiry() {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofSeconds(1)));
-        assertTrue(token.isValid(getIdentifiedTime()));
+        assertThat(token.isValid(getIdentifiedTime())).isTrue();
     }
 
     @Test
     public void shouldBeInvalidAfterExpiry() throws Exception {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofMillis(10)));
         Thread.sleep(15);
-        assertFalse(token.isValid(getIdentifiedTime()));
+        assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
     @Test
     public void shouldBeInvalidAfterInvalidation() {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofSeconds(1)));
         token.inValidate();
-        assertFalse(token.isValid(getIdentifiedTime()));
+        assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
     private IdentifiedTime getIdentifiedTime() {

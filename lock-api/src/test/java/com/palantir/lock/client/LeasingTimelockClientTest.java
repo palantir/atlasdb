@@ -18,8 +18,6 @@ package com.palantir.lock.client;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -52,12 +50,12 @@ import com.palantir.lock.v2.TimestampAndPartition;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LeasingTimelockClientTest {
-    @Mock private TimelockRpcClient timelockService;
+    @Mock private TimelockRpcClient timelockRpcClient;
     @Mock private LockRequest lockRequest;
     @Mock private StartIdentifiedAtlasDbTransactionRequest startTxnRequest;
     @Mock private TimestampAndPartition timestampAndPartition;
 
-    private TimelockService timelockClient;
+    private TimelockService timelockService;
     private static final UUID LEADER_ID = UUID.randomUUID();
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
@@ -66,28 +64,28 @@ public class LeasingTimelockClientTest {
 
     @Before
     public void before() {
-        when(timelockService.getLeaderTime()).thenReturn(IdentifiedTime.of(UUID.randomUUID(), NanoTime.now()));
-        timelockClient = LeasingTimelockClient.create(timelockService);
+        when(timelockRpcClient.getLeaderTime()).thenReturn(IdentifiedTime.of(UUID.randomUUID(), NanoTime.now()));
+        timelockService = LeasingTimelockClient.create(timelockRpcClient);
     }
 
     @Test
     public void delegatesLockRequest() {
-        when(timelockService.lockV2(lockRequest)).thenReturn(
+        when(timelockRpcClient.lockV2(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
 
-        timelockClient.lock(lockRequest);
+        timelockService.lock(lockRequest);
 
     }
 
     @Test
     public void lockResponeHasCorrectLeasedLock() {
         Lease lease = getLease();
-        when(timelockService.lockV2(lockRequest)).thenReturn(
+        when(timelockRpcClient.lockV2(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, lease));
 
-        LockResponse clientResponse = timelockClient.lock(lockRequest);
+        LockResponse clientResponse = timelockService.lock(lockRequest);
 
-        verify(timelockService).lockV2(lockRequest);
+        verify(timelockRpcClient).lockV2(lockRequest);
         LeasedLockToken leasedLockToken = (LeasedLockToken) clientResponse.getToken();
         assertThat(leasedLockToken.serverToken()).isEqualTo(LOCK_TOKEN);
         assertThat(leasedLockToken.getLease()).isEqualTo(lease);
@@ -96,24 +94,24 @@ public class LeasingTimelockClientTest {
     @Test
     public void shouldHandleUnsuccessfulLockResponses() {
         Lease lease = getLease();
-        when(timelockService.lockV2(lockRequest)).thenReturn(
+        when(timelockRpcClient.lockV2(lockRequest)).thenReturn(
                 LeasableLockResponse.of(FAILED_LOCK_RESPONSE, lease));
 
-        LockResponse clientResponse = timelockClient.lock(lockRequest);
-        assertFalse(clientResponse.wasSuccessful());
+        LockResponse clientResponse = timelockService.lock(lockRequest);
+        assertThat(clientResponse.wasSuccessful()).isFalse();
     }
 
     @Test
     public void startAtlasdbTransactionResponseHasCorrectLeasedLock() {
         StartIdentifiedAtlasDbTransactionResponse response = startTransactionResponseWith(LOCK_TOKEN);
         Lease lease = getLease();
-        when(timelockService.startAtlasDbTransactionV3(startTxnRequest)).thenReturn(
+        when(timelockRpcClient.startAtlasDbTransactionV3(startTxnRequest)).thenReturn(
                 LeasableStartIdentifiedAtlasDbTransactionResponse.of(response, lease));
 
         StartIdentifiedAtlasDbTransactionResponse clientResponse =
-                timelockClient.startIdentifiedAtlasDbTransaction(startTxnRequest);
+                timelockService.startIdentifiedAtlasDbTransaction(startTxnRequest);
 
-        verify(timelockService).startAtlasDbTransactionV3(startTxnRequest);
+        verify(timelockRpcClient).startAtlasDbTransactionV3(startTxnRequest);
 
         LeasedLockToken leasedLock = (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
         assertThat(leasedLock.serverToken()).isEqualTo(LOCK_TOKEN);
@@ -122,20 +120,20 @@ public class LeasingTimelockClientTest {
 
     @Test
     public void returnedTokenShouldHaveCorrectServerToken() {
-        when(timelockService.lockV2(lockRequest)).thenReturn(
+        when(timelockRpcClient.lockV2(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
 
-        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        LockResponse lockResponse = timelockService.lock(lockRequest);
         LeasedLockToken leasedToken = (LeasedLockToken) lockResponse.getToken();
         assertThat(LOCK_RESPONSE.getToken()).isEqualTo(leasedToken.serverToken());
     }
 
     @Test
     public void leasedTokenShouldHaveValidLeaseForTheLeasePeriod() {
-        when(timelockService.lockV2(lockRequest)).thenReturn(
+        when(timelockRpcClient.lockV2(lockRequest)).thenReturn(
                 LeasableLockResponse.of(LOCK_RESPONSE, getLease()));
 
-        LockResponse lockResponse = timelockClient.lock(lockRequest);
+        LockResponse lockResponse = timelockService.lock(lockRequest);
         assertValid(lockResponse.getToken());
     }
 
@@ -143,24 +141,24 @@ public class LeasingTimelockClientTest {
     public void unlockShouldCallRemoteServer_validLeases() {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
         assertValid(token);
-        timelockClient.unlock(ImmutableSet.of(token));
+        timelockService.unlock(ImmutableSet.of(token));
 
-        verify(timelockService).unlock(ImmutableSet.of(token.serverToken()));
+        verify(timelockRpcClient).unlock(ImmutableSet.of(token.serverToken()));
     }
 
     @Test
     public void unlockShouldCallRemoteServer_inValidLeases() {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
         assertInvalid(token);
-        timelockClient.unlock(ImmutableSet.of(token));
+        timelockService.unlock(ImmutableSet.of(token));
 
-        verify(timelockService).unlock(ImmutableSet.of(token.serverToken()));
+        verify(timelockRpcClient).unlock(ImmutableSet.of(token.serverToken()));
     }
 
     @Test
     public void unlockShouldInvalidateLease() {
         LockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
-        timelockClient.unlock(ImmutableSet.of(token));
+        timelockService.unlock(ImmutableSet.of(token));
 
         assertInvalid(token);
     }
@@ -168,11 +166,11 @@ public class LeasingTimelockClientTest {
     @Test
     public void shouldOnlyCallIdentifiedTimeIfLeaseIsValid() {
         LeasedLockToken validToken = LeasedLockToken.of(LOCK_TOKEN, getLease());
-        when(timelockService.getLeaderTime()).thenReturn(getIdentifiedTime());
-        timelockClient.refreshLockLeases(ImmutableSet.of(validToken));
+        when(timelockRpcClient.getLeaderTime()).thenReturn(getIdentifiedTime());
+        timelockService.refreshLockLeases(ImmutableSet.of(validToken));
 
-        verify(timelockService).getLeaderTime();
-        verifyNoMoreInteractions(timelockService);
+        verify(timelockRpcClient).getLeaderTime();
+        verifyNoMoreInteractions(timelockRpcClient);
     }
 
     @Test
@@ -180,14 +178,13 @@ public class LeasingTimelockClientTest {
         LeasedLockToken leasedLockToken = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
         assertInvalid(leasedLockToken);
 
-        when(timelockService.refreshLockLeasesV2(ImmutableSet.of(LOCK_TOKEN)))
+        when(timelockRpcClient.refreshLockLeasesV2(ImmutableSet.of(LOCK_TOKEN)))
                 .thenReturn(LeasableRefreshLockResponse.of(
                         ImmutableSet.of(LOCK_TOKEN),
-                        getLease()
-                ));
+                        getLease()));
 
-        Set<LockToken> refreshed = timelockClient.refreshLockLeases(ImmutableSet.of(leasedLockToken));
-        verify(timelockService).refreshLockLeasesV2(ImmutableSet.of(leasedLockToken.serverToken()));
+        Set<LockToken> refreshed = timelockService.refreshLockLeases(ImmutableSet.of(leasedLockToken));
+        verify(timelockRpcClient).refreshLockLeasesV2(ImmutableSet.of(leasedLockToken.serverToken()));
 
         LeasedLockToken refreshedLeasedLockToken = (LeasedLockToken) refreshed.iterator().next();
         assertValid(refreshedLeasedLockToken);
@@ -198,18 +195,17 @@ public class LeasingTimelockClientTest {
     private StartIdentifiedAtlasDbTransactionResponse startTransactionResponseWith(LockToken lockToken) {
         return StartIdentifiedAtlasDbTransactionResponse.of(
                 LockImmutableTimestampResponse.of(1L, lockToken),
-                timestampAndPartition
-        );
+                timestampAndPartition);
     }
 
     private void assertValid(LockToken token) {
         LeasedLockToken leasedLockToken = (LeasedLockToken) token;
-        assertTrue(leasedLockToken.isValid(getIdentifiedTime()));
+        assertThat(leasedLockToken.isValid(getIdentifiedTime())).isTrue();
     }
 
     private void assertInvalid(LockToken token) {
         LeasedLockToken leasedLockToken = (LeasedLockToken) token;
-        assertFalse(leasedLockToken.isValid(getIdentifiedTime()));
+        assertThat(leasedLockToken.isValid(getIdentifiedTime())).isFalse();
     }
 
     private Lease getLease(Duration period) {
