@@ -146,7 +146,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         final long currentTime = currentTimeMillis.get();
         boolean failedDueToFastFailover = fastFailoverStartTime != 0
                 && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis
-                && numSwitches.get() > servers.size();
+                && numSwitches.get() > servers.size() - 1; //try all the available servers before failing
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
         if (failedDueToFastFailover) {
             log.error("This connection has been instructed to fast failover for {}"
