@@ -846,6 +846,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void transactionDeletesAsyncOnRollback() {
         DeterministicScheduler executor = new DeterministicScheduler();
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
@@ -904,6 +905,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void readTransactionSucceedsIfConditionSucceeds() {
         serializableTxManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP,
                 (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL)));
@@ -912,6 +914,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void readTransactionFailsIfConditionFails() {
         try {
             serializableTxManager.runTaskWithConditionReadOnly(ALWAYS_FAILS_CONDITION,
@@ -1022,6 +1025,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @Ignore
     public void commitThrowsIfRolledBackAtCommitTime_expiredLocks() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 

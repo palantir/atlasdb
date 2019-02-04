@@ -21,9 +21,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
@@ -54,23 +57,23 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class AtlasDbTestCase {
-    protected LockClient lockClient;
-    protected LockService lockService;
+    protected static LockClient lockClient;
+    protected static LockService lockService;
 
-    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
-    protected StatsTrackingKeyValueService keyValueServiceWithStats;
-    protected TrackingKeyValueService keyValueService;
-    protected InMemoryTimestampService timestampService;
-    protected ConflictDetectionManager conflictDetectionManager;
-    protected SweepStrategyManager sweepStrategyManager;
-    protected TestTransactionManagerImpl serializableTxManager;
-    protected TestTransactionManager txManager;
-    protected TransactionService transactionService;
-    protected TargetedSweeper sweepQueue;
-    protected int sweepQueueShards = 128;
+    protected static final MetricsManager metricsManager = MetricsManagers.createForTests();
+    protected static StatsTrackingKeyValueService keyValueServiceWithStats;
+    protected static KeyValueService keyValueService;
+    protected static InMemoryTimestampService timestampService;
+    protected static ConflictDetectionManager conflictDetectionManager;
+    protected static SweepStrategyManager sweepStrategyManager;
+    protected static TestTransactionManagerImpl serializableTxManager;
+    protected static TestTransactionManager txManager;
+    protected static TransactionService transactionService;
+    protected static TargetedSweeper sweepQueue;
+    protected static int sweepQueueShards = 128;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUp2() throws Exception {
         lockClient = LockClient.of("fake lock client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
@@ -101,16 +104,21 @@ public class AtlasDbTestCase {
         txManager = new CachingTestTransactionManager(serializableTxManager);
     }
 
-    protected KeyValueService getBaseKeyValueService() {
+    protected static KeyValueService getBaseKeyValueService() {
         ExecutorService executor = PTExecutors.newSingleThreadExecutor(
                 PTExecutors.newNamedThreadFactory(true));
-        InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(false, executor);
+        InMemoryKeyValueService inMemoryKvs = new InMemoryKeyValueService(true, executor);
         KeyValueService tracingKvs = TracingKeyValueService.create(inMemoryKvs);
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, tracingKvs);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @Before
+    public void setUp() throws Exception {
+        keyValueService.getAllTableNames().forEach(keyValueService::dropTable);
+    }
+
+    @AfterClass
+    public static void tearDown() throws Exception {
         // JUnit keeps instantiated test cases in memory, so we need to null out
         // some fields to prevent OOMs.
         txManager.close();
@@ -129,27 +137,27 @@ public class AtlasDbTestCase {
                 timestampService, timestampService, lockClient, lockService, transactionService, mode);
     }
 
-    protected void clearTablesWrittenTo() {
-        keyValueService.clearTablesWrittenTo();
-    }
-
-    protected void clearTablesReadFrom() {
-        keyValueService.clearTablesReadFrom();
-    }
-
-    protected Set<TableReference> getTablesWrittenTo() {
-        return keyValueService.getTablesWrittenTo();
-    }
-
-    protected Set<TableReference> getTablesReadFrom() {
-        return keyValueService.getTablesReadFrom();
-    }
-
-    protected boolean wasTableWrittenTo(TableReference tableName) {
-        return getTablesWrittenTo().contains(tableName);
-    }
-
-    protected boolean wasTableReadFrom(TableReference tableName) {
-        return getTablesReadFrom().contains(tableName);
-    }
+//    protected void clearTablesWrittenTo() {
+//        keyValueService.clearTablesWrittenTo();
+//    }
+//
+//    protected void clearTablesReadFrom() {
+//        keyValueService.clearTablesReadFrom();
+//    }
+//
+//    protected Set<TableReference> getTablesWrittenTo() {
+//        return keyValueService.getTablesWrittenTo();
+//    }
+//
+//    protected Set<TableReference> getTablesReadFrom() {
+//        return keyValueService.getTablesReadFrom();
+//    }
+//
+//    protected boolean wasTableWrittenTo(TableReference tableName) {
+//        return getTablesWrittenTo().contains(tableName);
+//    }
+//
+//    protected boolean wasTableReadFrom(TableReference tableName) {
+//        return getTablesReadFrom().contains(tableName);
+//    }
 }
