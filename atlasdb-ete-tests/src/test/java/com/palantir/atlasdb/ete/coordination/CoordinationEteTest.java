@@ -50,13 +50,6 @@ public class CoordinationEteTest {
     }
 
     @Test
-    public void tryInstallNewVersionDoesNotForceImmediateChangeover() {
-        coordinationResource.tryInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
-        assertThat(coordinationResource.doTransactionAndReportOutcome()).isTrue();
-    }
-
-    @Test
     public void transactionOnKnownVersionAndFreshCellSucceedsEvenIfWePassedThroughAnUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
         assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
