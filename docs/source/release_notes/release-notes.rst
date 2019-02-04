@@ -77,7 +77,7 @@ develop
     *    - |fixed|
          - Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
            Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
 ========
 v0.116.1

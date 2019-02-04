@@ -89,7 +89,7 @@ public abstract class TimestampPartitioningMap<T> {
      * timestamp C and value O. If O and V are not equal (using {@link Objects#equals(Object, Object)}, this range will
      * be split, resulting in [C, L)=O and [L, +∞)=V; if they are equal, the range will remain as [C, +∞)=O (but
      * the method still returns a copy).
-     * 
+     *
      * This method will throw an exception if L is smaller than C.
      *
      * @param lowerBoundForNewVersion lowest timestamp at which the new value should be mapped to
