@@ -31,7 +31,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
     private final InMemoryKeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final TransactionService writeTransactionService
-            = TransactionServices.createForTesting(keyValueService, timestampService, false);
+            = TransactionServices.createRaw(keyValueService, timestampService, false);
     private final TransactionService readOnlyTransactionService
             = TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
             keyValueService);
