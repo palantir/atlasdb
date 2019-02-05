@@ -113,7 +113,7 @@ public class TransactionSchemaManager {
     }
 
     @VisibleForTesting
-    Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(ValueAndBound<InternalSchemaMetadata> valueAndBound) { ;
+    Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(ValueAndBound<InternalSchemaMetadata> valueAndBound) {
         return valueAndBound.value()
                 .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
                 .timestampToTransactionsTableSchemaVersion()
