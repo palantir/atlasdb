@@ -210,6 +210,11 @@ Please be very careful if you are explicitly setting this to <code class="docuti
 <td>Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting <cite>install.asyncLock.useAsyncLockService</cite> to <cite>false</cite> (default is <cite>true</cite>) should migrate to <cite>AsyncLockService</cite> before taking this upgrade.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3718">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
+Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3733">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
