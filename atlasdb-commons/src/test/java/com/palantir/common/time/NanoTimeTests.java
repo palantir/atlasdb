@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.lease;
+package com.palantir.common.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class NanoTimeTests {
 
@@ -35,6 +38,17 @@ public final class NanoTimeTests {
     @Test
     public void testIsBefore_overflow() {
         assertThat(new NanoTime(Long.MAX_VALUE).isBefore(new NanoTime(Long.MIN_VALUE))).isTrue();
+    }
+
+    @Test
+    public void canBeSerializedAndDeserialized() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        NanoTime nanoTime = NanoTime.now();
+        String serialized = mapper.writeValueAsString(nanoTime);
+        NanoTime deserialized = mapper.readValue(serialized, NanoTime.class);
+
+        assertEquals(nanoTime, deserialized);
     }
 }
 
