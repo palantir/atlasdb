@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -48,51 +47,6 @@ public class TableMetadataTest {
     @Test
     public void canSerializeAndDeserializeNonDefaultMetadata() {
         assertCanSerializeAndDeserialize(DIFFERENT_TABLE_METADATA);
-    }
-
-    @Test
-    public void genericTableMetadataSerializedFormDidNotChangeWithImmutables() {
-        // Generic table metadata serialized before TableMetadata switched to using immutables
-        byte[] oldGenericTableMetadata = {10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1, 48, 1, 24, 0,
-                                          18, 30, 18, 28, 10, 18, 10, 14, 10, 4, 110, 97, 109, 101, 16, 4, 24, 1, 32, 1,
-                                          48, 1, 24, 0, 18, 6, 8, 4, 24, 1, 32, 3, 24, 2, 32, 64, 48, 0, 64, 0, 72, 1,
-                                          88, 0, 96, 0};
-        assertThat(AtlasDbConstants.GENERIC_TABLE_METADATA).containsExactly(oldGenericTableMetadata);
-    }
-
-    @Test
-    public void puncherStoreMetadataSerializedFormDidNotChangeWithImmutables() {
-        // Puncher store metadata serialized before TableMetadata switched to using immutables
-        byte[] oldPuncherStore = {10, 18, 10, 14, 10, 4, 116, 105, 109, 101, 16, 1, 24, 2, 32, 1, 48, 1, 24, 0, 18, 18,
-                                  10, 16, 10, 1, 116, 18, 1, 116, 26, 6, 8, 1, 24, 1, 32, 3, 32, 1, 24, 1, 32, 64, 48,
-                                  0, 64, 0, 72, 1, 88, 0, 96, 0};
-        /**
-         * see {@link KeyValueServicePuncherStore}
-         */
-        byte[] puncherStore = TableMetadata.internal()
-                .rowMetadata(NameMetadataDescription.create("time", ValueType.VAR_LONG, TableMetadataPersistence.ValueByteOrder.DESCENDING))
-                .columns(ColumnMetadataDescription.singleNamed("t", "t", ValueType.VAR_LONG))
-                .build()
-                .persistToBytes();
-        assertThat(puncherStore).containsExactly(oldPuncherStore);
-    }
-
-    @Test
-    public void coordiantionStoreMetadataSerializedFormDidNotChangeWithImmutables() {
-        // Coordination store metadata serialized before TableMetadata switched to using immutables
-        byte[] oldCoordinationStore = {10, 22, 10, 18, 10, 8, 115, 101, 113, 117, 101, 110, 99, 101, 16, 4, 24, 1, 32,
-                                       1, 48, 0, 24, 0, 18, 40, 18, 38, 10, 28, 10, 24, 10, 14, 115, 101, 113, 117, 101,
-                                       110, 99, 101, 78, 117, 109, 98, 101, 114, 16, 1, 24, 1, 32, 1, 48, 0, 24, 0, 18,
-                                       6, 8, 4, 24, 1, 32, 3, 24, 1, 32, 64, 48, 0, 64, 0, 72, 0, 88, 0, 96, 0};
-        /**
-         * see {@link KeyValueServiceCoordinationStore}
-         */
-        byte[] coordinationStore = TableMetadata.internal()
-                .rowMetadata(NameMetadataDescription.safe("sequence", ValueType.BLOB))
-                .columns(ColumnMetadataDescription.singleDynamicSafe("sequenceNumber", ValueType.VAR_LONG, ValueType.BLOB))
-                .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
-                .build().persistToBytes();
-        assertThat(coordinationStore).containsExactly(oldCoordinationStore);
     }
 
     private static void assertCanSerializeAndDeserialize(TableMetadata tableMetadata) {
