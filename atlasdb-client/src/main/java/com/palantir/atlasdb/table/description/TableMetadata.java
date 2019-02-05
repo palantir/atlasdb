@@ -85,6 +85,13 @@ public abstract class TableMetadata implements Persistable {
         return builder().build();
     }
 
+    public static class NiceBuilder extends ImmutableTableMetadata.Builder {
+        public NiceBuilder test() {
+            this.nameLogSafety(LogSafety.UNSAFE);
+            return this;
+        }
+    }
+
     public static ImmutableTableMetadata.Builder builder() {
         return ImmutableTableMetadata.builder();
     }

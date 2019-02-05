@@ -73,6 +73,8 @@ import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -330,12 +332,15 @@ public abstract class TransactionManagers {
 
         CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
                 metricsManager, lockAndTimestampServices, keyValueService);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
         TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
                 metricsManager.getRegistry(),
                 TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService, coordinationService)),
+                TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
+        TransactionSchemaInstaller schemaInstaller = initializeTransactionSchemaInstaller(
+                closeables, runtimeConfigSupplier, transactionSchemaManager);
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -397,6 +402,7 @@ public abstract class TransactionManagers {
 
         instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
         instrumentedTransactionManager.registerClosingCallback(transactionService::close);
+        instrumentedTransactionManager.registerClosingCallback(schemaInstaller::close);
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
@@ -428,6 +434,13 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private TransactionSchemaInstaller initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier, TransactionSchemaManager transactionSchemaManager) {
+        return initializeCloseable(() -> TransactionSchemaInstaller.createStarted(transactionSchemaManager,
+                () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()),
+                closeables);
     }
 
     private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
