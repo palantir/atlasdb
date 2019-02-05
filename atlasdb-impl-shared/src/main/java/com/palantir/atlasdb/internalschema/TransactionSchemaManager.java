@@ -80,7 +80,8 @@ public class TransactionSchemaManager {
     public boolean tryInstallNewTransactionsSchemaVersion(int newVersion) {
         CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> transformResult = tryInstallNewVersion(newVersion);
 
-        Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(transformResult);
+        Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(
+                Iterables.getOnlyElement(transformResult.existingValues()));
         long newVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
 
         if (transformResult.successful() && finalVersion.getValue() == newVersion) {
@@ -111,14 +112,13 @@ public class TransactionSchemaManager {
         return false;
     }
 
-    private Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(
-            CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> transformResult) {
-        ValueAndBound<InternalSchemaMetadata> presentValue = Iterables.getOnlyElement(transformResult.existingValues());
-        return presentValue.value()
+    @VisibleForTesting
+    Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(ValueAndBound<InternalSchemaMetadata> valueAndBound) { ;
+        return valueAndBound.value()
                 .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
                 .timestampToTransactionsTableSchemaVersion()
                 .rangeMapView()
-                .getEntry(presentValue.bound());
+                .getEntry(valueAndBound.bound());
     }
 
     private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryInstallNewVersion(int newVersion) {
