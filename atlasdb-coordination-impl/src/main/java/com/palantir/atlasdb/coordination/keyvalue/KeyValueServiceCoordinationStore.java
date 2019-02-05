@@ -46,15 +46,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.DynamicColumnDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -95,7 +89,11 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
-    private static final TableMetadata COORDINATION_TABLE_METADATA = getCoordinationTableMetadata();
+    private static final TableMetadata COORDINATION_TABLE_METADATA = TableMetadata.internal()
+            .singleSafeRowComponent("sequence", ValueType.BLOB)
+            .singleDynamicSafeColumn("sequenceNumber", ValueType.VAR_LONG, ValueType.BLOB)
+            .sweepStrategy(SweepStrategy.NOTHING)
+            .build();
 
     private static final long ADVANCEMENT_QUANTUM = 5_000_000L;
 
@@ -326,32 +324,5 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private Optional<Value> readFromCoordinationTable(Cell cell) {
         return Optional.ofNullable(kvs.get(AtlasDbConstants.COORDINATION_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE))
                 .get(cell));
-    }
-
-    private static TableMetadata getCoordinationTableMetadata() {
-        return new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription.Builder()
-                                .componentName("sequence")
-                                .type(ValueType.BLOB)
-                                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
-                                .build())),
-                new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(
-                                ImmutableList.of(
-                                        new NameComponentDescription.Builder()
-                                                .componentName("sequenceNumber")
-                                                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
-                                                .type(ValueType.VAR_LONG)
-                                                .build())),
-                        ColumnValueDescription.forType(ValueType.BLOB))),
-                ConflictHandler.IGNORE_ALL,
-                TableMetadataPersistence.CachePriority.WARM,
-                false,
-                0,
-                false,
-                TableMetadataPersistence.SweepStrategy.NOTHING, // we do our own cleanup
-                false,
-                TableMetadataPersistence.LogSafety.SAFE);
     }
 }

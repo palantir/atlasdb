@@ -304,13 +304,13 @@ public class Schema {
                 Validate.isTrue(tableMetadata.getColumns().getDynamicColumn() == null,
                         "Indexes accessing columns not supported for tables with dynamic columns.");
                 Collection<String> columnNames = Collections2.transform(tableMetadata.getColumns().getNamedColumns(),
-                        input -> input.getLongName());
+                        NamedColumnDescription::getLongName);
                 Validate.isTrue(columnNames.contains(indexMetadata.getColumnNameToAccessData()),
                         "In index, a component derived from column must reference an existing column");
             }
 
             if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
-                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.conflictHandler),
+                Validate.isTrue(ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
                         "Nonadditive indexes require write-write conflicts on their tables");
             }
         }
@@ -337,18 +337,12 @@ public class Schema {
 
     public Map<TableReference, TableDefinition> getTableDefinitions() {
         return tableDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
     }
 
     public Map<TableReference, IndexDefinition> getIndexDefinitions() {
         return indexDefinitions.entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> TableReference.create(namespace, e.getKey()),
-                        e -> e.getValue()
-                ));
+                .collect(Collectors.toMap(e -> TableReference.create(namespace, e.getKey()), Entry::getValue));
     }
 
     public Namespace getNamespace() {

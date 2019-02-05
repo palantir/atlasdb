@@ -29,7 +29,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
-    private static final TableMetadata EMPTY = new TableMetadata();
+    private static final TableMetadata EMPTY = TableMetadata.allDefault();
 
     @Inject
     public TableMetadataCache(final KeyValueService kvs) {

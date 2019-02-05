@@ -29,8 +29,8 @@ import com.palantir.atlasdb.table.description.ValueType;
 public class AtlasDeserializersTest {
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = NameMetadataDescription.create(
             ImmutableList.of(
-                    new NameComponentDescription.Builder().componentName("age").type(ValueType.FIXED_LONG).build(),
-                    new NameComponentDescription.Builder().componentName("name").type(ValueType.STRING).build()));
+                    NameComponentDescription.of("age", ValueType.FIXED_LONG),
+                    NameComponentDescription.of("name", ValueType.STRING)));
 
     @Test
     public void testDeserializeRowFromJsonList() throws Exception {

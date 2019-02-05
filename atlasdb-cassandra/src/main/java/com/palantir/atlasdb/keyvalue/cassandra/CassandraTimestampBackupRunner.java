@@ -53,7 +53,7 @@ public class CassandraTimestampBackupRunner {
     public void ensureTimestampTableExists() {
         cassandraKeyValueService.createTable(
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
+                CassandraTimestampBoundStore.TIMESTAMP_TABLE_METADATA.persistToBytes());
     }
 
     /**

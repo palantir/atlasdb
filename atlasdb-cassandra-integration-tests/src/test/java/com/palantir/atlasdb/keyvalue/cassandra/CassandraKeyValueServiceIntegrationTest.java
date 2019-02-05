@@ -69,8 +69,6 @@ import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -316,11 +314,10 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         TableReference userTable = TableReference.createFromFullyQualifiedName("test.tOoMaNyTeStS");
         Cell oldMetadataCell = CassandraKeyValueServices.getOldMetadataCell(userTable);
 
-        byte[] tableMetadataUpdate = new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.IGNORE_ALL, // <--- new, update that isn't in ORIGINAL_METADATA
-                TableMetadataPersistence.LogSafety.SAFE)
+        byte[] tableMetadataUpdate = TableMetadata.builder()
+                .conflictHandler(ConflictHandler.IGNORE_ALL)
+                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+                .build()
                 .persistToBytes();
 
         keyValueService.put(

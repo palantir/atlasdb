@@ -1166,7 +1166,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
-        byte[] bytes = new TableMetadata().persistToBytes();
+        byte[] bytes = TableMetadata.allDefault().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));

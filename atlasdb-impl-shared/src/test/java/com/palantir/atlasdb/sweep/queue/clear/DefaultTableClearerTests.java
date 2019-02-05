@@ -34,13 +34,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultTableClearerTests {
@@ -109,16 +105,9 @@ public final class DefaultTableClearerTests {
     }
 
     private void createTable(SweepStrategy sweepStrategy) {
-        TableMetadata metadata = new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                TableMetadataPersistence.CachePriority.COLD,
-                true,
-                1,
-                false,
-                sweepStrategy,
-                false);
+        TableMetadata metadata = TableMetadata.builder()
+                .sweepStrategy(sweepStrategy)
+                .build();
         when(kvs.getMetadataForTable(TABLE)).thenReturn(metadata.persistToBytes());
     }
 }
