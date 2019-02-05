@@ -93,7 +93,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
     private static final TableMetadata COORDINATION_TABLE_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("sequence", ValueType.BLOB, ValueByteOrder.ASCENDING))
+            .rowMetadata(NameMetadataDescription.create("sequence", ValueType.BLOB))
             .columns(ColumnMetadataDescription.singleDynamic("sequenceNumber", ValueType.VAR_LONG, ValueType.BLOB))
             .sweepStrategy(SweepStrategy.NOTHING)
             .build();

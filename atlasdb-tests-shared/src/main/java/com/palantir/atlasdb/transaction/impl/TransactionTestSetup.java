@@ -107,11 +107,10 @@ public abstract class TransactionTestSetup {
                         .negativeLookups(true)
                         .sweepStrategy(SweepStrategy.NOTHING)
                         .build()
-                        .persistToBytes(),
-                TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes()));
-        keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE, TransactionConstants.TRANSACTION_TABLE));
-
+                        .persistToBytes()));
+        TransactionTables.createTables(keyValueService);
+        TransactionTables.truncateTables(keyValueService);
+        keyValueService.truncateTable(TEST_TABLE);
 
         InMemoryTimestampService ts = new InMemoryTimestampService();
         timestampService = ts;

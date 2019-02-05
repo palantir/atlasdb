@@ -60,7 +60,7 @@ import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = TableMetadata.builder()
-            .rowMetadata(NameMetadataDescription.create("row", ValueType.STRING, ValueByteOrder.ASCENDING))
+            .rowMetadata(NameMetadataDescription.create("row", ValueType.STRING))
             .columns(ColumnMetadataDescription.singleDynamic("col", ValueType.STRING, ValueType.STRING))
             .conflictHandler(ConflictHandler.SERIALIZABLE)
             .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)

@@ -15,21 +15,21 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 
-
 public class TransactionConstants {
     private TransactionConstants() {/* */}
 
     public static final TableReference TRANSACTION_TABLE = TableReference.createWithEmptyNamespace("_transactions");
+    public static final TableReference TRANSACTIONS2_TABLE = TableReference.createWithEmptyNamespace("_transactions2");
+
     public static final String COMMIT_TS_COLUMN_STRING = "t";
     public static final byte[] COMMIT_TS_COLUMN = PtBytes.toBytes(COMMIT_TS_COLUMN_STRING);
     public static final long FAILED_COMMIT_TS = -1L;
@@ -38,6 +38,7 @@ public class TransactionConstants {
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
+    // DO NOT change without a transactions table migration!
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 
     public static final int TRANSACTIONS_TABLE_SCHEMA_VERSION = 1;
@@ -51,8 +52,15 @@ public class TransactionConstants {
     }
 
     public static final TableMetadata TRANSACTION_TABLE_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("write_ts", ValueType.VAR_LONG, ValueByteOrder.ASCENDING))
+            .rowMetadata(NameMetadataDescription.create("write_ts", ValueType.VAR_LONG))
             .columns(ColumnMetadataDescription.singleNamed(COMMIT_TS_COLUMN_STRING, "commit_ts",ValueType.VAR_LONG))
             .build();
 
+
+    public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
+            .rowMetadata(NameMetadataDescription.create("start_ts_row", ValueType.BLOB))
+            .columns(ColumnMetadataDescription.singleDynamic("start_ts_col", ValueType.BLOB, ValueType.BLOB))
+            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .build();
 }

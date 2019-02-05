@@ -86,6 +86,15 @@ public class NameMetadataDescription {
         }
     }
 
+    public static NameMetadataDescription create(String name, ValueType value) {
+        return create(ImmutableList.of(
+                new NameComponentDescription.Builder()
+                        .componentName(name)
+                        .type(value)
+                        .byteOrder(ValueByteOrder.ASCENDING)
+                        .build()));
+    }
+
     public static NameMetadataDescription create(String name, ValueType value, ValueByteOrder byteOrder) {
         return create(ImmutableList.of(
                 new NameComponentDescription.Builder()

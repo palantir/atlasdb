@@ -51,20 +51,21 @@ public class KeyAlreadyExistsException extends RuntimeException {
         this(msg, ImmutableList.of());
     }
 
-    public KeyAlreadyExistsException(String msg, Throwable ex, Iterable<Cell> keys) {
-        this(msg, ex, keys, ImmutableList.of());
-    }
-
-    public KeyAlreadyExistsException(String msg, Iterable<Cell> keys) {
-        super(msg);
-        existingKeys = ImmutableList.copyOf(keys);
+    public KeyAlreadyExistsException(String msg, Throwable ex, Iterable<Cell> existingKeys) {
+        super(msg, ex);
+        this.existingKeys = ImmutableList.copyOf(existingKeys);
         knownSuccessfullyCommittedKeys = ImmutableList.of();
     }
 
-    public KeyAlreadyExistsException(
-            String msg, Throwable ex, Iterable<Cell> keys, Iterable<Cell> knownSuccessfullyCommittedKeys) {
-        super(msg, ex);
-        existingKeys = ImmutableList.copyOf(keys);
+    public KeyAlreadyExistsException(String msg, Iterable<Cell> existingKeys) {
+        this(msg, existingKeys, ImmutableList.of());
+    }
+
+    public KeyAlreadyExistsException(String msg,
+            Iterable<Cell> existingKeys,
+            Iterable<Cell> knownSuccessfullyCommittedKeys) {
+        super(msg);
+        this.existingKeys = ImmutableList.copyOf(existingKeys);
         this.knownSuccessfullyCommittedKeys = ImmutableList.copyOf(knownSuccessfullyCommittedKeys);
     }
 

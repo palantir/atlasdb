@@ -94,7 +94,7 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
 
     private void tryInitialize() {
         TableMetadata scrubTableMeta = TableMetadata.internal()
-                .rowMetadata(NameMetadataDescription.create("row", ValueType.BLOB, ValueByteOrder.ASCENDING))
+                .rowMetadata(NameMetadataDescription.create("row", ValueType.BLOB))
                 .columns(new ColumnMetadataDescription(new DynamicColumnDescription(
                         NameMetadataDescription.create(ImmutableList.of(
                                 new NameComponentDescription.Builder()

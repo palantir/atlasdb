@@ -81,7 +81,7 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("dummy", ValueType.STRING, ValueByteOrder.ASCENDING))
+            .rowMetadata(NameMetadataDescription.create("dummy", ValueType.STRING))
             .columns(ColumnMetadataDescription.singleNamed(ROW_AND_COLUMN_NAME, "sweep_progress", ValueType.BLOB))
             .build();
 

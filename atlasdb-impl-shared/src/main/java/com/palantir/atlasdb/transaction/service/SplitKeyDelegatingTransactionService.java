@@ -96,6 +96,11 @@ public class SplitKeyDelegatingTransactionService<T> implements TransactionServi
         service.putUnlessExists(startTimestamp, commitTimestamp);
     }
 
+    @Override
+    public void close() {
+        keyedServices.values().forEach(TransactionService::close);
+    }
+
     private Optional<TransactionService> getServiceForTimestamp(long startTimestamp) {
         T key = timestampToServiceKey.apply(startTimestamp);
         if (key == null) {

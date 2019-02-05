@@ -39,4 +39,27 @@ public class TimestampRangeTest {
 
         assertThat(lowerUpper.size()).isEqualTo(upperLower.size());
     }
+
+    @Test
+    public void shouldContainTimestampsInTheMiddleOfTheRange() {
+        TimestampRange range = TimestampRange.createInclusiveRange(5, 15);
+        assertThat(range.contains(8)).isTrue();
+        assertThat(range.contains(12)).isTrue();
+    }
+
+    @Test
+    public void shouldContainTimestampsAtRangeEndpoints() {
+        TimestampRange range = TimestampRange.createInclusiveRange(5, 15);
+        assertThat(range.contains(5)).isTrue();
+        assertThat(range.contains(15)).isTrue();
+    }
+
+    @Test
+    public void shouldNotContainTimestampsOutsideRange() {
+        TimestampRange range = TimestampRange.createInclusiveRange(5, 15);
+        assertThat(range.contains(4)).isFalse();
+        assertThat(range.contains(16)).isFalse();
+        assertThat(range.contains(237894)).isFalse();
+
+    }
 }

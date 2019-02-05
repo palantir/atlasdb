@@ -75,7 +75,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private CassandraKeyValueService kvs;
 
     static final TableMetadata TIMESTAMP_TABLE_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("timestamp_name", ValueType.STRING, ValueByteOrder.ASCENDING))
+            .rowMetadata(NameMetadataDescription.create("timestamp_name", ValueType.STRING))
             .columns(ColumnMetadataDescription.singleNamed(ROW_AND_COLUMN_NAME, "current_max_ts", ValueType.FIXED_LONG))
             .build();
 
