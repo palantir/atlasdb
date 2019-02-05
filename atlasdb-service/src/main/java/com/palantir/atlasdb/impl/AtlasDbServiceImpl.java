@@ -43,8 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -59,8 +57,8 @@ import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = TableMetadata.builder()
-            .rowMetadata(NameMetadataDescription.create("row", ValueType.STRING))
-            .columns(ColumnMetadataDescription.singleDynamic("col", ValueType.STRING, ValueType.STRING))
+            .singleRowComponent("row", ValueType.STRING)
+            .singleDynamicColumn("col", ValueType.STRING, ValueType.STRING)
             .conflictHandler(ConflictHandler.SERIALIZABLE)
             .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
             .build();

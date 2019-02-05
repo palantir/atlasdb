@@ -38,8 +38,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -80,8 +78,8 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
     private static final TableMetadata SWEEP_PROGRESS_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("dummy", ValueType.STRING))
-            .columns(ColumnMetadataDescription.singleNamed(ROW_AND_COLUMN_NAME, "sweep_progress", ValueType.BLOB))
+            .singleRowComponent("dummy", ValueType.STRING)
+            .singleNamedColumn(ROW_AND_COLUMN_NAME, "sweep_progress", ValueType.BLOB)
             .build();
 
     private SweepProgressStoreImpl(KeyValueService kvs) {

@@ -59,15 +59,15 @@ public class TransactionConstants {
     }
 
     public static final TableMetadata TRANSACTION_TABLE_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("write_ts", ValueType.VAR_LONG))
-            .columns(ColumnMetadataDescription.singleNamed(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG))
+            .singleRowComponent("write_ts", ValueType.VAR_LONG)
+            .singleNamedColumn(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG)
             .build();
 
 
     public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
-            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
-            .rowMetadata(NameMetadataDescription.safe("start_ts_row", ValueType.BLOB))
-            .columns(ColumnMetadataDescription.singleDynamic("start_ts_col", ValueType.BLOB, ValueType.BLOB))
+            .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
+            .singleDynamicColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
             .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
             .build();
 }

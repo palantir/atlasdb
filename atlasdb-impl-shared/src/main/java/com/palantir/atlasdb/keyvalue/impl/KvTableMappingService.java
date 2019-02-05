@@ -34,7 +34,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -46,8 +45,7 @@ public class KvTableMappingService extends AbstractTableMappingService {
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
                     NameComponentDescription.of("namespace", ValueType.VAR_STRING),
                     NameComponentDescription.of("table_name", ValueType.STRING))))
-            .columns(ColumnMetadataDescription
-                    .singleNamed(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ValueType.STRING))
+            .singleNamedColumn(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ValueType.STRING)
             .build();
 
     private final KeyValueService kv;

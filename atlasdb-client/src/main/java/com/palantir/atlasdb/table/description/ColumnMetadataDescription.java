@@ -50,25 +50,6 @@ public class ColumnMetadataDescription {
         this.dynamicColumn = dynamicColumn;
     }
 
-    public static ColumnMetadataDescription singleNamed(String shortName, String longName, ValueType valueType) {
-        return new ColumnMetadataDescription(ImmutableList.of(
-                new NamedColumnDescription(shortName, longName, ColumnValueDescription.forType(valueType))));
-    }
-
-    public static ColumnMetadataDescription singleDynamic(String name, ValueType colType, ValueType valueType) {
-        return dynamic(ImmutableList.of(NameComponentDescription.of(name, colType)), valueType);
-    }
-
-    public static ColumnMetadataDescription singleDynamicSafe(String name, ValueType colType, ValueType valueType) {
-        return dynamic(ImmutableList.of(NameComponentDescription.safe(name, colType)), valueType);
-    }
-
-    public static ColumnMetadataDescription dynamic(List<NameComponentDescription> components, ValueType valueType) {
-        return new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(components),
-                        ColumnValueDescription.forType(valueType)));
-    }
-
     public Set<NamedColumnDescription> getNamedColumns() {
         return namedColumns;
     }

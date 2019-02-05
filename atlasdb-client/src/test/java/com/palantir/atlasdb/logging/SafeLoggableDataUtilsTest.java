@@ -54,9 +54,8 @@ public class SafeLoggableDataUtilsTest {
                     ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
 
     private static final TableMetadata TABLE_METADATA_1 = TableMetadata.builder()
-            .rowMetadata(NameMetadataDescription.create(
-                    ImmutableList.of(NameComponentDescription.of(ROW_COMPONENT_NAME, ValueType.VAR_LONG)), 0))
-            .columns(ColumnMetadataDescription.singleNamed("bar", COLUMN_LONG_NAME, ValueType.VAR_LONG))
+            .singleRowComponent(ROW_COMPONENT_NAME, ValueType.VAR_LONG)
+            .singleNamedColumn("bar", COLUMN_LONG_NAME, ValueType.VAR_LONG)
             .build();
 
     private static final TableMetadata TABLE_METADATA_2 = TableMetadata.builder()

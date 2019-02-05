@@ -15,14 +15,16 @@
  */
 package com.palantir.atlasdb.table.description;
 
+import java.util.List;
+
 import org.immutables.value.Value;
 
+import com.google.common.collect.ImmutableList;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.TableMetadata.Builder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
@@ -85,19 +87,45 @@ public abstract class TableMetadata implements Persistable {
         return builder().build();
     }
 
-    public static class NiceBuilder extends ImmutableTableMetadata.Builder {
-        public NiceBuilder test() {
-            this.nameLogSafety(LogSafety.UNSAFE);
+    public static Builder internal() {
+        return builder().conflictHandler(ConflictHandler.IGNORE_ALL).nameLogSafety(LogSafety.SAFE);
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder extends ImmutableTableMetadata.Builder {
+        public Builder singleRowComponent(String name, ValueType valueType) {
+            this.rowMetadata(NameMetadataDescription.create(name, valueType));
             return this;
         }
-    }
 
-    public static ImmutableTableMetadata.Builder builder() {
-        return ImmutableTableMetadata.builder();
-    }
+        public Builder singleSafeRowComponent(String name, ValueType valueType) {
+            this.rowMetadata(NameMetadataDescription.safe(name, valueType));
+            return this;
+        }
 
-    public static ImmutableTableMetadata.Builder internal() {
-        return builder().conflictHandler(ConflictHandler.IGNORE_ALL).nameLogSafety(LogSafety.SAFE);
+        public Builder singleNamedColumn(String shortName, String longName, ValueType valueType) {
+            this.columns(new ColumnMetadataDescription(ImmutableList.of(
+                    new NamedColumnDescription(shortName, longName, ColumnValueDescription.forType(valueType)))));
+            return this;
+        }
+
+        public Builder singleDynamicColumn(String name, ValueType colType, ValueType valueType) {
+            return dynamicColumns(ImmutableList.of(NameComponentDescription.of(name, colType)), valueType);
+        }
+
+        public Builder singleDynamicSafeColumn(String name, ValueType colType, ValueType valueType) {
+            return dynamicColumns(ImmutableList.of(NameComponentDescription.safe(name, colType)), valueType);
+        }
+
+        public Builder dynamicColumns(List<NameComponentDescription> components, ValueType valueType) {
+            this.columns(new ColumnMetadataDescription(new DynamicColumnDescription(
+                    NameMetadataDescription.create(components),
+                    ColumnValueDescription.forType(valueType))));
+            return this;
+        }
     }
 
     @Override
@@ -115,7 +143,7 @@ public abstract class TableMetadata implements Persistable {
     };
 
     public TableMetadataPersistence.TableMetadata.Builder persistToProto() {
-        Builder builder = TableMetadataPersistence.TableMetadata.newBuilder();
+        TableMetadataPersistence.TableMetadata.Builder builder = TableMetadataPersistence.TableMetadata.newBuilder();
         builder.setConflictHandler(ConflictHandlers.persistToProto(getConflictHandler()));
         builder.setRowName(getRowMetadata().persistToProto());
         builder.setColumns(getColumns().persistToProto());
@@ -160,21 +188,5 @@ public abstract class TableMetadata implements Persistable {
         }
 
         return builder.build();
-    }
-
-    @Override
-    public String toString() {
-        return "TableMetadata ["
-                + "rowMetadata=" + getRowMetadata()
-                + ", columns=" + getColumns()
-                + ", conflictHandler=" + getConflictHandler()
-                + ", rowMetadata =" + getRowMetadata()
-                + ", rangeScanAllowed =" + isRangeScanAllowed()
-                + ", explicitCompressionBlockSizeKB =" + getExplicitCompressionBlockSizeKB()
-                + ", negativeLookups = " + hasNegativeLookups()
-                + ", sweepStrategy = " + getSweepStrategy()
-                + ", appendHeavyAndReadLight = " + isAppendHeavyAndReadLight()
-                + ", nameLogSafety = " + getNameLogSafety()
-                + "]";
     }
 }

@@ -28,7 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -80,7 +79,7 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     private void tryInitialize() {
         keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, TableMetadata.internal()
                 .rowMetadata(NameMetadataDescription.create("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))
-                .columns(ColumnMetadataDescription.singleNamed("t", "t", ValueType.VAR_LONG))
+                .singleNamedColumn("t", "t", ValueType.VAR_LONG)
                 .build()
                 .persistToBytes());
     }
