@@ -422,6 +422,11 @@ v0.108.0
          - Fixed a bug where ``AwaitingLeadershipProxy`` stops trying to gain leadership, causing client calls to leader to throw ``NotCurrentLeaderException``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3582>`__)
 
+    *    - |new|
+         - TimeLock now exposes a ``startIdentifiedAtlasDbTransaction`` endpoint.
+           This may be used by AtlasDB clients for some key value services to achieve better data distribution and performance as far as the transactions table is concerned.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3529>`__)
+
     *    - |devbreak|
          - The schema metadata service has been removed, as the AtlasDB team does not intend to pursue extracting sweep to its own separate service in the short to medium term, and it was causing support issues.
            If you were consuming this service, please contact the AtlasDB team.
