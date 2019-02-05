@@ -118,7 +118,7 @@ public class GetCellTimestamps {
         executor.shutdown();
     }
 
-    private List<byte[]> getRows(byte[] rangeStart) {
+    public List<byte[]> getRows(byte[] rangeStart) {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
 

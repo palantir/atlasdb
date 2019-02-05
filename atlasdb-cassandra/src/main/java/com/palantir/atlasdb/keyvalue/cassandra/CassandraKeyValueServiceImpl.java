@@ -96,6 +96,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
+import com.palantir.atlasdb.keyvalue.cassandra.sweep.GetCellTimestamps;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates.Limit;
@@ -1212,6 +1213,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 tableRef,
                 request,
                 config);
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef);
+        GetCellTimestamps getCellTimestamps = new GetCellTimestamps(
+                newInstrumentedCqlExecutor(),
+                rowGetter,
+                tableRef,
+                startRowInclusive,
+                batchSize,
+                config);
+
+        List<byte[]> rows = getCellTimestamps.getRows(startRowInclusive);
+        return rows;
     }
 
     private CqlExecutor newInstrumentedCqlExecutor() {

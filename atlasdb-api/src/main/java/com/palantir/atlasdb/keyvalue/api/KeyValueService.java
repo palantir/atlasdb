@@ -426,6 +426,10 @@ public interface KeyValueService extends AutoCloseable {
             TableReference tableRef,
             CandidateCellForSweepingRequest request);
 
+    default List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
+        throw new UnsupportedOperationException("Only on Cassandra");
+    }
+
     /**
      * For each range passed in the result will have the first page of results for that range.
      * <p>
