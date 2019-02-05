@@ -36,7 +36,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
@@ -96,15 +95,10 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
         TableMetadata scrubTableMeta = TableMetadata.internal()
                 .rowMetadata(NameMetadataDescription.create("row", ValueType.BLOB))
                 .columns(new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription.Builder()
-                                        .componentName("table")
-                                        .type(ValueType.VAR_STRING)
-                                        .build(),
-                                new NameComponentDescription.Builder()
-                                        .componentName("col")
-                                        .type(ValueType.BLOB)
-                                        .build())),
+                        NameMetadataDescription.create(
+                                ImmutableList.of(
+                                        NameComponentDescription.of("table", ValueType.VAR_STRING),
+                                        NameComponentDescription.of("col", ValueType.BLOB))),
                         ColumnValueDescription.forType(ValueType.VAR_LONG))))
                 .build();
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());

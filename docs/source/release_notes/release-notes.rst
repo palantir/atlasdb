@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |devbreak| |improved|
-         - The `TableMetadata` class has been refactored to use Immutables
+         - The `TableMetadata` class has been refactored to use Immutables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
 
     *    - |improved| |devbreak|

@@ -86,22 +86,25 @@ public class NameMetadataDescription {
         }
     }
 
-    public static NameMetadataDescription create(String name, ValueType value) {
+    public static NameMetadataDescription create(String name, ValueType valueType) {
+        return create(ImmutableList.of(NameComponentDescription.of(name, valueType)));
+    }
+
+    public static NameMetadataDescription create(String name, ValueType valueType, ValueByteOrder byteOrder) {
         return create(ImmutableList.of(
                 new NameComponentDescription.Builder()
                         .componentName(name)
-                        .type(value)
-                        .byteOrder(ValueByteOrder.ASCENDING)
+                        .type(valueType)
+                        .byteOrder(byteOrder)
                         .build()));
     }
 
-    public static NameMetadataDescription create(String name, ValueType value, ValueByteOrder byteOrder) {
-        return create(ImmutableList.of(
-                new NameComponentDescription.Builder()
-                        .componentName(name)
-                        .type(value)
-                        .byteOrder(byteOrder)
-                        .build()));
+    public static NameMetadataDescription safe(String name, ValueType valueType) {
+        return create(ImmutableList.of(new NameComponentDescription.Builder()
+                .componentName(name)
+                .type(valueType)
+                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
+                .build()));
     }
 
     public List<NameComponentDescription> getRowParts() {

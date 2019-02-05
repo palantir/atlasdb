@@ -32,7 +32,7 @@ public final class CassandraKeyValueServiceTestUtils {
 
     // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
     // to make sure the tests are actually exercising the correct retrieval codepaths
-    public static byte[] ORIGINAL_METADATA = TableMetadata.builder()
+    public static final byte[] ORIGINAL_METADATA = TableMetadata.builder()
                 .conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED)
                 .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
                 .build().persistToBytes();

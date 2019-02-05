@@ -36,6 +36,14 @@ public final class NameComponentDescription {
     @Nullable final ExplicitRowNamePartitioner explicitPartitioner;
     final LogSafety logSafety;
 
+    public static NameComponentDescription of(String componentName, ValueType valueType) {
+        return new Builder().componentName(componentName).type(valueType).build();
+    }
+
+    public static NameComponentDescription safe(String componentName, ValueType valueType) {
+        return new Builder().componentName(componentName).type(valueType).logSafety(LogSafety.SAFE).build();
+    }
+
     /**
      * Builder for NameComponentDescription. componentName and valueType are required.
      * uniformRowNamePartitioner will be set to a default value unless explicitly set to null.

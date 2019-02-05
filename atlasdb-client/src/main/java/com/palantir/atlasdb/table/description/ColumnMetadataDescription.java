@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.table.description;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -53,15 +55,18 @@ public class ColumnMetadataDescription {
                 new NamedColumnDescription(shortName, longName, ColumnValueDescription.forType(valueType))));
     }
 
-    public static ColumnMetadataDescription singleDynamic(String name, ValueType colType, ValueType valType) {
-        return new ColumnMetadataDescription(
-                new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription.Builder()
-                                        .componentName(name)
-                                        .type(colType)
-                                        .build())),
-                        ColumnValueDescription.forType(valType)));
+    public static ColumnMetadataDescription singleDynamic(String name, ValueType colType, ValueType valueType) {
+        return dynamic(ImmutableList.of(NameComponentDescription.of(name, colType)), valueType);
+    }
+
+    public static ColumnMetadataDescription singleDynamicSafe(String name, ValueType colType, ValueType valueType) {
+        return dynamic(ImmutableList.of(NameComponentDescription.safe(name, colType)), valueType);
+    }
+
+    public static ColumnMetadataDescription dynamic(List<NameComponentDescription> components, ValueType valueType) {
+        return new ColumnMetadataDescription(new DynamicColumnDescription(
+                        NameMetadataDescription.create(components),
+                        ColumnValueDescription.forType(valueType)));
     }
 
     public Set<NamedColumnDescription> getNamedColumns() {

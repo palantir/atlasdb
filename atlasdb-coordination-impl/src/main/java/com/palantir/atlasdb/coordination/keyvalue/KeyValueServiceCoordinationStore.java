@@ -47,7 +47,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -93,8 +92,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private static final Logger log = LoggerFactory.getLogger(KeyValueServiceCoordinationStore.class);
 
     private static final TableMetadata COORDINATION_TABLE_METADATA = TableMetadata.internal()
-            .rowMetadata(NameMetadataDescription.create("sequence", ValueType.BLOB))
-            .columns(ColumnMetadataDescription.singleDynamic("sequenceNumber", ValueType.VAR_LONG, ValueType.BLOB))
+            .rowMetadata(NameMetadataDescription.safe("sequence", ValueType.BLOB))
+            .columns(ColumnMetadataDescription.singleDynamicSafe("sequenceNumber", ValueType.VAR_LONG, ValueType.BLOB))
             .sweepStrategy(SweepStrategy.NOTHING)
             .build();
 

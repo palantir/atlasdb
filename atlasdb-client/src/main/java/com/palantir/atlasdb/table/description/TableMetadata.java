@@ -114,7 +114,9 @@ public abstract class TableMetadata implements Persistable {
         builder.setColumns(getColumns().persistToProto());
         builder.setCachePriority(getCachePriority());
         builder.setRangeScanAllowed(isRangeScanAllowed());
-        builder.setExplicitCompressionBlockSizeKiloBytes(getExplicitCompressionBlockSizeKB());
+        if (getExplicitCompressionBlockSizeKB() != 0) {
+            builder.setExplicitCompressionBlockSizeKiloBytes(getExplicitCompressionBlockSizeKB());
+        }
         builder.setNegativeLookups(hasNegativeLookups());
         builder.setSweepStrategy(getSweepStrategy());
         builder.setAppendHeavyAndReadLight(isAppendHeavyAndReadLight());

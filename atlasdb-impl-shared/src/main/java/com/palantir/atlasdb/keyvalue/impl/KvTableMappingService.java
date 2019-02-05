@@ -44,9 +44,8 @@ import com.palantir.common.base.ClosableIterator;
 public class KvTableMappingService extends AbstractTableMappingService {
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder()
-                            .componentName("namespace").type(ValueType.VAR_STRING).build(),
-                    new NameComponentDescription.Builder().componentName("table_name").type(ValueType.STRING).build())))
+                    NameComponentDescription.of("namespace", ValueType.VAR_STRING),
+                    NameComponentDescription.of("table_name", ValueType.STRING))))
             .columns(ColumnMetadataDescription
                     .singleNamed(AtlasDbConstants.NAMESPACE_SHORT_COLUMN_NAME, "short_name", ValueType.STRING))
             .build();
