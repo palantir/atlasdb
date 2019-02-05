@@ -422,13 +422,4 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
             }
         }.toTableMetadata().persistToBytes();
     }
-
-    // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
-    // to make sure the tests are actually exercising the correct retrieval codepaths
-    private static byte[] originalMetadata() {
-        return TableMetadata.builder()
-                .conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED)
-                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
-                .build().persistToBytes();
-    }
 }

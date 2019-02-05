@@ -22,8 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
@@ -34,12 +32,10 @@ public final class CassandraKeyValueServiceTestUtils {
 
     // notably, this metadata is different from the default AtlasDbConstants.GENERIC_TABLE_METADATA
     // to make sure the tests are actually exercising the correct retrieval codepaths
-    public static final byte[] ORIGINAL_METADATA = new TableMetadata(
-            new NameMetadataDescription(),
-            new ColumnMetadataDescription(),
-            ConflictHandler.RETRY_ON_VALUE_CHANGED,
-            TableMetadataPersistence.LogSafety.SAFE)
-            .persistToBytes();
+    public static byte[] ORIGINAL_METADATA = TableMetadata.builder()
+                .conflictHandler(ConflictHandler.RETRY_ON_VALUE_CHANGED)
+                .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+                .build().persistToBytes();
 
     public static void clearOutMetadataTable(KeyValueService kvs) {
         kvs.truncateTable(AtlasDbConstants.DEFAULT_METADATA_TABLE);
