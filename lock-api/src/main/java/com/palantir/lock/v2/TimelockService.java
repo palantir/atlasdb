@@ -17,20 +17,12 @@ package com.palantir.lock.v2;
 
 import java.util.Set;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
-@Path("/timelock")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 @AutoDelegate
 public interface TimelockService {
     /**
@@ -44,16 +36,10 @@ public interface TimelockService {
         return true;
     }
 
-    @POST
-    @Path("fresh-timestamp")
     long getFreshTimestamp();
 
-    @POST
-    @Path("fresh-timestamps")
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
-    @POST
-    @Path("lock-immutable-timestamp")
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
@@ -61,30 +47,18 @@ public interface TimelockService {
      * @deprecated Please use {@link TimelockService#startIdentifiedAtlasDbTransaction(
      * StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
      */
-    @POST
-    @Path("start-atlasdb-transaction")
     @Deprecated
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
-    @POST
-    @Path("start-identified-atlasdb-transaction")
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
-    @POST
-    @Path("immutable-timestamp")
     long getImmutableTimestamp();
 
-    @POST
-    @Path("lock")
     LockResponse lock(LockRequest request);
 
-    @POST
-    @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
-    @POST
-    @Path("refresh-locks")
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
@@ -96,8 +70,6 @@ public interface TimelockService {
      * @param tokens Tokens for which associated locks should be unlocked.
      * @return Tokens for which associated locks were unlocked
      */
-    @POST
-    @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);
 
     /**
@@ -112,8 +84,6 @@ public interface TimelockService {
         unlock(tokens);
     }
 
-    @POST
-    @Path("current-time-millis")
     long currentTimeMillis();
 
 }
