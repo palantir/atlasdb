@@ -50,15 +50,28 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak| |improved|
-         - The `TableMetadata` class has been refactored to use Immutables.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
+    *    - |new|
+         - AtlasDB now supports _transactions2 if backed by Cassandra KVS or In-Memory KVS.
+           This is expected to improve transaction performance by making ``putUnlessExists`` faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
+           Please contact the AtlasDB team if you are interested to use _transactions2.
+           (Many PRs; key PRs include `Pull Request 1 <https://github.com/palantir/atlasdb/pull/3706>`__,
+            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3707>`__,
+            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/3726>`__,
+            `Pull Request 4 <https://github.com/palantir/atlasdb/pull/3732>`__)
 
     *    - |improved| |devbreak|
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
            This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
            The Cassandra KVS putUnlessExists method has been updated to use the above call.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
+
+    *    - |devbreak| |improved|
+         - The `TableMetadata` class has been refactored to use Immutables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
+
+    *    - |new| |metrics|
+         - Transaction services now expose timer metrics indicating how long committing or getting values takes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
     *    - |improved|
          - We now correctly handle host restart in the clock skew monitor.
