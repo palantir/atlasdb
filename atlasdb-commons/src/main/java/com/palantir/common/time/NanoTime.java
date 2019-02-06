@@ -28,12 +28,16 @@ public final class NanoTime implements Comparable<NanoTime> {
     private final long time;
 
     @JsonCreator
-    public NanoTime(long time) {
+    private NanoTime(long time) {
         this.time = time;
     }
 
     public static NanoTime now() {
         return new NanoTime(System.nanoTime());
+    }
+
+    public static NanoTime createForTests(long time) {
+        return new NanoTime(time);
     }
 
     /**

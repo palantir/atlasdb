@@ -55,31 +55,31 @@ public final class LeasingLeadershipTokenTests {
 
     @Test
     public void testCaches() {
-        when(clock.get()).thenReturn(new NanoTime(0));
+        when(clock.get()).thenReturn(NanoTime.createForTests(0));
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.LEADING);
-        when(clock.get()).thenReturn(new NanoTime(1));
+        when(clock.get()).thenReturn(NanoTime.createForTests(1));
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.LEADING);
         verify(stillLeadingStatus, times(1)).get();
     }
 
     @Test
     public void testFetchesNewStateIfCacheOld() {
-        when(clock.get()).thenReturn(new NanoTime(0));
+        when(clock.get()).thenReturn(NanoTime.createForTests(0));
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.LEADING);
         when(stillLeadingStatus.get()).thenReturn(StillLeadingStatus.NOT_LEADING);
-        when(clock.get()).thenReturn(new NanoTime(11));
+        when(clock.get()).thenReturn(NanoTime.createForTests(11));
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.NOT_LEADING);
     }
 
     @Test
     public void testSelectsTimeBeforeFetchingNewState() {
-        when(clock.get()).thenReturn(new NanoTime(0));
+        when(clock.get()).thenReturn(NanoTime.createForTests(0));
         when(stillLeadingStatus.get()).thenAnswer(inv -> {
-            when(clock.get()).thenReturn(new NanoTime(5));
+            when(clock.get()).thenReturn(NanoTime.createForTests(5));
             return StillLeadingStatus.LEADING;
         });
         token.getLeadershipStatus();
-        when(clock.get()).thenReturn(new NanoTime(12));
+        when(clock.get()).thenReturn(NanoTime.createForTests(12));
         doReturn(StillLeadingStatus.NOT_LEADING).when(stillLeadingStatus).get();
         assertThat(token.getLeadershipStatus()).isEqualTo(StillLeadingStatus.NOT_LEADING);
     }

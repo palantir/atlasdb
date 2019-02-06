@@ -27,17 +27,17 @@ public final class NanoTimeTests {
 
     @Test
     public void testIsBefore_usual() {
-        assertThat(new NanoTime(1).isBefore(new NanoTime(2))).isTrue();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(2))).isTrue();
     }
 
     @Test
     public void testIsBefore_not() {
-        assertThat(new NanoTime(1).isBefore(new NanoTime(0))).isFalse();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(0))).isFalse();
     }
 
     @Test
     public void testIsBefore_overflow() {
-        assertThat(new NanoTime(Long.MAX_VALUE).isBefore(new NanoTime(Long.MIN_VALUE))).isTrue();
+        assertThat(NanoTime.createForTests(Long.MAX_VALUE).isBefore(NanoTime.createForTests(Long.MIN_VALUE))).isTrue();
     }
 
     @Test

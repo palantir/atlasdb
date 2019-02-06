@@ -43,6 +43,14 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
+/**
+ * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
+ *
+ * If you are adding a new endpoint that is a modified version of an existing one, please use the existing naming scheme
+ * in which you add a new version number, rather than describing the additional functionality (i.e. refresh-locks-v2
+ * rather than leasable-refresh-locks)
+ */
+
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
