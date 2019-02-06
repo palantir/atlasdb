@@ -82,20 +82,20 @@ public class TransactionSchemaManager {
 
         Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(
                 Iterables.getOnlyElement(transformResult.existingValues()));
-        long newVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
+        long finalVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
 
         if (transformResult.successful() && finalVersion.getValue() == newVersion) {
             log.info("We attempted to install the transactions schema version {}, and this was successful."
                     + " This version will take effect no later than timestamp {}.",
                     SafeArg.of("newVersion", newVersion),
-                    SafeArg.of("timestamp", newVersionTimestampThreshold));
+                    SafeArg.of("timestamp", finalVersionTimestampThreshold));
             return true;
         }
         if (finalVersion.getValue() == newVersion) {
             log.info("We attempted to install the the transactions schema version {}. We failed, but this version"
                     + " will eventually be utilised anyway, taking effect no later than timestamp {}.",
                     SafeArg.of("newVersion", newVersion),
-                    SafeArg.of("timestamp", newVersionTimestampThreshold));
+                    SafeArg.of("timestamp", finalVersionTimestampThreshold));
             return true;
         }
         if (transformResult.successful()) {
@@ -108,7 +108,7 @@ public class TransactionSchemaManager {
                 + " Currently, version {} will eventually be used from timestamp {}.",
                 SafeArg.of("versionWeTriedToInstall", newVersion),
                 SafeArg.of("versionThatWillBeUsed", finalVersion.getValue()),
-                SafeArg.of("timestamp", newVersionTimestampThreshold));
+                SafeArg.of("timestamp", finalVersionTimestampThreshold));
         return false;
     }
 
