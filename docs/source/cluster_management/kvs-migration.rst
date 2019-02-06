@@ -98,7 +98,7 @@ By default, these configurations should be a YAML object where a standard ``Atla
 the ``atlasdb`` key. Users may also specify their own ``config-root`` (note the case difference). The configurations
 may contain unrelated YAML objects. For example:
 
-.. code-block::
+.. code-block:: yaml
 
     server:
       applicationConnectors:
