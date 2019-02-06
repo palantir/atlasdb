@@ -17,27 +17,32 @@
 package com.palantir.common.time;
 
 import java.time.Duration;
-import java.util.Objects;
 import java.util.concurrent.locks.LockSupport;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import org.immutables.value.Value;
 
-public final class NanoTime implements Comparable<NanoTime> {
-    @JsonValue
-    private final long time;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-    @JsonCreator
-    private NanoTime(long nanos) {
-        this.time = nanos;
-    }
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
+@JsonSerialize(as = ImmutableNanoTime.class)
+@JsonDeserialize(as = ImmutableNanoTime.class)
+public abstract class NanoTime implements Comparable<NanoTime> {
+    abstract long time();
 
     public static NanoTime now() {
-        return new NanoTime(System.nanoTime());
+        return create(System.nanoTime());
     }
 
     public static NanoTime createForTests(long nanos) {
-        return new NanoTime(nanos);
+        return create(nanos);
+    }
+
+    private static NanoTime create(long nanos) {
+        return ImmutableNanoTime.builder()
+                .time(nanos)
+                .build();
     }
 
     /**
@@ -54,11 +59,11 @@ public final class NanoTime implements Comparable<NanoTime> {
     }
 
     private static long nanosBetween(NanoTime first, NanoTime second) {
-        return second.time - first.time;
+        return second.time() - first.time();
     }
 
     public NanoTime plus(Duration duration) {
-        return new NanoTime(time + duration.toNanos());
+        return create(time() + duration.toNanos());
     }
 
     public boolean isBefore(NanoTime other) {
@@ -66,32 +71,10 @@ public final class NanoTime implements Comparable<NanoTime> {
     }
 
     @Override
-    public String toString() {
-        return "NanoTime{" + "time=" + time + '}';
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (other == null || getClass() != other.getClass()) {
-            return false;
-        }
-        NanoTime nanoTime = (NanoTime) other;
-        return time == nanoTime.time;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(time);
-    }
-
-    @Override
     public int compareTo(NanoTime other) {
-        if (other.time == time) {
+        if (other.time() == time()) {
             return 0;
-        } else if (time - other.time > 0) { // this is the critical bit; now can wrap according to javadoc
+        } else if (time() - other.time() > 0) { // this is the critical bit; now can wrap according to javadoc
             return 1;
         } else {
             return -1;
