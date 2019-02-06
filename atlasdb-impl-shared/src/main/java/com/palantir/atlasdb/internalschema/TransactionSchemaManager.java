@@ -16,15 +16,15 @@
 
 package com.palantir.atlasdb.internalschema;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
@@ -78,16 +78,52 @@ public class TransactionSchemaManager {
      * bound, the transactions schema version is equal to newVersion.
      */
     public boolean tryInstallNewTransactionsSchemaVersion(int newVersion) {
-        List<Integer> presentVersionPeakValidity = coordinationService.tryTransformCurrentValue(
-                valueAndBound -> installNewVersionInMapOrDefault(newVersion, valueAndBound))
-                .existingValues()
-                .stream()
-                .map(valueAndBound -> valueAndBound.value()
-                        .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
-                        .timestampToTransactionsTableSchemaVersion()
-                        .getValueForTimestamp(valueAndBound.bound()))
-                .collect(Collectors.toList());
-        return Iterables.getOnlyElement(presentVersionPeakValidity) == newVersion;
+        CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> transformResult = tryInstallNewVersion(newVersion);
+
+        Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(
+                Iterables.getOnlyElement(transformResult.existingValues()));
+        long finalVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
+
+        if (transformResult.successful() && finalVersion.getValue() == newVersion) {
+            log.info("We attempted to install the transactions schema version {}, and this was successful."
+                    + " This version will take effect no later than timestamp {}.",
+                    SafeArg.of("newVersion", newVersion),
+                    SafeArg.of("timestamp", finalVersionTimestampThreshold));
+            return true;
+        }
+        if (finalVersion.getValue() == newVersion) {
+            log.info("We attempted to install the the transactions schema version {}. We failed, but this version"
+                    + " will eventually be utilised anyway, taking effect no later than timestamp {}.",
+                    SafeArg.of("newVersion", newVersion),
+                    SafeArg.of("timestamp", finalVersionTimestampThreshold));
+            return true;
+        }
+        if (transformResult.successful()) {
+            log.info("We attempted to install the transactions schema version {}, but ended up installing {}"
+                    + " because no version existed.",
+                    SafeArg.of("versionWeTriedToInstall", newVersion),
+                    SafeArg.of("versionWeActuallyInstalled", finalVersion.getValue()));
+        }
+        log.info("We attempted to install the transactions schema version {}, but failed."
+                + " Currently, version {} will eventually be used from timestamp {}.",
+                SafeArg.of("versionWeTriedToInstall", newVersion),
+                SafeArg.of("versionThatWillBeUsed", finalVersion.getValue()),
+                SafeArg.of("timestamp", finalVersionTimestampThreshold));
+        return false;
+    }
+
+    @VisibleForTesting
+    Map.Entry<Range<Long>, Integer> getRangeAtBoundThreshold(ValueAndBound<InternalSchemaMetadata> valueAndBound) {
+        return valueAndBound.value()
+                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
+                .timestampToTransactionsTableSchemaVersion()
+                .rangeMapView()
+                .getEntry(valueAndBound.bound());
+    }
+
+    private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryInstallNewVersion(int newVersion) {
+        return coordinationService.tryTransformCurrentValue(
+                valueAndBound -> installNewVersionInMapOrDefault(newVersion, valueAndBound));
     }
 
     private InternalSchemaMetadata installNewVersionInMapOrDefault(int newVersion,
