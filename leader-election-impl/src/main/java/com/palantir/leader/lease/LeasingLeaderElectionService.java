@@ -25,6 +25,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
+import com.palantir.common.time.NanoTime;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 

@@ -14,27 +14,40 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.lease;
+package com.palantir.common.time;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public final class NanoTimeTests {
 
     @Test
     public void testIsBefore_usual() {
-        assertThat(new NanoTime(1).isBefore(new NanoTime(2))).isTrue();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(2))).isTrue();
     }
 
     @Test
     public void testIsBefore_not() {
-        assertThat(new NanoTime(1).isBefore(new NanoTime(0))).isFalse();
+        assertThat(NanoTime.createForTests(1).isBefore(NanoTime.createForTests(0))).isFalse();
     }
 
     @Test
     public void testIsBefore_overflow() {
-        assertThat(new NanoTime(Long.MAX_VALUE).isBefore(new NanoTime(Long.MIN_VALUE))).isTrue();
+        assertThat(NanoTime.createForTests(Long.MAX_VALUE).isBefore(NanoTime.createForTests(Long.MIN_VALUE))).isTrue();
+    }
+
+    @Test
+    public void canBeSerializedAndDeserialized() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+
+        NanoTime nanoTime = NanoTime.now();
+        String serialized = mapper.writeValueAsString(nanoTime);
+        NanoTime deserialized = mapper.readValue(serialized, NanoTime.class);
+
+        assertThat(deserialized).isEqualTo(nanoTime);
     }
 }
 
