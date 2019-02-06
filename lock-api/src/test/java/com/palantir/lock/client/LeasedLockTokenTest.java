@@ -55,5 +55,4 @@ public class LeasedLockTokenTest {
     private IdentifiedTime getIdentifiedTime() {
         return IdentifiedTime.of(LEADER_ID, NanoTime.now());
     }
-
 }

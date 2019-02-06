@@ -80,7 +80,7 @@ public interface TimelockRpcClient {
 
     /**
      * @deprecated Please use {@link TimelockRpcClient#startAtlasDbTransactionV3(
-     * StartIdentifiedAtlasDbTransactionRequest)} instead
+     * StartIdentifiedAtlasDbTransactionRequest)} instead.
      */
     @POST
     @Path("start-identified-atlasdb-transaction")
@@ -93,7 +93,7 @@ public interface TimelockRpcClient {
     long getImmutableTimestamp();
 
     /**
-     * @deprecated Please use {@link TimelockRpcClient#lockV2(LockRequest) instead}
+     * @deprecated Please use {@link TimelockRpcClient#lockV2(LockRequest) instead}.
      */
     @POST
     @Path("lock")
@@ -105,7 +105,7 @@ public interface TimelockRpcClient {
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
     /**
-     * @deprecated Please use {@link TimelockRpcClient#refreshLockLeasesV2(Set)} instead}
+     * @deprecated Please use {@link TimelockRpcClient#refreshLockLeasesV2(Set)} instead}.
      */
     @POST
     @Path("refresh-locks")
