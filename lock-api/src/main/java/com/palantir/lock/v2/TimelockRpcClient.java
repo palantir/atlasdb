@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.lock.v2;
 
 import java.util.Set;
 
@@ -25,25 +25,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
 /**
  * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
  *
- * If you are adding a new endpoint that is a modified version of an existing one, please use the existing naming scheme
- * in which you add a new version number, rather than describing the additional functionality (i.e. refresh-locks-v2
- * rather than leasable-refresh-locks)
+ * If you are adding a replacement for an endpoint, please version by number, e.g. a new version of
+ * fresh-timestamp might be fresh-timestamp-2.
  */
 
 @Path("/timelock")
@@ -61,13 +50,8 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("lock-immutable-timestamp")
-        // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    /**
-     * @deprecated Please use {@link TimelockRpcClient#startIdentifiedAtlasDbTransaction(
-     * StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
-     */
     @POST
     @Path("start-atlasdb-transaction")
     @Deprecated
@@ -94,15 +78,6 @@ public interface TimelockRpcClient {
     @Path("refresh-locks")
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
-    /**
-     * Releases locks associated with the set of {@link LockToken}s provided.
-     * The set of tokens returned are the tokens for which the associated locks were unlocked in this call.
-     * It is possible that a token that was provided is NOT in the returned set (e.g. if it expired).
-     * However, in this case it is guaranteed that that token is no longer valid.
-     *
-     * @param tokens Tokens for which associated locks should be unlocked.
-     * @return Tokens for which associated locks were unlocked
-     */
     @POST
     @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);

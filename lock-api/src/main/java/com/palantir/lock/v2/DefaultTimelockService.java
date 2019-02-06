@@ -14,21 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.lock.v2;
 
 import java.util.Set;
 
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 public final class DefaultTimelockService implements TimelockService {
