@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,52 +13,85 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.lock.v2;
+
+package com.palantir.lock.client;
 
 import java.util.Set;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
-@AutoDelegate
-public interface TimelockService {
-    /**
-     * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
-     * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
-     * implementation, and return true (they're trivially fully initialized).
-     *
-     * @return true iff the TimelockService has been fully initialized and is ready to use
-     */
-    default boolean isInitialized() {
-        return true;
-    }
+/**
+ * Interface describing timelock endpoints to be used by feign client factories to create raw clients.
+ *
+ * If you are adding a new endpoint that is a modified version of an existing one, please use the existing naming scheme
+ * in which you add a new version number, rather than describing the additional functionality (i.e. refresh-locks-v2
+ * rather than leasable-refresh-locks)
+ */
 
+@Path("/timelock")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public interface TimelockRpcClient {
+
+    @POST
+    @Path("fresh-timestamp")
     long getFreshTimestamp();
 
+    @POST
+    @Path("fresh-timestamps")
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
-    // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
+    @POST
+    @Path("lock-immutable-timestamp")
+        // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     /**
-     * @deprecated Please use {@link TimelockService#startIdentifiedAtlasDbTransaction(
+     * @deprecated Please use {@link TimelockRpcClient#startIdentifiedAtlasDbTransaction(
      * StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
      */
+    @POST
+    @Path("start-atlasdb-transaction")
     @Deprecated
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
+    @POST
+    @Path("start-identified-atlasdb-transaction")
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
+    @POST
+    @Path("immutable-timestamp")
     long getImmutableTimestamp();
 
+    @POST
+    @Path("lock")
     LockResponse lock(LockRequest request);
 
+    @POST
+    @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
+    @POST
+    @Path("refresh-locks")
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
@@ -70,20 +103,12 @@ public interface TimelockService {
      * @param tokens Tokens for which associated locks should be unlocked.
      * @return Tokens for which associated locks were unlocked
      */
+    @POST
+    @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);
 
-    /**
-     * A version of {@link TimelockService#unlock(Set)} where one does not need to know whether the locks associated
-     * with the provided tokens were successfully unlocked or not.
-     *
-     * In some implementations, this may be more performant than a standard unlock.
-     *
-     * @param tokens Tokens for which associated locks should be unlocked.
-     */
-    default void tryUnlock(Set<LockToken> tokens) {
-        unlock(tokens);
-    }
-
+    @POST
+    @Path("current-time-millis")
     long currentTimeMillis();
 
 }
