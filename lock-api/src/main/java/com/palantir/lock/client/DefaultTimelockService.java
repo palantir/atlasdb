@@ -31,7 +31,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class DefaultTimelockService implements TimelockService {
+public final class DefaultTimelockService implements TimelockService {
     private final TimelockRpcClient delegate;
 
     private DefaultTimelockService(TimelockRpcClient timelockRpcClient) {
