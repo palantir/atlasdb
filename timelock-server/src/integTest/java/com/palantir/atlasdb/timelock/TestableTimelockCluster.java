@@ -35,11 +35,13 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.DefaultTimelockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -205,11 +207,11 @@ public class TestableTimelockCluster {
     }
 
     public TimelockService timelockService() {
-        return proxies.failoverForClient(defaultClient, TimelockService.class);
+        return timelockServiceForClient(defaultClient);
     }
 
     public TimelockService timelockServiceForClient(String client) {
-        return proxies.failoverForClient(client, TimelockService.class);
+        return DefaultTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
 
     public RuleChain getRuleChain() {
