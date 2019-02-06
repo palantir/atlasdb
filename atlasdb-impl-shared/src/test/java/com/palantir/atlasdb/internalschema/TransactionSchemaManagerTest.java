@@ -49,7 +49,7 @@ public class TransactionSchemaManagerTest {
     public void getRangeAtBoundThresholdWorksOnSingleRanges() {
         assertThat(manager.getRangeAtBoundThreshold(
                 ValueAndBound.of(InternalSchemaMetadata.defaultValue(), TIMESTAMP_1)).getValue())
-                .isEqualTo(TransactionConstants.TRANSACTIONS_TABLE_SCHEMA_VERSION);
+                .isEqualTo(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 
     @Test
