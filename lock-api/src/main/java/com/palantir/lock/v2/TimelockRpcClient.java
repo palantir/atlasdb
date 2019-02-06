@@ -54,7 +54,6 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("start-atlasdb-transaction")
-    @Deprecated
     StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
