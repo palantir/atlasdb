@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,30 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.lease;
+package com.palantir.common.time;
 
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.locks.LockSupport;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public final class NanoTime implements Comparable<NanoTime> {
+    @JsonValue
     private final long time;
 
-    @VisibleForTesting
-    NanoTime(long time) {
-        this.time = time;
+    @JsonCreator
+    private NanoTime(long nanos) {
+        this.time = nanos;
     }
 
     public static NanoTime now() {
         return new NanoTime(System.nanoTime());
+    }
+
+    public static NanoTime createForTests(long nanos) {
+        return new NanoTime(nanos);
     }
 
     /**

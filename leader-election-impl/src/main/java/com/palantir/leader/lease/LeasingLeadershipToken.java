@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.time.NanoTime;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 
