@@ -49,7 +49,7 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
-    public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
+    public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2;
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 

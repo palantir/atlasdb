@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
 
@@ -36,7 +37,7 @@ public class HeldLocks {
     private boolean isUnlocked = false;
 
     public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId) {
-        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(System::currentTimeMillis));
+        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(NanoTime::now));
     }
 
     @VisibleForTesting
