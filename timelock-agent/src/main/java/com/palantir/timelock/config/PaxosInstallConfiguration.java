@@ -62,8 +62,5 @@ public interface PaxosInstallConfiguration {
                             + "nodes, you have likely already made a mistake by this point. This is a non-trivial "
                             + "operation, please be careful and make sure that you have appropriate approvals.");
         }
-
-        Preconditions.checkArgument(dataDirectory().mkdirs() || dataDirectory().isDirectory(),
-                "Could not create paxos data directory %s", dataDirectory());
     }
 }
