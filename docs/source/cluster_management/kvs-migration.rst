@@ -84,12 +84,11 @@ Migration CLI
 .. tip::
 
     If you are migrating to/from Oracle KVS, the standard AtlasDB CLI distribution will not work as it does not
-    contain the requisite Oracle drivers. Internal users should contact the AtlasDB team for assistance; external
-    users should compile the CLI from source, suitably adding the Oracle drivers.
+    contain the requisite Oracle drivers. Please contact the AtlasDB team for assistance.
 
 Migration of all transactional data from one KVS to another can be performed using the :ref:`AtlasDB CLI<clis>`.
 
-To run migration, the ``fromConfig`` option should be specified as the path to a file which contains a YAML
+To run the migration, the ``fromConfig`` option should be specified as the path to a file which contains a YAML
 representation that has configuration for how Atlas should connect to the source KVS. The ``migrateConfig`` option
 should be specified as the path to a file which contains a YAML representation including configuration for how
 Atlas should connect to the destination KVS.
