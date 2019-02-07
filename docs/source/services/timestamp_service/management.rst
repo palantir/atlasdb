@@ -32,6 +32,6 @@ The following command needs to be run on the TimeLock leader, and will fast forw
 
 .. code:: bash
 
-      curl -XPOST localhost:8080/timelock/api/new_namespace/timestamp-management/fast-forward?currentTimestamp=TS
+      curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp=TS
 
-On success, timestamps serviced for the new namespace will now return values greater than ``TS``.
+On success, timestamps serviced for this namespace will now return values greater than ``TS``.
