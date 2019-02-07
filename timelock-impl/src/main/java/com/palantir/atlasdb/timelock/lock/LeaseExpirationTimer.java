@@ -25,16 +25,16 @@ public class LeaseExpirationTimer {
 
     public static final Duration LEASE_TIMEOUT = Duration.ofMillis(20_000);
 
-    private final AtomicReference<NanoTime> lastRefreshTime;
+    private volatile NanoTime lastRefreshTime;
     private final Supplier<NanoTime> clock;
 
     public LeaseExpirationTimer(Supplier<NanoTime> clock) {
         this.clock = clock;
-        this.lastRefreshTime = new AtomicReference<>(clock.get());
+        this.lastRefreshTime = clock.get();
     }
 
     public void refresh() {
-        lastRefreshTime.set(clock.get());
+        lastRefreshTime = clock.get();
     }
 
     public boolean isExpired() {
@@ -42,6 +42,6 @@ public class LeaseExpirationTimer {
     }
 
     private NanoTime expiry() {
-        return lastRefreshTime.get().plus(LEASE_TIMEOUT);
+        return lastRefreshTime.plus(LEASE_TIMEOUT);
     }
 }

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.function.Supplier;
 
 import org.junit.Before;
@@ -45,24 +46,28 @@ public class LeaseExpirationTimerTest {
 
     @Test
     public void isExpiredWhenAppropriateTimeHasElapsed() {
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos() + 1L);
+        setTime(START_TIME_NANOS + leaseDuration().toNanos() + 1L);
 
         assertThat(timer.isExpired()).isTrue();
     }
 
     @Test
     public void refreshResetsTimer() {
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos());
+        setTime(START_TIME_NANOS + leaseDuration().toNanos());
         timer.refresh();
 
-        mockOffsetFromStartTime(LeaseExpirationTimer.LEASE_TIMEOUT.toNanos() * 2);
+        setTime(START_TIME_NANOS + leaseDuration().toNanos() * 2);
         timer.refresh();
 
         assertThat(timer.isExpired()).isFalse();
     }
 
-    private void mockOffsetFromStartTime(long offset) {
-        currentTimeNanos = START_TIME_NANOS + offset;
+    private void setTime(long nanos) {
+        currentTimeNanos = nanos;
+    }
+
+    private Duration leaseDuration() {
+        return LeaseExpirationTimer.LEASE_TIMEOUT;
     }
 
 }
