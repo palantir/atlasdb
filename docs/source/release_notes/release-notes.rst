@@ -55,9 +55,9 @@ develop
            This is expected to improve transaction performance by making ``putUnlessExists`` faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
            Please contact the AtlasDB team if you are interested to use _transactions2.
            (Many PRs; key PRs include `Pull Request 1 <https://github.com/palantir/atlasdb/pull/3706>`__,
-            `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3707>`__,
-            `Pull Request 3 <https://github.com/palantir/atlasdb/pull/3726>`__,
-            `Pull Request 4 <https://github.com/palantir/atlasdb/pull/3732>`__)
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3707>`__,
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/3726>`__,
+           `Pull Request 4 <https://github.com/palantir/atlasdb/pull/3732>`__)
 
     *    - |improved| |devbreak|
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.

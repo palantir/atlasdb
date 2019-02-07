@@ -17,8 +17,6 @@ Target Transactions Schema Version
 .. warning::
 
    _transactions2 is currently only supported for Cassandra and In-Memory KVSes.
-   In the case of Cassandra, _transactions2 is also only supported if you are using a version of Cassandra that supports
-   a multicolumn Put-Unless-Exists operation. Please contact the AtlasDB team if you are unsure if this is the case.
 
 AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
 This may be done in various ways, and is configurable. We currently support two strategies:
@@ -32,4 +30,5 @@ This may be done in various ways, and is configurable. We currently support two 
 If specified, this AtlasDB client will attempt to install the provided transaction schema version. This can be done in
 a live fashion without downtime, though it may take a while (in terms of AtlasDB timestamps) to take effect. If
 install is successful, a message will be logged indicating when the switch will take place. If needed, one can force
-the new version to be used by fast-forwarding the timestamp to that point.
+the new version to be used by fast-forwarding the timestamp to that point. To do this, see
+:ref:`Timestamp Service Management <timestamp-service-management>`.
