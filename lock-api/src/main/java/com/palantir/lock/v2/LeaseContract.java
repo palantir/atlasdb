@@ -18,8 +18,8 @@ package com.palantir.lock.v2;
 
 import java.time.Duration;
 
-public class LeaseContract {
+public final class LeaseContract {
     private LeaseContract() {}
 
-    public static Duration LEASE_PERIOD = Duration.ofSeconds(10);
+    public static final Duration LEASE_PERIOD = Duration.ofSeconds(10);
 }
