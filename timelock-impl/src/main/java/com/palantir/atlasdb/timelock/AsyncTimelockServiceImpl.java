@@ -26,6 +26,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
@@ -144,6 +145,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 timestampAndPartition,
                 leasebleLock.lease());
 
+    }
+
+    @Override
+    public IdentifiedTime identifiedTime() {
+        return lockService.identifiedTime();
     }
 
     @Override
