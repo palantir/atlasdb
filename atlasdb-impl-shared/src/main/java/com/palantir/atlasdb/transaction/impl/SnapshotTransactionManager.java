@@ -110,7 +110,7 @@ import com.palantir.timestamp.TimestampService;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
-        super(metricsManager, timestampCache);
+        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;

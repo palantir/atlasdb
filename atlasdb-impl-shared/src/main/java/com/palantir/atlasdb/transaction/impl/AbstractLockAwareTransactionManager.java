@@ -27,8 +27,9 @@ import com.palantir.lock.LockRequest;
 
 public abstract class AbstractLockAwareTransactionManager extends AbstractConditionAwareTransactionManager {
 
-    AbstractLockAwareTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
-        super(metricsManager, timestampCache);
+    AbstractLockAwareTransactionManager(
+            MetricsManager metricsManager, TimestampCache timestampCache, Supplier<TransactionRetryStrategy> retryStrategy) {
+        super(metricsManager, timestampCache, retryStrategy);
     }
 
     @Override
