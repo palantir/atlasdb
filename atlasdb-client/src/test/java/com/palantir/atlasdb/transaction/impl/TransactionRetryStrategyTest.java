@@ -100,7 +100,7 @@ public class TransactionRetryStrategyTest {
     @Test
     public void doesNotRetryOnNonRetriableTransactionFailedException() throws Exception {
         TransactionFailedNonRetriableException failure = new TransactionFailedNonRetriableException("");
-        when(task.run()).thenThrow(failure);
+        when(task.run()).thenThrow(failure).thenReturn("success");
         assertThatThrownBy(this::runExponential).isEqualTo(failure);
     }
 
