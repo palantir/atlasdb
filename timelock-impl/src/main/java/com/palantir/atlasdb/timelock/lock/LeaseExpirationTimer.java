@@ -41,6 +41,10 @@ public class LeaseExpirationTimer {
         return expiry().isBefore(clock.get());
     }
 
+    public NanoTime lastRefreshTime() {
+        return lastRefreshTime;
+    }
+
     private NanoTime expiry() {
         return lastRefreshTime.plus(LEASE_TIMEOUT);
     }

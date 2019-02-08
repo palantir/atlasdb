@@ -25,8 +25,13 @@ import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -74,10 +79,10 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LockToken token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
+        LeasableLockToken leasebleLock = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
-        return LockImmutableTimestampResponse.of(immutableTs, token);
+        return LockImmutableTimestampResponse.of(immutableTs, leasebleLock.token());
     }
 
     @Override
@@ -87,7 +92,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<LockToken> lock(LockRequest request) {
+    public AsyncResult<LeasableLockToken> lock(LockRequest request) {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
@@ -103,7 +108,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens) {
         return lockService.refresh(tokens);
     }
 
@@ -120,11 +125,25 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    public LeasableStartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return StartIdentifiedAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
-                getFreshTimestampForClient(request.requestorId()));
+
+        long timestamp = timestampService.getFreshTimestamp();
+
+        // this will always return synchronously
+        LeasableLockToken leasebleLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
+        long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
+
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                LockImmutableTimestampResponse.of(immutableTs, leasebleLock.token());
+
+        TimestampAndPartition timestampAndPartition = getFreshTimestampForClient(request.requestorId());
+
+        return LeasableStartAtlasDbTransactionResponse.of(
+                lockImmutableTimestampResponse,
+                timestampAndPartition,
+                leasebleLock.lease());
+
     }
 
     @Override

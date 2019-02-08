@@ -26,7 +26,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LeaseContract;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockService implements Closeable {
@@ -39,6 +45,7 @@ public class AsyncLockService implements Closeable {
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
+    private final UUID serviceId;
 
     public static AsyncLockService createDefault(
             LockLog lockLog,
@@ -66,6 +73,7 @@ public class AsyncLockService implements Closeable {
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
+        this.serviceId = UUID.randomUUID();
 
         scheduleExpiredLockReaper();
     }
@@ -80,16 +88,18 @@ public class AsyncLockService implements Closeable {
         }, 0, LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+    public AsyncResult<LeasableLockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireLocks(requestId, lockDescriptors, timeout));
+                () -> acquireLocks(requestId, lockDescriptors, timeout))
+                .map(this::createLeasableLockToken);
     }
 
-    public AsyncResult<LockToken> lockImmutableTimestamp(UUID requestId, long timestamp) {
+    public AsyncResult<LeasableLockToken> lockImmutableTimestamp(UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireImmutableTimestampLock(requestId, timestamp));
+                () -> acquireImmutableTimestampLock(requestId, timestamp))
+                .map(this::createLeasableLockToken);
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -101,6 +111,11 @@ public class AsyncLockService implements Closeable {
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
     }
+
+    private LeasableLockToken createLeasableLockToken(HeldLocks heldLocks) {
+        return LeasableLockToken.of(heldLocks.getToken(), leaseWithStart(heldLocks.lastRefreshTime()));
+    }
+
 
     private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
             TimeLimit timeout) {
@@ -128,11 +143,21 @@ public class AsyncLockService implements Closeable {
     }
 
     public boolean refresh(LockToken token) {
-        return refresh(ImmutableSet.of(token)).contains(token);
+        return refresh(ImmutableSet.of(token)).refreshedTokens().contains(token);
     }
 
-    public Set<LockToken> refresh(Set<LockToken> tokens) {
-        return heldLocks.refresh(tokens);
+    public LeasableRefreshLockResponse refresh(Set<LockToken> tokens) {
+
+        NanoTime startTime = NanoTime.now();
+        Set<LockToken> refreshedTokens = heldLocks.refresh(tokens);
+
+        return LeasableRefreshLockResponse.of(
+                refreshedTokens,
+                leaseWithStart(startTime));
+    }
+
+    private Lease leaseWithStart(NanoTime startTime) {
+        return Lease.of(serviceId, startTime, LeaseContract.LEASE_PERIOD);
     }
 
     /**

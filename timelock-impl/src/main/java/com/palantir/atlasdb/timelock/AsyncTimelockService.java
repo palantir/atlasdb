@@ -21,6 +21,10 @@ import java.util.Set;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -35,19 +39,19 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     Set<LockToken> unlock(Set<LockToken> tokens);
 
-    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
+    LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens);
 
     AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<LockToken> lock(LockRequest request);
+    AsyncResult<LeasableLockToken> lock(LockRequest request);
 
     long getImmutableTimestamp();
 
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
+    StartAtlasDbTransactionResponse startAtlasDbTransaction(
+            IdentifiedTimeLockRequest request);
 
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    LeasableStartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
-
 }

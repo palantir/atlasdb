@@ -29,6 +29,8 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -81,7 +83,7 @@ public class AsyncTimelockResource {
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request);
+        return timelock.startIdentifiedAtlasDbTransaction(request).getStartTransactionResponse();
     }
 
     @POST
@@ -93,7 +95,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void lock(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LockToken> result = timelock.lock(request);
+        AsyncResult<LeasableLockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -101,7 +103,7 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LockResponse.timedOut());
             } else {
-                response.resume(LockResponse.successful(result.get()));
+                response.resume(LockResponse.successful(result.get().token()));
             }
         });
     }
@@ -125,7 +127,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("refresh-locks")
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return timelock.refreshLockLeases(tokens);
+        return timelock.refreshLockLeases(tokens).refreshedTokens();
     }
 
     @POST

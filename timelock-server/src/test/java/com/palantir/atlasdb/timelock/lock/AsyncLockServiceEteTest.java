@@ -41,6 +41,7 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockServiceEteTest {
@@ -52,8 +53,6 @@ public class AsyncLockServiceEteTest {
     private static final String LOCK_B = "b";
     private static final String LOCK_C = "c";
     private static final String LOCK_D = "d";
-
-    private static final Clock CLOCK = System::currentTimeMillis;
 
     private static final TimeLimit TIMEOUT = TimeLimit.of(10_000L);
     private static final TimeLimit SHORT_TIMEOUT = TimeLimit.of(500L);
@@ -97,7 +96,7 @@ public class AsyncLockServiceEteTest {
     public void waitingRequestGetsTheLockAfterItIsUnlocked() {
         LockToken request1 = lockSynchronously(REQUEST_1, LOCK_A);
 
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LeasableLockToken> request2 = lock(REQUEST_2, LOCK_A);
         assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
@@ -108,7 +107,7 @@ public class AsyncLockServiceEteTest {
     public void waitingRequestGetsTheLockAfterItIsUnlockedWithMultipleLocks() {
         LockToken request1 = lockSynchronously(REQUEST_1, LOCK_A, LOCK_C);
 
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
+        AsyncResult<LeasableLockToken> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
         assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
@@ -119,8 +118,8 @@ public class AsyncLockServiceEteTest {
     public void requestsAreIdempotentDuringAcquisitionPhase() {
         LockToken currentHolder = lockSynchronously(REQUEST_1, LOCK_A);
 
-        AsyncResult<LockToken> tokenResult = lock(REQUEST_2, LOCK_A);
-        AsyncResult<LockToken> duplicateResult = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LeasableLockToken> tokenResult = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LeasableLockToken> duplicateResult = lock(REQUEST_2, LOCK_A);
 
         service.unlock(currentHolder);
 
@@ -143,7 +142,7 @@ public class AsyncLockServiceEteTest {
     public void requestsAreIdempotentWithRespectToTimeout() {
         lockSynchronously(REQUEST_1, LOCK_A);
         service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
-        AsyncResult<LockToken> duplicate = service.lock(REQUEST_2, descriptors(LOCK_A), LONG_TIMEOUT);
+        AsyncResult<LeasableLockToken> duplicate = service.lock(REQUEST_2, descriptors(LOCK_A), LONG_TIMEOUT);
 
         waitForTimeout(SHORT_TIMEOUT);
 
@@ -199,7 +198,7 @@ public class AsyncLockServiceEteTest {
     @Test
     public void canLockAndUnlockImmutableTimestamp() {
         long timestamp = 123L;
-        LockToken token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
+        LeasableLockToken token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
 
         assertThat(service.getImmutableTimestamp().get()).isEqualTo(123L);
 
@@ -240,7 +239,7 @@ public class AsyncLockServiceEteTest {
     @ShouldRetry
     public void lockRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
-        AsyncResult<LockToken> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
+        AsyncResult<LeasableLockToken> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
         assertThat(result.isTimedOut()).isFalse();
 
         waitForTimeout(SHORT_TIMEOUT);
@@ -276,7 +275,7 @@ public class AsyncLockServiceEteTest {
     @Test
     public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
         lockSynchronously(REQUEST_1, LOCK_A);
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A);
+        AsyncResult<LeasableLockToken> request2 = lock(REQUEST_2, LOCK_A);
 
         service.close();
 
@@ -303,7 +302,7 @@ public class AsyncLockServiceEteTest {
         return lock(requestId, locks).get();
     }
 
-    private AsyncResult<LockToken> lock(UUID requestId, String... locks) {
+    private AsyncResult<LeasableLockToken> lock(UUID requestId, String... locks) {
         return service.lock(requestId, descriptors(locks), TIMEOUT);
     }
 
@@ -323,7 +322,7 @@ public class AsyncLockServiceEteTest {
     }
 
     private void assertLocked(String... locks) {
-        AsyncResult<LockToken> result = lock(UUID.randomUUID(), locks);
+        AsyncResult<LeasableLockToken> result = lock(UUID.randomUUID(), locks);
         assertFalse(result.isComplete());
 
         result.map(token -> service.unlock(token));

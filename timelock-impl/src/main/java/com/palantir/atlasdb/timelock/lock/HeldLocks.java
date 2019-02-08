@@ -92,6 +92,10 @@ public class HeldLocks {
         return token.getRequestId();
     }
 
+    public NanoTime lastRefreshTime() {
+        return expirationTimer.lastRefreshTime();
+    }
+
     @VisibleForTesting
     Collection<AsyncLock> getLocks() {
         return acquiredLocks;
