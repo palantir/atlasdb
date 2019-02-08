@@ -115,7 +115,6 @@ public class AsyncLockService implements Closeable {
         return LeasableLockToken.of(heldLocks.getToken(), leaseWithStart(heldLocks.lastRefreshTime()));
     }
 
-
     private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
             TimeLimit timeout) {
         OrderedLocks orderedLocks = locks.getAll(lockDescriptors);

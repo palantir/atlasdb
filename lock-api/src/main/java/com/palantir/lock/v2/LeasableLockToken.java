@@ -16,8 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.UUID;
-
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -25,10 +23,6 @@ public abstract class LeasableLockToken {
 
     public abstract LockToken token();
     public abstract Lease lease();
-
-    public UUID getRequestId() {
-        return token().getRequestId();
-    }
 
     public static LeasableLockToken of(LockToken token, Lease lease) {
         return ImmutableLeasableLockToken.builder()
