@@ -97,10 +97,12 @@ public final class TransactionRetryStrategy {
 
     private void logAttempt(UUID runId, Attempt<?> attempt, IntPredicate shouldStopRetrying) {
         int failureCount = Ints.checkedCast(attempt.getAttemptNumber()) - 1;
-        if (attempt.hasResult() && failureCount > 0) {
-            log.info("[{}] Successfully completed transaction after {} retries.",
-                    SafeArg.of("runId", runId),
-                    SafeArg.of("failureCount", failureCount));
+        if (attempt.hasResult()) {
+            if (failureCount > 0) {
+                log.info("[{}] Successfully completed transaction after {} retries.",
+                        SafeArg.of("runId", runId),
+                        SafeArg.of("failureCount", failureCount));
+            }
         } else {
             Throwable thrown = attempt.getExceptionCause();
             if (thrown instanceof TransactionFailedException) {

@@ -78,6 +78,13 @@ public class TransactionRetryStrategyTest {
     }
 
     @Test
+    public void successOnFirstTry() throws Exception {
+        when(task.run()).thenReturn("success");
+        assertThat(runExponential()).isEqualTo("success");
+        assertThat(blockStrategy.numRetries).isEqualTo(0);
+    }
+
+    @Test
     public void retriesIfFailsWithRetriableException() throws Exception {
         when(task.run()).thenThrow(new TransactionFailedRetriableException("")).thenReturn("success");
         assertThat(runExponential()).isEqualTo("success");
