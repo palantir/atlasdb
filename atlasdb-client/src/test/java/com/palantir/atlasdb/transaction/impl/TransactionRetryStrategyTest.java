@@ -123,8 +123,8 @@ public class TransactionRetryStrategyTest {
         when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > 11);
         when(task.run()).thenAnswer(inv -> {
             System.out.println(blockStrategy.totalBlockedTime);
-            throw new TransactionFailedRetriableException("")
-;        });
+            throw new TransactionFailedRetriableException("");
+        });
         List<Integer> rawBlockTimes = ImmutableList.of(
                 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 60000, 60000);
         List<Integer> randomizedBlockTimes = Lists.transform(rawBlockTimes, x -> x - 1);
