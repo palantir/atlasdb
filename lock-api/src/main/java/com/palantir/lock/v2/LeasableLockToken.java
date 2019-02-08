@@ -21,7 +21,7 @@ import java.util.UUID;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public abstract class LeasableLockToken implements LockToken {
+public abstract class LeasableLockToken {
 
     public abstract LockToken token();
     public abstract Lease lease();
@@ -31,6 +31,9 @@ public abstract class LeasableLockToken implements LockToken {
     }
 
     public static LeasableLockToken of(LockToken token, Lease lease) {
-        return ImmutableLeasableLockToken.of(token, lease);
+        return ImmutableLeasableLockToken.builder()
+                .token(token)
+                .lease(lease)
+                .build();
     }
 }

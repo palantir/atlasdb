@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.Lease;

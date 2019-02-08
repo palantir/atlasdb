@@ -202,7 +202,7 @@ public class AsyncLockServiceEteTest {
 
         assertThat(service.getImmutableTimestamp().get()).isEqualTo(123L);
 
-        service.unlock(token);
+        service.unlock(token.token());
 
         assertThat(service.getImmutableTimestamp()).isEqualTo(Optional.empty());
     }
@@ -299,7 +299,7 @@ public class AsyncLockServiceEteTest {
     }
 
     private LockToken lockSynchronously(UUID requestId, String... locks) {
-        return lock(requestId, locks).get();
+        return lock(requestId, locks).get().token();
     }
 
     private AsyncResult<LeasableLockToken> lock(UUID requestId, String... locks) {
@@ -325,7 +325,7 @@ public class AsyncLockServiceEteTest {
         AsyncResult<LeasableLockToken> result = lock(UUID.randomUUID(), locks);
         assertFalse(result.isComplete());
 
-        result.map(token -> service.unlock(token));
+        result.map(token -> service.unlock(token.token()));
     }
 
 }
