@@ -20,6 +20,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableLockToken;
@@ -54,4 +55,6 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     LeasableStartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
+
+    IdentifiedTime identifiedTime();
 }

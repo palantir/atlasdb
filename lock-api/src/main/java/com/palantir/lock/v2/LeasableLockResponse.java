@@ -32,16 +32,34 @@ public abstract class LeasableLockResponse {
     public abstract Optional<LockToken> getTokenOrEmpty();
 
     @Value.Parameter
-    public abstract Lease getLease();
+    public abstract Optional<Lease> getLeaseOrEmpty();
 
     @JsonIgnore
-    public LockResponse getLockResponse() {
-        return ImmutableLockResponse.of(getTokenOrEmpty());
+    public boolean wasSuccessful() {
+        return getTokenOrEmpty().isPresent();
     }
 
-    public static LeasableLockResponse of(LockToken token, Lease lease) {
-        return ImmutableLeasableLockResponse.of(
-                Optional.of(token),
-                lease);
+    @JsonIgnore
+    public LockToken getToken() {
+        if (!wasSuccessful()) {
+            throw new IllegalStateException("This lock response was not successful");
+        }
+        return getTokenOrEmpty().get();
+    }
+
+    @JsonIgnore
+    public Lease getLease() {
+        if (!wasSuccessful()) {
+            throw new IllegalStateException("This lock response was not successful");
+        }
+        return getLeaseOrEmpty().get();
+    }
+
+    public static LeasableLockResponse successful(LockToken token, Lease lease) {
+        return ImmutableLeasableLockResponse.of(Optional.of(token), Optional.of(lease));
+    }
+
+    public static LeasableLockResponse timedOut() {
+        return ImmutableLeasableLockResponse.of(Optional.empty(), Optional.empty());
     }
 }

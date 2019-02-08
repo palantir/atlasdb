@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -28,9 +29,12 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.lock.v2.IdentifiedTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockResponse;
 import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -131,6 +135,42 @@ public class AsyncTimelockResource {
     }
 
     @POST
+    @Path("lock-v2")
+    public void lockV2(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<LeasableLockToken> result = timelock.lock(request);
+        lockLog.registerRequest(request, result);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(LeasableLockResponse.timedOut());
+            } else {
+                response.resume(LeasableLockResponse.successful(result.get().token(), result.get().lease()));
+            }
+        });
+    }
+
+    @POST
+    @Path("start-atlasdb-transaction-v3")
+    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransactionV3(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return timelock.startIdentifiedAtlasDbTransaction(request);
+    }
+
+    @POST
+    @Path("refresh-locks-v2")
+    public LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens) {
+        return timelock.refreshLockLeases(tokens);
+    }
+
+
+    @GET
+    @Path("leader-time")
+    public IdentifiedTime getLeaderTime() {
+        return timelock.identifiedTime();
+    }
+
+    @POST
     @Path("unlock")
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         return timelock.unlock(tokens);
@@ -141,4 +181,5 @@ public class AsyncTimelockResource {
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();
     }
+
 }
