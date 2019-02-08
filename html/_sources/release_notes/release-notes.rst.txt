@@ -83,6 +83,10 @@ develop
            Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
+    *    - |improved|
+         - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
+
 ========
 v0.116.1
 ========
