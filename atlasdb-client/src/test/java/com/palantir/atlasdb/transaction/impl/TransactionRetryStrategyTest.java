@@ -52,84 +52,94 @@ public class TransactionRetryStrategyTest {
 
     private static final class TestBlockStrategy implements BlockStrategy {
         private long totalBlockedTime;
+        private long numRetries;
 
         @Override
         public void block(long sleepTime) {
             totalBlockedTime += sleepTime;
+            numRetries += 1;
         }
     }
 
     @Before
     public void before() {
         when(random.nextLong(anyLong())).thenAnswer(inv -> (long) inv.getArgument(0) - 1);
-        when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > 1);
+        mockRetries(1);
         legacy = TransactionRetryStrategy.createLegacy(blockStrategy);
         exponential = TransactionRetryStrategy.createExponential(blockStrategy, random);
-
     }
 
-    private String run() throws Exception {
+    private String runExponential() throws Exception {
         return exponential.runWithRetry(shouldStopRetrying, task);
+    }
+
+    private String runLegacy() throws Exception {
+        return legacy.runWithRetry(shouldStopRetrying, task);
     }
 
     @Test
     public void retriesIfFailsWithRetriableException() throws Exception {
         when(task.run()).thenThrow(new TransactionFailedRetriableException("")).thenReturn("success");
-        assertThat(run()).isEqualTo("success");
+        assertThat(runExponential()).isEqualTo("success");
+        assertThat(blockStrategy.numRetries).isEqualTo(1);
     }
 
     @Test
     public void stopsIfShouldStopRetrying() throws Exception {
         TransactionFailedRetriableException second = new TransactionFailedRetriableException("second");
-        when(task.run()).thenThrow(new TransactionFailedRetriableException("first")).thenThrow(second);
+        when(task.run()).thenThrow(new TransactionFailedRetriableException("first"))
+                .thenThrow(second)
+                .thenReturn("success");
         assertThatExceptionOfType(TransactionFailedRetriableException.class)
-                .isThrownBy(this::run)
+                .isThrownBy(this::runExponential)
                 .withMessage("Failing after 2 tries.")
                 .withCause(second);
+        assertThat(blockStrategy.numRetries).isEqualTo(1);
     }
 
     @Test
     public void doesNotRetryOnNonRetriableTransactionFailedException() throws Exception {
         TransactionFailedNonRetriableException failure = new TransactionFailedNonRetriableException("");
         when(task.run()).thenThrow(failure);
-        assertThatThrownBy(this::run).isEqualTo(failure);
+        assertThatThrownBy(this::runExponential).isEqualTo(failure);
     }
 
     @Test
     public void rethrowsExceptions() throws Exception {
         Exception exception = new Exception("rethrown");
         when(task.run()).thenThrow(exception);
-        assertThatThrownBy(this::run).isEqualTo(exception);
+        assertThatThrownBy(this::runExponential).isEqualTo(exception);
     }
 
     @Test
     public void rethrowsErrors() throws Exception {
         AssertionError error = new AssertionError();
         when(task.run()).thenThrow(error);
-        assertThatThrownBy(this::run).isEqualTo(error);
+        assertThatThrownBy(this::runExponential).isEqualTo(error);
     }
 
     @Test
     public void doesNotBackOffIfLegacy() throws Exception {
-        when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > 50);
+        mockRetries(50);
         when(task.run()).thenThrow(new TransactionFailedRetriableException(""));
         assertThatExceptionOfType(TransactionFailedRetriableException.class)
-                .isThrownBy(() -> legacy.runWithRetry(shouldStopRetrying, task));
+                .isThrownBy(this::runLegacy);
         assertThat(blockStrategy.totalBlockedTime).isZero();
     }
 
     @Test
     public void backsOffExponentially() throws Exception {
-        when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > 11);
-        when(task.run()).thenAnswer(inv -> {
-            System.out.println(blockStrategy.totalBlockedTime);
-            throw new TransactionFailedRetriableException("");
-        });
+        mockRetries(11);
+        when(task.run()).thenThrow(new TransactionFailedRetriableException(""));
         List<Integer> rawBlockTimes = ImmutableList.of(
                 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 60000, 60000);
         List<Integer> randomizedBlockTimes = Lists.transform(rawBlockTimes, x -> x - 1);
         long expectedBlockDuration = randomizedBlockTimes.stream().mapToInt(x -> x).sum();
-        assertThatExceptionOfType(TransactionFailedRetriableException.class).isThrownBy(this::run);
+        assertThatExceptionOfType(TransactionFailedRetriableException.class).isThrownBy(this::runExponential);
         assertThat(blockStrategy.totalBlockedTime).isEqualTo(expectedBlockDuration);
+    }
+
+    private void mockRetries(int numRetries) {
+        when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > numRetries);
     }
 }
