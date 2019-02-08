@@ -91,7 +91,7 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
+            if (uniqueSchemaOnAllNodesAllowingForOneUnreachable(versions)) {
                 return;
             }
             sleepTime = sleepAndGetNextBackoffTime(sleepTime);
@@ -134,31 +134,17 @@ public final class CassandraKeyValueServices {
         waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
     }
 
-    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
-            CassandraKeyValueServiceConfig config,
+    static boolean uniqueSchemaOnAllNodesAllowingForOneUnreachable(
             Map<String, List<String>> versions) {
-        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
-        if (reachableSchemas.size() > 1) {
-            return false;
-        }
+        return getDistinctReachableSchemas(versions).size() <= 1
+                && (!versions.keySet().contains(VERSION_UNREACHABLE) || versions.get(VERSION_UNREACHABLE).size() == 1);
 
-        int numberOfServers = config.servers().size();
-        int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
-
-        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
         return versions.keySet().stream()
                 .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
                 .collect(Collectors.toList());
-    }
-
-    private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
-        return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue)
-                .mapToInt(List::size)
-                .sum();
     }
 
     private static long sleepAndGetNextBackoffTime(long sleepTime) {

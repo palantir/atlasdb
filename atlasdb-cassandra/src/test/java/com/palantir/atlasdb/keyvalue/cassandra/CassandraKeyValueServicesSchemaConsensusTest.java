@@ -68,20 +68,8 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
-    public void waitThrowsForAllUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of());
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
-    }
-
-    @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
-    }
-
-    @Test
-    public void waitThrowsForFewerThanQuorumOnSameVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
         assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
@@ -93,16 +81,23 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
+    public void waitSuceedsForOneUnreachableNode() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ImmutableList.of("1"), VERSION_1, REST_OF_NODES));
         assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
-    public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
+    public void waitSucceedsWhenAllOnSameSchemaVersionButSomeNodesFromConfigDoNotExist() throws TException {
+        when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
+        assertWaitForSchemaVersionsDoesNotThrow();
+    }
+
+    @Test
+    public void waitThrowsForMoreThanOneUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
@@ -113,17 +108,9 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     }
 
     @Test
-    public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
-        when(client.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        assertWaitForSchemaVersionsDoesNotThrow();
-    }
-
-    @Test
     public void waitWaitsForSchemaVersions() throws TException {
         CassandraClient waitingClient = mock(CassandraClient.class);
         when(waitingClient.describe_schema_versions()).thenReturn(
-                ImmutableMap.of(),
                 ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));

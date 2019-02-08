@@ -1319,7 +1319,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Return the list of tables stored in this key value service. Requires a quorum of Cassandra nodes to be reachable
+     * Return the list of tables st“ored in this key value service. Requires a quorum of Cassandra nodes to be reachable
      * and agree on schema versions.
      * <p>
      * This will not contain the names of any hidden tables (e. g., the _metadata table).
@@ -1488,11 +1488,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             clientPool.runWithRetry(client -> {
                 if (possiblyNeedToPerformSettingsChanges) {
                     for (CfDef cf : updatedCfs) {
-                        client.system_update_column_family(cf);
+                        CassandraKeyValueServices.runWithWaitingForSchemas(
+                                () -> client.system_update_column_family(cf),
+                                config,
+                                client,
+                                unsafeSchemaChangeDescriptionForPutMetadataForTable(cf));
                     }
-
-                    CassandraKeyValueServices.waitForSchemaVersions(config, client,
-                            schemaChangeDescriptionForPutMetadataForTables(updatedCfs));
                 }
                 // Done with actual schema mutation, push the metadata
                 put(AtlasDbConstants.DEFAULT_METADATA_TABLE, newMetadata, System.currentTimeMillis());
@@ -1503,14 +1504,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private String schemaChangeDescriptionForPutMetadataForTables(Collection<CfDef> updatedCfs) {
-        String tables = updatedCfs.stream()
-                .map(CassandraKeyValueServices::tableReferenceFromCfDef)
-                .map(Object::toString)
-                .collect(Collectors.toList())
-                .toString();
-        return String.format("after updating the column family for tables %s in a call to put metadata for tables",
-                tables);
+    private String unsafeSchemaChangeDescriptionForPutMetadataForTable(CfDef updatedCf) {
+        return String.format("after updating the column family for table %s in a call to put metadata for tables",
+                CassandraKeyValueServices.tableReferenceFromCfDef(updatedCf));
     }
 
     @Override

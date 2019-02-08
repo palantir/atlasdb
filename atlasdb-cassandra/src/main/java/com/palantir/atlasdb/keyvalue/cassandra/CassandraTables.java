@@ -16,16 +16,13 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -60,7 +57,7 @@ class CassandraTables {
     }
 
     private Set<String> getExisting(CassandraClient client, String keyspace) throws TException {
-        return getTableNames(client, keyspace, CfDef::getName);
+        return getTableNames(client, keyspace).collect(Collectors.toSet());
     }
 
     Stream<TableReference> getTableReferencesWithoutFiltering() {
@@ -76,23 +73,10 @@ class CassandraTables {
     }
 
     private Set<String> getExistingLowerCased(CassandraClient client, String keyspace) throws TException {
-        return getTableNames(client, keyspace, cf -> cf.getName().toLowerCase());
+        return getTableNames(client, keyspace).map(String::toLowerCase).collect(Collectors.toSet());
     }
 
-    private Set<String> getTableNames(CassandraClient client, String keyspace,
-            Function<CfDef, String> nameGetter) throws TException {
-        try {
-            CassandraKeyValueServices
-                    .waitForSchemaVersions(config, client, "before making a call to get all table names.");
-        } catch (IllegalStateException e) {
-            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions "
-                    + "before making a call to get all table names.", e);
-        }
-
-        KsDef ks = client.describe_keyspace(keyspace);
-
-        return ks.getCf_defs().stream()
-                .map(nameGetter)
-                .collect(Collectors.toSet());
+    private Stream<String> getTableNames(CassandraClient client, String keyspace) throws TException {
+        return client.describe_keyspace(keyspace).getCf_defs().stream().map(CfDef::getName);
     }
 }
