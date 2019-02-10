@@ -23,16 +23,23 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.common.time.NanoTime;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableIdentifiedTime.class)
-@JsonDeserialize(as = ImmutableIdentifiedTime.class)
-public interface IdentifiedTime {
+@JsonSerialize(as = ImmutableLeaderTime.class)
+@JsonDeserialize(as = ImmutableLeaderTime.class)
+public abstract class LeaderTime {
     @Value.Parameter
-    LeadershipId leadershipId();
+    public abstract LeadershipId leadershipId();
 
     @Value.Parameter
-    NanoTime currentTimeNanos();
+    public abstract NanoTime currentTimeNanos();
 
-    static IdentifiedTime of(LeadershipId id, NanoTime time) {
-        return ImmutableIdentifiedTime.of(id, time);
+    public boolean isComparableWith(LeaderTime other) {
+        return leadershipId().equals(other.leadershipId());
+    }
+
+    public static LeaderTime of(LeadershipId id, NanoTime time) {
+        return ImmutableLeaderTime.builder()
+                .leadershipId(id)
+                .currentTimeNanos(time)
+                .build();
     }
 }

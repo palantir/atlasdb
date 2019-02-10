@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.IdentifiedTime;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
@@ -160,8 +160,8 @@ public class AsyncLockService implements Closeable {
         return Lease.of(leadershipId, startTime, LeaseContract.LEASE_PERIOD);
     }
 
-    public IdentifiedTime identifiedTime() {
-        return IdentifiedTime.of(leadershipId, NanoTime.now());
+    public LeaderTime identifiedTime() {
+        return LeaderTime.of(leadershipId, NanoTime.now());
     }
 
     /**
