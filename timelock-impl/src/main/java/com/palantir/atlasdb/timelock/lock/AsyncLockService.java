@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.IdentifiedTime;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.Lease;
@@ -45,7 +46,7 @@ public class AsyncLockService implements Closeable {
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
-    private final UUID serviceId;
+    private final LeadershipId leadershipId;
 
     public static AsyncLockService createDefault(
             LockLog lockLog,
@@ -73,7 +74,7 @@ public class AsyncLockService implements Closeable {
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
-        this.serviceId = UUID.randomUUID();
+        this.leadershipId = LeadershipId.random();
 
         scheduleExpiredLockReaper();
     }
@@ -156,11 +157,11 @@ public class AsyncLockService implements Closeable {
     }
 
     private Lease leaseWithStart(NanoTime startTime) {
-        return Lease.of(serviceId, startTime, LeaseContract.LEASE_PERIOD);
+        return Lease.of(leadershipId, startTime, LeaseContract.LEASE_PERIOD);
     }
 
     public IdentifiedTime identifiedTime() {
-        return IdentifiedTime.of(serviceId, NanoTime.now());
+        return IdentifiedTime.of(leadershipId, NanoTime.now());
     }
 
     /**

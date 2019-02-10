@@ -16,8 +16,6 @@
 
 package com.palantir.lock.v2;
 
-import java.util.UUID;
-
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -29,12 +27,12 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableIdentifiedTime.class)
 public interface IdentifiedTime {
     @Value.Parameter
-    UUID clockId();
+    LeadershipId leadershipId();
 
     @Value.Parameter
     NanoTime currentTimeNanos();
 
-    static IdentifiedTime of(UUID id, NanoTime time) {
+    static IdentifiedTime of(LeadershipId id, NanoTime time) {
         return ImmutableIdentifiedTime.of(id, time);
     }
 }

@@ -30,7 +30,7 @@ import com.palantir.common.time.NanoTime;
 
 public class LeasableLockResponseTest {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
-    private static final Lease LEASE = Lease.of(UUID.randomUUID(), NanoTime.createForTests(0), Duration.ofSeconds(1));
+    private static final Lease LEASE = Lease.of(LeadershipId.random(), NanoTime.createForTests(0), Duration.ofSeconds(1));
     private static final RuntimeException EXCEPTION = new RuntimeException("failure!");
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
