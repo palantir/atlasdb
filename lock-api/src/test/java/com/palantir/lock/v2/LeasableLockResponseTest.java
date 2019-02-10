@@ -25,21 +25,24 @@ import java.util.UUID;
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
 
 public class LeasableLockResponseTest {
-    private static LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
-    private static Lease LEASE = Lease.of(UUID.randomUUID(), NanoTime.createForTests(0), Duration.ofSeconds(1));
-    private static RuntimeException EXCEPTION = new RuntimeException("failure!");
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
+    private static final Lease LEASE = Lease.of(UUID.randomUUID(), NanoTime.createForTests(0), Duration.ofSeconds(1));
+    private static final RuntimeException EXCEPTION = new RuntimeException("failure!");
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
 
     @Test
     public void visitsSuccessfulResponse() {
         LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
         LockToken token = response.accept(LeasableLockResponse.Visitor.of(
                 successful -> successful.getToken(),
-                unsuccessful -> {throw EXCEPTION;}
-        ));
+                unsuccessful -> {
+                    throw EXCEPTION;
+                }));
 
         assertThat(token).isEqualTo(LOCK_TOKEN);
     }
@@ -50,7 +53,9 @@ public class LeasableLockResponseTest {
 
         assertThatThrownBy(() -> response.accept(LeasableLockResponse.Visitor.of(
                 successful -> successful.getToken(),
-                unsuccessful -> {throw EXCEPTION;}
+                unsuccessful -> {
+                    throw EXCEPTION;
+                }
         ))).isEqualTo(EXCEPTION);
     }
 
@@ -59,6 +64,14 @@ public class LeasableLockResponseTest {
         LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
         String serialized = objectMapper.writeValueAsString(response);
         LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
-        System.out.println(serialized);
+        assertThat(deserialized).isEqualTo(response);
+    }
+
+    @Test
+    public void serializeDeserialize_Unsuccessful() throws Exception {
+        LeasableLockResponse response = LeasableLockResponse.timedOut();
+        String serialized = objectMapper.writeValueAsString(response);
+        LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
+        assertThat(deserialized).isEqualTo(response);
     }
 }

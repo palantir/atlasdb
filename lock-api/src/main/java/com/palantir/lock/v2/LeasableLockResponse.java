@@ -20,10 +20,23 @@ import java.util.function.Function;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(LeasableLockResponse.Successful.class),
+        @JsonSubTypes.Type(LeasableLockResponse.Unsuccessful.class)})
 public interface LeasableLockResponse {
     <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable
+    @JsonSerialize(as = ImmutableSuccessful.class)
+    @JsonDeserialize(as = ImmutableSuccessful.class)
+    @JsonTypeName("success")
     interface Successful extends LeasableLockResponse {
         LockToken getToken();
         Lease getLease();
@@ -34,6 +47,9 @@ public interface LeasableLockResponse {
     }
 
     @Value.Immutable
+    @JsonSerialize(as = ImmutableUnsuccessful.class)
+    @JsonDeserialize(as = ImmutableUnsuccessful.class)
+    @JsonTypeName("failure")
     interface Unsuccessful extends LeasableLockResponse {
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
