@@ -33,7 +33,6 @@ import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.Lease;
-import com.palantir.lock.v2.LeaseContract;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockService implements Closeable {

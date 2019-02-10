@@ -91,6 +91,13 @@ public class AsyncTimelockResource {
     }
 
     @POST
+    @Path("start-atlasdb-transaction-v3")
+    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransactionV3(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return timelock.startIdentifiedAtlasDbTransaction(request);
+    }
+    
+    @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
         return timelock.getImmutableTimestamp();
@@ -108,6 +115,22 @@ public class AsyncTimelockResource {
                 response.resume(LockResponse.timedOut());
             } else {
                 response.resume(LockResponse.successful(result.get().token()));
+            }
+        });
+    }
+    
+    @POST
+    @Path("lock-v2")
+    public void lockV2(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<LeasableLockToken> result = timelock.lock(request);
+        lockLog.registerRequest(request, result);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(LeasableLockResponse.timedOut());
+            } else {
+                response.resume(LeasableLockResponse.successful(result.get().token(), result.get().lease()));
             }
         });
     }
@@ -135,34 +158,10 @@ public class AsyncTimelockResource {
     }
 
     @POST
-    @Path("lock-v2")
-    public void lockV2(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LeasableLockToken> result = timelock.lock(request);
-        lockLog.registerRequest(request, result);
-        result.onComplete(() -> {
-            if (result.isFailed()) {
-                response.resume(result.getError());
-            } else if (result.isTimedOut()) {
-                response.resume(LeasableLockResponse.timedOut());
-            } else {
-                response.resume(LeasableLockResponse.successful(result.get().token(), result.get().lease()));
-            }
-        });
-    }
-
-    @POST
-    @Path("start-atlasdb-transaction-v3")
-    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransactionV3(
-            StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request);
-    }
-
-    @POST
     @Path("refresh-locks-v2")
     public LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
     }
-
 
     @GET
     @Path("leader-time")

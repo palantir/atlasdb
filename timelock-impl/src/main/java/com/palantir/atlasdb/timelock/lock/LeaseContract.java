@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.lock;
 
 import java.time.Duration;
 
 public final class LeaseContract {
     private LeaseContract() {}
 
-    public static final Duration LEASE_PERIOD = Duration.ofSeconds(10);
+    /**
+     * This value can be changed without requiring any change on client side.
+     */
+    public static final Duration LEASE_PERIOD = Duration.ofSeconds(8);
 }
