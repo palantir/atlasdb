@@ -18,36 +18,23 @@ package com.palantir.lock.v2;
 
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
+import org.immutables.value.Value;
+
 import com.fasterxml.jackson.annotation.JsonValue;
-import com.google.common.annotations.VisibleForTesting;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-public class LeadershipId {
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PRIVATE)
+@JsonSerialize(as = ImmutableLeadershipId.class)
+@JsonDeserialize(as = ImmutableLeadershipId.class)
+public abstract class LeadershipId {
     @JsonValue
-    private final UUID id;
-
-    @JsonCreator
-    @VisibleForTesting
-    LeadershipId(UUID id) {
-        this.id = id;
-    }
+    abstract UUID id();
 
     public static LeadershipId random() {
-        return new LeadershipId(UUID.randomUUID());
-    }
-
-    @Override
-    public boolean equals(Object another) {
-        if (this == another) {
-            return true;
-        }
-
-        return another instanceof LeadershipId
-                && this.id.equals(((LeadershipId) another).id);
-    }
-
-    @Override
-    public int hashCode() {
-        return id.hashCode();
+        return ImmutableLeadershipId.builder()
+                .id(UUID.randomUUID())
+                .build();
     }
 }

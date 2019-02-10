@@ -18,26 +18,11 @@ package com.palantir.lock.v2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.UUID;
-
 import org.junit.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LeadershipIdTest {
-    private static final UUID UUID_1 = UUID.randomUUID();
-    private static final UUID UUID_2 = UUID.randomUUID();
-
-    @Test
-    public void testEquality() {
-        LeadershipId id1 = new LeadershipId(UUID_1);
-        LeadershipId id2 = new LeadershipId(UUID_1);
-        LeadershipId id3 = new LeadershipId(UUID_2);
-
-        assertThat(id1).isEqualTo(id2);
-        assertThat(id1).isNotEqualTo(id3);
-    }
-
     @Test
     public void serializeAndDeserializeSuccessfully() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
