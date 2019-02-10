@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
@@ -57,7 +58,9 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        environment.getObjectMapper().registerModule(new Jdk8Module());
+        environment.getObjectMapper()
+                .registerModule(new Jdk8Module())
+                .registerModule(new JavaTimeModule());
         environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());

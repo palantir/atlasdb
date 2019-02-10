@@ -64,6 +64,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.BridgingTimelockService;
 import com.palantir.lock.v2.DefaultTimelockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -487,7 +488,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static TimelockService getTimelockService(String client) {
-        return DefaultTimelockService.create(getProxyForService(client, TimelockRpcClient.class));
+        return BridgingTimelockService.create(getProxyForService(client, TimelockRpcClient.class));
     }
 
     private static LockService getLockService(String client) {

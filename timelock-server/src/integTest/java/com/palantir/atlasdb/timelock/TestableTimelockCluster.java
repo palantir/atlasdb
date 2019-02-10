@@ -35,6 +35,7 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.BridgingTimelockService;
 import com.palantir.lock.v2.DefaultTimelockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -211,7 +212,7 @@ public class TestableTimelockCluster {
     }
 
     public TimelockService timelockServiceForClient(String client) {
-        return DefaultTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
+        return BridgingTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
 
     public RuleChain getRuleChain() {

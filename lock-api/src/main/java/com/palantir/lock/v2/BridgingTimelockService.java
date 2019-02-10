@@ -20,15 +20,15 @@ import java.util.Set;
 
 import com.palantir.timestamp.TimestampRange;
 
-public final class DefaultTimelockService implements TimelockService {
+public class BridgingTimelockService implements TimelockService {
     private final TimelockRpcClient delegate;
 
-    private DefaultTimelockService(TimelockRpcClient timelockRpcClient) {
+    private BridgingTimelockService(TimelockRpcClient timelockRpcClient) {
         this.delegate = timelockRpcClient;
     }
 
     public static TimelockService create(TimelockRpcClient timelockRpcClient) {
-        return new DefaultTimelockService(timelockRpcClient);
+        return new BridgingTimelockService(timelockRpcClient);
     }
 
     @Override
@@ -54,7 +54,7 @@ public final class DefaultTimelockService implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return delegate.deprecatedStartIdentifiedAtlasDbTransaction(request);
+        return delegate.startAtlasDbTransaction(request).getStartTransactionResponse();
     }
 
     @Override
@@ -64,7 +64,9 @@ public final class DefaultTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return delegate.deprecatedLock(request);
+        return delegate.lock(request).accept(LeasableLockResponse.Visitor.of(
+                successful -> LockResponse.successful(successful.getToken()),
+                unsuccessful -> LockResponse.timedOut()));
     }
 
     @Override
@@ -74,7 +76,7 @@ public final class DefaultTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return delegate.deprecatedRefreshLockLeases(tokens);
+        return delegate.refreshLockLeases(tokens).refreshedTokens();
     }
 
     @Override
