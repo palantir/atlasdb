@@ -79,20 +79,20 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+    public StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request) {
         return timelock.startAtlasDbTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    public StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelock.startIdentifiedAtlasDbTransaction(request).getStartTransactionResponse();
     }
 
     @POST
     @Path("start-atlasdb-transaction-v3")
-    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransactionV3(
+    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelock.startIdentifiedAtlasDbTransaction(request);
     }
@@ -105,7 +105,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
+    public void deprecatedLock(@Suspended final AsyncResponse response, LockRequest request) {
         AsyncResult<LeasableLockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -121,7 +121,7 @@ public class AsyncTimelockResource {
     
     @POST
     @Path("lock-v2")
-    public void lockV2(@Suspended final AsyncResponse response, LockRequest request) {
+    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
         AsyncResult<LeasableLockToken> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -153,13 +153,13 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks")
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens).refreshedTokens();
     }
 
     @POST
     @Path("refresh-locks-v2")
-    public LeasableRefreshLockResponse refreshLockLeasesV2(Set<LockToken> tokens) {
+    public LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
     }
 
