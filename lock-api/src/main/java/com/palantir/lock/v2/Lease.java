@@ -29,28 +29,25 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableLease.class)
 public abstract class Lease {
     @Value.Parameter
-    public abstract LeaderTime leaseOwnerId();
-
-    @Value.Parameter
-    public abstract NanoTime startTime();
+    public abstract LeaderTime leaderTime();
 
     @Value.Parameter
     public abstract Duration validity();
 
-    public boolean isValid(LeaderTime leaderTime) {
-        return leaseOwnerId().equals(leaderTime.leadershipId())
-                && leaderTime.currentTimeNanos().isBefore(expiry());
+    public boolean isValid(LeaderTime otherLeaderTime) {
+        return leaderTime().isComparableWith(otherLeaderTime)
+                && leaderTime().currentTimeNanos().isBefore(expiry());
     }
 
     public NanoTime expiry() {
-        return startTime().plus(validity());
+        return leaderTime().currentTimeNanos().plus(validity());
     }
 
     public static Lease of(LeaderTime leaderTime, Duration validity) {
-        return ImmutableLease.of(
-                leaderTime.leadershipId(),
-                leaderTime.currentTimeNanos(),
-                validity);
+        return ImmutableLease.builder()
+                .leaderTime(leaderTime)
+                .validity(validity)
+                .build();
     }
 
     public static Lease of(LeadershipId leadershipId, NanoTime startTime, Duration period) {
