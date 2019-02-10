@@ -30,12 +30,12 @@ public class LeadershipIdTest {
 
     @Test
     public void testEquality() {
-        LeadershipId id_1 = new LeadershipId(UUID_1);
-        LeadershipId id_2 = new LeadershipId(UUID_1);
-        LeadershipId id_3 = new LeadershipId(UUID_2);
+        LeadershipId id1 = new LeadershipId(UUID_1);
+        LeadershipId id2 = new LeadershipId(UUID_1);
+        LeadershipId id3 = new LeadershipId(UUID_2);
 
-        assertThat(id_1).isEqualTo(id_2);
-        assertThat(id_1).isNotEqualTo(id_3);
+        assertThat(id1).isEqualTo(id2);
+        assertThat(id1).isNotEqualTo(id3);
     }
 
     @Test

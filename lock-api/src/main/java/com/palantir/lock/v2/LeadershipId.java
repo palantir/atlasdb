@@ -38,7 +38,10 @@ public class LeadershipId {
 
     @Override
     public boolean equals(Object another) {
-        if (this == another) return true;
+        if (this == another) {
+            return true;
+        }
+
         return another instanceof LeadershipId
                 && this.id.equals(((LeadershipId) another).id);
     }

@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.palantir.timestamp.TimestampRange;
 
-public class BridgingTimelockService implements TimelockService {
+public final class BridgingTimelockService implements TimelockService {
     private final TimelockRpcClient delegate;
 
     private BridgingTimelockService(TimelockRpcClient timelockRpcClient) {
