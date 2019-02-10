@@ -16,50 +16,57 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Optional;
+import java.util.function.Function;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+public interface LeasableLockResponse {
+    <T> T accept(Visitor<T> visitor);
 
-@Value.Immutable
-@JsonSerialize(as = ImmutableLeasableLockResponse.class)
-@JsonDeserialize(as = ImmutableLeasableLockResponse.class)
-public abstract class LeasableLockResponse {
-    @Value.Parameter
-    public abstract Optional<LockToken> getTokenOrEmpty();
+    @Value.Immutable
+    interface Successful extends LeasableLockResponse {
+        LockToken getToken();
+        Lease getLease();
 
-    @Value.Parameter
-    public abstract Optional<Lease> getLeaseOrEmpty();
-
-    @JsonIgnore
-    public boolean wasSuccessful() {
-        return getTokenOrEmpty().isPresent();
-    }
-
-    @JsonIgnore
-    public LockToken getToken() {
-        if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not successful");
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
-        return getTokenOrEmpty().get();
     }
 
-    @JsonIgnore
-    public Lease getLease() {
-        if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not successful");
+    @Value.Immutable
+    interface Unsuccessful extends LeasableLockResponse {
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
-        return getLeaseOrEmpty().get();
     }
 
-    public static LeasableLockResponse successful(LockToken token, Lease lease) {
-        return ImmutableLeasableLockResponse.of(Optional.of(token), Optional.of(lease));
+    interface Visitor<T> {
+        T visit(Successful successful);
+        T visit(Unsuccessful failure);
+
+        static <T> Visitor<T> of(Function<Successful, T> successFunction, Function<Unsuccessful, T> failureFunction) {
+            return new Visitor<T>() {
+                @Override
+                public T visit(Successful successful) {
+                    return successFunction.apply(successful);
+                }
+
+                @Override
+                public T visit(Unsuccessful failure) {
+                    return failureFunction.apply(failure);
+                }
+            };
+        }
     }
 
-    public static LeasableLockResponse timedOut() {
-        return ImmutableLeasableLockResponse.of(Optional.empty(), Optional.empty());
+    static LeasableLockResponse successful(LockToken lockToken, Lease lease) {
+        return ImmutableSuccessful.builder()
+                .token(lockToken)
+                .lease(lease)
+                .build();
+    }
+
+    static LeasableLockResponse timedOut() {
+        return ImmutableUnsuccessful.builder().build();
     }
 }
