@@ -16,50 +16,73 @@
 
 package com.palantir.lock.v2;
 
-import java.util.Optional;
+import java.util.function.Function;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@Value.Immutable
-@JsonSerialize(as = ImmutableLeasableLockResponse.class)
-@JsonDeserialize(as = ImmutableLeasableLockResponse.class)
-public abstract class LeasableLockResponse {
-    @Value.Parameter
-    public abstract Optional<LockToken> getTokenOrEmpty();
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(LeasableLockResponse.Successful.class),
+        @JsonSubTypes.Type(LeasableLockResponse.Unsuccessful.class)})
+public interface LeasableLockResponse {
+    <T> T accept(Visitor<T> visitor);
 
-    @Value.Parameter
-    public abstract Optional<Lease> getLeaseOrEmpty();
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableSuccessful.class)
+    @JsonDeserialize(as = ImmutableSuccessful.class)
+    @JsonTypeName("success")
+    interface Successful extends LeasableLockResponse {
+        LockToken getToken();
+        Lease getLease();
 
-    @JsonIgnore
-    public boolean wasSuccessful() {
-        return getTokenOrEmpty().isPresent();
-    }
-
-    @JsonIgnore
-    public LockToken getToken() {
-        if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not successful");
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
-        return getTokenOrEmpty().get();
     }
 
-    @JsonIgnore
-    public Lease getLease() {
-        if (!wasSuccessful()) {
-            throw new IllegalStateException("This lock response was not successful");
+    @Value.Immutable
+    @JsonSerialize(as = ImmutableUnsuccessful.class)
+    @JsonDeserialize(as = ImmutableUnsuccessful.class)
+    @JsonTypeName("failure")
+    interface Unsuccessful extends LeasableLockResponse {
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visit(this);
         }
-        return getLeaseOrEmpty().get();
     }
 
-    public static LeasableLockResponse successful(LockToken token, Lease lease) {
-        return ImmutableLeasableLockResponse.of(Optional.of(token), Optional.of(lease));
+    interface Visitor<T> {
+        T visit(Successful successful);
+        T visit(Unsuccessful failure);
+
+        static <T> Visitor<T> of(Function<Successful, T> successFunction, Function<Unsuccessful, T> failureFunction) {
+            return new Visitor<T>() {
+                @Override
+                public T visit(Successful successful) {
+                    return successFunction.apply(successful);
+                }
+
+                @Override
+                public T visit(Unsuccessful failure) {
+                    return failureFunction.apply(failure);
+                }
+            };
+        }
     }
 
-    public static LeasableLockResponse timedOut() {
-        return ImmutableLeasableLockResponse.of(Optional.empty(), Optional.empty());
+    static LeasableLockResponse successful(LockToken lockToken, Lease lease) {
+        return ImmutableSuccessful.builder()
+                .token(lockToken)
+                .lease(lease)
+                .build();
+    }
+
+    static LeasableLockResponse timedOut() {
+        return ImmutableUnsuccessful.builder().build();
     }
 }
