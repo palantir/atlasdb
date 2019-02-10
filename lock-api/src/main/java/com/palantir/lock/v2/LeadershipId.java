@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@Value.Style(visibility = Value.Style.ImplementationVisibility.PRIVATE)
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
 @JsonSerialize(as = ImmutableLeadershipId.class)
 @JsonDeserialize(as = ImmutableLeadershipId.class)
 public abstract class LeadershipId {
