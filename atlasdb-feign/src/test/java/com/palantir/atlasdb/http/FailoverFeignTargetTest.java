@@ -33,6 +33,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
@@ -143,6 +144,23 @@ public class FailoverFeignTargetTest {
             normalTarget.continueOrPropagate(
                     normalTarget.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
+    }
+
+
+    @Test
+    public void doesNotFailDueToFastFailoverIfNotAllNodesHaveBeenTalkedTo() {
+        AtomicLong clock = new AtomicLong(1);
+        FailoverFeignTarget<Object> clockedTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class, clock::get);
+
+        simulateRequest(clockedTarget);
+        clockedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        clock.set(5000000);
+        simulateRequest(clockedTarget);
+        clockedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER);
+        clock.set(10000000);
+        simulateRequest(clockedTarget);
+        assertThatThrownBy(() -> clockedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER))
+                .isEqualTo(EXCEPTION_WITH_RETRY_AFTER);
     }
 
     @Test
