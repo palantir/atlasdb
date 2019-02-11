@@ -28,6 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.SafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
@@ -61,10 +62,6 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
-    public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
-        this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
-    }
-
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
@@ -72,7 +69,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         this.maxBackoffMillis = maxBackoffMillis;
     }
 
-    public void sucessfulCall() {
+    private void successfulCall() {
         numSwitches.set(0);
         failuresSinceLastSwitch.set(0);
         startTimeOfFastFailover.set(0);
@@ -133,17 +130,16 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
-        final long fastFailoverStartTime = startTimeOfFastFailover.get();
-        final long currentTime = System.currentTimeMillis();
-        boolean failedDueToFastFailover = fastFailoverStartTime != 0
-                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
+        boolean failedDueToFastFailover = hasFailedDueToFastFailover();
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
         if (failedDueToFastFailover) {
             log.error("This connection has been instructed to fast failover for {}"
-                    + " seconds without establishing a successful connection."
+                    + " seconds without establishing a successful connection, and connected to all remote hosts ({})."
                     + " The remote hosts have been in a fast failover state for too long.",
-                    TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis), ex);
+                    SafeArg.of("duration", TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis)),
+                    SafeArg.of("remoteHosts", servers),
+                    ex);
         } else if (failedDueToNumSwitches) {
             log.error("This connection has tried {} hosts rolling across {} servers, each {} times and has failed out.",
                     numServersToTryBeforeFailing, servers.size(), failuresBeforeSwitching, ex);
@@ -154,6 +150,36 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    /**
+     * We say that a {@link FailoverFeignTarget} has failed due to fast failover if two conditions are satisfied:
+     *
+     * <ol>
+     *     <li>
+     *         The cluster has only received fast failover exceptions from remote hosts for the last
+     *         {@link FailoverFeignTarget#fastFailoverTimeoutMillis} milliseconds.
+     *     </li>
+     *     <li>
+     *         All nodes have been tried at least once.
+     *     </li>
+     * </ol>
+     *
+     * @return whether this target has failed due to fast failover
+     */
+    private boolean hasFailedDueToFastFailover() {
+        return hasBeenInFastFailoverStateForTooLong() && hasTriedAllNodes();
+    }
+
+    private boolean hasBeenInFastFailoverStateForTooLong() {
+        long fastFailoverStartTime = startTimeOfFastFailover.get();
+        long currentTime = System.currentTimeMillis();
+
+        return fastFailoverStartTime != 0
+                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
+    }
+
+    private boolean hasTriedAllNodes() {
+        return failoverCount.get() >= servers.size() - 1;
+    }
 
     private void pauseForBackoff(RetryableException ex) {
         double exponentialPauseTime = Math.pow(
@@ -218,7 +244,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         return (request, options) -> {
             Response response = client.execute(request, options);
             if (response.status() >= 200 && response.status() < 300) {
-                sucessfulCall();
+                successfulCall();
             }
             return response;
         };
