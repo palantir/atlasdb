@@ -90,7 +90,7 @@ develop
     *    - |fixed|
          - ``FailoverFeignTarget`` now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
            Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/QQQQ>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3752>`__)
 
 ========
 v0.116.1
