@@ -74,7 +74,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     @VisibleForTesting
-    public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, LongSupplier clock) {
+    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, LongSupplier clock) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
