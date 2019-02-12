@@ -1,4 +1,4 @@
-## Overview
+# Overview
 The ete benchmarks consist of two projects:
 - **timelock-server-benchmark-client**: the benchmark client server.
 Hosts a set of http endpoints which return benchmark results.

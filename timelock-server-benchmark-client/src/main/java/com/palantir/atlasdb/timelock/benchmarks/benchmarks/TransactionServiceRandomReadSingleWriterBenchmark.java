@@ -32,14 +32,14 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
-public class TransactionServiceRandomReadBenchmark extends AbstractBenchmark {
+public class TransactionServiceRandomReadSingleWriterBenchmark extends AbstractBenchmark {
     private final TransactionManager txManager;
     private final Map<Long, Long> timestampMap = Maps.newHashMap();
     private final Queue<Long> queryTimestampSource = new ConcurrentLinkedDeque<>();
     private final int numStartTimestamps;
     private final int permittedDrift;
 
-    private TransactionServiceRandomReadBenchmark(
+    private TransactionServiceRandomReadSingleWriterBenchmark(
             TransactionManager txManager,
             int numClients,
             int requestsPerClient,
@@ -55,7 +55,8 @@ public class TransactionServiceRandomReadBenchmark extends AbstractBenchmark {
 
     public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient, int permittedDrift) {
-        return new TransactionServiceRandomReadBenchmark(txnManager, numClients, requestsPerClient, permittedDrift)
+        return new TransactionServiceRandomReadSingleWriterBenchmark(
+                txnManager, numClients, requestsPerClient, permittedDrift)
                 .execute();
     }
 
@@ -74,6 +75,7 @@ public class TransactionServiceRandomReadBenchmark extends AbstractBenchmark {
             long baseTimestamp = timestampLowerBound + i * TicketsEncodingStrategy.ROWS_PER_QUANTUM;
             timestampMap.put(baseTimestamp, baseTimestamp + ThreadLocalRandom.current().nextInt(permittedDrift));
         }
+        txManager.getTransactionService().putUnlessExistsMultiple(timestampMap);
         List<Long> baseTimestamps = new ArrayList<>(timestampMap.keySet());
         Collections.shuffle(baseTimestamps);
         queryTimestampSource.addAll(baseTimestamps);

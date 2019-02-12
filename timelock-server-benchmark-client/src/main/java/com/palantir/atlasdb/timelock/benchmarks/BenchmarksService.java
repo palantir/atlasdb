@@ -115,8 +115,8 @@ public interface BenchmarksService {
             @QueryParam("numRows") int numRows);
 
     @GET
-    @Path("/transaction-service-random-read")
-    Map<String, Object> transactionServiceRandomRead(
+    @Path("/transaction-service-random-read-single-writer")
+    Map<String, Object> transactionServiceRandomReadSingleWriter(
             @QueryParam("numClients") int numClients,
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("permittedDrift") int permittedDrift);
