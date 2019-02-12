@@ -263,6 +263,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testKeyValueRange_allResultsPostFiltered() {
         putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col2", "v2", 5);
 
         byte[] rowBytes = PtBytes.toBytes("row1");
         RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
