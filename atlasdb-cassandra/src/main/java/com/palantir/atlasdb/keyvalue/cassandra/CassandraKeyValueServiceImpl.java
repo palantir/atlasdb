@@ -1319,7 +1319,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     /**
-     * Return the list of tables st“ored in this key value service. Requires a quorum of Cassandra nodes to be reachable
+     * Return the list of tables stored in this key value service. Requires a quorum of Cassandra nodes to be reachable
      * and agree on schema versions.
      * <p>
      * This will not contain the names of any hidden tables (e. g., the _metadata table).
