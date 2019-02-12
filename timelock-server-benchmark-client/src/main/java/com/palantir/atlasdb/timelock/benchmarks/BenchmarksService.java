@@ -19,6 +19,7 @@ import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -113,4 +114,14 @@ public interface BenchmarksService {
             @QueryParam("dataSize") int dataSize,
             @QueryParam("numRows") int numRows);
 
+    @GET
+    @Path("/transaction-service-random-read")
+    Map<String, Object> transactionServiceRandomRead(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("permittedDrift") int permittedDrift);
+
+    @POST
+    @Path("/install-transactions-schema-version")
+    void installTransactionsSchemaVersion(@QueryParam("version") int version);
 }

@@ -20,8 +20,12 @@ import java.util.Optional;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsPutUnlessExistsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.KvsWriteBenchmark;
@@ -31,6 +35,7 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RangeScanDynamicColum
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.RangeScanRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionReadRowsBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionServiceRandomReadBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteBenchmarkContended;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynamicColumnsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
@@ -118,5 +123,24 @@ public class BenchmarksResource implements BenchmarksService {
             int numRows) {
         return RangeScanDynamicColumnsBenchmark.execute(txnManager, numClients, numRequestsPerClient, dataSize,
                 numRows);
+    }
+
+    @Override
+    public Map<String, Object> transactionServiceRandomRead(int numClients, int numRequestsPerClient,
+            int permittedDrift) {
+        return TransactionServiceRandomReadBenchmark.execute(txnManager, numClients, numRequestsPerClient,
+                permittedDrift);
+    }
+
+    @Override
+    public void installTransactionsSchemaVersion(int version) {
+        CoordinationService<InternalSchemaMetadata> coordinationService =
+                CoordinationServices.createDefault(txnManager.getKeyValueService(),
+                        txnManager.getTimestampService(),
+                        false);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+        transactionSchemaManager.tryInstallNewTransactionsSchemaVersion(version);
+        txnManager.getTimestampManagementService().fastForwardTimestamp(
+                txnManager.getTimestampService().getFreshTimestamp() + 100_000_000L);
     }
 }
