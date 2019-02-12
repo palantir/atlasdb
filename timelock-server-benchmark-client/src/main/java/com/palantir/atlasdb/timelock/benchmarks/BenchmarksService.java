@@ -121,6 +121,13 @@ public interface BenchmarksService {
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("permittedDrift") int permittedDrift);
 
+    @GET
+    @Path("/transaction-service-random-read-chaos")
+    Map<String, Object> transactionServiceRandomReadChaos(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient,
+            @QueryParam("permittedDrift") int permittedDrift);
+
     @POST
     @Path("/install-transactions-schema-version")
     void installTransactionsSchemaVersion(@QueryParam("version") int version);
