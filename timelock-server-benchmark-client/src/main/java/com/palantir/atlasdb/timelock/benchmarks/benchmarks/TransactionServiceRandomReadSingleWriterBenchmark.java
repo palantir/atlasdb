@@ -26,35 +26,35 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 
 public final class TransactionServiceRandomReadSingleWriterBenchmark
         extends AbstractTransactionServiceRandomReadBenchmark {
-    private final TransactionManager txManager;
+    private final TransactionManager transactionManager;
     private final int numStartTimestamps;
     private final int permittedDrift;
 
     private TransactionServiceRandomReadSingleWriterBenchmark(
-            TransactionManager txManager,
+            TransactionManager transactionManager,
             int numClients,
             int requestsPerClient,
             int permittedDrift) {
-        super(txManager, numClients, requestsPerClient);
+        super(transactionManager, numClients, requestsPerClient);
 
         Preconditions.checkState(permittedDrift >= 0, "Gap from start to commit timestamp cannot be negative");
 
-        this.txManager = txManager;
+        this.transactionManager = transactionManager;
         this.numStartTimestamps = numClients * requestsPerClient;
         this.permittedDrift = permittedDrift;
     }
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager transactionManager, int numClients,
             int requestsPerClient, int permittedDrift) {
         return new TransactionServiceRandomReadSingleWriterBenchmark(
-                txnManager, numClients, requestsPerClient, permittedDrift)
+                transactionManager, numClients, requestsPerClient, permittedDrift)
                 .execute();
     }
 
     @Override
     Map<Long, Long> getStartToCommitTimestampPairs() {
         Map<Long, Long> timestamps = Maps.newHashMap();
-        long timestampLowerBound = txManager.getTimestampService().getFreshTimestamp();
+        long timestampLowerBound = transactionManager.getTimestampService().getFreshTimestamp();
         for (int i = 0; i < numStartTimestamps; i++) {
             // Assume partition 0
             long baseTimestamp = timestampLowerBound + i * TicketsEncodingStrategy.ROWS_PER_QUANTUM;
@@ -65,8 +65,8 @@ public final class TransactionServiceRandomReadSingleWriterBenchmark
 
     @Override
     void prepareExternalDependencies() {
-        txManager.getTimestampManagementService().fastForwardTimestamp(
-                txManager.getTimestampService().getFreshTimestamp()
+        transactionManager.getTimestampManagementService().fastForwardTimestamp(
+                transactionManager.getTimestampService().getFreshTimestamp()
                         + numStartTimestamps * TicketsEncodingStrategy.ROWS_PER_QUANTUM);
     }
 }

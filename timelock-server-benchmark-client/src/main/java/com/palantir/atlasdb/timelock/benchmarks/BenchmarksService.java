@@ -128,6 +128,12 @@ public interface BenchmarksService {
             @QueryParam("numRequestsPerClient") int numRequestsPerClient,
             @QueryParam("permittedDrift") int permittedDrift);
 
+    @GET
+    @Path("/transaction-service-write")
+    Map<String, Object> transactionServiceWrite(
+            @QueryParam("numClients") int numClients,
+            @QueryParam("numRequestsPerClient") int numRequestsPerClient);
+
     @POST
     @Path("/install-transactions-schema-version")
     void installTransactionsSchemaVersion(@QueryParam("version") int version);

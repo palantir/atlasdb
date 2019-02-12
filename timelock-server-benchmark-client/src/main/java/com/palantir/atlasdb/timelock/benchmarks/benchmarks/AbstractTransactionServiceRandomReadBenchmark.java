@@ -30,29 +30,29 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
 public abstract class AbstractTransactionServiceRandomReadBenchmark extends AbstractBenchmark {
-    private final TransactionManager txManager;
+    private final TransactionManager transactionManager;
     private final Map<Long, Long> timestampMap = Maps.newHashMap();
     private final Queue<Long> queryTimestampSource = new ConcurrentLinkedDeque<>();
 
     protected AbstractTransactionServiceRandomReadBenchmark(
-            TransactionManager txManager,
+            TransactionManager transactionManager,
             int numClients,
             int requestsPerClient) {
         super(numClients, requestsPerClient);
 
-        this.txManager = txManager;
+        this.transactionManager = transactionManager;
     }
 
     @Override
     protected void setup() {
-        TransactionTables.truncateTables(txManager.getKeyValueService());
+        TransactionTables.truncateTables(transactionManager.getKeyValueService());
         populateTransactionTable();
     }
 
     private void populateTransactionTable() {
         timestampMap.putAll(getStartToCommitTimestampPairs());
         prepareExternalDependencies();
-        txManager.getTransactionService().putUnlessExistsMultiple(timestampMap);
+        transactionManager.getTransactionService().putUnlessExistsMultiple(timestampMap);
         List<Long> baseTimestamps = new ArrayList<>(timestampMap.keySet());
         Collections.shuffle(baseTimestamps);
         queryTimestampSource.addAll(baseTimestamps);
@@ -65,12 +65,12 @@ public abstract class AbstractTransactionServiceRandomReadBenchmark extends Abst
     @Override
     protected void performOneCall() {
         Long timestampToQueryFor = queryTimestampSource.poll();
-        Long commitTimestamp = txManager.getTransactionService().get(timestampToQueryFor);
+        Long commitTimestamp = transactionManager.getTransactionService().get(timestampToQueryFor);
         assertThat(commitTimestamp).isEqualTo(timestampMap.get(timestampToQueryFor));
     }
 
     @Override
     protected void cleanup() {
-        TransactionTables.truncateTables(txManager.getKeyValueService());
+        TransactionTables.truncateTables(transactionManager.getKeyValueService());
     }
 }

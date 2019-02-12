@@ -24,32 +24,32 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 
 public final class TransactionServiceRandomReadChaosBenchmark extends AbstractTransactionServiceRandomReadBenchmark {
-    private final TransactionManager txManager;
+    private final TransactionManager transactionManager;
     private final int numStartTimestamps;
     private final long permittedDrift;
 
     private long highestStoredTimestamp = 0;
 
     private TransactionServiceRandomReadChaosBenchmark(
-            TransactionManager txManager, int numClients, int requestsPerClient, long permittedDrift) {
-        super(txManager, numClients, requestsPerClient);
+            TransactionManager transactionManager, int numClients, int requestsPerClient, long permittedDrift) {
+        super(transactionManager, numClients, requestsPerClient);
 
-        this.txManager = txManager;
+        this.transactionManager = transactionManager;
         this.numStartTimestamps = numClients * requestsPerClient;
         this.permittedDrift = permittedDrift;
     }
 
-    public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
+    public static Map<String, Object> execute(TransactionManager transactionManager, int numClients,
             int requestsPerClient, int permittedDrift) {
         return new TransactionServiceRandomReadChaosBenchmark(
-                txnManager, numClients, requestsPerClient, permittedDrift)
+                transactionManager, numClients, requestsPerClient, permittedDrift)
                 .execute();
     }
 
     @Override
     Map<Long, Long> getStartToCommitTimestampPairs() {
         Map<Long, Long> timestampMap = Maps.newHashMap();
-        long timestampLowerBound = txManager.getTimestampService().getFreshTimestamp();
+        long timestampLowerBound = transactionManager.getTimestampService().getFreshTimestamp();
         for (int i = 0; i < numStartTimestamps; i++) {
             timestampLowerBound = timestampLowerBound + ThreadLocalRandom.current().nextLong(
                     1, TicketsEncodingStrategy.PARTITIONING_QUANTUM / 10);
@@ -63,6 +63,6 @@ public final class TransactionServiceRandomReadChaosBenchmark extends AbstractTr
 
     @Override
     void prepareExternalDependencies() {
-        txManager.getTimestampManagementService().fastForwardTimestamp(highestStoredTimestamp);
+        transactionManager.getTimestampManagementService().fastForwardTimestamp(highestStoredTimestamp);
     }
 }

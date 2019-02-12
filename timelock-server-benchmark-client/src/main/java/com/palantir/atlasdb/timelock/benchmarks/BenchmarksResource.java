@@ -37,6 +37,7 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TimestampBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionReadRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionServiceRandomReadChaosBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionServiceRandomReadSingleWriterBenchmark;
+import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionServiceWriteBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteBenchmarkContended;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynamicColumnsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
@@ -138,6 +139,11 @@ public class BenchmarksResource implements BenchmarksService {
             int permittedDrift) {
         return TransactionServiceRandomReadChaosBenchmark.execute(txnManager, numClients, numRequestsPerClient,
                 permittedDrift);
+    }
+
+    @Override
+    public Map<String, Object> transactionServiceWrite(int numClients, int numRequestsPerClient) {
+        return TransactionServiceWriteBenchmark.execute(txnManager, numClients, numRequestsPerClient);
     }
 
     @Override
