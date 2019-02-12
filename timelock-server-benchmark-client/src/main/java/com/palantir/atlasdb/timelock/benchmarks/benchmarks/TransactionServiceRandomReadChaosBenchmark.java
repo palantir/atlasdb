@@ -16,37 +16,23 @@
 
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
-import com.palantir.atlasdb.transaction.impl.TransactionTables;
 
-public class TransactionServiceRandomReadChaosBenchmark extends AbstractBenchmark {
+public final class TransactionServiceRandomReadChaosBenchmark extends AbstractTransactionServiceRandomReadBenchmark {
     private final TransactionManager txManager;
-    private final Map<Long, Long> timestampMap = Maps.newHashMap();
-    private final Queue<Long> queryTimestampSource = new ConcurrentLinkedDeque<>();
     private final int numStartTimestamps;
-    private final int permittedDrift;
+    private final long permittedDrift;
+
+    private long highestStoredTimestamp = 0;
 
     private TransactionServiceRandomReadChaosBenchmark(
-            TransactionManager txManager,
-            int numClients,
-            int requestsPerClient,
-            int permittedDrift) {
-        super(numClients, requestsPerClient);
-
-        Preconditions.checkState(permittedDrift >= 0, "Gap from start to commit timestamp cannot be negative");
+            TransactionManager txManager, int numClients, int requestsPerClient, long permittedDrift) {
+        super(txManager, numClients, requestsPerClient);
 
         this.txManager = txManager;
         this.numStartTimestamps = numClients * requestsPerClient;
@@ -61,36 +47,22 @@ public class TransactionServiceRandomReadChaosBenchmark extends AbstractBenchmar
     }
 
     @Override
-    protected void setup() {
-        TransactionTables.truncateTables(txManager.getKeyValueService());
-        populateTransactionTable();
-    }
-
-    private void populateTransactionTable() {
+    Map<Long, Long> getStartToCommitTimestampPairs() {
+        Map<Long, Long> timestampMap = Maps.newHashMap();
         long timestampLowerBound = txManager.getTimestampService().getFreshTimestamp();
         for (int i = 0; i < numStartTimestamps; i++) {
             timestampLowerBound = timestampLowerBound + ThreadLocalRandom.current().nextLong(
                     1, TicketsEncodingStrategy.PARTITIONING_QUANTUM / 10);
             timestampMap.put(
                     timestampLowerBound,
-                    timestampLowerBound + ThreadLocalRandom.current().nextInt(permittedDrift));
+                    timestampLowerBound + ThreadLocalRandom.current().nextLong(permittedDrift));
         }
-        txManager.getTimestampManagementService().fastForwardTimestamp(timestampLowerBound);
-        txManager.getTransactionService().putUnlessExistsMultiple(timestampMap);
-        List<Long> baseTimestamps = new ArrayList<>(timestampMap.keySet());
-        Collections.shuffle(baseTimestamps);
-        queryTimestampSource.addAll(baseTimestamps);
+        highestStoredTimestamp = timestampLowerBound;
+        return timestampMap;
     }
 
     @Override
-    protected void performOneCall() {
-        Long timestampToQueryFor = queryTimestampSource.poll();
-        Long commitTimestamp = txManager.getTransactionService().get(timestampToQueryFor);
-        assertThat(commitTimestamp).isEqualTo(timestampMap.get(timestampToQueryFor));
-    }
-
-    @Override
-    protected void cleanup() {
-        TransactionTables.truncateTables(txManager.getKeyValueService());
+    void prepareExternalDependencies() {
+        txManager.getTimestampManagementService().fastForwardTimestamp(highestStoredTimestamp);
     }
 }
