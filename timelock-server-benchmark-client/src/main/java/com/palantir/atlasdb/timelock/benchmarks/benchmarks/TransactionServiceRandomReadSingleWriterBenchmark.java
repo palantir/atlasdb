@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.google.common.base.Preconditions;
@@ -29,8 +27,6 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 public final class TransactionServiceRandomReadSingleWriterBenchmark
         extends AbstractTransactionServiceRandomReadBenchmark {
     private final TransactionManager txManager;
-    private final Map<Long, Long> timestampMap = Maps.newHashMap();
-    private final Queue<Long> queryTimestampSource = new ConcurrentLinkedDeque<>();
     private final int numStartTimestamps;
     private final int permittedDrift;
 
@@ -57,14 +53,14 @@ public final class TransactionServiceRandomReadSingleWriterBenchmark
 
     @Override
     Map<Long, Long> getStartToCommitTimestampPairs() {
-        Map<Long, Long> timestampMap = Maps.newHashMap();
+        Map<Long, Long> timestamps = Maps.newHashMap();
         long timestampLowerBound = txManager.getTimestampService().getFreshTimestamp();
         for (int i = 0; i < numStartTimestamps; i++) {
             // Assume partition 0
             long baseTimestamp = timestampLowerBound + i * TicketsEncodingStrategy.ROWS_PER_QUANTUM;
-            timestampMap.put(baseTimestamp, baseTimestamp + ThreadLocalRandom.current().nextInt(permittedDrift));
+            timestamps.put(baseTimestamp, baseTimestamp + ThreadLocalRandom.current().nextInt(permittedDrift));
         }
-        return timestampMap;
+        return timestamps;
     }
 
     @Override
