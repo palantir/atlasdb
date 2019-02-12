@@ -58,10 +58,12 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -256,6 +258,20 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] rowBytes = PtBytes.toBytes("row1");
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(rowBytes).endRowExclusive(rowBytes).build(), 1));
         assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testKeyValueRange_allResultsPostFiltered() {
+        putDirect("row1", "col1", "v1", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                1);
+        assertFalse(iterator.hasNext());
     }
 
     @Test
