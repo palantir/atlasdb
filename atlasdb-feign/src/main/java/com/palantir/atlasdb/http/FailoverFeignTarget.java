@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.LongSupplier;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -32,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.Clock;
 import com.palantir.logsafe.SafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -67,14 +67,14 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
-    private final LongSupplier clock;
+    private final Clock clock;
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
         this(servers, maxBackoffMillis, type, System::currentTimeMillis);
     }
 
     @VisibleForTesting
-    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, LongSupplier clock) {
+    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, Clock clock) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
@@ -135,7 +135,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             numSwitches.set(0);
             fastFailoverState.updateAndGet(stateOptional ->
                     Optional.of(stateOptional.map(FastFailoverState::withAdditionalFailedServer)
-                            .orElseGet(() -> FastFailoverState.of(clock.getAsLong(), 1))));
+                            .orElseGet(() -> FastFailoverState.of(clock.getTimeMillis(), 1))));
         } else {
             numSwitches.incrementAndGet();
             fastFailoverState.set(Optional.empty());
@@ -187,7 +187,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     }
 
     private boolean hasBeenInFastFailoverStateForTooLong(FastFailoverState failoverState) {
-        return clock.getAsLong() - failoverState.startTime() > fastFailoverTimeoutMillis;
+        return clock.getTimeMillis() - failoverState.startTime() > fastFailoverTimeoutMillis;
     }
 
     private boolean hasTriedAllNodesInFastFailover(FastFailoverState failoverState) {
