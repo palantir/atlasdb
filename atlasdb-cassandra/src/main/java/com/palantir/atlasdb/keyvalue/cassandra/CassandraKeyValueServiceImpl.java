@@ -864,9 +864,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
                         extractor.extractResults(ImmutableList.of(row), results, startTs);
                         RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
-                        //if (decoded.getResults().isEmpty()) {
-                        //    return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(), false);
-                        //}
+                        if (decoded.getResults().isEmpty()) {
+                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(),
+                                    values.size() >= batchColumnRangeSelection.getBatchHint());
+                        }
                         Map<Cell, Value> ret = decoded.getResults().get(row);
 
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
