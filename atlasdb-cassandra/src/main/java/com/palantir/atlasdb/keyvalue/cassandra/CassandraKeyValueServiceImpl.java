@@ -865,18 +865,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         extractor.extractResults(ImmutableList.of(row), results, startTs);
                         RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
                         if (decoded.getResults().isEmpty()) {
-                            if (values.size() == 1) {
-                                throw new RuntimeException("Found 1 result");
-                            }
-                            if (values.size() == 2) {
-                                throw new RuntimeException("Found 2 results");
-                            }
-                            if (values.size() > 2) {
-                                throw new RuntimeException("Found >2 results");
-                            }
-                            // Need to move startCol forward
-                            // What if all we read were versions of the same row?
-                            return SimpleTokenBackedResultsPage.create(startCol, ImmutableList.of(),
+                            // All returned results were at ts > startTs
+                            // Start the next page from the last column seen to ensure forward progress
+                            byte[] lastColumn = extractor.getLastColumnForRow(row).get();
+                            return SimpleTokenBackedResultsPage.create(lastColumn, ImmutableList.of(),
                                     values.size() >= batchColumnRangeSelection.getBatchHint());
                         }
                         Map<Cell, Value> ret = decoded.getResults().get(row);

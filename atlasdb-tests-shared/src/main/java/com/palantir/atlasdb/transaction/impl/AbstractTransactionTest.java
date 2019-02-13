@@ -261,7 +261,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testKeyValueRange_allResultsPostFiltered() {
+    public void testRowsColumnRange_allResultsPostFiltered() {
         putDirect("row1", "col1", "v1", 5);
         putDirect("row1", "col2", "v2", 5);
 
@@ -276,7 +276,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testKeyValueRange_postFilteredFirstPage() {
+    public void testRowsColumnRange_postFilteredFirstPage() {
         putDirect("row1", "col1", "v1", 5);
         putDirect("row1", "col1", "v1a", 6);
         putDirect("row1", "col2", "v2", 5);
