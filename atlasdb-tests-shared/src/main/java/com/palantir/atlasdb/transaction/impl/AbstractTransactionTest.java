@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -289,7 +290,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 1,
                 1);
-        assertEquals(PtBytes.toBytes("v3"), iterator.next().getValue());
+        assertThat(PtBytes.toBytes("v3")).isEqualTo(iterator.next().getValue());
         assertFalse(iterator.hasNext());
     }
 
