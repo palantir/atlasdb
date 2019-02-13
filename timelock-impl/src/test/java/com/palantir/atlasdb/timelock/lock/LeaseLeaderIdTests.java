@@ -57,7 +57,7 @@ public class LeaseLeaderIdTests {
 
         timelockService = AwaitingLeadershipProxy.newProxyInstance(
                 AsyncTimelockService.class,
-                this::createAsynTimelockService,
+                this::createAsyncTimelockService,
                 leaderElectionService);
     }
 
@@ -85,7 +85,7 @@ public class LeaseLeaderIdTests {
         assertThat(leaderTime2.isComparableWith(leaderTime1)).isFalse();
     }
 
-    private AsyncTimelockServiceImpl createAsynTimelockService() {
+    private AsyncTimelockServiceImpl createAsyncTimelockService() {
         ScheduledExecutorService reaperExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         ScheduledExecutorService timeoutExecutor = PTExecutors.newSingleThreadScheduledExecutor();
         return new AsyncTimelockServiceImpl(
