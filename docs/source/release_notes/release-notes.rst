@@ -83,6 +83,10 @@ develop
            Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
+    *    - |fixed|
+         - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
+
 ========
 v0.116.1
 ========
