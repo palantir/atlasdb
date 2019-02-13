@@ -32,40 +32,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
 public final class CassandraTimestampUtils {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampUtils.class);
 
-    public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder().componentName("timestamp_name").type(ValueType.STRING)
-                            .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(
-                            CassandraTimestampUtils.ROW_AND_COLUMN_NAME,
-                            "current_max_ts",
-                            ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
-
-    public static final String ROW_AND_COLUMN_NAME = "ts";
+    public static final String ROW_AND_COLUMN_NAME = CassandraTimestampBoundStore.ROW_AND_COLUMN_NAME;
     public static final String BACKUP_COLUMN_NAME = "oldTs";
     public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
     public static final long INITIAL_VALUE = 10000;
@@ -84,23 +63,11 @@ public final class CassandraTimestampUtils {
     }
 
     public static CqlQuery constructCheckAndSetMultipleQuery(Map<String, Pair<byte[], byte[]>> checkAndSetRequest) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("BEGIN UNLOGGED BATCH\n"); // Safe, because all updates are on the same partition key
-
-        // Safe, because ordering does not apply in batches
-        checkAndSetRequest.forEach((columnName, value) -> {
-            byte[] expected = value.getLhSide();
-            byte[] target = value.getRhSide();
-            builder.append(constructCheckAndSetQuery(columnName, expected, target));
-        });
-        builder.append("APPLY BATCH;");
-
-        // This looks awkward. However, we know that all expressions in this String pertain to timestamps and known
-        // table references, hence this is actually safe. Doing this quickly owing to priority.
-        // TODO (jkong): Build up a query by passing around legitimate formats and args.
-        return CqlQuery.builder()
-                .safeQueryFormat(builder.toString())
-                .build();
+        ImmutableCqlSinglePartitionBatchQuery.Builder batchQueryBuilder = CqlSinglePartitionBatchQuery.builder();
+        checkAndSetRequest.forEach((columnName, value) ->
+                batchQueryBuilder.addIndividualQueryStatements(
+                        constructCheckAndSetQuery(columnName, value.getLhSide(), value.getRhSide())));
+        return batchQueryBuilder.build().toCqlQuery();
     }
 
     public static boolean isValidTimestampData(byte[] data) {
@@ -210,7 +177,7 @@ public final class CassandraTimestampUtils {
                         .collect(Collectors.toList()));
     }
 
-    private static String constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
+    private static CqlQuery constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
         Preconditions.checkState(target != null, "Should not CAS to a null target!");
         if (expected == null) {
             return constructInsertIfNotExistsQuery(columnName, target);
@@ -218,25 +185,31 @@ public final class CassandraTimestampUtils {
         return constructUpdateIfEqualQuery(columnName, expected, target);
     }
 
-    private static String constructInsertIfNotExistsQuery(String columnName, byte[] target) {
-        return String.format(
-                "INSERT INTO %s (key, column1, column2, value) VALUES (%s, %s, %s, %s) IF NOT EXISTS;",
-                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                ROW_AND_COLUMN_NAME_HEX_STRING,
-                encodeCassandraHexString(columnName),
-                CASSANDRA_TIMESTAMP,
-                encodeCassandraHexBytes(target));
+    private static CqlQuery constructInsertIfNotExistsQuery(String columnName, byte[] target) {
+        return CqlQuery.builder()
+                .safeQueryFormat("INSERT INTO \"%s\" (key, column1, column2, value)"
+                        + " VALUES (%s, %s, %s, %s) IF NOT EXISTS;")
+                .addArgs(
+                        LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
+                        SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
+                        SafeArg.of("columnName", encodeCassandraHexString(columnName)),
+                        SafeArg.of("atlasTimestamp", CASSANDRA_TIMESTAMP),
+                        SafeArg.of("newValue", encodeCassandraHexBytes(target)))
+                .build();
     }
 
-    private static String constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
-        return String.format(
-                "UPDATE %s SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;",
-                wrapInQuotes(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
-                encodeCassandraHexBytes(target),
-                ROW_AND_COLUMN_NAME_HEX_STRING,
-                encodeCassandraHexString(columnName),
-                CASSANDRA_TIMESTAMP,
-                encodeCassandraHexBytes(expected));
+    private static CqlQuery constructUpdateIfEqualQuery(String columnName, byte[] expected, byte[] target) {
+        // Timestamps are safe.
+        return CqlQuery.builder()
+                .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
+                .addArgs(
+                        LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
+                        SafeArg.of("newValue", encodeCassandraHexBytes(target)),
+                        SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
+                        SafeArg.of("columnName", encodeCassandraHexString(columnName)),
+                        SafeArg.of("atlasTimestamp", CASSANDRA_TIMESTAMP),
+                        SafeArg.of("oldValue", encodeCassandraHexBytes(expected)))
+                .build();
     }
 
     private static String encodeCassandraHexString(String string) {

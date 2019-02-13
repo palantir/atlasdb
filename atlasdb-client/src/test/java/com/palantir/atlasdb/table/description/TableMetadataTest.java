@@ -24,29 +24,15 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class TableMetadataTest {
-    private static final NameMetadataDescription NAME_METADATA_DESCRIPTION = new NameMetadataDescription();
-    private static final ColumnMetadataDescription COLUMN_METADATA_DESCRIPTION = new ColumnMetadataDescription();
-    private static final ConflictHandler CONFLICT_HANDLER = ConflictHandler.RETRY_ON_WRITE_WRITE;
-
-    private static final TableMetadata DEFAULT_TABLE_METADATA = new TableMetadata();
-    private static final TableMetadata LIGHTLY_SPECIFIED_TABLE_METADATA = new TableMetadata(
-            NAME_METADATA_DESCRIPTION,
-            COLUMN_METADATA_DESCRIPTION,
-            CONFLICT_HANDLER);
-    private static final TableMetadata LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA = new TableMetadata(
-            NAME_METADATA_DESCRIPTION,
-            COLUMN_METADATA_DESCRIPTION,
-            CONFLICT_HANDLER,
-            TableMetadataPersistence.CachePriority.WARM,
-            false,
-            0,
-            false,
-            TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-            false);
-
-    private static final TableMetadata NAME_LOGGABLE_TABLE_METADATA = createWithSpecifiedLogSafety(LogSafety.SAFE);
-    private static final TableMetadata NAME_NOT_LOGGABLE_TABLE_METADATA =
-            createWithSpecifiedLogSafety(LogSafety.UNSAFE);
+    private static final TableMetadata DEFAULT_TABLE_METADATA = TableMetadata.allDefault();
+    private static final TableMetadata DIFFERENT_TABLE_METADATA = TableMetadata.builder()
+            .conflictHandler(ConflictHandler.SERIALIZABLE)
+            .cachePriority(TableMetadataPersistence.CachePriority.HOTTEST)
+            .rangeScanAllowed(true)
+            .explicitCompressionBlockSizeKB(32)
+            .appendHeavyAndReadLight(true)
+            .nameLogSafety(LogSafety.SAFE)
+            .build();
 
     @Test
     public void nameIsNotLoggableByDefault() {
@@ -54,59 +40,18 @@ public class TableMetadataTest {
     }
 
     @Test
-    public void nameIsNotLoggableIfMetadataIsOnlyLightlySpecified() {
-        assertThat(LIGHTLY_SPECIFIED_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
-    }
-
-    @Test
-    public void nameIsNotLoggableIfNotSpecified() {
-        assertThat(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
-    }
-
-    @Test
-    public void nameCanBeSpecifiedToBeLoggable() {
-        assertThat(NAME_LOGGABLE_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.SAFE);
-    }
-
-    @Test
-    public void nameCanBeSpecifiedToBeNotLoggable() {
-        assertThat(NAME_NOT_LOGGABLE_TABLE_METADATA.getNameLogSafety()).isEqualTo(LogSafety.UNSAFE);
-    }
-
-    @Test
     public void canSerializeAndDeserializeDefaultMetadata() {
-        assertCanSerializeAndDeserializeWithSafety(DEFAULT_TABLE_METADATA, LogSafety.UNSAFE);
+        assertCanSerializeAndDeserialize(DEFAULT_TABLE_METADATA);
     }
 
     @Test
-    public void canSerializeAndDeserializeIfLoggabilityNotSpecified() {
-        assertCanSerializeAndDeserializeWithSafety(LOGGABILITY_NOT_SPECIFIED_TABLE_METADATA, LogSafety.UNSAFE);
+    public void canSerializeAndDeserializeNonDefaultMetadata() {
+        assertCanSerializeAndDeserialize(DIFFERENT_TABLE_METADATA);
     }
 
-    @Test
-    public void canSerializeAndDeserializeKeepingLoggability() {
-        assertCanSerializeAndDeserializeWithSafety(NAME_LOGGABLE_TABLE_METADATA, LogSafety.SAFE);
-    }
-
-    @Test
-    public void canSerializeAndDeserializeKeepingNonLoggability() {
-        assertCanSerializeAndDeserializeWithSafety(NAME_NOT_LOGGABLE_TABLE_METADATA, LogSafety.UNSAFE);
-    }
-
-    private static void assertCanSerializeAndDeserializeWithSafety(
-            TableMetadata tableMetadata,
-            LogSafety logSafety) {
+    private static void assertCanSerializeAndDeserialize(TableMetadata tableMetadata) {
         TableMetadataPersistence.TableMetadata.Builder builder = tableMetadata.persistToProto();
-        assertThat(TableMetadata.hydrateFromProto(builder.build()))
-                .isEqualTo(tableMetadata)
-                .matches(description -> description.getNameLogSafety() == logSafety);
+        assertThat(TableMetadata.hydrateFromProto(builder.build())).isEqualTo(tableMetadata);
     }
 
-    private static TableMetadata createWithSpecifiedLogSafety(LogSafety logSafety) {
-        return new TableMetadata(
-                NAME_METADATA_DESCRIPTION,
-                COLUMN_METADATA_DESCRIPTION,
-                CONFLICT_HANDLER,
-                logSafety);
-    }
 }

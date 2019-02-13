@@ -168,7 +168,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionTables.createTables(keyValueService);
 
         TransactionService transactionService
-                = TransactionServices.createForTesting(keyValueService, ts, false);
+                = TransactionServices.createRaw(keyValueService, ts, false);
         LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
                  LockServerOptions.builder().isStandaloneServer(false).build()));
         LockClient client = LockClient.of("in memory atlasdb instance");

@@ -407,17 +407,18 @@ public class TableDefinition extends AbstractDefinition {
             }
         }
 
-        return new TableMetadata(
-                NameMetadataDescription.create(rowNameComponents, numberOfComponentsHashed),
-                getColumnMetadataDescription(),
-                conflictHandler,
-                cachePriority,
-                rangeScanAllowed,
-                explicitCompressionBlockSizeKb,
-                negativeLookups,
-                sweepStrategy,
-                appendHeavyAndReadLight,
-                tableNameSafety);
+        return TableMetadata.builder()
+                .rowMetadata(NameMetadataDescription.create(rowNameComponents, numberOfComponentsHashed))
+                .columns(getColumnMetadataDescription())
+                .conflictHandler(conflictHandler)
+                .cachePriority(cachePriority)
+                .rangeScanAllowed(rangeScanAllowed)
+                .explicitCompressionBlockSizeKB(explicitCompressionBlockSizeKb)
+                .negativeLookups(negativeLookups)
+                .sweepStrategy(sweepStrategy)
+                .appendHeavyAndReadLight(appendHeavyAndReadLight)
+                .nameLogSafety(tableNameSafety)
+                .build();
     }
 
     private ColumnMetadataDescription getColumnMetadataDescription() {

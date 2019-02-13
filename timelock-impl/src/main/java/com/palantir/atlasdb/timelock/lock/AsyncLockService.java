@@ -77,7 +77,7 @@ public class AsyncLockService implements Closeable {
             } catch (Throwable t) {
                 log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
             }
-        }, 0, LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2, TimeUnit.MILLISECONDS);
+        }, 0, LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
     public AsyncResult<LockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {

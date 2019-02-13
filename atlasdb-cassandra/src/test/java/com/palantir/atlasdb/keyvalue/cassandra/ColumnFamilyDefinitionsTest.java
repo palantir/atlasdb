@@ -24,24 +24,18 @@ import org.junit.Test;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ColumnFamilyDefinitionsTest {
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
-    private static final byte[] TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES =
-            new TableMetadata(
-                    new NameMetadataDescription(),
-                    new ColumnMetadataDescription(),
-                    ConflictHandler.RETRY_ON_WRITE_WRITE,
-                    TableMetadataPersistence.CachePriority.WARM,
-                    true,
-                    64,
-                    true,
-                    TableMetadataPersistence.SweepStrategy.THOROUGH,
-                    true).persistToBytes();
+    private static final byte[] TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES = TableMetadata.builder()
+            .rangeScanAllowed(true)
+            .explicitCompressionBlockSizeKB(64)
+            .negativeLookups(true)
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
+            .appendHeavyAndReadLight(true)
+            .build()
+            .persistToBytes();
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {

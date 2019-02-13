@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
@@ -90,7 +91,8 @@ public class KeyValueServiceModule {
     public TransactionService provideTransactionService(
             @Named("kvs") KeyValueService kvs,
             CoordinationService<InternalSchemaMetadata> coordinationService) {
-        return TransactionServices.createTransactionService(kvs, coordinationService);
+        return TransactionServices.createTransactionService(kvs,
+                new TransactionSchemaManager(coordinationService));
     }
 
     @Provides

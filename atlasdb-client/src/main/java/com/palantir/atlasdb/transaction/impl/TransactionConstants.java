@@ -15,22 +15,17 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
-import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
-
 
 public class TransactionConstants {
     private TransactionConstants() {/* */}
@@ -49,7 +44,11 @@ public class TransactionConstants {
     // DO NOT change without a transactions table migration!
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 
-    public static final int TRANSACTIONS_TABLE_SCHEMA_VERSION = 1;
+    public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
+    public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
+    public static final Set<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(
+            DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION,
+            TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
 
     public static byte[] getValueForTimestamp(long transactionTimestamp) {
         return EncodingUtils.encodeVarLong(transactionTimestamp);
@@ -59,26 +58,16 @@ public class TransactionConstants {
         return EncodingUtils.decodeVarLong(encodedTimestamp);
     }
 
-    public static final TableMetadata TRANSACTION_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                    .componentName("write_ts")
-                    .type(ValueType.VAR_LONG)
-                    .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(COMMIT_TS_COLUMN_STRING, "commit_ts",
-                            ColumnValueDescription.forType(ValueType.VAR_LONG)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
+    public static final TableMetadata TRANSACTION_TABLE_METADATA = TableMetadata.internal()
+            .singleRowComponent("write_ts", ValueType.VAR_LONG)
+            .singleNamedColumn(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG)
+            .build();
 
 
-    public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = new TableDefinition() {{
-        allSafeForLoggingByDefault();
-        rowName();
-        rowComponent("start_ts_row", ValueType.BLOB);
-        dynamicColumns();
-        columnComponent("start_ts_col", ValueType.BLOB);
-        value(ValueType.BLOB);
-        sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-        conflictHandler(ConflictHandler.IGNORE_ALL);
-    }}.toTableMetadata();
+    public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
+            .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
+            .singleDynamicColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
+            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
+            .build();
 }

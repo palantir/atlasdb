@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak| |improved|
+         - The `TableMetadata` class has been refactored to use Immutables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
+
     *    - |improved| |devbreak|
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
            This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
@@ -78,6 +82,10 @@ develop
          - Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
            Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
+
+    *    - |improved|
+         - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
 
 ========
 v0.116.1

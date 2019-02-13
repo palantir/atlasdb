@@ -79,14 +79,12 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
@@ -1935,12 +1933,11 @@ public abstract class AbstractKeyValueServiceTest {
             columns.add(new NamedColumnDescription(
                     "c" + i, "column" + i, ColumnValueDescription.forType(ValueType.BLOB)));
         }
-        keyValueService.createTable(tableRef,
-                new TableMetadata(
-                        new NameMetadataDescription(),
-                        new ColumnMetadataDescription(columns),
-                        ConflictHandler.RETRY_ON_WRITE_WRITE,
-                        TableMetadataPersistence.LogSafety.SAFE).persistToBytes());
+        keyValueService.createTable(tableRef, TableMetadata.builder()
+                .columns(new ColumnMetadataDescription(columns))
+                .nameLogSafety(LogSafety.SAFE)
+                .build()
+                .persistToBytes());
         keyValueService.truncateTable(tableRef);
         return tableRef;
     }

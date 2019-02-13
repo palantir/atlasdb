@@ -28,7 +28,6 @@ import javax.inject.Inject;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.api.AtlasDbService;
 import com.palantir.atlasdb.api.RangeToken;
@@ -44,11 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.DynamicColumnDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -62,15 +56,12 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
-    private static final TableMetadata RAW_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(new NameComponentDescription.Builder()
-                    .componentName("row").type(ValueType.STRING).build())),
-            new ColumnMetadataDescription(new DynamicColumnDescription(NameMetadataDescription.create(
-                    ImmutableList.of(new NameComponentDescription.Builder()
-                            .componentName("col").type(ValueType.STRING).build())),
-                    ColumnValueDescription.forType(ValueType.STRING))),
-            ConflictHandler.SERIALIZABLE,
-            TableMetadataPersistence.LogSafety.SAFE);
+    private static final TableMetadata RAW_METADATA = TableMetadata.builder()
+            .singleRowComponent("row", ValueType.STRING)
+            .singleDynamicColumn("col", ValueType.STRING, ValueType.STRING)
+            .conflictHandler(ConflictHandler.SERIALIZABLE)
+            .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
+            .build();
 
     private final KeyValueService kvs;
     private final TransactionManager txManager;
