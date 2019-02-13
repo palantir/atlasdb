@@ -568,7 +568,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                                 Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
                                         "getRows", client, tableRef, rowNames, pred, readConsistency);
-
                                 Map<Cell, Value> ret = Maps.newHashMapWithExpectedSize(batch.size());
                                 new ValueExtractor(metricsManager, ret)
                                         .extractResults(results, startTs, ColumnSelection.all());
