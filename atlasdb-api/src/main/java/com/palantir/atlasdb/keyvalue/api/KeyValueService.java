@@ -213,7 +213,7 @@ public interface KeyValueService extends AutoCloseable {
      * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param tableRef the name of the table to put values into.
+     * @param tableRef the name of the table to put values into.
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
@@ -426,8 +426,15 @@ public interface KeyValueService extends AutoCloseable {
             TableReference tableRef,
             CandidateCellForSweepingRequest request);
 
+    /**
+     * Scans a range of a table and returns the row keys in that range.
+     * <p>
+     * This endpoint specifically avoids paging through each full row.
+     * <p>
+     * The batch size limits the number of results from each request.
+     */
     default List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
-        throw new UnsupportedOperationException("Only on Cassandra");
+        throw new UnsupportedOperationException("Not implemented for this KVS");
     }
 
     /**

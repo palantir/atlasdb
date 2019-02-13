@@ -141,10 +141,16 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
         return delegate().getRangeOfTimestamps(tableRef, rangeRequest, timestamp);
     }
 
+    @Override
     public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
                     TableReference tableRef,
                     CandidateCellForSweepingRequest request) {
         return delegate().getCandidateCellsForSweeping(tableRef, request);
+    }
+
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
+        return delegate().getRowKeysInRange(tableRef, startRowInclusive, batchSize);
     }
 
     @Override
