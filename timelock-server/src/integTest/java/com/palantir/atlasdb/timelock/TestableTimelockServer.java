@@ -24,8 +24,10 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
+import com.palantir.lock.v2.DefaultTimelockService;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -92,7 +94,8 @@ public class TestableTimelockServer {
     }
 
     public TimelockService timelockServiceForClient(String client) {
-        return proxies.singleNodeForClient(client, serverHolder, TimelockService.class);
+        return DefaultTimelockService.create(
+                proxies.singleNodeForClient(client, serverHolder, TimelockRpcClient.class));
     }
 
     public MetricsOutput getMetricsOutput() {
