@@ -278,6 +278,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     @Test
     public void testKeyValueRange_postFilteredFirstPage() {
         putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col1", "v1a", 6);
         putDirect("row1", "col2", "v2", 5);
         putDirect("row1", "col3", "v3", 0);
 
@@ -288,7 +289,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 1,
                 1);
-        assertTrue(iterator.hasNext());
+        assertEquals(iterator.next().getValue(), "v3");
+        assertFalse(iterator.hasNext());
     }
 
     @Test
