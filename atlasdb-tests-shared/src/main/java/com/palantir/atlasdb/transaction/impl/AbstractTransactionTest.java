@@ -290,7 +290,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
                 1,
                 1);
-        assertThat(PtBytes.toBytes("v3")).isEqualTo(iterator.next().getValue());
+        assertThat(PtBytes.toBytes("v3")).isEqualTo(iterator.next().getValue().getContents());
         assertFalse(iterator.hasNext());
     }
 
