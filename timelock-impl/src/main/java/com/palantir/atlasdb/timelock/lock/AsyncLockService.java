@@ -156,7 +156,8 @@ public class AsyncLockService implements Closeable {
     }
 
     private Lease leaseWithStart(NanoTime startTime) {
-        return Lease.of(leadershipId, startTime, LeaseContract.LEASE_PERIOD);
+        return Lease.of(LeaderTime.of(leadershipId, startTime),
+                LeaseContract.LEASE_PERIOD);
     }
 
     public LeaderTime identifiedTime() {

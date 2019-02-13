@@ -27,26 +27,55 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
 
 public class LeaseTest {
-    private static final LeaderTime leaderTime = LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(10L));
+    private static final LeadershipId LEADERSHIP_ID_1 = LeadershipId.random();
+    private static final LeadershipId LEADERSHIP_ID_2 = LeadershipId.random();
+    private static final LeaderTime leaderTime = LeaderTime.of(LEADERSHIP_ID_1, NanoTime.createForTests(10));
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
-    public void serializeDeserialize() throws Exception {
+    public void shouldBeValidAfterCreation() {
+        Lease lease = Lease.of(LeaderTime.of(LEADERSHIP_ID_1, time(10)),
+                Duration.ofNanos(20));
+
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_1, time(10)))).isTrue();
+    }
+
+    @Test
+    public void shouldBeValidBeforeExpiration() {
+        Lease lease = Lease.of(LeaderTime.of(LEADERSHIP_ID_1, time(10)),
+                Duration.ofNanos(20));
+
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_1, time(10 + 19)))).isTrue();
+    }
+
+    @Test
+    public void shouldBeInvalidAfterExpiration() {
+        Lease lease = Lease.of(LeaderTime.of(LEADERSHIP_ID_1, time(10)),
+                Duration.ofNanos(20));
+
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_1, time(10 + 21)))).isFalse();
+    }
+
+    @Test
+    public void shouldBeInvalidRegardlessOfTimeIfLeaderIsChanged() {
+        Lease lease = Lease.of(LeaderTime.of(LEADERSHIP_ID_1, time(10)),
+                Duration.ofNanos(20L));
+
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_2, time(0)))).isFalse();
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_2, time(10)))).isFalse();
+        assertThat(lease.isValid(LeaderTime.of(LEADERSHIP_ID_2, time(10 + 21)))).isFalse();
+    }
+
+    @Test
+    public void canBeSerializedAndDeserialize() throws Exception {
         Lease lease = Lease.of(leaderTime, Duration.ZERO);
         String serialized = objectMapper.writeValueAsString(lease);
-        System.out.println(serialized);
         Lease deserialized = objectMapper.readValue(serialized, Lease.class);
 
         assertThat(deserialized).isEqualTo(lease);
     }
 
-    @Test
-    public void serializeDeserialize2() throws Exception {
-        Lease lease = Lease.of(LeadershipId.random(), NanoTime.createForTests(1), Duration.ZERO);
-        String serialized = objectMapper.writeValueAsString(lease);
-        System.out.println(serialized);
-        Lease deserialized = objectMapper.readValue(serialized, Lease.class);
-
-        assertThat(deserialized).isEqualTo(lease);
+    private NanoTime time(long nanos) {
+        return NanoTime.createForTests(nanos);
     }
 }

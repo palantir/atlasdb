@@ -34,9 +34,9 @@ public abstract class Lease {
     @Value.Parameter
     public abstract Duration validity();
 
-    public boolean isValid(LeaderTime otherLeaderTime) {
-        return leaderTime().isComparableWith(otherLeaderTime)
-                && leaderTime().currentTimeNanos().isBefore(expiry());
+    public boolean isValid(LeaderTime currentLeaderTime) {
+        return leaderTime().isComparableWith(currentLeaderTime)
+                && currentLeaderTime.currentTimeNanos().isBefore(expiry());
     }
 
     public NanoTime expiry() {
@@ -48,9 +48,5 @@ public abstract class Lease {
                 .leaderTime(leaderTime)
                 .validity(validity)
                 .build();
-    }
-
-    public static Lease of(LeadershipId leadershipId, NanoTime startTime, Duration period) {
-        return Lease.of(LeaderTime.of(leadershipId, startTime), period);
     }
 }
