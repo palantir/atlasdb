@@ -211,7 +211,15 @@ public class TestableTimelockCluster {
     }
 
     public TimelockService timelockServiceForClient(String client) {
-        return BridgingTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
+        return BridgingTimelockService.create(timelockRpcClient(client));
+    }
+
+    public TimelockRpcClient timelockRpcClient() {
+        return timelockRpcClient(defaultClient);
+    }
+
+    public TimelockRpcClient timelockRpcClient(String client) {
+        return proxies.failoverForClient(client, TimelockRpcClient.class);
     }
 
     public RuleChain getRuleChain() {
