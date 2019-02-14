@@ -28,16 +28,16 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(LeasableLockResponse.Successful.class),
-        @JsonSubTypes.Type(LeasableLockResponse.Unsuccessful.class)})
-public interface LeasableLockResponse {
+        @JsonSubTypes.Type(LockResponseV2.Successful.class),
+        @JsonSubTypes.Type(LockResponseV2.Unsuccessful.class)})
+public interface LockResponseV2 {
     <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable
     @JsonSerialize(as = ImmutableSuccessful.class)
     @JsonDeserialize(as = ImmutableSuccessful.class)
     @JsonTypeName("success")
-    interface Successful extends LeasableLockResponse {
+    interface Successful extends LockResponseV2 {
         LockToken getToken();
         Lease getLease();
 
@@ -50,7 +50,7 @@ public interface LeasableLockResponse {
     @JsonSerialize(as = ImmutableUnsuccessful.class)
     @JsonDeserialize(as = ImmutableUnsuccessful.class)
     @JsonTypeName("failure")
-    interface Unsuccessful extends LeasableLockResponse {
+    interface Unsuccessful extends LockResponseV2 {
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
@@ -75,14 +75,14 @@ public interface LeasableLockResponse {
         }
     }
 
-    static LeasableLockResponse successful(LockToken lockToken, Lease lease) {
+    static LockResponseV2 successful(LockToken lockToken, Lease lease) {
         return ImmutableSuccessful.builder()
                 .token(lockToken)
                 .lease(lease)
                 .build();
     }
 
-    static LeasableLockResponse timedOut() {
+    static LockResponseV2 timedOut() {
         return ImmutableUnsuccessful.builder().build();
     }
 }

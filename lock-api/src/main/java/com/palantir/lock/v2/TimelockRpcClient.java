@@ -77,7 +77,7 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("lock-v2")
-    LeasableLockResponse lock(LockRequest request);
+    LockResponseV2 lock(LockRequest request);
 
     @POST
     @Path("await-locks")

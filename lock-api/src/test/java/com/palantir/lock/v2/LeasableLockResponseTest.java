@@ -40,8 +40,8 @@ public class LeasableLockResponseTest {
 
     @Test
     public void visitsSuccessfulResponse() {
-        LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
-        LockToken token = response.accept(LeasableLockResponse.Visitor.of(
+        LockResponseV2 response = LockResponseV2.successful(LOCK_TOKEN, LEASE);
+        LockToken token = response.accept(LockResponseV2.Visitor.of(
                 successful -> successful.getToken(),
                 unsuccessful -> {
                     throw EXCEPTION;
@@ -52,9 +52,9 @@ public class LeasableLockResponseTest {
 
     @Test
     public void visitsUnsuccessfulResponse() {
-        LeasableLockResponse response = LeasableLockResponse.timedOut();
+        LockResponseV2 response = LockResponseV2.timedOut();
 
-        assertThatThrownBy(() -> response.accept(LeasableLockResponse.Visitor.of(
+        assertThatThrownBy(() -> response.accept(LockResponseV2.Visitor.of(
                 successful -> successful.getToken(),
                 unsuccessful -> {
                     throw EXCEPTION;
@@ -64,17 +64,17 @@ public class LeasableLockResponseTest {
 
     @Test
     public void serializeDeserialize_Successful() throws Exception {
-        LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
+        LockResponseV2 response = LockResponseV2.successful(LOCK_TOKEN, LEASE);
         String serialized = objectMapper.writeValueAsString(response);
-        LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
+        LockResponseV2 deserialized = objectMapper.readValue(serialized, LockResponseV2.class);
         assertThat(deserialized).isEqualTo(response);
     }
 
     @Test
     public void serializeDeserialize_Unsuccessful() throws Exception {
-        LeasableLockResponse response = LeasableLockResponse.timedOut();
+        LockResponseV2 response = LockResponseV2.timedOut();
         String serialized = objectMapper.writeValueAsString(response);
-        LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
+        LockResponseV2 deserialized = objectMapper.readValue(serialized, LockResponseV2.class);
         assertThat(deserialized).isEqualTo(response);
     }
 }

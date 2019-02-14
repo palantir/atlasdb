@@ -39,7 +39,7 @@ public abstract class LeaderTime {
     public static LeaderTime of(LeadershipId id, NanoTime time) {
         return ImmutableLeaderTime.builder()
                 .leadershipId(id)
-                .currentTimeNanos(time)
+                .currentTime(time)
                 .build();
     }
 }

@@ -31,7 +31,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeasableLockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LeasableRefreshLockResponse;
 import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
@@ -128,9 +128,9 @@ public class AsyncTimelockResource {
             if (result.isFailed()) {
                 response.resume(result.getError());
             } else if (result.isTimedOut()) {
-                response.resume(LeasableLockResponse.timedOut());
+                response.resume(LockResponseV2.timedOut());
             } else {
-                response.resume(LeasableLockResponse.successful(result.get().token(), result.get().lease()));
+                response.resume(LockResponseV2.successful(result.get().token(), result.get().lease()));
             }
         });
     }

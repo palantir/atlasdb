@@ -64,7 +64,7 @@ public final class BridgingTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return delegate.lock(request).accept(LeasableLockResponse.Visitor.of(
+        return delegate.lock(request).accept(LockResponseV2.Visitor.of(
                 successful -> LockResponse.successful(successful.getToken()),
                 unsuccessful -> LockResponse.timedOut()));
     }
