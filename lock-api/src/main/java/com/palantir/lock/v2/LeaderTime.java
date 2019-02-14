@@ -30,7 +30,7 @@ public abstract class LeaderTime {
     public abstract LeadershipId leadershipId();
 
     @Value.Parameter
-    public abstract NanoTime currentTimeNanos();
+    public abstract NanoTime currentTime();
 
     public boolean isComparableWith(LeaderTime other) {
         return leadershipId().equals(other.leadershipId());

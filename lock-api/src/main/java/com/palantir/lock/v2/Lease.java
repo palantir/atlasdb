@@ -36,11 +36,11 @@ public abstract class Lease {
 
     public boolean isValid(LeaderTime currentLeaderTime) {
         return leaderTime().isComparableWith(currentLeaderTime)
-                && currentLeaderTime.currentTimeNanos().isBefore(expiry());
+                && currentLeaderTime.currentTime().isBefore(expiry());
     }
 
     public NanoTime expiry() {
-        return leaderTime().currentTimeNanos().plus(validity());
+        return leaderTime().currentTime().plus(validity());
     }
 
     public static Lease of(LeaderTime leaderTime, Duration validity) {
