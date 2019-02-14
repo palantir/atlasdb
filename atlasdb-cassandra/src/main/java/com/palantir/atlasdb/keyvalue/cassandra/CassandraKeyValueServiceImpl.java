@@ -863,15 +863,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
                         extractor.extractResults(ImmutableList.of(row), results, startTs);
                         RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
-                        if (decoded.getResults().isEmpty()) {
-                            // All returned results were at ts > startTs
-                            // Start the next page from the last column seen to ensure forward progress
-                            byte[] lastColumn = extractor.getLastColumnForRow(row).get();
-                            return SimpleTokenBackedResultsPage.create(lastColumn, ImmutableList.of(),
-                                    values.size() >= batchColumnRangeSelection.getBatchHint());
-                        }
-                        Map<Cell, Value> ret = decoded.getResults().get(row);
 
+                        // May be empty if all results are at ts > startTs
+                        Map<Cell, Value> ret = decoded.getResults().getOrDefault(row, Maps.newLinkedHashMap());
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column

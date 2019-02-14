@@ -19,7 +19,6 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Column;
@@ -122,11 +121,5 @@ class RowColumnRangeExtractor {
 
     public RowColumnRangeResult getRowColumnRangeResult() {
         return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows, rowsToRawColumnCount);
-    }
-
-    public Optional<byte[]> getLastColumnForRow(byte[] row) {
-        return Optional.ofNullable(rowsToLastCompositeColumns.get(row))
-                .map(CassandraKeyValueServices::decomposeName)
-                .map(Pair::getLhSide);
     }
 }
