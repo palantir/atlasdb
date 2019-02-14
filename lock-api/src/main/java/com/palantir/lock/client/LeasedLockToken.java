@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import java.util.UUID;
 
+import javax.annotation.concurrent.GuardedBy;
+
 import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -27,7 +29,10 @@ final class LeasedLockToken implements LockToken {
     private final LockToken serverToken;
     private final UUID requestId;
 
+    @GuardedBy("this")
     private Lease lease;
+
+    @GuardedBy("this")
     private boolean inValidated = false;
 
     static LeasedLockToken of(LockToken serverToken, Lease lease) {
