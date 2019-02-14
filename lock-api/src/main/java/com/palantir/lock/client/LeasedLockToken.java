@@ -16,7 +16,6 @@
 
 package com.palantir.lock.client;
 
-import java.util.Objects;
 import java.util.UUID;
 
 import com.google.common.base.Preconditions;
@@ -24,22 +23,22 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
-public final class LeasedLockToken implements LockToken {
+final class LeasedLockToken implements LockToken {
     private final LockToken serverToken;
-    private final LockToken clientToken;
+    private final UUID requestId;
 
     private Lease lease;
     private boolean inValidated = false;
 
     static LeasedLockToken of(LockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken,
-                LockToken.of(UUID.randomUUID()),
+                UUID.randomUUID(),
                 lease);
     }
 
-    private LeasedLockToken(LockToken serverToken, LockToken clientToken, Lease lease) {
+    private LeasedLockToken(LockToken serverToken, UUID requestId, Lease lease) {
         this.serverToken = serverToken;
-        this.clientToken = clientToken;
+        this.requestId = requestId;
         this.lease = lease;
     }
 
@@ -70,28 +69,6 @@ public final class LeasedLockToken implements LockToken {
 
     @Override
     public UUID getRequestId() {
-        return clientToken.getRequestId();
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(serverToken);
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (other == null || getClass() != other.getClass()) {
-            return false;
-        }
-        LeasedLockToken otherToken = (LeasedLockToken) other;
-
-        return serverToken.equals(otherToken.serverToken)
-                && clientToken.equals(otherToken.clientToken)
-                && lease.equals(otherToken.lease)
-                && inValidated == otherToken.inValidated;
+        return requestId;
     }
 }
-
