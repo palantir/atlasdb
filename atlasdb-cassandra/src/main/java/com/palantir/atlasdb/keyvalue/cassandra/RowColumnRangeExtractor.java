@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,20 +52,20 @@ class RowColumnRangeExtractor {
             this.rowsToRawColumnCount = rowsToRawColumnCount;
         }
 
-        public Map<byte[], LinkedHashMap<Cell, Value>> getResults() {
-            return results;
+        public Map<byte[], Map<Cell, Value>> getResults() {
+            return Collections.unmodifiableMap(results);
         }
 
         public Map<byte[], Column> getRowsToLastCompositeColumns() {
-            return rowsToLastCompositeColumns;
+            return Collections.unmodifiableMap(rowsToLastCompositeColumns);
         }
 
         public Set<byte[]> getEmptyRows() {
-            return emptyRows;
+            return Collections.unmodifiableSet(emptyRows);
         }
 
         public Map<byte[], Integer> getRowsToRawColumnCount() {
-            return rowsToRawColumnCount;
+            return Collections.unmodifiableMap(rowsToRawColumnCount);
         }
     }
 
