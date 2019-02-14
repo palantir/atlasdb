@@ -34,6 +34,10 @@ public final class DefaultTimelockService implements TimelockService {
         return new DefaultTimelockService(timelockRpcClient, UUID.randomUUID());
     }
 
+    public static TimelockService create(TimelockRpcClient timelockRpcClient, UUID clientId) {
+        return new DefaultTimelockService(timelockRpcClient, clientId);
+    }
+
     @Override
     public long getFreshTimestamp() {
         return delegate.getFreshTimestamp();

@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -36,6 +37,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.DefaultTimelockService;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -195,7 +197,8 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockService().startIdentifiedAtlasDbTransaction(request);
+        return timelockService(defaultClient, request.requestorId())
+                .startIdentifiedAtlasDbTransaction(ImmutableIdentifiedTimeLockRequest.of(request.requestId()));
     }
 
     public TimestampService timestampService() {
@@ -208,6 +211,10 @@ public class TestableTimelockCluster {
 
     public TimelockService timelockService() {
         return timelockServiceForClient(defaultClient);
+    }
+
+    public TimelockService timelockService(String client, UUID serviceId) {
+        return DefaultTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class), serviceId);
     }
 
     public TimelockService timelockServiceForClient(String client) {
