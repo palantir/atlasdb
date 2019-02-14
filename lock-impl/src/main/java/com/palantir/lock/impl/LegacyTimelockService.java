@@ -106,17 +106,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        LockImmutableTimestampResponse immutableTimestampResponse = lockImmutableTimestamp(request);
-        long freshTimestamp = getFreshTimestamp();
-        return StartAtlasDbTransactionResponse.of(immutableTimestampResponse, freshTimestamp);
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            IdentifiedTimeLockRequest request) {
         return StartIdentifiedAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
+                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.getRequestId())),
                 TimestampAndPartition.of(getFreshTimestamp(), 0));
     }
 

@@ -43,15 +43,7 @@ public interface TimelockService {
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    /**
-     * @deprecated Please use {@link TimelockService#startIdentifiedAtlasDbTransaction(
-     * StartIdentifiedAtlasDbTransactionRequest)} instead; ignore the partition information if it is not useful for you.
-     */
-    @Deprecated
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
-
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request);
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     long getImmutableTimestamp();
 
