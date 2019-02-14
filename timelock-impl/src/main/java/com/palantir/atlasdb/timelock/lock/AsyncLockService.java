@@ -31,7 +31,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockToken;
-import com.palantir.lock.v2.LeasableRefreshLockResponse;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
@@ -145,12 +145,12 @@ public class AsyncLockService implements Closeable {
         return refresh(ImmutableSet.of(token)).refreshedTokens().contains(token);
     }
 
-    public LeasableRefreshLockResponse refresh(Set<LockToken> tokens) {
+    public RefreshLockResponseV2 refresh(Set<LockToken> tokens) {
 
         NanoTime startTime = NanoTime.now();
         Set<LockToken> refreshedTokens = heldLocks.refresh(tokens);
 
-        return LeasableRefreshLockResponse.of(
+        return RefreshLockResponseV2.of(
                 refreshedTokens,
                 leaseWithStart(startTime));
     }

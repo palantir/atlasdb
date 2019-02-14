@@ -33,8 +33,8 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LeasableLockToken;
-import com.palantir.lock.v2.LeasableRefreshLockResponse;
-import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -92,7 +92,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-atlasdb-transaction-v3")
-    public LeasableStartAtlasDbTransactionResponse startAtlasDbTransaction(
+    public StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelock.startIdentifiedAtlasDbTransaction(request);
     }
@@ -159,7 +159,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks-v2")
-    public LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens) {
+    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
     }
 

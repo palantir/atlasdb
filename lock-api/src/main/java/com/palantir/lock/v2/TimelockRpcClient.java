@@ -64,7 +64,7 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("start-atlasdb-transaction-v3")
-    LeasableStartAtlasDbTransactionResponse startAtlasDbTransaction(
+    StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     @POST
@@ -89,7 +89,7 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("refresh-locks-v2")
-    LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens);
+    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
 
     @GET
     @Path("leader-time")
