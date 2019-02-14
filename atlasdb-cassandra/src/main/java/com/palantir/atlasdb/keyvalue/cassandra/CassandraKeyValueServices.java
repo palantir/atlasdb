@@ -70,15 +70,41 @@ public final class CassandraKeyValueServices {
     }
 
     /**
-     * Attempt to wait until nodes' schema versions match.
+     * Wraps the execution of the specified task with checks verifying that schema versions on Cassandra nodes are
+     * consistent. It is recommended that any task modifying schema versions is run using this method.
+     *
+     * @param task task modifying Cassandra schema.
+     * @param config the KVS configuration.
+     * @param client Cassandra client.
+     * @param unsafeSchemaChangeDescription description of the schema change that the task is performing.
+     *
+     * @throws TException rethrows any {@link TException} the task throws.
+     * @throws IllegalStateException if any of the schema version waits take more than schemaMutationTimeoutMillis
+     * specified in config.
+     */
+    public static void runWithWaitingForSchemas(
+            RunnableCheckedException<TException> task,
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        task.run();
+        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
+    }
+
+    /**
+     * Attempt to wait until nodes' schema versions match. This should not be called directly, users should use
+     * {@link #runWithWaitingForSchemas(RunnableCheckedException, CassandraKeyValueServiceConfig, CassandraClient,
+     * String)} instead.
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
-     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
+     * @param unsafeSchemaChangeDescription description of the schema change that prompted this check.
      *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
-    static void waitForSchemaVersions(
+    private static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
             String unsafeSchemaChangeDescription)
@@ -120,18 +146,7 @@ public final class CassandraKeyValueServices {
         throw new IllegalStateException(errorMessage);
     }
 
-    static void runWithWaitingForSchemas(
-            RunnableCheckedException<TException> task,
-            CassandraKeyValueServiceConfig config,
-            CassandraClient client,
-            String unsafeSchemaChangeDescription)
-            throws TException {
-        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
-        task.run();
-        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
-    }
-
-    static boolean uniqueSchemaOnAllNodesAllowingForOneUnreachable(
+    private static boolean uniqueSchemaOnAllNodesAllowingForOneUnreachable(
             Map<String, List<String>> versions) {
         return getDistinctReachableSchemas(versions).size() <= 1
                 && (!versions.keySet().contains(VERSION_UNREACHABLE) || versions.get(VERSION_UNREACHABLE).size() == 1);
@@ -172,7 +187,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(config, client, " during an initialization check");
+                waitForSchemaVersions(config, client, "during an initialization check");
                 return null;
             });
         } catch (Exception e) {

@@ -219,10 +219,9 @@ public final class CassandraVerifier {
         try {
             CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
             KsDef ksDef = createKsDefForFresh(client, config);
-            client.system_add_keyspace(ksDef);
+            CassandraKeyValueServices.runWithWaitingForSchemas(() -> client.system_add_keyspace(ksDef), config, client,
+                    "adding the initial empty keyspace");
             log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));
-            CassandraKeyValueServices.waitForSchemaVersions(config, client,
-                    "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
             return keyspaceAlreadyExists(host, config);
@@ -244,9 +243,8 @@ public final class CassandraVerifier {
             if (!modifiedKsDef.equals(originalKsDef)) {
                 // Can't call system_update_keyspace to update replication factor if CfDefs are set
                 modifiedKsDef.setCf_defs(ImmutableList.of());
-                client.system_update_keyspace(modifiedKsDef);
-                CassandraKeyValueServices.waitForSchemaVersions(config, client,
-                        "after updating the existing keyspace");
+                CassandraKeyValueServices.runWithWaitingForSchemas(() -> client.system_update_keyspace(modifiedKsDef),
+                        config, client, "updating the existing keyspace");
             }
             return null;
         });

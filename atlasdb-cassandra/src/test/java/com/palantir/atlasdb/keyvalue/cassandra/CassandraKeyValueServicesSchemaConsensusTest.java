@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.thrift.TException;
 import org.junit.BeforeClass;
@@ -64,68 +66,102 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitSucceedsForSameSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertrunWithWaitingForSchemasDoesNotThrow();
     }
 
     @Test
     public void waitThrowsForAllUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ALL_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertRunWithWaitingForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForQuorumOfUnreachableNodes() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertRunWithWaitingForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitSuceedsForOneUnreachableNode() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_UNREACHABLE, ImmutableList.of("1"), VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertrunWithWaitingForSchemasDoesNotThrow();
     }
 
     @Test
     public void waitSucceedsWhenAllOnSameSchemaVersionButSomeNodesFromConfigDoNotExist() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, REST_OF_NODES));
-        assertWaitForSchemaVersionsDoesNotThrow();
+        assertrunWithWaitingForSchemasDoesNotThrow();
     }
 
     @Test
     public void waitThrowsForMoreThanOneUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertRunWithWaitingForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
     public void waitThrowsForDifferentSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation();
+        assertRunWithWaitingForSchemaVersionsThrowsAndContainsConfigNodesInformation();
     }
 
     @Test
-    public void waitWaitsForSchemaVersions() throws TException {
+    public void waitCanFailAfterTask() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES))
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
+        AtomicBoolean taskPerformed = new AtomicBoolean(false);
+        assertThatThrownBy(
+                () -> CassandraKeyValueServices.runWithWaitingForSchemas(
+                        () -> taskPerformed.set(true),
+                        config,
+                        client,
+                        TABLE)
+        ).isInstanceOf(IllegalStateException.class);
+        assertThat(taskPerformed.get()).isTrue();
+    }
+
+    @Test
+    public void waitCanFailBeforeTask() throws TException {
+        when(client.describe_schema_versions())
+                .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_2, REST_OF_NODES));
+        AtomicBoolean taskPerformed = new AtomicBoolean(false);
+        assertThatThrownBy(
+                () -> CassandraKeyValueServices.runWithWaitingForSchemas(
+                        () -> taskPerformed.set(true),
+                        config,
+                        client,
+                        TABLE)
+        ).isInstanceOf(IllegalStateException.class);
+        assertThat(taskPerformed.get()).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void assertRunWithWaitingForSchemaVersionsWaitsForSchemaVersions() throws TException {
         CassandraClient waitingClient = mock(CassandraClient.class);
         when(waitingClient.describe_schema_versions()).thenReturn(
                 ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
+                ImmutableMap.of(VERSION_1, ALL_NODES),
+                ImmutableMap.of(VERSION_UNREACHABLE, QUORUM_OF_NODES, VERSION_1, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
-        verify(waitingClient, times(3)).describe_schema_versions();
+        CassandraKeyValueServices.runWithWaitingForSchemas(() -> { }, waitingConfig, waitingClient, TABLE);
+        verify(waitingClient, times(3 + 2)).describe_schema_versions();
     }
 
-    private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
+    private void assertRunWithWaitingForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
+        assertThatThrownBy(() -> CassandraKeyValueServices.runWithWaitingForSchemas(() -> { }, config, client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
     }
 
-    private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
+    private void assertrunWithWaitingForSchemasDoesNotThrow() throws TException {
+        CassandraKeyValueServices.runWithWaitingForSchemas(() -> { }, config, client, TABLE);
     }
 }
