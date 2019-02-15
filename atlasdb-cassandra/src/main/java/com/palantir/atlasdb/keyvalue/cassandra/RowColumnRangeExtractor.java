@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,20 +52,20 @@ class RowColumnRangeExtractor {
             this.rowsToRawColumnCount = rowsToRawColumnCount;
         }
 
-        public Map<byte[], LinkedHashMap<Cell, Value>> getResults() {
-            return results;
+        public Map<byte[], Map<Cell, Value>> getResults() {
+            return Collections.unmodifiableMap(results);
         }
 
         public Map<byte[], Column> getRowsToLastCompositeColumns() {
-            return rowsToLastCompositeColumns;
+            return Collections.unmodifiableMap(rowsToLastCompositeColumns);
         }
 
         public Set<byte[]> getEmptyRows() {
-            return emptyRows;
+            return Collections.unmodifiableSet(emptyRows);
         }
 
         public Map<byte[], Integer> getRowsToRawColumnCount() {
-            return rowsToRawColumnCount;
+            return Collections.unmodifiableMap(rowsToRawColumnCount);
         }
     }
 
@@ -72,11 +73,9 @@ class RowColumnRangeExtractor {
     private final Map<byte[], Column> rowsToLastCompositeColumns = Maps.newHashMap();
     private final Map<byte[], Integer> rowsToRawColumnCount = Maps.newHashMap();
     private final Set<byte[]> emptyRows = Sets.newHashSet();
-    private final MetricsManager metricsManager;
     private final Meter notLatestVisibleValueCellFilterMeter;
 
     RowColumnRangeExtractor(MetricsManager metricsManager) {
-        this.metricsManager = metricsManager;
         notLatestVisibleValueCellFilterMeter = metricsManager.registerOrGetMeter(
                 RowColumnRangeExtractor.class,
                 AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
@@ -124,5 +123,4 @@ class RowColumnRangeExtractor {
     public RowColumnRangeResult getRowColumnRangeResult() {
         return new RowColumnRangeResult(collector, rowsToLastCompositeColumns, emptyRows, rowsToRawColumnCount);
     }
-
 }
