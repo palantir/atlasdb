@@ -230,6 +230,10 @@ Instead it waits until creating each individual learner or acceptor log director
 <td>AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3749">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3756">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

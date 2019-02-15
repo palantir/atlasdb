@@ -92,6 +92,10 @@ develop
          - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
 
+    *    - |fixed|
+         - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
+
 ========
 v0.116.1
 ========
