@@ -21,13 +21,13 @@ import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -76,10 +76,10 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LeasableLockToken leasebleLock = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
+        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
-        return LockImmutableTimestampResponse.of(immutableTs, leasebleLock.token());
+        return LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
     }
 
     @Override
@@ -89,7 +89,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<LeasableLockToken> lock(LockRequest request) {
+    public AsyncResult<Leased<LockToken>> lock(LockRequest request) {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
@@ -128,18 +128,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LeasableLockToken leasebleLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
+        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
         LockImmutableTimestampResponse lockImmutableTimestampResponse =
-                LockImmutableTimestampResponse.of(immutableTs, leasebleLock.token());
+                LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
 
         TimestampAndPartition timestampAndPartition = getFreshTimestampForClient(request.requestorId());
 
         return StartAtlasDbTransactionResponseV3.of(
                 lockImmutableTimestampResponse,
                 timestampAndPartition,
-                leasebleLock.lease());
+                leasedLock.lease());
 
     }
 

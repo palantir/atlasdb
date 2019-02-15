@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -25,7 +26,12 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
@@ -33,22 +39,25 @@ public class HeldLocksCollection {
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
-    public AsyncResult<HeldLocks> getExistingOrAcquire(
+    private final LeadershipId leadershipId = LeadershipId.random();
+
+    public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
             UUID requestId,
             Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
         return heldLocksById.computeIfAbsent(
-                requestId, ignored -> lockAcquirer.get());
+                requestId, ignored -> lockAcquirer.get())
+                .map(this::createLeasableLockToken);
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
+        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock).value();
         for (LockToken token : unlocked) {
             heldLocksById.remove(token.getRequestId());
         }
         return unlocked;
     }
 
-    public Set<LockToken> refresh(Set<LockToken> tokens) {
+    public Leased<Set<LockToken>> refresh(Set<LockToken> tokens) {
         return filter(tokens, HeldLocks::refresh);
     }
 
@@ -67,23 +76,34 @@ public class HeldLocksCollection {
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
     }
 
+    private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {
+        return Leased.of(heldLocks.getToken(), leaseWithStart(heldLocks.lastRefreshTime()));
+    }
+
+    private Lease leaseWithStart(NanoTime startTime) {
+        return Lease.of(LeaderTime.of(leadershipId, startTime),
+                LockLeaseConstants.CLIENT_LEASE_TIMEOUT);
+    }
+
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
         return lockResult.isFailed()
                 || lockResult.isTimedOut()
                 || lockResult.test(HeldLocks::unlockIfExpired);
     }
 
-    private Set<LockToken> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
+    private Leased<Set<LockToken>> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
         Set<LockToken> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
+        Optional<NanoTime> minStartTime = Optional.empty();
 
         for (LockToken token : tokens) {
             AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
             if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);
+                NanoTime lastRefreshTime = lockResult.get().lastRefreshTime();
+                minStartTime = minStartTime.map(t -> lastRefreshTime.isBefore(t) ? lastRefreshTime : t);
             }
         }
 
-        return filtered;
+        return Leased.of(filtered, leaseWithStart(minStartTime.orElse(NanoTime.now())));
     }
-
 }

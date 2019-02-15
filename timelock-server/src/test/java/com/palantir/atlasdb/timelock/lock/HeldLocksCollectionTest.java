@@ -94,7 +94,8 @@ public class HeldLocksCollectionTest {
         LockToken nonUnlockableRequest = mockNonRefreshableRequest();
 
         Set<LockToken> expected = ImmutableSet.of(unlockableRequest);
-        Set<LockToken> actual = heldLocksCollection.refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest));
+        Set<LockToken> actual =
+                heldLocksCollection.refresh(ImmutableSet.of(unlockableRequest, nonUnlockableRequest)).value();
 
         assertThat(actual).isEqualTo(expected);
     }

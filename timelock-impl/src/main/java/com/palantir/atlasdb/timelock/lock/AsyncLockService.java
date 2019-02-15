@@ -30,10 +30,8 @@ import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
-import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockService implements Closeable {
@@ -89,18 +87,16 @@ public class AsyncLockService implements Closeable {
         }, 0, LockLeaseConstants.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LeasableLockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+    public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireLocks(requestId, lockDescriptors, timeout))
-                .map(this::createLeasableLockToken);
+                () -> acquireLocks(requestId, lockDescriptors, timeout));
     }
 
-    public AsyncResult<LeasableLockToken> lockImmutableTimestamp(UUID requestId, long timestamp) {
+    public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
-                () -> acquireImmutableTimestampLock(requestId, timestamp))
-                .map(this::createLeasableLockToken);
+                () -> acquireImmutableTimestampLock(requestId, timestamp));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -111,10 +107,6 @@ public class AsyncLockService implements Closeable {
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
-    }
-
-    private LeasableLockToken createLeasableLockToken(HeldLocks heldLocks) {
-        return LeasableLockToken.of(heldLocks.getToken(), leaseWithStart(heldLocks.lastRefreshTime()));
     }
 
     private AsyncResult<HeldLocks> acquireLocks(UUID requestId, Set<LockDescriptor> lockDescriptors,
@@ -148,17 +140,11 @@ public class AsyncLockService implements Closeable {
 
     public RefreshLockResponseV2 refresh(Set<LockToken> tokens) {
 
-        NanoTime startTime = NanoTime.now();
-        Set<LockToken> refreshedTokens = heldLocks.refresh(tokens);
+        Leased<Set<LockToken>> refreshedTokens = heldLocks.refresh(tokens);
 
         return RefreshLockResponseV2.of(
-                refreshedTokens,
-                leaseWithStart(startTime));
-    }
-
-    private Lease leaseWithStart(NanoTime startTime) {
-        return Lease.of(LeaderTime.of(leadershipId, startTime),
-                LockLeaseConstants.CLIENT_LEASE_TIMEOUT);
+                refreshedTokens.value(),
+                refreshedTokens.lease());
     }
 
     public LeaderTime identifiedTime() {

@@ -28,11 +28,11 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockResponseV2;
-import com.palantir.lock.v2.LeasableLockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -106,7 +106,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock")
     public void deprecatedLock(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LeasableLockToken> result = timelock.lock(request);
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -114,7 +114,7 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LockResponse.timedOut());
             } else {
-                response.resume(LockResponse.successful(result.get().token()));
+                response.resume(LockResponse.successful(result.get().value()));
             }
         });
     }
@@ -122,7 +122,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("lock-v2")
     public void lock(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LeasableLockToken> result = timelock.lock(request);
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -130,7 +130,7 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LockResponseV2.timedOut());
             } else {
-                response.resume(LockResponseV2.successful(result.get().token(), result.get().lease()));
+                response.resume(LockResponseV2.successful(result.get().value(), result.get().lease()));
             }
         });
     }
