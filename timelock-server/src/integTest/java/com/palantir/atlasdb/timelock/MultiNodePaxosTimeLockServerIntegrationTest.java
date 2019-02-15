@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +41,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -189,6 +191,21 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             long timestamp = CLUSTER.getFreshTimestamp();
             assertThat(timestamp).isGreaterThan(lastTimestamp);
             lastTimestamp = timestamp;
+        }
+    }
+
+    @Test
+    public void leaderIdChangesAcrossFailovers() {
+        Set<LeaderTime> leaderTimes = new HashSet<>();
+        leaderTimes.add(CLUSTER.timelockRpcClient().getLeaderTime());
+
+        for (int i = 0; i < 3; i++) {
+            CLUSTER.failoverToNewLeader();
+
+            LeaderTime leaderTime = CLUSTER.timelockRpcClient().getLeaderTime();
+            leaderTimes.forEach(previousLeaderTime ->
+                    assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());
+            leaderTimes.add(leaderTime);
         }
     }
 

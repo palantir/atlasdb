@@ -33,18 +33,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
-import com.palantir.lock.v2.LeasableLockResponse;
-import com.palantir.lock.v2.LeasableRefreshLockResponse;
-import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
@@ -75,7 +74,7 @@ public class LeasingTimelockClientTest {
     @Test
     public void delegatesLockRequest() {
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LeasableLockResponse.successful(LOCK_TOKEN, getLease()));
+                LockResponseV2.successful(LOCK_TOKEN, getLease()));
 
         timelockService.lock(lockRequest);
 
@@ -85,7 +84,7 @@ public class LeasingTimelockClientTest {
     public void lockResponeHasCorrectLeasedLock() {
         Lease lease = getLease();
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LeasableLockResponse.successful(LOCK_TOKEN, lease));
+                LockResponseV2.successful(LOCK_TOKEN, lease));
 
         LockResponse clientResponse = timelockService.lock(lockRequest);
 
@@ -98,7 +97,7 @@ public class LeasingTimelockClientTest {
     @Test
     public void shouldHandleUnsuccessfulLockResponses() {
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LeasableLockResponse.timedOut());
+                LockResponseV2.timedOut());
 
         LockResponse clientResponse = timelockService.lock(lockRequest);
         assertThat(clientResponse.wasSuccessful()).isFalse();
@@ -124,7 +123,7 @@ public class LeasingTimelockClientTest {
     @Test
     public void returnedTokenShouldHaveCorrectServerToken() {
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LeasableLockResponse.successful(LOCK_TOKEN, getLease()));
+                LockResponseV2.successful(LOCK_TOKEN, getLease()));
 
         LockResponse lockResponse = timelockService.lock(lockRequest);
         LeasedLockToken leasedToken = (LeasedLockToken) lockResponse.getToken();
@@ -134,7 +133,7 @@ public class LeasingTimelockClientTest {
     @Test
     public void leasedTokenShouldHaveValidLeaseForTheLeasePeriod() {
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LeasableLockResponse.successful(LOCK_TOKEN, getLease()));
+                LockResponseV2.successful(LOCK_TOKEN, getLease()));
 
         LockResponse lockResponse = timelockService.lock(lockRequest);
         assertValid(lockResponse.getToken());
@@ -182,7 +181,7 @@ public class LeasingTimelockClientTest {
         assertInvalid(leasedLockToken);
 
         when(timelockRpcClient.refreshLockLeases(ImmutableSet.of(LOCK_TOKEN)))
-                .thenReturn(LeasableRefreshLockResponse.of(
+                .thenReturn(RefreshLockResponseV2.of(
                         ImmutableSet.of(LOCK_TOKEN),
                         getLease()));
 
@@ -195,8 +194,8 @@ public class LeasingTimelockClientTest {
         assertThat(refreshedLeasedLockToken).isEqualTo(leasedLockToken);
     }
 
-    private LeasableStartAtlasDbTransactionResponse startTransactionResponseWith(LockToken lockToken, Lease lease) {
-        return LeasableStartAtlasDbTransactionResponse.of(
+    private StartAtlasDbTransactionResponseV3 startTransactionResponseWith(LockToken lockToken, Lease lease) {
+        return StartAtlasDbTransactionResponseV3.of(
                 LockImmutableTimestampResponse.of(1L, lockToken),
                 timestampAndPartition,
                 lease);

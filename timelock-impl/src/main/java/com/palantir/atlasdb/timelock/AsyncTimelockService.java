@@ -23,8 +23,8 @@ import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTim
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeasableLockToken;
-import com.palantir.lock.v2.LeasableRefreshLockResponse;
-import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
@@ -38,7 +38,7 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     Set<LockToken> unlock(Set<LockToken> tokens);
 
-    LeasableRefreshLockResponse refreshLockLeases(Set<LockToken> tokens);
+    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
 
     AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
 
@@ -51,7 +51,7 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
     StartAtlasDbTransactionResponse startAtlasDbTransaction(
             IdentifiedTimeLockRequest request);
 
-    LeasableStartAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    StartAtlasDbTransactionResponseV3 startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     LeaderTime leaderTime();

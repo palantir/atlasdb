@@ -20,7 +20,6 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -29,7 +28,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableLeadershipId.class)
 @JsonDeserialize(as = ImmutableLeadershipId.class)
 public abstract class LeadershipId {
-    @JsonValue
     abstract UUID id();
 
     public static LeadershipId random() {

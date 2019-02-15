@@ -23,13 +23,12 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LeadershipIdTest {
-    @Test
-    public void serializeAndDeserializeSuccessfully() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        LeadershipId leadershipId = LeadershipId.random();
-        String serialized = mapper.writeValueAsString(leadershipId);
-        LeadershipId deserialized = mapper.readValue(serialized, LeadershipId.class);
+    private static final String SERIALIZED_LEADERSHIP_ID = "{\"id\":\"f01c308f-cb61-4f6e-8bb7-a6be2d09dd96\"}";
+    private static final ObjectMapper mapper = new ObjectMapper();
 
-        assertThat(deserialized).isEqualTo(leadershipId);
+    @Test
+    public void ensureBackCompat() throws Exception {
+        LeadershipId leadershipId = mapper.readValue(SERIALIZED_LEADERSHIP_ID, LeadershipId.class);
+        assertThat(mapper.writeValueAsString(leadershipId)).isEqualTo(SERIALIZED_LEADERSHIP_ID);
     }
 }

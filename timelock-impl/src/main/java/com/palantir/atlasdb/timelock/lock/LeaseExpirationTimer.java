@@ -15,15 +15,12 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.LockLeaseConstants;
 
 public class LeaseExpirationTimer {
-
-    public static final Duration LEASE_TIMEOUT = Duration.ofMillis(20_000);
 
     private volatile NanoTime lastRefreshTime;
     private final Supplier<NanoTime> clock;
@@ -46,6 +43,6 @@ public class LeaseExpirationTimer {
     }
 
     private NanoTime expiry() {
-        return lastRefreshTime.plus(LEASE_TIMEOUT);
+        return lastRefreshTime.plus(LockLeaseConstants.SERVER_LEASE_TIMEOUT);
     }
 }

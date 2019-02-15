@@ -40,6 +40,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockLeaseConstants;
 
 public class AsyncLockServiceTest {
 
@@ -49,7 +50,7 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
-    public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2;
+    public static final long REAPER_PERIOD_MS = LockLeaseConstants.SERVER_LEASE_TIMEOUT.toMillis() / 2;
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 

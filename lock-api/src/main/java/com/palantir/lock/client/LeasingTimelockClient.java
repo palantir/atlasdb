@@ -27,16 +27,14 @@ import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.v2.LeasableLockResponse;
-import com.palantir.lock.v2.LeasableRefreshLockResponse;
-import com.palantir.lock.v2.LeasableStartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
@@ -73,7 +71,7 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        LeasableStartAtlasDbTransactionResponse leasableResponse =
+        StartAtlasDbTransactionResponseV3 leasableResponse =
                 delegate.startAtlasDbTransaction(
                         ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
@@ -85,7 +83,7 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             IdentifiedTimeLockRequest request) {
-        LeasableStartAtlasDbTransactionResponse leasableResponse =
+        StartAtlasDbTransactionResponseV3 leasableResponse =
                 delegate.startAtlasDbTransaction(
                         ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
@@ -106,9 +104,9 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LeasableLockResponse leasableResponse = delegate.lock(request);
+        LockResponseV2 leasableResponse = delegate.lock(request);
 
-        return leasableResponse.accept(LeasableLockResponse.Visitor.of(
+        return leasableResponse.accept(LockResponseV2.Visitor.of(
                 successful -> LockResponse.successful(
                         LeasedLockToken.of(successful.getToken(), successful.getLease())),
                 unsuccessful -> LockResponse.timedOut()));
@@ -152,7 +150,7 @@ public final class LeasingTimelockClient implements TimelockService {
             return leasedTokens;
         }
 
-        LeasableRefreshLockResponse refreshLockResponse = delegate.refreshLockLeases(
+        RefreshLockResponseV2 refreshLockResponse = delegate.refreshLockLeases(
                 serverTokens(leasedTokens));
         Lease lease = refreshLockResponse.getLease();
 

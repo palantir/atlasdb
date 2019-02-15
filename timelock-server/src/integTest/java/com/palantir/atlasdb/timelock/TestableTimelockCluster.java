@@ -221,6 +221,14 @@ public class TestableTimelockCluster {
         return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
 
+    public TimelockRpcClient timelockRpcClient() {
+        return timelockRpcClient(defaultClient);
+    }
+
+    public TimelockRpcClient timelockRpcClient(String client) {
+        return proxies.failoverForClient(client, TimelockRpcClient.class);
+    }
+
     public RuleChain getRuleChain() {
         RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
 

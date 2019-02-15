@@ -21,13 +21,13 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class LeasableLockToken {
 
+    @Value.Parameter
     public abstract LockToken token();
+
+    @Value.Parameter
     public abstract Lease lease();
 
     public static LeasableLockToken of(LockToken token, Lease lease) {
-        return ImmutableLeasableLockToken.builder()
-                .token(token)
-                .lease(lease)
-                .build();
+        return ImmutableLeasableLockToken.of(token, lease);
     }
 }

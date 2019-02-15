@@ -18,13 +18,14 @@ package com.palantir.lock.v2;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLeasableStartAtlasDbTransactionResponse.class)
-@JsonDeserialize(as = ImmutableLeasableStartAtlasDbTransactionResponse.class)
-public abstract class LeasableStartAtlasDbTransactionResponse {
+@JsonSerialize(as = ImmutableStartAtlasDbTransactionResponseV3.class)
+@JsonDeserialize(as = ImmutableStartAtlasDbTransactionResponseV3.class)
+public abstract class StartAtlasDbTransactionResponseV3 {
     @Value.Parameter
     public abstract LockImmutableTimestampResponse immutableTimestamp();
 
@@ -34,17 +35,18 @@ public abstract class LeasableStartAtlasDbTransactionResponse {
     @Value.Parameter
     public abstract Lease getLease();
 
+    @JsonIgnore
     public StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse() {
         return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
                 immutableTimestamp(),
                 startTimestampAndPartition());
     }
 
-    public static LeasableStartAtlasDbTransactionResponse of(
+    public static StartAtlasDbTransactionResponseV3 of(
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             TimestampAndPartition timestampAndPartition,
             Lease lease) {
-        return ImmutableLeasableStartAtlasDbTransactionResponse.builder()
+        return ImmutableStartAtlasDbTransactionResponseV3.builder()
                 .immutableTimestamp(lockImmutableTimestampResponse)
                 .startTimestampAndPartition(timestampAndPartition)
                 .lease(lease)

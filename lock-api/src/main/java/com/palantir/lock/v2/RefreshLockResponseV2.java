@@ -24,17 +24,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLeasableRefreshLockResponse.class)
-@JsonDeserialize(as = ImmutableLeasableRefreshLockResponse.class)
-public interface LeasableRefreshLockResponse {
+@JsonSerialize(as = ImmutableRefreshLockResponseV2.class)
+@JsonDeserialize(as = ImmutableRefreshLockResponseV2.class)
+public interface RefreshLockResponseV2 {
     @Value.Parameter
     Set<LockToken> refreshedTokens();
 
     @Value.Parameter
     Lease getLease();
 
-    static LeasableRefreshLockResponse of(Set<LockToken> tokens, Lease lease) {
-        return ImmutableLeasableRefreshLockResponse.of(tokens, lease);
+    static RefreshLockResponseV2 of(Set<LockToken> tokens, Lease lease) {
+        return ImmutableRefreshLockResponseV2.of(tokens, lease);
     }
 }
 

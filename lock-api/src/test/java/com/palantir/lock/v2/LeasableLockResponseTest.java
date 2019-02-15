@@ -35,13 +35,24 @@ public class LeasableLockResponseTest {
             Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(0)),
                     Duration.ofSeconds(1));
 
+    private static final String SUCCESSFUL_LOCK_RESPONSE = "{"
+            + "\"type\":\"success\","
+            + "\"token\":{\"requestId\":\"803a09b5-97cb-4034-b35e-1db299b93a7e\"},"
+            + "\"lease\":{"
+                + "\"leaderTime\":{\"leadershipId\":{\"id\":\"2600e8ef-cdb5-441e-a235-475465b7b7fa\"},"
+                + "\"currentTime\":{\"time\":0}},"
+                + "\"validity\":1.000000000}}";
+
+    private static final String UNSUCCESSFUL_LOCK_RESPONSE = "{\"type\":\"failure\"}";
+
+
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
 
     @Test
     public void visitsSuccessfulResponse() {
-        LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
-        LockToken token = response.accept(LeasableLockResponse.Visitor.of(
+        LockResponseV2 response = LockResponseV2.successful(LOCK_TOKEN, LEASE);
+        LockToken token = response.accept(LockResponseV2.Visitor.of(
                 successful -> successful.getToken(),
                 unsuccessful -> {
                     throw EXCEPTION;
@@ -52,9 +63,9 @@ public class LeasableLockResponseTest {
 
     @Test
     public void visitsUnsuccessfulResponse() {
-        LeasableLockResponse response = LeasableLockResponse.timedOut();
+        LockResponseV2 response = LockResponseV2.timedOut();
 
-        assertThatThrownBy(() -> response.accept(LeasableLockResponse.Visitor.of(
+        assertThatThrownBy(() -> response.accept(LockResponseV2.Visitor.of(
                 successful -> successful.getToken(),
                 unsuccessful -> {
                     throw EXCEPTION;
@@ -64,17 +75,13 @@ public class LeasableLockResponseTest {
 
     @Test
     public void serializeDeserialize_Successful() throws Exception {
-        LeasableLockResponse response = LeasableLockResponse.successful(LOCK_TOKEN, LEASE);
-        String serialized = objectMapper.writeValueAsString(response);
-        LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
-        assertThat(deserialized).isEqualTo(response);
+        LockResponseV2 lockResponse = objectMapper.readValue(SUCCESSFUL_LOCK_RESPONSE, LockResponseV2.class);
+        assertThat(objectMapper.writeValueAsString(lockResponse)).isEqualTo(SUCCESSFUL_LOCK_RESPONSE);
     }
 
     @Test
     public void serializeDeserialize_Unsuccessful() throws Exception {
-        LeasableLockResponse response = LeasableLockResponse.timedOut();
-        String serialized = objectMapper.writeValueAsString(response);
-        LeasableLockResponse deserialized = objectMapper.readValue(serialized, LeasableLockResponse.class);
-        assertThat(deserialized).isEqualTo(response);
+        LockResponseV2 lockResponse = objectMapper.readValue(UNSUCCESSFUL_LOCK_RESPONSE, LockResponseV2.class);
+        assertThat(objectMapper.writeValueAsString(lockResponse)).isEqualTo(UNSUCCESSFUL_LOCK_RESPONSE);
     }
 }
