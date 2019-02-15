@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -40,7 +41,6 @@ import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockServiceEteTest {
@@ -291,7 +291,7 @@ public class AsyncLockServiceEteTest {
         assertThat(result.lease().isValid(service.leaderTime())).isTrue();
 
         waitForTimeout(TimeLimit.of(
-                LockLeaseConstants.SERVER_LEASE_TIMEOUT.minus(LockLeaseConstants.BUFFER).toMillis()));
+                LockLeaseContract.CLIENT_LEASE_TIMEOUT.toMillis()));
         assertThat(result.lease().isValid(service.leaderTime())).isFalse();
 
         assertLocked(LOCK_A);
@@ -302,6 +302,11 @@ public class AsyncLockServiceEteTest {
         service.close();
 
         assertThat(executor.isShutdown()).isTrue();
+    }
+
+    @Test
+    public void clientSideLeasePeriodShouldBeLessThanServerSideLeasePeriod() {
+        assertThat(LockLeaseContract.CLIENT_LEASE_TIMEOUT).isLessThan(LockLeaseContract.SERVER_LEASE_TIMEOUT);
     }
 
     private void waitForTimeout(TimeLimit timeout) {

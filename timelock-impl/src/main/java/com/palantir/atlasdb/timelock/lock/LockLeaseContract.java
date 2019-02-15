@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.lock;
 
 import java.time.Duration;
 
-public final class LockLeaseConstants {
-    private LockLeaseConstants() {}
-
-    public static final Duration BUFFER = Duration.ofSeconds(2);
-
-    public static final Duration CLIENT_LOCK_REFRESH_PERIOD = Duration.ofSeconds(5);
+public final class LockLeaseContract {
+    private LockLeaseContract() {}
 
     public static final Duration SERVER_LEASE_TIMEOUT = Duration.ofSeconds(20);
 
     /**
      * This value can be changed without requiring any change on client side.
+     *
+     * To guarantee correctness CLIENT_LEASE_TIMEOUT should always be less than SERVER_LEASE_TIMEOUT.
+     *
+     * To guarantee liveness, CLIENT_LEASE_TIMEOUT should be less than SERVER_LEASE_TIMEOUT by client side refresh
+     * period. Current value is picked such that client will be able to refresh held locks even after two consecutive
+     * failed refresh calls. (Where client side refresh period is 5 seconds)
      */
-    public static final Duration CLIENT_LEASE_TIMEOUT = SERVER_LEASE_TIMEOUT
-            .minus(CLIENT_LOCK_REFRESH_PERIOD)
-            .minus(BUFFER);
+    public static final Duration CLIENT_LEASE_TIMEOUT = Duration.ofSeconds(8);
 }

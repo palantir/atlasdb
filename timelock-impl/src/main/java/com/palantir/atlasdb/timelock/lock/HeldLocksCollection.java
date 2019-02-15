@@ -30,7 +30,6 @@ import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
-import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
@@ -90,7 +89,7 @@ public class HeldLocksCollection {
 
     private Lease leaseWithStart(NanoTime startTime) {
         return Lease.of(LeaderTime.of(leaderClock.id(), startTime),
-                LockLeaseConstants.CLIENT_LEASE_TIMEOUT);
+                LockLeaseContract.CLIENT_LEASE_TIMEOUT);
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {

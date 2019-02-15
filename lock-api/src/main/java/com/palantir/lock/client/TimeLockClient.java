@@ -28,7 +28,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -44,7 +43,7 @@ import com.palantir.timestamp.TimestampRange;
 
 public class TimeLockClient implements AutoCloseable, TimelockService {
 
-    private static final long REFRESH_INTERVAL_MILLIS = LockLeaseConstants.CLIENT_LOCK_REFRESH_PERIOD.toMillis();
+    private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 
     private final TimelockService delegate;
     private final CloseableTimestampService timestampService;

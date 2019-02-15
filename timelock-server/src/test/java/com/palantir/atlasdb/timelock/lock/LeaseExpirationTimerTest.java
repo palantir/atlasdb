@@ -24,7 +24,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.LockLeaseConstants;
 
 public class LeaseExpirationTimerTest {
 
@@ -68,7 +67,7 @@ public class LeaseExpirationTimerTest {
     }
 
     private Duration leaseDuration() {
-        return LockLeaseConstants.SERVER_LEASE_TIMEOUT;
+        return LockLeaseContract.SERVER_LEASE_TIMEOUT;
     }
 
 }

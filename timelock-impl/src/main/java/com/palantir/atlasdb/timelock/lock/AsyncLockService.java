@@ -29,7 +29,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.LockToken;
 
@@ -89,7 +88,7 @@ public class AsyncLockService implements Closeable {
             } catch (Throwable t) {
                 log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
             }
-        }, 0, LockLeaseConstants.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
+        }, 0, LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
     public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {

@@ -35,7 +35,6 @@ import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
-import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollectionTest {
@@ -132,7 +131,7 @@ public class HeldLocksCollectionTest {
         Lease lease = asyncResult.get().lease();
         assertThat(lease.isValid(leaderClock.time())).isTrue();
 
-        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
+        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
         assertThat(lease.isValid(leaderClock.time())).isTrue();
     }
 
@@ -145,7 +144,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT));
+        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
     }
 
@@ -158,7 +157,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT));
+        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertLocked(REQUEST_ID);
     }
@@ -172,7 +171,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseConstants.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
+        setClock(currentTime.plus(LockLeaseContract.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertUnlocked(REQUEST_ID);
     }
