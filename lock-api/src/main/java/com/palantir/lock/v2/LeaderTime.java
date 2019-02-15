@@ -27,18 +27,18 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableLeaderTime.class)
 public abstract class LeaderTime {
     @Value.Parameter
-    public abstract LeadershipId leadershipId();
+    public abstract LeadershipId id();
 
     @Value.Parameter
     public abstract NanoTime currentTime();
 
     public boolean isComparableWith(LeaderTime other) {
-        return leadershipId().equals(other.leadershipId());
+        return id().equals(other.id());
     }
 
     public static LeaderTime of(LeadershipId id, NanoTime time) {
         return ImmutableLeaderTime.builder()
-                .leadershipId(id)
+                .id(id)
                 .currentTime(time)
                 .build();
     }

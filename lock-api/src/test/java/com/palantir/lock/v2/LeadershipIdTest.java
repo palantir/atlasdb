@@ -23,7 +23,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LeadershipIdTest {
-    private static final String SERIALIZED_LEADERSHIP_ID = "{\"id\":\"f01c308f-cb61-4f6e-8bb7-a6be2d09dd96\"}";
+    private static final String SERIALIZED_LEADERSHIP_ID = "\"fc71247c-66a5-4f94-be24-3a2b00d29968\"";
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Test

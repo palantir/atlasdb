@@ -39,8 +39,8 @@ public class LeasableLockResponseTest {
             + "\"type\":\"success\","
             + "\"token\":{\"requestId\":\"803a09b5-97cb-4034-b35e-1db299b93a7e\"},"
             + "\"lease\":{"
-                + "\"leaderTime\":{\"leadershipId\":{\"id\":\"2600e8ef-cdb5-441e-a235-475465b7b7fa\"},"
-                + "\"currentTime\":{\"time\":0}},"
+                + "\"leaderTime\":{\"id\":\"2600e8ef-cdb5-441e-a235-475465b7b7fa\","
+                + "\"currentTime\":0},"
                 + "\"validity\":1.000000000}}";
 
     private static final String UNSUCCESSFUL_LOCK_RESPONSE = "{\"type\":\"failure\"}";
