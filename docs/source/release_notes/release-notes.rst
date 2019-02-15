@@ -83,6 +83,15 @@ develop
            Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
+    *    - |changed| |improved|
+         - TimeLock will now no longer create its high level paxos directory at configuration de-serialization time.
+           Instead it waits until creating each individual learner or acceptor log directory, allowing timelock to rely more accurately on directory existence as a proxy for said timelock node being new or not.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3745>`__)
+
+    *    - |improved|
+         - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
+
 ========
 v0.116.1
 ========

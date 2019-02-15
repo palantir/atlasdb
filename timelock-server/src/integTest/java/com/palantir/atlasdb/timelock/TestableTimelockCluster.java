@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,8 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.BridgingTimelockService;
+import com.palantir.lock.client.LeasingTimelockClient;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -195,7 +197,8 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockService().startIdentifiedAtlasDbTransaction(request);
+        return timelockService(defaultClient, request.requestorId())
+                .startIdentifiedAtlasDbTransaction(ImmutableIdentifiedTimeLockRequest.of(request.requestId()));
     }
 
     public TimestampService timestampService() {
@@ -210,8 +213,12 @@ public class TestableTimelockCluster {
         return timelockServiceForClient(defaultClient);
     }
 
+    public TimelockService timelockService(String client, UUID serviceId) {
+        return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class), serviceId);
+    }
+
     public TimelockService timelockServiceForClient(String client) {
-        return BridgingTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
+        return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
 
     public RuleChain getRuleChain() {

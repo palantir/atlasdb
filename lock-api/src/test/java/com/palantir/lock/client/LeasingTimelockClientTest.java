@@ -33,6 +33,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockResponse;
@@ -53,11 +55,13 @@ import com.palantir.lock.v2.TimestampAndPartition;
 public class LeasingTimelockClientTest {
     @Mock private TimelockRpcClient timelockRpcClient;
     @Mock private LockRequest lockRequest;
-    @Mock private StartIdentifiedAtlasDbTransactionRequest startTxnRequest;
     @Mock private TimestampAndPartition timestampAndPartition;
 
     private TimelockService timelockService;
     private static final LeadershipId LEADER_ID = LeadershipId.random();
+    private static final UUID SERVICE_ID = UUID.randomUUID();
+    private StartIdentifiedAtlasDbTransactionRequest startTxnRequest =
+            StartIdentifiedAtlasDbTransactionRequest.createForRequestor(SERVICE_ID);
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
@@ -65,7 +69,7 @@ public class LeasingTimelockClientTest {
     @Before
     public void before() {
         when(timelockRpcClient.getLeaderTime()).thenReturn(LeaderTime.of(LeadershipId.random(), NanoTime.now()));
-        timelockService = LeasingTimelockClient.create(timelockRpcClient);
+        timelockService = LeasingTimelockClient.create(timelockRpcClient, SERVICE_ID);
     }
 
     @Test
@@ -107,7 +111,8 @@ public class LeasingTimelockClientTest {
                 startTransactionResponseWith(LOCK_TOKEN, lease));
 
         StartIdentifiedAtlasDbTransactionResponse clientResponse =
-                timelockService.startIdentifiedAtlasDbTransaction(startTxnRequest);
+                timelockService.startIdentifiedAtlasDbTransaction(
+                        ImmutableIdentifiedTimeLockRequest.of(startTxnRequest.requestId()));
 
         verify(timelockRpcClient).startAtlasDbTransaction(startTxnRequest);
 

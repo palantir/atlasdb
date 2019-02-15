@@ -17,12 +17,14 @@
 package com.palantir.lock.client;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
+import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeasableLockResponse;
@@ -44,13 +46,19 @@ import com.palantir.timestamp.TimestampRange;
 
 public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
+    private final UUID clientId;
 
-    private LeasingTimelockClient(TimelockRpcClient timelockRpcClient) {
+    private LeasingTimelockClient(TimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
+        this.clientId = clientId;
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
-        return new LeasingTimelockClient(timelockRpcClient);
+        return new LeasingTimelockClient(timelockRpcClient, UUID.randomUUID());
+    }
+
+    public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient, UUID clientId) {
+        return new LeasingTimelockClient(timelockRpcClient, clientId);
     }
 
     @Override
@@ -65,19 +73,21 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return delegate.lockImmutableTimestamp(request);
-    }
+        LeasableStartAtlasDbTransactionResponse leasableResponse =
+                delegate.startAtlasDbTransaction(
+                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
-    @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return delegate.deprecatedStartAtlasDbTransaction(request);
+        return ImmutableLockImmutableTimestampResponse.of(
+                leasableResponse.immutableTimestamp().getImmutableTimestamp(),
+                LeasedLockToken.of(leasableResponse.immutableTimestamp().getLock(), leasableResponse.getLease()));
     }
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            IdentifiedTimeLockRequest request) {
         LeasableStartAtlasDbTransactionResponse leasableResponse =
-                delegate.startAtlasDbTransaction(request);
+                delegate.startAtlasDbTransaction(
+                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
         StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.getStartTransactionResponse();
         Lease lease = leasableResponse.getLease();

@@ -31,8 +31,6 @@ import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -96,15 +94,8 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        StartAtlasDbTransactionResponse response = executeOnTimeLock(() -> delegate.startAtlasDbTransaction(request));
-        lockRefresher.registerLock(response.immutableTimestamp().getLock());
-        return response;
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            IdentifiedTimeLockRequest request) {
         StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
                 () -> delegate.startIdentifiedAtlasDbTransaction(request));
         lockRefresher.registerLock(response.immutableTimestamp().getLock());

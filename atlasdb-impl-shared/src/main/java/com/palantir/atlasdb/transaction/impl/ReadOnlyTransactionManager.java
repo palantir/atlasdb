@@ -62,7 +62,7 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             Supplier<TransactionConfig> transactionConfig) {
-        super(metricsManager, timestampCache);
+        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.transactionService = transactionService;
