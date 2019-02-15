@@ -15,20 +15,15 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.UUID;
-
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.common.base.Throwables;
-import com.palantir.exception.NotInitializedException;
-import com.palantir.logsafe.SafeArg;
 
 public abstract class AbstractConditionAwareTransactionManager extends AbstractTransactionManager {
+    private final Supplier<TransactionRetryStrategy> retryStrategy;
 
     protected static final PreCommitCondition NO_OP_CONDITION = new PreCommitCondition() {
         @Override
@@ -38,51 +33,21 @@ public abstract class AbstractConditionAwareTransactionManager extends AbstractT
         public void cleanup() {}
     };
 
-    AbstractConditionAwareTransactionManager(MetricsManager metricsManager, TimestampCache timestampCache) {
+    AbstractConditionAwareTransactionManager(
+            MetricsManager metricsManager, TimestampCache timestampCache, Supplier<TransactionRetryStrategy> retryStrategy) {
         super(metricsManager, timestampCache);
+        this.retryStrategy = retryStrategy;
     }
 
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        int failureCount = 0;
-        UUID runId = UUID.randomUUID();
-        while (true) {
+        return retryStrategy.get().runWithRetry(this::shouldStopRetrying, () -> {
             checkOpen();
-            try {
-                C condition = conditionSupplier.get();
-                T result = runTaskWithConditionThrowOnConflict(condition, task);
-                if (failureCount > 0) {
-                    log.info("[{}] Successfully completed transaction after {} retries.",
-                            SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount));
-                }
-                return result;
-            } catch (TransactionFailedException e) {
-                if (!e.canTransactionBeRetried()) {
-                    log.warn("[{}] Non-retriable exception while processing transaction.",
-                            SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount));
-                    throw e;
-                }
-                failureCount++;
-                if (shouldStopRetrying(failureCount)) {
-                    log.warn("[{}] Failing after {} tries.",
-                            SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount), e);
-                    throw Throwables.rewrap(String.format("Failing after %d tries.", failureCount), e);
-                }
-                log.info("[{}] Retrying transaction after {} failure(s).",
-                        SafeArg.of("runId", runId),
-                        SafeArg.of("failureCount", failureCount), e);
-            } catch (NotInitializedException e) {
-                log.info("TransactionManager is not initialized. Aborting transaction with runTaskWithRetry", e);
-                throw e;
-            } catch (RuntimeException e) {
-                log.warn("[{}] RuntimeException while processing transaction.", SafeArg.of("runId", runId), e);
-                throw e;
-            }
-        }
+            C condition = conditionSupplier.get();
+            T result = runTaskWithConditionThrowOnConflict(condition, task);
+            return result;
+        });
     }
 
     @Override
