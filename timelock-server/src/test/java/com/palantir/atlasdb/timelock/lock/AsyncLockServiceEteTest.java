@@ -58,16 +58,19 @@ public class AsyncLockServiceEteTest {
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private final LeaderClock clock = LeaderClock.create();
 
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
-                    Executors.newSingleThreadScheduledExecutor()),
-            new HeldLocksCollection(),
+                    Executors.newSingleThreadScheduledExecutor(),
+                    clock),
+            HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
-            executor);
+            executor,
+            clock);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -285,11 +288,11 @@ public class AsyncLockServiceEteTest {
     @Test
     public void leaseShouldExpireBeforeReapingLocks() {
         Leased<LockToken> result = lock(REQUEST_1, LOCK_A).get();
-        assertThat(result.lease().isValid(service.identifiedTime())).isTrue();
+        assertThat(result.lease().isValid(service.leaderTime())).isTrue();
 
         waitForTimeout(TimeLimit.of(
                 LockLeaseConstants.SERVER_LEASE_TIMEOUT.minus(LockLeaseConstants.BUFFER).toMillis()));
-        assertThat(result.lease().isValid(service.identifiedTime())).isFalse();
+        assertThat(result.lease().isValid(service.leaderTime())).isFalse();
 
         assertLocked(LOCK_A);
     }

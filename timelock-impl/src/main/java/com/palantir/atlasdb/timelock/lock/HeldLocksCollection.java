@@ -29,7 +29,6 @@ import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
@@ -39,7 +38,16 @@ public class HeldLocksCollection {
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
-    private final LeadershipId leadershipId = LeadershipId.random();
+    private final LeaderClock leaderClock;
+
+    @VisibleForTesting
+    HeldLocksCollection(LeaderClock leaderClock) {
+        this.leaderClock = leaderClock;
+    }
+
+    public static HeldLocksCollection create(LeaderClock leaderClock) {
+        return new HeldLocksCollection(leaderClock);
+    }
 
     public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
             UUID requestId,
@@ -81,7 +89,7 @@ public class HeldLocksCollection {
     }
 
     private Lease leaseWithStart(NanoTime startTime) {
-        return Lease.of(LeaderTime.of(leadershipId, startTime),
+        return Lease.of(LeaderTime.of(leaderClock.id(), startTime),
                 LockLeaseConstants.CLIENT_LEASE_TIMEOUT);
     }
 

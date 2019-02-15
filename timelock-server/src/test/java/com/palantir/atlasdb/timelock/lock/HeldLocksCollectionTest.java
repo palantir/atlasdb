@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -28,14 +29,23 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.NanoTime;
+import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollectionTest {
 
     private static final UUID REQUEST_ID = UUID.randomUUID();
 
-    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection();
+    private NanoTime currentTime = NanoTime.createForTests(0);
+    private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> currentTime);
+    private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
+
 
     @Test
     public void callsSupplierForNewRequest() {
@@ -110,6 +120,82 @@ public class HeldLocksCollectionTest {
                 ImmutableSet.of(refreshableRequest, nonRefreshableRequest));
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void lockLeasesAreValidUntilExpiry() {
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+
+        Lease lease = asyncResult.get().lease();
+        assertThat(lease.isValid(leaderClock.time())).isTrue();
+
+        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
+        assertThat(lease.isValid(leaderClock.time())).isTrue();
+    }
+
+    @Test
+    public void lockLeasesAreInvalidAfterExpiry() {
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+
+        Lease lease = asyncResult.get().lease();
+
+        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT));
+        assertThat(lease.isValid(leaderClock.time())).isFalse();
+    }
+
+    @Test
+    public void lockLeasesShouldBeInvalidatedBeforeLocksAreReaped() {
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+
+        Lease lease = asyncResult.get().lease();
+
+        setClock(currentTime.plus(LockLeaseConstants.CLIENT_LEASE_TIMEOUT));
+        assertThat(lease.isValid(leaderClock.time())).isFalse();
+        assertLocked(REQUEST_ID);
+    }
+
+    @Test
+    public void locksShouldBeReapedAndLeaseShouldBeInvalidatedAfterReapPeriod() {
+        AsyncResult<HeldLocks> result = new AsyncResult<>();
+        AsyncResult<Leased<LockToken>> asyncResult =
+                heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
+        result.complete(heldLocksForId(REQUEST_ID));
+
+        Lease lease = asyncResult.get().lease();
+
+        setClock(currentTime.plus(LockLeaseConstants.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
+        assertThat(lease.isValid(leaderClock.time())).isFalse();
+        assertUnlocked(REQUEST_ID);
+    }
+
+    private void assertLocked(UUID requestId) {
+        heldLocksCollection.removeExpired();
+        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isTrue();
+    }
+
+    private void assertUnlocked(UUID requestId) {
+        heldLocksCollection.removeExpired();
+        assertThat(heldLocksCollection.heldLocksById.containsKey(requestId)).isFalse();
+    }
+
+    private HeldLocks heldLocksForId(UUID id) {
+        return new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
+                ImmutableSet.of(new ExclusiveLock(StringLockDescriptor.of("foo"))),
+                id,
+                leaderClock);
+    }
+
+    private void setClock(NanoTime nanoTime) {
+        currentTime = nanoTime;
     }
 
     @Test

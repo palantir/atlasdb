@@ -54,14 +54,15 @@ public class AsyncLockServiceTest {
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 
+    private final LeaderClock leaderClock = LeaderClock.create();
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
-    private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
+    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
-            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor);
+            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor, leaderClock);
 
     @Before
     public void before() {

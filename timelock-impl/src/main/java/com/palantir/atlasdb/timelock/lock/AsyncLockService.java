@@ -25,11 +25,10 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
-import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.LockToken;
@@ -44,35 +43,41 @@ public class AsyncLockService implements Closeable {
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
-    private final LeadershipId leadershipId;
+    private final LeaderClock leaderClock;
 
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor) {
+
+        LeaderClock clock = LeaderClock.create();
+
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor),
-                new HeldLocksCollection(),
+                new LockAcquirer(lockLog, timeoutExecutor, clock),
+                HeldLocksCollection.create(clock),
                 new AwaitedLocksCollection(),
-                reaperExecutor);
+                reaperExecutor,
+                clock);
     }
 
-    public AsyncLockService(
+    @VisibleForTesting
+    AsyncLockService(
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
-            ScheduledExecutorService reaperExecutor) {
+            ScheduledExecutorService reaperExecutor,
+            LeaderClock leaderClock) {
         this.locks = locks;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
-        this.leadershipId = LeadershipId.random();
+        this.leaderClock = leaderClock;
 
         scheduleExpiredLockReaper();
     }
@@ -147,8 +152,8 @@ public class AsyncLockService implements Closeable {
                 refreshedTokens.lease());
     }
 
-    public LeaderTime identifiedTime() {
-        return LeaderTime.of(leadershipId, NanoTime.now());
+    public LeaderTime leaderTime() {
+        return leaderClock.time();
     }
 
     /**

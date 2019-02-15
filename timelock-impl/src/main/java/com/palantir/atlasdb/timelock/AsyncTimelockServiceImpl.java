@@ -145,7 +145,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     @Override
     public LeaderTime leaderTime() {
-        return lockService.identifiedTime();
+        return lockService.leaderTime();
     }
 
     @Override
