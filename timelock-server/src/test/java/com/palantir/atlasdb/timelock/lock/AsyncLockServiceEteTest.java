@@ -41,6 +41,7 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockServiceEteTest {
@@ -280,6 +281,18 @@ public class AsyncLockServiceEteTest {
 
         assertThat(request2.isFailed()).isTrue();
         assertThat(request2.getError()).isInstanceOf(NotCurrentLeaderException.class);
+    }
+
+    @Test
+    public void leaseShouldExpireBeforeReapingLocks() {
+        LeasableLockToken result = lock(REQUEST_1, LOCK_A).get();
+        assertThat(result.lease().isValid(service.identifiedTime())).isTrue();
+
+        waitForTimeout(TimeLimit.of(
+                LockLeaseConstants.SERVER_LEASE_TIMEOUT.minus(LockLeaseConstants.BUFFER).toMillis()));
+        assertThat(result.lease().isValid(service.identifiedTime())).isFalse();
+
+        assertLocked(LOCK_A);
     }
 
     @Test

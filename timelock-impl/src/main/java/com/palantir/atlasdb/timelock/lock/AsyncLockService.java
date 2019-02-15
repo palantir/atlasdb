@@ -31,6 +31,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LeasableLockToken;
+import com.palantir.lock.v2.LockLeaseConstants;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
@@ -85,7 +86,7 @@ public class AsyncLockService implements Closeable {
             } catch (Throwable t) {
                 log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
             }
-        }, 0, LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
+        }, 0, LockLeaseConstants.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
     public AsyncResult<LeasableLockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -157,7 +158,7 @@ public class AsyncLockService implements Closeable {
 
     private Lease leaseWithStart(NanoTime startTime) {
         return Lease.of(LeaderTime.of(leadershipId, startTime),
-                LeaseContract.LEASE_PERIOD);
+                LockLeaseConstants.CLIENT_LEASE_TIMEOUT);
     }
 
     public LeaderTime identifiedTime() {
