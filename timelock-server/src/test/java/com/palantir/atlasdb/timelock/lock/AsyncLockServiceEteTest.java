@@ -128,7 +128,7 @@ public class AsyncLockServiceEteTest {
         assertThat(tokenResult.isCompletedSuccessfully()).isTrue();
         assertThat(duplicateResult.isCompletedSuccessfully()).isTrue();
 
-        assertThat(tokenResult.get()).isEqualTo(duplicateResult.get());
+        assertThat(tokenResult.get().value()).isEqualTo(duplicateResult.get().value());
     }
 
     @Test
