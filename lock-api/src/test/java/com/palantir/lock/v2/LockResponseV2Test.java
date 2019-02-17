@@ -28,7 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
 
-public class LeasableLockResponseTest {
+public class LockResponseV2Test {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final RuntimeException EXCEPTION = new RuntimeException("failure!");
     private static final Lease LEASE =
