@@ -34,7 +34,6 @@ import org.eclipse.jetty.http.HttpStatus;
 import org.junit.After;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -51,7 +50,6 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
