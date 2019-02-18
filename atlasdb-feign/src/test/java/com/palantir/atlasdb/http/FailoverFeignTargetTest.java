@@ -174,6 +174,14 @@ public class FailoverFeignTargetTest {
     }
 
     @Test
+    public void failsDueToFastFailoverIfAllNodesHaveBeenTalkedTo() {
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        assertThatThrownBy(() -> simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER))
+                .isEqualTo(EXCEPTION_WITH_RETRY_AFTER);
+    }
+
+    @Test
     public void retriesOnSameNodeIfBlockingTimeoutIsLastAllowedFailureBeforeSwitch() {
         for (int i = 1; i < normalTarget.failuresBeforeSwitching; i++) {
             simulateRequest(normalTarget);
