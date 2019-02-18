@@ -195,7 +195,7 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockService().startIdentifiedAtlasDbTransaction(request);
+        return rpcClient(defaultClient).startIdentifiedAtlasDbTransaction(request);
     }
 
     public TimestampService timestampService() {
@@ -219,6 +219,10 @@ public class TestableTimelockCluster {
     }
 
     public TimelockRpcClient timelockRpcClient(String client) {
+        return proxies.failoverForClient(client, TimelockRpcClient.class);
+    }
+
+    private TimelockRpcClient rpcClient(String client) {
         return proxies.failoverForClient(client, TimelockRpcClient.class);
     }
 
