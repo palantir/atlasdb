@@ -240,6 +240,11 @@ Instead it waits until creating each individual learner or acceptor log director
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3749">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">FailoverFeignTarget</span></code> now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
+Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3752">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3756">Pull Request</a>)</td>
 </tr>
