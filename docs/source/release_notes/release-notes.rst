@@ -102,6 +102,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
 
     *    - |fixed|
+         - ``FailoverFeignTarget`` now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
+           Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3752>`__)
+
+    *    - |fixed|
          - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
 
