@@ -188,6 +188,15 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>The deprecated <cite>startAtlasDbTransaction()</cite> method is removed from <cite>TimelockService</cite>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3758">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><cite>startIdentifiedAtlasDbTransaction</cite> now accepts <cite>IdentifiedTimeLockRequest</cite> as a parameter rather than <cite>StartIdentifiedAtlasDbTransactionRequest</cite>. Moving the requestorId
+information to TimelockClient from the caller.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3758">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <cite>TableMetadata</cite> class has been refactored to use Immutables.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3624">Pull Request</a>)</td>
