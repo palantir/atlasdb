@@ -22,8 +22,6 @@ import java.util.function.ToLongFunction;
 
 import com.palantir.lock.v2.AutoDelegate_TimelockService;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampRange;
@@ -64,15 +62,8 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return checkAndUpdateLowerBound(() -> delegate.startAtlasDbTransaction(request),
-                StartAtlasDbTransactionResponse::freshTimestamp,
-                StartAtlasDbTransactionResponse::freshTimestamp);
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+            IdentifiedTimeLockRequest request) {
         return checkAndUpdateLowerBound(() -> delegate.startIdentifiedAtlasDbTransaction(request),
                 r -> r.startTimestampAndPartition().timestamp(),
                 r -> r.startTimestampAndPartition().timestamp());

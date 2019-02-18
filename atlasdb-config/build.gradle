@@ -1,6 +1,5 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 apply from: "../gradle/shared.gradle"
 
@@ -46,13 +45,4 @@ dependencies {
     testCompile group: 'org.awaitility', name: 'awaitility'
     // Needed for Jersey Response-based tests
     testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
-}
-
-recommendedProductDependencies {
-    productDependency {
-        productGroup = 'com.palantir.timelock'
-        productName = 'timelock-server'
-        minimumVersion = '0.51.0'
-        maximumVersion = '0.x.x'
-    }
 }
