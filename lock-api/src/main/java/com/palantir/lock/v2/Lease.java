@@ -29,7 +29,7 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableLease.class)
 public abstract class Lease {
     @Value.Parameter
-    abstract LeaderTime leaderTime();
+    public abstract LeaderTime leaderTime();
 
     @Value.Parameter
     abstract Duration validity();

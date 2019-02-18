@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.Iterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -25,6 +24,7 @@ import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -100,17 +100,17 @@ public class HeldLocksCollection {
 
     private Leased<Set<LockToken>> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
         Set<LockToken> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
-        Optional<NanoTime> minStartTime = Optional.empty();
+        NanoTime minStartTime = leaderClock.time().currentTime();
 
         for (LockToken token : tokens) {
             AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
             if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);
                 NanoTime lastRefreshTime = lockResult.get().lastRefreshTime();
-                minStartTime = minStartTime.map(t -> lastRefreshTime.isBefore(t) ? lastRefreshTime : t);
+                minStartTime = Ordering.natural().min(minStartTime, lastRefreshTime);
             }
         }
 
-        return Leased.of(filtered, leaseWithStart(minStartTime.orElseGet(() -> leaderClock.time().currentTime())));
+        return Leased.of(filtered, leaseWithStart(minStartTime));
     }
 }
