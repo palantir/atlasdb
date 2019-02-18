@@ -180,5 +180,4 @@ public class AsyncTimelockResource {
     public long currentTimeMillis() {
         return timelock.currentTimeMillis();
     }
-
 }

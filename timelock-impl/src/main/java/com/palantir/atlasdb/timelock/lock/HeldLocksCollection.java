@@ -111,6 +111,6 @@ public class HeldLocksCollection {
             }
         }
 
-        return Leased.of(filtered, leaseWithStart(minStartTime.orElse(NanoTime.now())));
+        return Leased.of(filtered, leaseWithStart(minStartTime.orElseGet(() -> leaderClock.time().currentTime())));
     }
 }

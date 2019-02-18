@@ -131,7 +131,7 @@ public class HeldLocksCollectionTest {
         Lease lease = asyncResult.get().lease();
         assertThat(lease.isValid(leaderClock.time())).isTrue();
 
-        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
+        setTime(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
         assertThat(lease.isValid(leaderClock.time())).isTrue();
     }
 
@@ -144,7 +144,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
+        setTime(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
     }
 
@@ -157,7 +157,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
+        setTime(currentTime.plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertLocked(REQUEST_ID);
     }
@@ -171,7 +171,7 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setClock(currentTime.plus(LockLeaseContract.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
+        setTime(currentTime.plus(LockLeaseContract.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertUnlocked(REQUEST_ID);
     }
@@ -193,7 +193,7 @@ public class HeldLocksCollectionTest {
                 leaderClock);
     }
 
-    private void setClock(NanoTime nanoTime) {
+    private void setTime(NanoTime nanoTime) {
         currentTime = nanoTime;
     }
 

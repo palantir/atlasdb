@@ -53,4 +53,3 @@ public abstract class StartAtlasDbTransactionResponseV3 {
                 .build();
     }
 }
-

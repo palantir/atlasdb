@@ -32,7 +32,7 @@ public class LockResponseV2Test {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final RuntimeException EXCEPTION = new RuntimeException("failure!");
     private static final Lease LEASE =
-            Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(0)),
+            Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(10)),
                     Duration.ofSeconds(1));
 
     private static final String SUCCESSFUL_LOCK_RESPONSE = "{"
@@ -40,7 +40,7 @@ public class LockResponseV2Test {
             + "\"token\":{\"requestId\":\"803a09b5-97cb-4034-b35e-1db299b93a7e\"},"
             + "\"lease\":{"
                 + "\"leaderTime\":{\"id\":\"2600e8ef-cdb5-441e-a235-475465b7b7fa\","
-                + "\"currentTime\":0},"
+                + "\"currentTime\":10},"
                 + "\"validity\":1.000000000}}";
 
     private static final String UNSUCCESSFUL_LOCK_RESPONSE = "{\"type\":\"failure\"}";

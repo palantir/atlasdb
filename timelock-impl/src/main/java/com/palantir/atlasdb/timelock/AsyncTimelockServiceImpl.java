@@ -124,10 +124,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public StartAtlasDbTransactionResponseV3 startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-
         long timestamp = timestampService.getFreshTimestamp();
 
-        // this will always return synchronously
         Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
