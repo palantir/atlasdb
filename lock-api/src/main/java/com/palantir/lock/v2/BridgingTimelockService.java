@@ -17,18 +17,21 @@
 package com.palantir.lock.v2;
 
 import java.util.Set;
+import java.util.UUID;
 
 import com.palantir.timestamp.TimestampRange;
 
 public final class BridgingTimelockService implements TimelockService {
     private final TimelockRpcClient delegate;
+    private final UUID clientId;
 
-    private BridgingTimelockService(TimelockRpcClient timelockRpcClient) {
+    private BridgingTimelockService(TimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
+        this.clientId = clientId;
     }
 
     public static TimelockService create(TimelockRpcClient timelockRpcClient) {
-        return new BridgingTimelockService(timelockRpcClient);
+        return new BridgingTimelockService(timelockRpcClient, UUID.randomUUID());
     }
 
     @Override
@@ -47,14 +50,11 @@ public final class BridgingTimelockService implements TimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return delegate.deprecatedStartAtlasDbTransaction(request);
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
-        return delegate.startAtlasDbTransaction(request).toStartTransactionResponse();
+            IdentifiedTimeLockRequest request) {
+        return delegate.startAtlasDbTransaction(
+                ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId))
+                .toStartTransactionResponse();
     }
 
     @Override

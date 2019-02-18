@@ -195,7 +195,7 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return rpcClient(defaultClient).startIdentifiedAtlasDbTransaction(request);
+        return rpcClient(defaultClient).startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     public TimestampService timestampService() {
