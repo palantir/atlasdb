@@ -24,7 +24,6 @@ import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -57,7 +56,7 @@ public class HeldLocksCollection {
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock).value();
+        Set<LockToken> unlocked = filter(tokens, HeldLocks::unlock);
         for (LockToken token : unlocked) {
             heldLocksById.remove(token.getRequestId());
         }
@@ -65,7 +64,8 @@ public class HeldLocksCollection {
     }
 
     public Leased<Set<LockToken>> refresh(Set<LockToken> tokens) {
-        return filter(tokens, HeldLocks::refresh);
+        Lease lease = leaseWithStart(leaderClock.time());
+        return Leased.of(filter(tokens, HeldLocks::refresh), lease);
     }
 
     public void removeExpired() {
@@ -88,8 +88,11 @@ public class HeldLocksCollection {
     }
 
     private Lease leaseWithStart(NanoTime startTime) {
-        return Lease.of(LeaderTime.of(leaderClock.id(), startTime),
-                LockLeaseContract.CLIENT_LEASE_TIMEOUT);
+        return leaseWithStart(LeaderTime.of(leaderClock.id(), startTime));
+    }
+
+    private Lease leaseWithStart(LeaderTime leaderTime) {
+        return Lease.of(leaderTime, LockLeaseContract.CLIENT_LEASE_TIMEOUT);
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
@@ -98,19 +101,16 @@ public class HeldLocksCollection {
                 || lockResult.test(HeldLocks::unlockIfExpired);
     }
 
-    private Leased<Set<LockToken>> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
+    private Set<LockToken> filter(Set<LockToken> tokens, Predicate<HeldLocks> predicate) {
         Set<LockToken> filtered = Sets.newHashSetWithExpectedSize(tokens.size());
-        NanoTime minStartTime = leaderClock.time().currentTime();
 
         for (LockToken token : tokens) {
             AsyncResult<HeldLocks> lockResult = heldLocksById.get(token.getRequestId());
             if (lockResult != null && lockResult.test(predicate)) {
                 filtered.add(token);
-                NanoTime lastRefreshTime = lockResult.get().lastRefreshTime();
-                minStartTime = Ordering.natural().min(minStartTime, lastRefreshTime);
             }
         }
 
-        return Leased.of(filtered, leaseWithStart(minStartTime));
+        return filtered;
     }
 }

@@ -24,13 +24,14 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
@@ -43,15 +44,10 @@ public class HeldLocksCollectionTest {
     private static final UUID REQUEST_ID = UUID.randomUUID();
     private static final UUID REQUEST_ID_2 = UUID.randomUUID();
 
-    private Clock clock = new Clock();
-    private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), clock);
+    private AtomicLong atomicLong = new AtomicLong(1);
+    private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, atomicLong::incrementAndGet);
+    private LeaderClock leaderClock = new LeaderClock(LeadershipId.random(), () -> time.get());
     private final HeldLocksCollection heldLocksCollection = new HeldLocksCollection(leaderClock);
-
-    @Before
-    public void setUp() {
-        clock.supplier = () -> NanoTime.createForTests(123);
-    }
-
 
     @Test
     public void callsSupplierForNewRequest() {
@@ -130,6 +126,7 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void lockLeasesAreValidUntilExpiry() {
+        setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
@@ -138,12 +135,13 @@ public class HeldLocksCollectionTest {
         Lease lease = asyncResult.get().lease();
         assertThat(lease.isValid(leaderClock.time())).isTrue();
 
-        setTimeStatic(clock.get().plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1))));
+        advance(LockLeaseContract.CLIENT_LEASE_TIMEOUT.minus(Duration.ofNanos(1)));
         assertThat(lease.isValid(leaderClock.time())).isTrue();
     }
 
     @Test
     public void lockLeasesAreInvalidAfterExpiry() {
+        setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
@@ -151,12 +149,13 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setTimeStatic(clock.get().plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
+        advance(LockLeaseContract.CLIENT_LEASE_TIMEOUT);
         assertThat(lease.isValid(leaderClock.time())).isFalse();
     }
 
     @Test
     public void lockLeasesShouldBeInvalidatedBeforeLocksAreReaped() {
+        setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
@@ -164,13 +163,14 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setTimeStatic(clock.get().plus(LockLeaseContract.CLIENT_LEASE_TIMEOUT));
+        advance(LockLeaseContract.CLIENT_LEASE_TIMEOUT);
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertLocked(REQUEST_ID);
     }
 
     @Test
     public void locksShouldBeReapedAndLeaseShouldBeInvalidatedAfterReapPeriod() {
+        setTime(123);
         AsyncResult<HeldLocks> result = new AsyncResult<>();
         AsyncResult<Leased<LockToken>> asyncResult =
                 heldLocksCollection.getExistingOrAcquire(REQUEST_ID, () -> result);
@@ -178,28 +178,13 @@ public class HeldLocksCollectionTest {
 
         Lease lease = asyncResult.get().lease();
 
-        setTimeStatic(clock.get().plus(LockLeaseContract.SERVER_LEASE_TIMEOUT).plus(Duration.ofNanos(1)));
+        advance(LockLeaseContract.SERVER_LEASE_TIMEOUT.plus(Duration.ofNanos(1)));
         assertThat(lease.isValid(leaderClock.time())).isFalse();
         assertUnlocked(REQUEST_ID);
     }
 
     @Test
-    public void refreshShouldReturnAllLockedTokens() {
-        setTimeDynamic(NanoTime::now);
-
-        LockToken t1 = lockSync(REQUEST_ID);
-        LockToken t2 = lockSync(REQUEST_ID_2);
-
-        Set<LockToken> tokens = ImmutableSet.of(t1, t2);
-
-        Set<LockToken> refreshResult = heldLocksCollection.refresh(tokens).value();
-        assertThat(refreshResult).containsExactlyInAnyOrder(t1, t2);
-    }
-
-    @Test
     public void leaseShouldStartBeforeRefreshTime() {
-        setTimeDynamic(NanoTime::now);
-
         LockToken t1 = lockSync(REQUEST_ID);
         LockToken t2 = lockSync(REQUEST_ID_2);
 
@@ -218,14 +203,12 @@ public class HeldLocksCollectionTest {
 
     @Test
     public void emptyRefreshResponse() {
-        setTimeDynamic(NanoTime::now);
-
         LockToken t1 = LockToken.of(UUID.randomUUID());
         LockToken t2 = LockToken.of(UUID.randomUUID());
         Leased<Set<LockToken>> refreshResult = heldLocksCollection.refresh(ImmutableSet.of(t1, t2));
 
         assertThat(refreshResult.value()).isEmpty();
-        assertThat(refreshResult.lease().leaderTime().currentTime()).isLessThan(NanoTime.now());
+        assertThat(refreshResult.lease().leaderTime().currentTime()).isLessThanOrEqualTo(time.get());
     }
 
     @Test
@@ -262,12 +245,13 @@ public class HeldLocksCollectionTest {
                 leaderClock);
     }
 
-    private void setTimeDynamic(Supplier<NanoTime> nanoTimeSupplier) {
-        clock.supplier = nanoTimeSupplier;
+    private void advance(Duration duration) {
+        NanoTime advanced = time.get().plus(duration);
+        time = () -> advanced;
     }
 
-    private void setTimeStatic(NanoTime nanoTime) {
-        clock.supplier = () -> nanoTime;
+    private void setTime(long nanos) {
+        time = () -> NanoTime.createForTests(nanos);
     }
 
     private LockToken mockExpiredRequest() {
@@ -320,7 +304,7 @@ public class HeldLocksCollectionTest {
         LockToken request = LockToken.of(UUID.randomUUID());
         HeldLocks heldLocks = mock(HeldLocks.class);
         mockApplier.accept(heldLocks);
-        when(heldLocks.lastRefreshTime()).thenReturn(clock.get());
+        when(heldLocks.lastRefreshTime()).thenReturn(time.get());
 
         AsyncResult<HeldLocks> completedResult = new AsyncResult<>();
         completedResult.complete(heldLocks);
@@ -328,14 +312,5 @@ public class HeldLocksCollectionTest {
                 () -> completedResult);
 
         return request;
-    }
-
-    private class Clock implements Supplier<NanoTime> {
-        private Supplier<NanoTime> supplier;
-
-        @Override
-        public NanoTime get() {
-            return supplier.get();
-        }
     }
 }
