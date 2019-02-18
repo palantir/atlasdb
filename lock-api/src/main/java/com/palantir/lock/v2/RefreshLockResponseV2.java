@@ -37,4 +37,3 @@ public interface RefreshLockResponseV2 {
         return ImmutableRefreshLockResponseV2.of(tokens, lease);
     }
 }
-

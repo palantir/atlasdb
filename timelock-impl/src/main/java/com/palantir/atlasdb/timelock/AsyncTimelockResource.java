@@ -87,7 +87,7 @@ public class AsyncTimelockResource {
     @Path("start-identified-atlasdb-transaction")
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request).getStartTransactionResponse();
+        return timelock.startIdentifiedAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     @POST

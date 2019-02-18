@@ -54,7 +54,7 @@ public final class BridgingTimelockService implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return delegate.startAtlasDbTransaction(request).getStartTransactionResponse();
+        return delegate.startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     @Override
