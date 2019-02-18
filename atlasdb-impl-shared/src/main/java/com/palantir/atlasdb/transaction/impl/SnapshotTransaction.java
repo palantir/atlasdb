@@ -127,7 +127,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.MoreStreams;
@@ -1803,17 +1802,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected Set<LockDescriptor> getLocksForWrites() {
         Set<LockDescriptor> result = Sets.newHashSet();
-        Iterable<TableReference> allTables = IterableUtils.append(
-                writesByTable.keySet(),
-                TransactionConstants.TRANSACTION_TABLE);
-        for (TableReference tableRef : allTables) {
-            if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-                result.add(
-                        AtlasRowLockDescriptor.of(
-                                TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                                TransactionConstants.getValueForTimestamp(getStartTimestamp())));
-                continue;
-            }
+        for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
@@ -1836,6 +1825,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         }
+        result.add(
+                AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         return result;
     }
 
