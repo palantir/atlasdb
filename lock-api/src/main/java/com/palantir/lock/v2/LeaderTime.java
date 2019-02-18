@@ -27,7 +27,7 @@ import com.palantir.common.time.NanoTime;
 @JsonDeserialize(as = ImmutableLeaderTime.class)
 public abstract class LeaderTime {
     @Value.Parameter
-    public abstract LeadershipId id();
+    abstract LeadershipId id();
 
     @Value.Parameter
     public abstract NanoTime currentTime();

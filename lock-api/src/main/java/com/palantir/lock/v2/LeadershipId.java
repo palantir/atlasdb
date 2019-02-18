@@ -38,8 +38,6 @@ public abstract class LeadershipId {
     }
 
     public static LeadershipId random() {
-        return ImmutableLeadershipId.builder()
-                .id(UUID.randomUUID())
-                .build();
+        return create(UUID.randomUUID());
     }
 }
