@@ -19,27 +19,27 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Stopwatch;
-import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.time.NanoTime;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockServiceEteTest {
@@ -56,19 +56,22 @@ public class AsyncLockServiceEteTest {
     private static final TimeLimit SHORT_TIMEOUT = TimeLimit.of(500L);
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
-    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final LeaderClock clock = LeaderClock.create();
+    private final DeterministicScheduler reaperExecutor = new DeterministicSchedulerWithShutdownFlag();
+    private final DeterministicScheduler lockAcquirerExecutor = new DeterministicSchedulerWithShutdownFlag();
+
+    private NanoTime currentTime = NanoTime.createForTests(0);
+    private final LeaderClock clock = new LeaderClock(LeadershipId.random(), () -> currentTime);
 
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
-                    Executors.newSingleThreadScheduledExecutor(),
+                    lockAcquirerExecutor,
                     clock),
             HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
-            executor,
+            reaperExecutor,
             clock);
 
     @Rule
@@ -300,7 +303,7 @@ public class AsyncLockServiceEteTest {
     public void reaperIsShutDownOnClose() {
         service.close();
 
-        assertThat(executor.isShutdown()).isTrue();
+        assertThat(reaperExecutor.isShutdown()).isTrue();
     }
 
     @Test
@@ -309,11 +312,11 @@ public class AsyncLockServiceEteTest {
     }
 
     private void waitForTimeout(TimeLimit timeout) {
-        Stopwatch timer = Stopwatch.createStarted();
-        long buffer = 250L;
-        while (timer.elapsed(TimeUnit.MILLISECONDS) < timeout.getTimeMillis() + buffer) {
-            Uninterruptibles.sleepUninterruptibly(buffer, TimeUnit.MILLISECONDS);
-        }
+        Duration waitPeriod = Duration.ofMillis(timeout.getTimeMillis());
+        currentTime = currentTime.plus(waitPeriod);
+
+        reaperExecutor.tick(waitPeriod.toMillis(), TimeUnit.MILLISECONDS);
+        lockAcquirerExecutor.tick(waitPeriod.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     private LockToken lockSynchronously(UUID requestId, String... locks) {
@@ -344,6 +347,20 @@ public class AsyncLockServiceEteTest {
         assertFalse(result.isComplete());
 
         result.map(token -> service.unlock(token.value()));
+    }
+
+    private static class DeterministicSchedulerWithShutdownFlag extends DeterministicScheduler {
+        private boolean hasShutdown = false;
+
+        @Override
+        public boolean isShutdown() {
+            return hasShutdown;
+        }
+
+        @Override
+        public void shutdown() {
+            hasShutdown = true;
+        }
     }
 
 }
