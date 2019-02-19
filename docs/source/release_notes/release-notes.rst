@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |improved|
-         - We now use jetty-alpn-agent 2.0.7
+         - We now use jetty-alpn-agent 2.0.9
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
 
     *    - |devbreak|
