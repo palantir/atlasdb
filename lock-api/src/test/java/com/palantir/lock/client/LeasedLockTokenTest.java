@@ -33,29 +33,50 @@ public class LeasedLockTokenTest {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LeadershipId LEADER_ID = LeadershipId.random();
 
+    private static final Duration LEASE_TIMEOUT = Duration.ofMillis(1234);
+
+    private NanoTime currentTime = NanoTime.createForTests(123);
+
     @Test
     public void shouldCreateValidTokensUntilExpiry() {
-        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofSeconds(1)));
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        assertThat(token.isValid(getIdentifiedTime())).isTrue();
+
+        advance(LEASE_TIMEOUT.minus(Duration.ofNanos(1)));
         assertThat(token.isValid(getIdentifiedTime())).isTrue();
     }
 
     @Test
-    public void shouldBeInvalidAfterExpiry() throws Exception {
-        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofMillis(10)));
-        Thread.sleep(15);
+    public void shouldBeInvalidAfterExpiry() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        advance(LEASE_TIMEOUT);
         assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
     @Test
     public void shouldBeInvalidAfterInvalidation() {
-        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofSeconds(1)));
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
         token.invalidate();
         assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
-    private LeaderTime getIdentifiedTime() {
-        return LeaderTime.of(LEADER_ID, NanoTime.now());
+    @Test
+    public void shouldBeInvalidAfterInvalidationAndExpiry() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        advance(LEASE_TIMEOUT);
+        token.invalidate();
+        assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
-}
+    private void advance(Duration duration) {
+        currentTime = currentTime.plus(duration);
+    }
 
+    private Lease getLease() {
+        return Lease.of(getIdentifiedTime(), LEASE_TIMEOUT);
+    }
+
+    private LeaderTime getIdentifiedTime() {
+        return LeaderTime.of(LEADER_ID, currentTime);
+    }
+}
