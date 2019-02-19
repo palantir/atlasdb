@@ -72,15 +72,6 @@ public class LeasingTimelockClientTest {
     }
 
     @Test
-    public void delegatesLockRequest() {
-        when(timelockRpcClient.lock(lockRequest)).thenReturn(
-                LockResponseV2.successful(LOCK_TOKEN, getLease()));
-
-        timelockService.lock(lockRequest);
-
-    }
-
-    @Test
     public void lockResponeHasCorrectLeasedLock() {
         Lease lease = getLease();
         when(timelockRpcClient.lock(lockRequest)).thenReturn(
