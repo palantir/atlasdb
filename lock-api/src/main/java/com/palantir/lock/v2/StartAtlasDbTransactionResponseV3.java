@@ -36,7 +36,7 @@ public abstract class StartAtlasDbTransactionResponseV3 {
     public abstract Lease getLease();
 
     @JsonIgnore
-    public StartIdentifiedAtlasDbTransactionResponse getStartTransactionResponse() {
+    public StartIdentifiedAtlasDbTransactionResponse toStartTransactionResponse() {
         return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
                 immutableTimestamp(),
                 startTimestampAndPartition());
@@ -53,4 +53,3 @@ public abstract class StartAtlasDbTransactionResponseV3 {
                 .build();
     }
 }
-

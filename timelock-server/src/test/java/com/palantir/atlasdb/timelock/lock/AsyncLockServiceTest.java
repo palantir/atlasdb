@@ -40,7 +40,6 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.LockLeaseConstants;
 
 public class AsyncLockServiceTest {
 
@@ -50,18 +49,19 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
-    public static final long REAPER_PERIOD_MS = LockLeaseConstants.SERVER_LEASE_TIMEOUT.toMillis() / 2;
+    public static final long REAPER_PERIOD_MS = LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2;
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 
+    private final LeaderClock leaderClock = LeaderClock.create();
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
-    private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
+    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
-            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor);
+            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor, leaderClock);
 
     @Before
     public void before() {

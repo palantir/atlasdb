@@ -50,6 +50,15 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
+
+    *    - |devbreak|
+         - `startIdentifiedAtlasDbTransaction` now accepts `IdentifiedTimeLockRequest` as a parameter rather than `StartIdentifiedAtlasDbTransactionRequest`. Moving the requestorId
+           information to TimelockClient from the caller.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
+
     *    - |devbreak| |improved|
          - The `TableMetadata` class has been refactored to use Immutables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
@@ -91,6 +100,15 @@ develop
     *    - |improved|
          - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
+
+    *    - |fixed|
+         - ``FailoverFeignTarget`` now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
+           Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3752>`__)
+
+    *    - |fixed|
+         - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
 
 ========
 v0.116.1

@@ -14,20 +14,28 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.lock;
 
-import org.immutables.value.Value;
+import com.palantir.lock.v2.Lease;
 
-@Value.Immutable
-public abstract class LeasableLockToken {
+public class Leased<T> {
+    private final T value;
+    private final Lease lease;
 
-    @Value.Parameter
-    public abstract LockToken token();
+    private Leased (T value, Lease lease) {
+        this.value = value;
+        this.lease = lease;
+    }
 
-    @Value.Parameter
-    public abstract Lease lease();
+    public static <T> Leased<T> of(T value, Lease lease) {
+        return new Leased<>(value, lease);
+    }
 
-    public static LeasableLockToken of(LockToken token, Lease lease) {
-        return ImmutableLeasableLockToken.of(token, lease);
+    public T value() {
+        return value;
+    }
+
+    public Lease lease() {
+        return lease;
     }
 }

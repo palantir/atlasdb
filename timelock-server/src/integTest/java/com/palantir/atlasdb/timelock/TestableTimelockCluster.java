@@ -19,7 +19,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +36,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.LeasingTimelockClient;
-import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -197,8 +195,7 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockService(defaultClient, request.requestorId())
-                .startIdentifiedAtlasDbTransaction(ImmutableIdentifiedTimeLockRequest.of(request.requestId()));
+        return rpcClient(defaultClient).startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     public TimestampService timestampService() {
@@ -213,10 +210,6 @@ public class TestableTimelockCluster {
         return timelockServiceForClient(defaultClient);
     }
 
-    public TimelockService timelockService(String client, UUID serviceId) {
-        return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class), serviceId);
-    }
-
     public TimelockService timelockServiceForClient(String client) {
         return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
@@ -226,6 +219,10 @@ public class TestableTimelockCluster {
     }
 
     public TimelockRpcClient timelockRpcClient(String client) {
+        return proxies.failoverForClient(client, TimelockRpcClient.class);
+    }
+
+    private TimelockRpcClient rpcClient(String client) {
         return proxies.failoverForClient(client, TimelockRpcClient.class);
     }
 

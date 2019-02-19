@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -58,10 +59,12 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -256,6 +259,81 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] rowBytes = PtBytes.toBytes("row1");
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(rowBytes).endRowExclusive(rowBytes).build(), 1));
         assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testRowsColumnRange_allResultsPostFiltered() {
+        putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                1);
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_postFilteredFirstPage() {
+        putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col1", "v1a", 6);
+        putDirect("row1", "col2", "v2", 5);
+        putDirect("row1", "col3", "v3", 0);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                1);
+        assertThat(PtBytes.toBytes("v3")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_forwardProgressAfterValidResult() {
+        putDirect("row1", "col1", "v1a", 1);
+        putDirect("row1", "col1", "v1b", 2);
+        putDirect("row1", "col1", "v1c", 3);
+        putDirect("row1", "col1", "v1d", 4);
+        putDirect("row1", "col1", "v1e", 5);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                6);
+        assertThat(PtBytes.toBytes("v1e")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_abortsCorrectlyHalfway() {
+        putDirect("row1", "col1", "v1a", 3);
+        putDirect("row1", "col1", "v1b", 4);
+        putDirect("row1", "col1", "v1c", 5);
+        putDirect("row1", "col1", "v1d", 7);
+        putDirect("row1", "col1", "v1e", 8);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                6);
+        assertThat(PtBytes.toBytes("v1c")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     @Test

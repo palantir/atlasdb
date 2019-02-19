@@ -32,14 +32,14 @@ public abstract class Lease {
     public abstract LeaderTime leaderTime();
 
     @Value.Parameter
-    public abstract Duration validity();
+    abstract Duration validity();
 
     public boolean isValid(LeaderTime currentLeaderTime) {
         return leaderTime().isComparableWith(currentLeaderTime)
                 && currentLeaderTime.currentTime().isBefore(expiry());
     }
 
-    public NanoTime expiry() {
+    private NanoTime expiry() {
         return leaderTime().currentTime().plus(validity());
     }
 

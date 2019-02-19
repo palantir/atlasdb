@@ -41,16 +41,18 @@ public interface LockResponseV2 {
         LockToken getToken();
         Lease getLease();
 
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
     }
 
-    @Value.Immutable
+    @Value.Immutable(singleton = true)
     @JsonSerialize(as = ImmutableUnsuccessful.class)
     @JsonDeserialize(as = ImmutableUnsuccessful.class)
     @JsonTypeName("failure")
     interface Unsuccessful extends LockResponseV2 {
+        @Override
         default <T> T accept(Visitor<T> visitor) {
             return visitor.visit(this);
         }
@@ -83,6 +85,6 @@ public interface LockResponseV2 {
     }
 
     static LockResponseV2 timedOut() {
-        return ImmutableUnsuccessful.builder().build();
+        return ImmutableUnsuccessful.of();
     }
 }

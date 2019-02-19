@@ -32,6 +32,12 @@ public class LeaseTest {
     private static final LeaderTime leaderTime = LeaderTime.of(LEADERSHIP_ID_1, NanoTime.createForTests(10));
     private static final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
+    private static final String SERIALIZED_LEASE = "{"
+            + "\"leaderTime\":{"
+                + "\"id\":\"190d1ed6-824b-465a-b3dc-7401b23ace68\","
+                + "\"currentTime\":10},"
+            + "\"validity\":1.000000000}";
+
     @Test
     public void shouldBeValidAfterCreation() {
         Lease lease = Lease.of(LeaderTime.of(LEADERSHIP_ID_1, time(10)),
@@ -68,11 +74,10 @@ public class LeaseTest {
 
     @Test
     public void canBeSerializedAndDeserialize() throws Exception {
-        Lease lease = Lease.of(leaderTime, Duration.ZERO);
-        String serialized = objectMapper.writeValueAsString(lease);
-        Lease deserialized = objectMapper.readValue(serialized, Lease.class);
+        Lease deserialized = objectMapper.readValue(SERIALIZED_LEASE, Lease.class);
+        String serialized = objectMapper.writeValueAsString(deserialized);
 
-        assertThat(deserialized).isEqualTo(lease);
+        assertThat(serialized).isEqualTo(SERIALIZED_LEASE);
     }
 
     private NanoTime time(long nanos) {

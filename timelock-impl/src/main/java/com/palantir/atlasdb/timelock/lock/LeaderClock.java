@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,35 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.lock;
 
 import java.util.function.Supplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
 
-public class LeaseExpirationTimer {
-
-    private volatile NanoTime lastRefreshTime;
+public class LeaderClock {
+    private final LeadershipId leadershipId;
     private final Supplier<NanoTime> clock;
 
-    public LeaseExpirationTimer(Supplier<NanoTime> clock) {
+    @VisibleForTesting
+    LeaderClock(LeadershipId leadershipId, Supplier<NanoTime> clock) {
+        this.leadershipId = leadershipId;
         this.clock = clock;
-        this.lastRefreshTime = clock.get();
     }
 
-    public void refresh() {
-        lastRefreshTime = clock.get();
+    public static LeaderClock create() {
+        return new LeaderClock(LeadershipId.random(), NanoTime::now);
     }
 
-    public boolean isExpired() {
-        return expiry().isBefore(clock.get());
+    public LeaderTime time() {
+        return LeaderTime.of(leadershipId, clock.get());
     }
 
-    public NanoTime lastRefreshTime() {
-        return lastRefreshTime;
-    }
-
-    private NanoTime expiry() {
-        return lastRefreshTime.plus(LockLeaseContract.SERVER_LEASE_TIMEOUT);
+    public LeadershipId id() {
+        return leadershipId;
     }
 }

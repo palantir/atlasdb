@@ -25,7 +25,10 @@ import java.util.function.Supplier;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.palantir.common.time.NanoTime;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 
 public class HeldLocksCollection {
@@ -33,11 +36,23 @@ public class HeldLocksCollection {
     @VisibleForTesting
     final ConcurrentMap<UUID, AsyncResult<HeldLocks>> heldLocksById = Maps.newConcurrentMap();
 
-    public AsyncResult<HeldLocks> getExistingOrAcquire(
+    private final LeaderClock leaderClock;
+
+    @VisibleForTesting
+    HeldLocksCollection(LeaderClock leaderClock) {
+        this.leaderClock = leaderClock;
+    }
+
+    public static HeldLocksCollection create(LeaderClock leaderClock) {
+        return new HeldLocksCollection(leaderClock);
+    }
+
+    public AsyncResult<Leased<LockToken>> getExistingOrAcquire(
             UUID requestId,
             Supplier<AsyncResult<HeldLocks>> lockAcquirer) {
         return heldLocksById.computeIfAbsent(
-                requestId, ignored -> lockAcquirer.get());
+                requestId, ignored -> lockAcquirer.get())
+                .map(this::createLeasableLockToken);
     }
 
     public Set<LockToken> unlock(Set<LockToken> tokens) {
@@ -48,8 +63,9 @@ public class HeldLocksCollection {
         return unlocked;
     }
 
-    public Set<LockToken> refresh(Set<LockToken> tokens) {
-        return filter(tokens, HeldLocks::refresh);
+    public Leased<Set<LockToken>> refresh(Set<LockToken> tokens) {
+        Lease lease = leaseWithStart(leaderClock.time());
+        return Leased.of(filter(tokens, HeldLocks::refresh), lease);
     }
 
     public void removeExpired() {
@@ -65,6 +81,18 @@ public class HeldLocksCollection {
     public void failAllOutstandingRequestsWithNotCurrentLeaderException() {
         NotCurrentLeaderException ex = new NotCurrentLeaderException("This lock service has been closed");
         heldLocksById.values().forEach(result -> result.failIfNotCompleted(ex));
+    }
+
+    private Leased<LockToken> createLeasableLockToken(HeldLocks heldLocks) {
+        return Leased.of(heldLocks.getToken(), leaseWithStart(heldLocks.lastRefreshTime()));
+    }
+
+    private Lease leaseWithStart(NanoTime startTime) {
+        return leaseWithStart(LeaderTime.of(leaderClock.id(), startTime));
+    }
+
+    private Lease leaseWithStart(LeaderTime leaderTime) {
+        return Lease.of(leaderTime, LockLeaseContract.CLIENT_LEASE_TIMEOUT);
     }
 
     private boolean shouldRemove(AsyncResult<HeldLocks> lockResult) {
@@ -85,5 +113,4 @@ public class HeldLocksCollection {
 
         return filtered;
     }
-
 }
