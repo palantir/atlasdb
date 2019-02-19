@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import com.palantir.lock.v2.LockToken;
 public class LeasedLockTokenTest {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LeadershipId LEADER_ID = LeadershipId.random();
+    private static final LeadershipId OTHER_LEADER_ID = LeadershipId.random();
 
     private static final Duration LEASE_TIMEOUT = Duration.ofMillis(1234);
 
@@ -68,6 +70,60 @@ public class LeasedLockTokenTest {
         assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 
+    @Test
+    public void refreshShouldExtendValidity() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        advance(LEASE_TIMEOUT.minus(Duration.ofNanos(1)));
+
+        assertValid(token);
+
+        token.updateLease(getLease());
+        advance(LEASE_TIMEOUT.minus(Duration.ofNanos(1)));
+
+        assertValid(token);
+    }
+
+    @Test
+    public void refreshShouldExtendValidityOfExpiredToken() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        advance(LEASE_TIMEOUT);
+
+        assertInvalid(token);
+
+        token.updateLease(getLease());
+        assertExpiresExactlyAfter(token, LEASE_TIMEOUT);
+    }
+
+    @Test
+    public void ignoreRefreshIfNewLeaseHasShorterLife() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        assertExpiresExactlyAfter(token, LEASE_TIMEOUT);
+
+        token.updateLease(Lease.of(getIdentifiedTime(), LEASE_TIMEOUT.minus(Duration.ofNanos(123))));
+        assertExpiresExactlyAfter(token, LEASE_TIMEOUT);
+    }
+
+    @Test
+    public void ignoreRefreshIfNewLeaseGoesBackInTime() {
+        Lease oldLease = getLease();
+        advance(Duration.ofNanos(123));
+
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        assertExpiresExactlyAfter(token, LEASE_TIMEOUT);
+
+        token.updateLease(oldLease);
+        assertExpiresExactlyAfter(token, LEASE_TIMEOUT);
+    }
+
+    @Test
+    public void throwIfRefreshedWithDifferentLeaderId() {
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+
+        Lease otherLease = Lease.of(LeaderTime.of(OTHER_LEADER_ID, currentTime), LEASE_TIMEOUT);
+        assertThatThrownBy(() -> token.updateLease(otherLease))
+                .hasMessageStartingWith("Lock leases can only be refreshed by lease owners.");
+    }
+
     private void advance(Duration duration) {
         currentTime = currentTime.plus(duration);
     }
@@ -78,5 +134,20 @@ public class LeasedLockTokenTest {
 
     private LeaderTime getIdentifiedTime() {
         return LeaderTime.of(LEADER_ID, currentTime);
+    }
+
+    private void assertExpiresExactlyAfter(LeasedLockToken token, Duration duration) {
+        LeadershipId tokenLeaderId = token.getLease().leaderTime().id();
+        assertThat(token.isValid(LeaderTime.of(tokenLeaderId, currentTime.plus(duration.minus(Duration.ofNanos(1))))))
+                .isTrue();
+        assertThat(token.isValid(LeaderTime.of(tokenLeaderId, currentTime.plus(duration)))).isFalse();
+    }
+
+    private void assertValid(LeasedLockToken token) {
+        assertThat(token.isValid(getIdentifiedTime())).isTrue();
+    }
+
+    private void assertInvalid(LeasedLockToken token) {
+        assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 }
