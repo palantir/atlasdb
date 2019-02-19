@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
@@ -46,17 +47,14 @@ public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
 
-    private LeasingTimelockClient(TimelockRpcClient timelockRpcClient, UUID clientId) {
+    @VisibleForTesting
+    LeasingTimelockClient(TimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
         this.clientId = clientId;
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
-        return create(timelockRpcClient, UUID.randomUUID());
-    }
-
-    public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient, UUID clientId) {
-        return new LeasingTimelockClient(timelockRpcClient, clientId);
+        return new LeasingTimelockClient(timelockRpcClient, UUID.randomUUID());
     }
 
     @Override

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +57,7 @@ public class LeasingTimelockClientTest {
     @Mock private LockRequest lockRequest;
     @Mock private TimestampAndPartition timestampAndPartition;
 
-    private TimelockService timelockService;
+    private static final Duration LEASE_DURATION = Duration.ofSeconds(1);
     private static final LeadershipId LEADER_ID = LeadershipId.random();
     private static final UUID SERVICE_ID = UUID.randomUUID();
     private StartIdentifiedAtlasDbTransactionRequest startTxnRequest =
@@ -65,10 +66,13 @@ public class LeasingTimelockClientTest {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
 
+    private TimelockService timelockService;
+    private Supplier<NanoTime> time = NanoTime::now;
+
     @Before
     public void before() {
-        when(timelockRpcClient.getLeaderTime()).thenReturn(LeaderTime.of(LeadershipId.random(), NanoTime.now()));
-        timelockService = LeasingTimelockClient.create(timelockRpcClient, SERVICE_ID);
+        when(timelockRpcClient.getLeaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));
+        timelockService = new LeasingTimelockClient(timelockRpcClient, SERVICE_ID);
     }
 
     @Test
@@ -141,10 +145,12 @@ public class LeasingTimelockClientTest {
 
     @Test
     public void unlockShouldCallRemoteServer_inValidLeases() {
-        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease(Duration.ZERO));
+        setTime(123);
+        LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
+        advance(LEASE_DURATION);
         assertInvalid(token);
-        timelockService.unlock(ImmutableSet.of(token));
 
+        timelockService.unlock(ImmutableSet.of(token));
         verify(timelockRpcClient).unlock(ImmutableSet.of(token.serverToken()));
     }
 
@@ -152,7 +158,6 @@ public class LeasingTimelockClientTest {
     public void unlockShouldInvalidateLease() {
         LockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
         timelockService.unlock(ImmutableSet.of(token));
-
         assertInvalid(token);
     }
 
@@ -192,6 +197,15 @@ public class LeasingTimelockClientTest {
                 lease);
     }
 
+    private void setTime(long nanos) {
+        time = () -> NanoTime.createForTests(nanos);
+    }
+
+    private void advance(Duration duration) {
+        NanoTime advanced = time.get().plus(duration);
+        time = () -> advanced;
+    }
+
     private void assertValid(LockToken token) {
         LeasedLockToken leasedLockToken = (LeasedLockToken) token;
         assertThat(leasedLockToken.isValid(getIdentifiedTime())).isTrue();
@@ -207,11 +221,11 @@ public class LeasingTimelockClientTest {
     }
 
     private Lease getLease() {
-        return Lease.of(getIdentifiedTime(), Duration.ofSeconds(1L));
+        return Lease.of(getIdentifiedTime(), LEASE_DURATION);
     }
 
     private LeaderTime getIdentifiedTime() {
-        return LeaderTime.of(LEADER_ID, NanoTime.now());
+        return LeaderTime.of(LEADER_ID, time.get());
     }
 }
 
