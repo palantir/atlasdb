@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - We now use jetty-alpn-agent 2.0.7
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
+
     *    - |devbreak|
          - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
