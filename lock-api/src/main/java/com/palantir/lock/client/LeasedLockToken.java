@@ -20,10 +20,11 @@ import java.util.UUID;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 
 final class LeasedLockToken implements LockToken {
     private final LockToken serverToken;
@@ -55,7 +56,9 @@ final class LeasedLockToken implements LockToken {
 
     synchronized void updateLease(Lease newLease) {
         Preconditions.checkArgument(lease.leaderTime().isComparableWith(newLease.leaderTime()),
-                "Lock leases can only be refreshed by lease owners");
+                "Lock leases can only be refreshed by lease owners. Current leader id: {}, new leader id: {}",
+                SafeArg.of("currentLeaderId", lease.leaderTime().id()),
+                SafeArg.of("newLeaderId", newLease.leaderTime().id()));
 
         if (this.lease.expiry().isBefore(newLease.expiry())) {
             this.lease = newLease;

@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
@@ -41,6 +40,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.logsafe.Preconditions;
 
 public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
