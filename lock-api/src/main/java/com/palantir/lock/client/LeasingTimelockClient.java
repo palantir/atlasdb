@@ -39,8 +39,8 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
-import com.palantir.timestamp.TimestampRange;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.timestamp.TimestampRange;
 
 public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
@@ -136,7 +136,10 @@ public final class LeasingTimelockClient implements TimelockService {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
-        return delegate.unlock(serverTokens(leasedLockTokens));
+        Set<LockToken> unlocked = delegate.unlock(serverTokens(leasedLockTokens));
+        return leasedLockTokens.stream()
+                .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
+                .collect(Collectors.toSet());
     }
 
     @Override
