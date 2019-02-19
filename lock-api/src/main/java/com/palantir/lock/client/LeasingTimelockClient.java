@@ -83,12 +83,11 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             IdentifiedTimeLockRequest request) {
-        StartAtlasDbTransactionResponseV3 leasableResponse =
+        StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(
                         ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
-        StartIdentifiedAtlasDbTransactionResponse response = leasableResponse.toStartTransactionResponse();
-        Lease lease = leasableResponse.getLease();
+        Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
