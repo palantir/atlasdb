@@ -19,6 +19,7 @@ package com.palantir.lock.v2;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -54,11 +55,16 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("start-atlasdb-transaction")
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
+    StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request);
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction-v3")
+    StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     @POST
@@ -67,7 +73,11 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("lock")
-    LockResponse lock(LockRequest request);
+    LockResponse deprecatedLock(LockRequest request);
+
+    @POST
+    @Path("lock-v2")
+    LockResponseV2 lock(LockRequest request);
 
     @POST
     @Path("await-locks")
@@ -75,7 +85,15 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("refresh-locks")
-    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
+    Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens);
+
+    @POST
+    @Path("refresh-locks-v2")
+    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
+
+    @GET
+    @Path("leader-time")
+    LeaderTime getLeaderTime();
 
     @POST
     @Path("unlock")

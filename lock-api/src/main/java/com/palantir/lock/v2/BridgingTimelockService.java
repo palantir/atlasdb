@@ -21,17 +21,17 @@ import java.util.UUID;
 
 import com.palantir.timestamp.TimestampRange;
 
-public final class DefaultTimelockService implements TimelockService {
+public final class BridgingTimelockService implements TimelockService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
 
-    private DefaultTimelockService(TimelockRpcClient timelockRpcClient, UUID clientId) {
+    private BridgingTimelockService(TimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
         this.clientId = clientId;
     }
 
     public static TimelockService create(TimelockRpcClient timelockRpcClient) {
-        return new DefaultTimelockService(timelockRpcClient, UUID.randomUUID());
+        return new BridgingTimelockService(timelockRpcClient, UUID.randomUUID());
     }
 
     @Override
@@ -52,8 +52,9 @@ public final class DefaultTimelockService implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             IdentifiedTimeLockRequest request) {
-        return delegate.deprecatedStartIdentifiedAtlasDbTransaction(
-                ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
+        return delegate.startAtlasDbTransaction(
+                ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId))
+                .toStartTransactionResponse();
     }
 
     @Override
@@ -63,7 +64,9 @@ public final class DefaultTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return delegate.deprecatedLock(request);
+        return delegate.lock(request).accept(LockResponseV2.Visitor.of(
+                successful -> LockResponse.successful(successful.getToken()),
+                unsuccessful -> LockResponse.timedOut()));
     }
 
     @Override
@@ -73,7 +76,7 @@ public final class DefaultTimelockService implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return delegate.deprecatedRefreshLockLeases(tokens);
+        return delegate.refreshLockLeases(tokens).refreshedTokens();
     }
 
     @Override

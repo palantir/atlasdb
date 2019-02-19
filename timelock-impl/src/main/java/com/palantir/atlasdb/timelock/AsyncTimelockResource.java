@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -27,8 +28,13 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LockResponseV2;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -73,17 +79,24 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+    public StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request) {
         return timelock.startAtlasDbTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    public StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return timelock.startIdentifiedAtlasDbTransaction(request).toStartTransactionResponse();
+    }
+
+    @POST
+    @Path("start-atlasdb-transaction-v3")
+    public StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelock.startIdentifiedAtlasDbTransaction(request);
     }
-
+    
     @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
@@ -92,8 +105,8 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LockToken> result = timelock.lock(request);
+    public void deprecatedLock(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -101,7 +114,23 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LockResponse.timedOut());
             } else {
-                response.resume(LockResponse.successful(result.get()));
+                response.resume(LockResponse.successful(result.get().value()));
+            }
+        });
+    }
+    
+    @POST
+    @Path("lock-v2")
+    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
+        lockLog.registerRequest(request, result);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(LockResponseV2.timedOut());
+            } else {
+                response.resume(LockResponseV2.successful(result.get().value(), result.get().lease()));
             }
         });
     }
@@ -124,8 +153,20 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks")
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens) {
+        return timelock.refreshLockLeases(tokens).refreshedTokens();
+    }
+
+    @POST
+    @Path("refresh-locks-v2")
+    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
+    }
+
+    @GET
+    @Path("leader-time")
+    public LeaderTime getLeaderTime() {
+        return timelock.leaderTime();
     }
 
     @POST
