@@ -49,7 +49,7 @@ public class LeasedLockTokenTest {
     @Test
     public void shouldBeInvalidAfterInvalidation() {
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, Lease.of(getIdentifiedTime(), Duration.ofSeconds(1)));
-        token.inValidate();
+        token.invalidate();
         assertThat(token.isValid(getIdentifiedTime())).isFalse();
     }
 

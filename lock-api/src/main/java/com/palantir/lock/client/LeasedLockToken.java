@@ -33,12 +33,10 @@ final class LeasedLockToken implements LockToken {
     private Lease lease;
 
     @GuardedBy("this")
-    private boolean inValidated = false;
+    private boolean invalidated = false;
 
     static LeasedLockToken of(LockToken serverToken, Lease lease) {
-        return new LeasedLockToken(serverToken,
-                UUID.randomUUID(),
-                lease);
+        return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
     }
 
     private LeasedLockToken(LockToken serverToken, UUID requestId, Lease lease) {
@@ -65,11 +63,11 @@ final class LeasedLockToken implements LockToken {
     }
 
     synchronized boolean isValid(LeaderTime currentLeaderTime) {
-        return !inValidated && lease.isValid(currentLeaderTime);
+        return !invalidated && lease.isValid(currentLeaderTime);
     }
 
-    synchronized void inValidate() {
-        inValidated = true;
+    synchronized void invalidate() {
+        invalidated = true;
     }
 
     @Override

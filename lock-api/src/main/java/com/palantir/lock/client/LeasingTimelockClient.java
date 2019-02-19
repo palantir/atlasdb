@@ -52,7 +52,7 @@ public final class LeasingTimelockClient implements TimelockService {
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
-        return new LeasingTimelockClient(timelockRpcClient, UUID.randomUUID());
+        return create(timelockRpcClient, UUID.randomUUID());
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient, UUID clientId) {
@@ -71,13 +71,13 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        StartAtlasDbTransactionResponseV3 leasableResponse =
+        StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(
                         ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
 
         return ImmutableLockImmutableTimestampResponse.of(
-                leasableResponse.immutableTimestamp().getImmutableTimestamp(),
-                LeasedLockToken.of(leasableResponse.immutableTimestamp().getLock(), leasableResponse.getLease()));
+                response.immutableTimestamp().getImmutableTimestamp(),
+                LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
-        leasedLockTokens.forEach(LeasedLockToken::inValidate);
+        leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
         return delegate.unlock(serverTokens(leasedLockTokens));
     }
@@ -162,6 +162,7 @@ public final class LeasingTimelockClient implements TimelockService {
         return refreshedTokens;
     }
 
+    @SuppressWarnings("unchecked")
     private static Set<LeasedLockToken> leasedTokens(Set<LockToken> tokens) {
         Preconditions.checkArgument(tokens.stream()
                         .allMatch(token -> token instanceof LeasedLockToken),
@@ -174,5 +175,4 @@ public final class LeasingTimelockClient implements TimelockService {
                 .map(LeasedLockToken::serverToken)
                 .collect(Collectors.toSet());
     }
-
 }
