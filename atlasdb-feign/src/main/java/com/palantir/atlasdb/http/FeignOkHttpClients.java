@@ -27,7 +27,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.palantir.remoting3.config.ssl.TrustContext;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
