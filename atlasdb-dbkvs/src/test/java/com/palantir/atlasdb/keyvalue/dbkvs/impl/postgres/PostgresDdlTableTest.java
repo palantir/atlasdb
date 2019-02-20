@@ -39,10 +39,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticResultSetImpl;
 import com.palantir.nexus.db.sql.SqlConnection;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 public class PostgresDdlTableTest {
     private PostgresDdlTable postgresDdlTable;
