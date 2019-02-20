@@ -24,15 +24,10 @@ import org.junit.rules.ExternalResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.conjure.java.http2.Http2Agent;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
 public class TimeLockServerHolder extends ExternalResource {
-
-    static {
-        Http2Agent.install();
-    }
 
     private Supplier<String> configFilePathSupplier;
     private DropwizardTestSupport<TimeLockServerConfiguration> timelockServer;
