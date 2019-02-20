@@ -16,7 +16,6 @@ dependencies {
   compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
-    exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }
