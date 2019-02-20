@@ -39,7 +39,7 @@ public final class TestJaxRsClientFactory {
             String... uris) {
         return JaxRsClient.create(
                 serviceClass,
-                UserAgents.parse(testClass.getName() + " (unknown)"),
+                UserAgents.parse(testClass.getName() + "/testing"),
                 NoOpHostEventsSink.INSTANCE,
                 createTestConfig(uris));
     }
