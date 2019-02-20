@@ -32,6 +32,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     static {
         Http2Agent.install();
+        OldHttp2Agent.install();
     }
 
     private Supplier<String> configFilePathSupplier;

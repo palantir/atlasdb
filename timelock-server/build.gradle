@@ -31,6 +31,8 @@ dependencies {
         exclude(module:'jcl-over-slf4j')
     }
     runtime project(":atlasdb-dbkvs")
+    compile group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
+    compile 'com.ea.agentloader:ea-agent-loader'
     // TODO:   runtime "org.postgresql:postgresql:${postgresJdbcDriverVersion}"
     // TODO:   add runtime depencency on the dbkvs-oracle-driver internally
 
