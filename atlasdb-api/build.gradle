@@ -13,10 +13,8 @@ dependencies {
   compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'javax.validation', name: 'validation-api'
 
-  compile group: 'com.palantir.remoting-api', name: 'ssl-config'
-  compile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
-    exclude (module:'jsr305')
-  }
+  compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
     exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')

@@ -1,3 +1,7 @@
+// remoting -> conojure
+com.netflix.concurrency-limits:concurrency-limits-core = 0.1.9
+com.palantir.tokens:auth-tokens = 3.3.0
+
 ch.qos.logback:* = 1.1.7
 com.fasterxml.jackson.*:* = 2.9.7
 com.fasterxml.jackson.datatype:jackson-datatype-jdk7 = 2.6.7
@@ -17,6 +21,8 @@ com.lmax:disruptor = 3.4.2
 com.netflix.feign:* = 8.18.0
 com.palantir.common:streams = 1.9.1
 com.palantir.config.crypto:encrypted-config-value-module = 2.0.1
+com.palantir.conjure.java.api:* = 2.2.0
+com.palantir.conjure.java.runtime:* = 4.14.0
 com.palantir.docker.compose:docker-compose-rule* = 0.34.0
 com.palantir.docker.proxy:docker-proxy-rule = 0.3.0
 com.palantir.remoting-api:* = 1.7.0
