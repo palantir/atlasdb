@@ -19,6 +19,7 @@ package com.palantir.lock.v2;
 import java.util.Set;
 import java.util.UUID;
 
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.timestamp.TimestampRange;
 
 public final class DefaultTimelockService implements TimelockService {
@@ -63,7 +64,7 @@ public final class DefaultTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return delegate.deprecatedLock(request);
+        return delegate.deprecatedLock(IdentifiedLockRequest.from(request));
     }
 
     @Override

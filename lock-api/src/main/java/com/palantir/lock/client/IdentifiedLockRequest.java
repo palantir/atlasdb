@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.lock.v2;
+package com.palantir.lock.client;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LockRequest;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableLockRequest.class)
-@JsonDeserialize(as = ImmutableLockRequest.class)
-public interface LockRequest {
+@JsonSerialize(as = ImmutableIdentifiedLockRequest.class)
+@JsonDeserialize(as = ImmutableIdentifiedLockRequest.class)
+public interface IdentifiedLockRequest {
+
+    @Value.Parameter
+    UUID getRequestId();
 
     @Value.Parameter
     Set<LockDescriptor> getLockDescriptors();
@@ -38,18 +43,30 @@ public interface LockRequest {
     @Value.Parameter
     Optional<String> getClientDescription();
 
-    static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
-        return ImmutableLockRequest.of(
+    static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
+        return ImmutableIdentifiedLockRequest.of(
+                UUID.randomUUID(),
                 lockDescriptors,
                 acquireTimeoutMs,
                 Optional.of("Thread: " + Thread.currentThread().getName()));
     }
 
-    static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
-        return ImmutableLockRequest.of(
+    static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
+        return ImmutableIdentifiedLockRequest.of(
+                UUID.randomUUID(),
                 lockDescriptors,
                 acquireTimeoutMs,
                 Optional.of(clientDescription));
+    }
+
+    static IdentifiedLockRequest from(LockRequest lockRequest) {
+        if (lockRequest.getClientDescription().isPresent()) {
+            return of(
+                    lockRequest.getLockDescriptors(),
+                    lockRequest.getAcquireTimeoutMs(),
+                    lockRequest.getClientDescription().get());
+        }
+        return of(lockRequest.getLockDescriptors(), lockRequest.getAcquireTimeoutMs());
     }
 
 }

@@ -19,6 +19,7 @@ package com.palantir.lock.v2;
 import java.util.Set;
 import java.util.UUID;
 
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.timestamp.TimestampRange;
 
 public final class BridgingTimelockService implements TimelockService {
@@ -64,7 +65,7 @@ public final class BridgingTimelockService implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return delegate.lock(request).accept(LockResponseV2.Visitor.of(
+        return delegate.lock(IdentifiedLockRequest.from(request)).accept(LockResponseV2.Visitor.of(
                 successful -> LockResponse.successful(successful.getToken()),
                 unsuccessful -> LockResponse.timedOut()));
     }

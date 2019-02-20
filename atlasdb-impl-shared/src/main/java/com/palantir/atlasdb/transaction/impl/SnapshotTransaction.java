@@ -1790,9 +1790,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
         LockResponse lockResponse = timelockService.lock(request);
         if (!lockResponse.wasSuccessful()) {
-            log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
+            log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
-                    SafeArg.of("requestId", request.getRequestId()),
                     SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
