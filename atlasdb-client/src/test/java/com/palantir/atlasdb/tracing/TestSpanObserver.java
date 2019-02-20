@@ -22,7 +22,6 @@ import java.util.List;
 import com.palantir.tracing.api.Span;
 import com.palantir.tracing.api.SpanObserver;
 
-
 public class TestSpanObserver implements SpanObserver {
     private final List<Span> spans = new ArrayList<>();
 
