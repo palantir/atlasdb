@@ -51,7 +51,8 @@ public interface IdentifiedLockRequest {
                 Optional.of("Thread: " + Thread.currentThread().getName()));
     }
 
-    static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
+    static IdentifiedLockRequest of(
+            Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableIdentifiedLockRequest.of(
                 UUID.randomUUID(),
                 lockDescriptors,
