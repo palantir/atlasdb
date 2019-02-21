@@ -40,5 +40,4 @@ public class IdentifiedLockRequestTest {
         IdentifiedLockRequest request = mapper.readValue(SERIALIZED_LOCK_REQUEST, IdentifiedLockRequest.class);
         assertThat(mapper.writeValueAsString(request)).isEqualTo(SERIALIZED_LOCK_REQUEST);
     }
-
 }

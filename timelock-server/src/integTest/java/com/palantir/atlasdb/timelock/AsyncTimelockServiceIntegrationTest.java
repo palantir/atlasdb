@@ -49,10 +49,12 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -297,18 +299,35 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void lockRequestsAreIdempotent() {
-        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
+    public void lockRequestsToRpcClientAreIdempotent() {
+        IdentifiedLockRequest request = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockRequest request = requestFor(LOCK_A);
-        CompletableFuture<LockResponse> response = cluster.lockAsync(request);
-        CompletableFuture<LockResponse> duplicateResponse = cluster.lockAsync(request);
+        LockResponseV2 response = cluster.timelockRpcClient().lock(request);
+        LockResponseV2 duplicateResponse = cluster.timelockRpcClient().lock(request);
 
-        cluster.unlock(token);
+        LockToken token = response.accept(LockResponseV2.Visitor.of(
+                successful -> successful.getToken(),
+                unsuccessful -> {
+                    throw new RuntimeException("unsuccesful lock request");
+                }
+        ));
 
-        assertThat(response.join()).isEqualTo(duplicateResponse.join());
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
 
-        cluster.unlock(response.join().getToken());
+        assertThat(response).isEqualTo(duplicateResponse);
+    }
+
+    @Test
+    public void lockSuccedsOnlyOnce() {
+        LockRequest request = requestFor(SHORT_TIMEOUT, LOCK_A);
+
+        LockResponse response = cluster.lock(request);
+        LockResponse duplicateResponse = cluster.lock(request);
+
+        assertThat(response.wasSuccessful()).isTrue();
+        assertThat(duplicateResponse.wasSuccessful()).isFalse();
+
+        cluster.unlock(response.getToken());
     }
 
     @Test
