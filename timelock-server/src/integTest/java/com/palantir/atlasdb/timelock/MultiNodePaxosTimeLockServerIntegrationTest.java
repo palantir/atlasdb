@@ -50,14 +50,12 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
-    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
+    private static final List<String> ADDITIONAL_CLIENTS = ImmutableList.of(CLIENT_2, CLIENT_3);
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
-            CLIENT_1,
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
@@ -77,17 +75,17 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        CLUSTER.waitUntilReadyToServeClients(CLIENTS);
+        CLUSTER.waitUntilLeaderIsElected(ADDITIONAL_CLIENTS);
     }
 
     @Before
     public void bringAllNodesOnline() {
-        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(CLIENTS);
+        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
     }
 
     @Test
     public void blockedLockRequestThrows503OnLeaderElectionForRemoteLock() throws InterruptedException {
-        LockRefreshToken lock = CLUSTER.remoteLock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+        LockRefreshToken lock = CLUSTER.remoteLock(BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();

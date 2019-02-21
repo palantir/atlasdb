@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
@@ -31,18 +32,20 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class TimeLockTestUtils {
-    public static final String AGENT = "smith";
-
     private TimeLockTestUtils() {
         // Utility class
     }
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster) {
+        return createTransactionManager(cluster, UUID.randomUUID().toString());
+    }
+
+    static TransactionManager createTransactionManager(TestableTimelockCluster cluster, String agent) {
         List<String> serverUris = cluster.servers().stream()
                 .map(server -> server.serverHolder().getTimelockUri())
                 .collect(Collectors.toList());
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .namespace(AGENT)
+                .namespace(agent)
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .serversList(ImmutableServerListConfig.builder()
@@ -53,7 +56,7 @@ public final class TimeLockTestUtils {
                 .build();
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent(AGENT)
+                .userAgent(agent)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()

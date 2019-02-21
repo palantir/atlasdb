@@ -53,6 +53,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
     private static final byte[] DATA = "foo".getBytes();
     private static final Cell CELL = Cell.create("bar".getBytes(), "baz".getBytes());
+    private static final String AGENT = "smith";
 
     private static final LockRequest EXCLUSIVE_ADVISORY_LOCK_REQUEST = LockRequest.builder(
             ImmutableSortedMap.of(StringLockDescriptor.of("foo"), LockMode.WRITE))
@@ -62,9 +63,9 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private final TransactionManager txnManager;
 
     public AsyncTimelockServiceTransactionIntegrationTest() {
-        cluster.waitUntilLeaderIsElected(TimeLockTestUtils.AGENT);
+        cluster.waitUntilLeaderIsElected(AGENT);
 
-        txnManager = TimeLockTestUtils.createTransactionManager(cluster);
+        txnManager = TimeLockTestUtils.createTransactionManager(cluster, AGENT);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
