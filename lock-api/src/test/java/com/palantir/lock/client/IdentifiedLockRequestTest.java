@@ -36,8 +36,9 @@ public class IdentifiedLockRequestTest {
             .registerModule(new GuavaModule());
 
     @Test
-    public void serializationDeserialization() throws Exception {
+    public void ensureSerdeBackcompat() throws Exception {
         IdentifiedLockRequest request = mapper.readValue(SERIALIZED_LOCK_REQUEST, IdentifiedLockRequest.class);
-        assertThat(mapper.writeValueAsString(request)).isEqualTo(SERIALIZED_LOCK_REQUEST);
+        String deserialized = mapper.writeValueAsString(request);
+        assertThat(mapper.readTree(deserialized)).isEqualTo(mapper.readTree(SERIALIZED_LOCK_REQUEST));
     }
 }

@@ -318,7 +318,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void lockSuccedsOnlyOnce() {
+    public void lockSucceedsOnlyOnce() {
         LockRequest request = requestFor(SHORT_TIMEOUT, LOCK_A);
 
         LockResponse response = cluster.lock(request);
