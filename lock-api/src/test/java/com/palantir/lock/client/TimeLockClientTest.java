@@ -77,11 +77,10 @@ public class TimeLockClientTest {
         assertTrue(timelock.isInitialized());
     }
 
-
     @Test
     public void registersImmutableTimestampLock() {
-        when(delegate.lockImmutableTimestamp(any())).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
-        timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+        when(delegate.lockImmutableTimestamp()).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
+        timelock.lockImmutableTimestamp();
 
         verify(refresher).registerLock(TOKEN_1);
     }
