@@ -59,6 +59,10 @@ develop
            information to TimelockClient from the caller.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
 
+    *    - |improved| |devbreak|
+         - All usage of remoting-api and remoting3 have been replaced by their equivalents in `com.palantir.tracing`, `com.palantir.conjure.java.api`, and `com.palantir.conjure.java.runtime`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3764>`__)
+
     *    - |devbreak| |improved|
          - The `TableMetadata` class has been refactored to use Immutables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
