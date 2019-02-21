@@ -31,6 +31,8 @@ import com.palantir.remoting.api.config.ssl.SslConfiguration;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
 public final class TimeLockTestUtils {
+    public static final String AGENT = "smith";
+
     private TimeLockTestUtils() {
         // Utility class
     }
@@ -40,7 +42,7 @@ public final class TimeLockTestUtils {
                 .map(server -> server.serverHolder().getTimelockUri())
                 .collect(Collectors.toList());
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .namespace("test")
+                .namespace(AGENT)
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .serversList(ImmutableServerListConfig.builder()
@@ -51,7 +53,7 @@ public final class TimeLockTestUtils {
                 .build();
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent("test")
+                .userAgent(AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .build()

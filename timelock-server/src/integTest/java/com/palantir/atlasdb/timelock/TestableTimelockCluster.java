@@ -74,7 +74,10 @@ public class TestableTimelockCluster {
     }
 
     public void waitUntilLeaderIsElected() {
-        waitUntilReadyToServeClients(ImmutableList.of(defaultClient));
+        waitUntilLeaderIsElected(defaultClient);
+    }
+    public void waitUntilLeaderIsElected(String client) {
+        waitUntilReadyToServeClients(ImmutableList.of(client));
     }
 
     public void waitUntilReadyToServeClients(List<String> clients) {
