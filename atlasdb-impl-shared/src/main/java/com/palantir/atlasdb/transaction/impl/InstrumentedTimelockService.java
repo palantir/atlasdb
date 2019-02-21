@@ -49,7 +49,7 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
-        return executeWithRecord(() -> timelockService.getFreshTimestamp());
+        return executeWithRecord(timelockService::getFreshTimestamp);
     }
 
     @Override
@@ -59,17 +59,17 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return executeWithRecord(() -> timelockService.lockImmutableTimestamp());
+        return executeWithRecord(timelockService::lockImmutableTimestamp);
     }
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return executeWithRecord(() -> timelockService.startIdentifiedAtlasDbTransaction());
+        return executeWithRecord(timelockService::startIdentifiedAtlasDbTransaction);
     }
 
     @Override
     public long getImmutableTimestamp() {
-        return executeWithRecord(() -> timelockService.getImmutableTimestamp());
+        return executeWithRecord(timelockService::getImmutableTimestamp);
     }
 
     @Override
@@ -103,7 +103,7 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public long currentTimeMillis() {
-        return executeWithRecord(() -> timelockService.currentTimeMillis());
+        return executeWithRecord(timelockService::currentTimeMillis);
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {
