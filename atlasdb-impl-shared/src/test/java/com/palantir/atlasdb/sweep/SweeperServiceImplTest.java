@@ -45,8 +45,8 @@ import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.util.DropwizardClientRule;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
-import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 
 public class SweeperServiceImplTest extends SweeperTestSetup {
 
@@ -63,7 +63,7 @@ public class SweeperServiceImplTest extends SweeperTestSetup {
     public DropwizardClientRule dropwizardClientRule = new DropwizardClientRule(
             new SweeperServiceImpl(getSpecificTableSweeperService(), sweepBatchConfigSource),
             new CheckAndSetExceptionMapper(),
-            HttpRemotingJerseyFeature.INSTANCE);
+            ConjureJerseyFeature.INSTANCE);
 
     @Override
     @Before
