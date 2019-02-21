@@ -194,7 +194,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp(any())).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startIdentifiedAtlasDbTransaction(any())).thenReturn(
+        when(timelock.startIdentifiedAtlasDbTransaction()).thenReturn(
                 StartIdentifiedAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)
