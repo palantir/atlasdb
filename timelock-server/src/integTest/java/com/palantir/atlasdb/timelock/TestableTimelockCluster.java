@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.awaitility.Awaitility;
@@ -195,7 +196,7 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return rpcClient(defaultClient).startAtlasDbTransaction(request).toStartTransactionResponse();
+        return timelockRpcClient(defaultClient).startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     public TimestampService timestampService() {
@@ -214,15 +215,15 @@ public class TestableTimelockCluster {
         return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class));
     }
 
+    public <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
+        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
+    }
+
     public TimelockRpcClient timelockRpcClient() {
         return timelockRpcClient(defaultClient);
     }
 
-    public TimelockRpcClient timelockRpcClient(String client) {
-        return proxies.failoverForClient(client, TimelockRpcClient.class);
-    }
-
-    private TimelockRpcClient rpcClient(String client) {
+    private TimelockRpcClient timelockRpcClient(String client) {
         return proxies.failoverForClient(client, TimelockRpcClient.class);
     }
 

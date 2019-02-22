@@ -26,6 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 
@@ -73,11 +74,11 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("lock")
-    LockResponse deprecatedLock(LockRequest request);
+    LockResponse deprecatedLock(IdentifiedLockRequest request);
 
     @POST
     @Path("lock-v2")
-    LockResponseV2 lock(LockRequest request);
+    LockResponseV2 lock(IdentifiedLockRequest request);
 
     @POST
     @Path("await-locks")

@@ -102,7 +102,7 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public LockResponse lock(LockRequest request) {
-        LockResponseV2 leasableResponse = delegate.lock(request);
+        LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
         return leasableResponse.accept(LockResponseV2.Visitor.of(
                 successful -> LockResponse.successful(
