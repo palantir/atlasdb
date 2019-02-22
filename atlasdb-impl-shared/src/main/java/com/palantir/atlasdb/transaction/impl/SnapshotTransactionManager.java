@@ -55,7 +55,6 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
@@ -155,7 +154,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
-                = timelockService.startIdentifiedAtlasDbTransaction(IdentifiedTimeLockRequest.create());
+                = timelockService.startIdentifiedAtlasDbTransaction();
         try {
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();

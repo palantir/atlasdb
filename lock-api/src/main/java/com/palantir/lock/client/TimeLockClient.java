@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -87,17 +86,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        LockImmutableTimestampResponse response = executeOnTimeLock(delegate::lockImmutableTimestamp);
         lockRefresher.registerLock(response.getLock());
         return response;
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            IdentifiedTimeLockRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
-                () -> delegate.startIdentifiedAtlasDbTransaction(request));
+                delegate::startIdentifiedAtlasDbTransaction);
         lockRefresher.registerLock(response.immutableTimestamp().getLock());
         return response;
     }

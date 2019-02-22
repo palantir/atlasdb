@@ -68,10 +68,10 @@ public final class LeasingTimelockClient implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(
-                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
+                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(UUID.randomUUID(), clientId));
 
         return ImmutableLockImmutableTimestampResponse.of(
                 response.immutableTimestamp().getImmutableTimestamp(),
@@ -79,11 +79,10 @@ public final class LeasingTimelockClient implements TimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            IdentifiedTimeLockRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(
-                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
+                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(UUID.randomUUID(), clientId));
 
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);

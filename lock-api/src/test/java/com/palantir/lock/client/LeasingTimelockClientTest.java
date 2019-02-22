@@ -108,8 +108,7 @@ public class LeasingTimelockClientTest {
                 startTransactionResponseWith(LOCK_TOKEN, lease));
 
         StartIdentifiedAtlasDbTransactionResponse clientResponse =
-                timelockService.startIdentifiedAtlasDbTransaction(
-                        ImmutableIdentifiedTimeLockRequest.of(startTxnRequest.requestId()));
+                timelockService.startIdentifiedAtlasDbTransaction();
 
         verify(timelockRpcClient).startAtlasDbTransaction(startTxnRequest);
 
