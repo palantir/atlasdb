@@ -48,7 +48,7 @@ public interface IdentifiedLockRequest {
                 UUID.randomUUID(),
                 lockDescriptors,
                 acquireTimeoutMs,
-                Optional.of("Thread: " + Thread.currentThread().getName()));
+                Optional.empty());
     }
 
     static IdentifiedLockRequest of(
