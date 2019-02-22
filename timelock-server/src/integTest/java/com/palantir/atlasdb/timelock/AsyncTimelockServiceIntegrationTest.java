@@ -50,7 +50,6 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -97,9 +96,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void canLockImmutableTimestamp() {
         LockImmutableTimestampResponse response1 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
         LockImmutableTimestampResponse response2 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
@@ -125,7 +124,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             // safety check only applies if the cluster is indeed async
             return;
         }
-        assertBadRequest(() -> cluster.lockService().getMinLockedInVersionId("foo"));
+        // Catching any exception since this currently is an error deserialization exception
+        // until we stop requiring http-remoting2 errors
+        assertThatThrownBy(() -> cluster.lockService().getMinLockedInVersionId("foo"))
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -260,8 +262,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(Iterables.getOnlyElement(cluster.lockService().getTokens(TEST_CLIENT_2)).getLockDescriptors())
                 .contains(LOCK_A);
 
+        // Catching any exception since this currently is an error deserialization exception
+        // until we stop requiring http-remoting2 errors
         assertThatThrownBy(() -> cluster.lockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
-                .isInstanceOf(AtlasDbRemoteException.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test

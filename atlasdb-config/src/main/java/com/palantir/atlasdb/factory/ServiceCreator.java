@@ -33,10 +33,10 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
-import com.palantir.remoting3.config.ssl.TrustContext;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final MetricsManager metricsManager;

@@ -24,7 +24,7 @@ import java.nio.file.Paths;
 import org.junit.Test;
 
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class CassandraKeyValueServiceConfigTest {
     private static final InetSocketAddress SERVER_ADDRESS = InetSocketAddress.createUnresolved("localhost", 9160);
