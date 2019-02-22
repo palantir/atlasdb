@@ -89,18 +89,6 @@ public final class FeignOkHttpClients {
     }
 
     /**
-     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
-     * specified {@link SSLSocketFactory}.
-     */
-    public static Client newOkHttpClient(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            String userAgent,
-            boolean limitPayloadSize) {
-        return new OkHttpClient(newRawOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
-    }
-
-    /**
      * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}. This {@link Client} recreates
      * itself in the event that either {@link CounterBackedRefreshingClient#DEFAULT_REQUEST_COUNT_BEFORE_REFRESH}
      * requests have been made, or if {@link ExceptionCountingRefreshingClient#DEFAULT_EXCEPTION_COUNT_BEFORE_REFRESH}
@@ -115,6 +103,18 @@ public final class FeignOkHttpClients {
                 () -> newOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
+    }
+
+    /**
+     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
+     * specified {@link SSLSocketFactory}.
+     */
+    public static Client newOkHttpClient(
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return new OkHttpClient(newRawOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
     }
 
     @VisibleForTesting

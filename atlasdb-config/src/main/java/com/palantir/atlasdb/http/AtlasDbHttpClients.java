@@ -56,8 +56,9 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            boolean limitPayload) {
-        return createProxy(metricRegistry, trustContext, uri, false, type, UserAgents.DEFAULT_USER_AGENT, limitPayload);
+            boolean limitPayloadSize) {
+        return createProxy(metricRegistry, trustContext, uri, false, type, UserAgents.DEFAULT_USER_AGENT,
+                limitPayloadSize);
     }
 
     public static <T> T createProxy(
@@ -67,11 +68,12 @@ public final class AtlasDbHttpClients {
             boolean refreshingHttpClient,
             Class<T> type,
             String userAgent,
-            boolean limitPayload) {
+            boolean limitPayloadSize) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(trustContext, uri, refreshingHttpClient, type, userAgent, limitPayload),
+                AtlasDbFeignTargetFactory
+                        .createProxy(trustContext, uri, refreshingHttpClient, type, userAgent, limitPayloadSize),
                 MetricRegistry.name(type));
     }
 

@@ -55,7 +55,7 @@ public class LockEteTest {
 
     @Test
     public void tooLargeTimelockLockThrowsOnClientSide() throws InterruptedException {
-        assertThatThrownBy(() -> lockResource.lockWithTimelock(38_000_000))
+        assertThatThrownBy(() -> lockResource.lockWithTimelock(10_000_000))
                 .isInstanceOf(AtlasDbRemoteException.class)
                 .satisfies(ex ->
                         ((AtlasDbRemoteException) ex).getErrorName().equals("java.lang.IllegalArgumentException"));

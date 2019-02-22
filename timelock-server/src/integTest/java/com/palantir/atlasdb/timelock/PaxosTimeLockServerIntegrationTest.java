@@ -510,7 +510,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 false,
                 clazz,
                 client,
-                false);
+                true);
     }
 
     private static String getRootUriForClient(String client) {

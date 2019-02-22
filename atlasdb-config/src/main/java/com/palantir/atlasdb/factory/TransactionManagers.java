@@ -809,18 +809,16 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
-        LockService lockService = new LockRequestSizeLimitingLockService(
-                new ServiceCreator<>(metricsManager, LockService.class, userAgent)
-                        .applyDynamic(timelockServerListConfig));
+        LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent, true)
+                        .applyDynamic(timelockServerListConfig);
 
-        TimelockRpcClient timelockRpcClient = new LockRequestSizeLimitingTimeLockClient(
-                new ServiceCreator<>(metricsManager, TimelockRpcClient.class, userAgent)
-                        .applyDynamic(timelockServerListConfig));
+        TimelockRpcClient timelockRpcClient = new ServiceCreator<>(metricsManager, TimelockRpcClient.class, userAgent, true)
+                        .applyDynamic(timelockServerListConfig);
 
         TimelockService timelockService = DefaultTimelockService.create(timelockRpcClient);
 
         TimestampManagementService timestampManagementService =
-                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
+                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent, true)
                         .applyDynamic(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()

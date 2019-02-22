@@ -233,8 +233,7 @@ public final class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients
-                    .createProxy(metricsManager.getRegistry(), trustContext,
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
                             endpoint, true, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);

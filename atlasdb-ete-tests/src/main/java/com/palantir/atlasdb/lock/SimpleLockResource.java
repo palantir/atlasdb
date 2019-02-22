@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.lock;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -35,7 +39,10 @@ public class SimpleLockResource implements LockResource {
 
     @Override
     public LockResponse lockWithTimelock(int lockDescriptorSize) {
-        LockRequest request = LockRequest.of(ImmutableSet.of(generateDescriptorOfSize(lockDescriptorSize)), 1_000);
+        Set<LockDescriptor> descriptors = IntStream.range(0, 10).mapToObj(
+                ignore -> generateDescriptorOfSize(lockDescriptorSize)).collect(
+                Collectors.toSet());
+        LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
         if (response.wasSuccessful()) {
             transactionManager.getTimelockService().unlock(ImmutableSet.of(response.getToken()));
