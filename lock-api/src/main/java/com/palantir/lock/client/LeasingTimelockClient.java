@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
@@ -46,11 +46,13 @@ import com.palantir.timestamp.TimestampRange;
 public final class LeasingTimelockClient implements TimelockService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
+    private final CoalescingSupplier<LeaderTime> time;
 
     @VisibleForTesting
     LeasingTimelockClient(TimelockRpcClient timelockRpcClient, UUID clientId) {
         this.delegate = timelockRpcClient;
         this.clientId = clientId;
+        this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
     }
 
     public static LeasingTimelockClient create(TimelockRpcClient timelockRpcClient) {
@@ -115,7 +117,7 @@ public final class LeasingTimelockClient implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
-        LeaderTime leaderTime = delegate.getLeaderTime();
+        LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
         Set<LeasedLockToken> validByLease = allTokens.stream()
