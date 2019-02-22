@@ -41,9 +41,9 @@ public interface TimelockService {
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
-    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+    LockImmutableTimestampResponse lockImmutableTimestamp();
 
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(IdentifiedTimeLockRequest request);
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction();
 
     long getImmutableTimestamp();
 

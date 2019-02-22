@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -40,7 +39,6 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -77,11 +75,10 @@ public class TimeLockClientTest {
         assertTrue(timelock.isInitialized());
     }
 
-
     @Test
     public void registersImmutableTimestampLock() {
-        when(delegate.lockImmutableTimestamp(any())).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
-        timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+        when(delegate.lockImmutableTimestamp()).thenReturn(LockImmutableTimestampResponse.of(123L, TOKEN_1));
+        timelock.lockImmutableTimestamp();
 
         verify(refresher).registerLock(TOKEN_1);
     }

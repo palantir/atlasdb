@@ -45,15 +45,14 @@ public final class DefaultTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return delegate.lockImmutableTimestamp(request);
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        return delegate.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            IdentifiedTimeLockRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         return delegate.deprecatedStartIdentifiedAtlasDbTransaction(
-                ImmutableStartIdentifiedAtlasDbTransactionRequest.of(request.getRequestId(), clientId));
+                ImmutableStartIdentifiedAtlasDbTransactionRequest.of(UUID.randomUUID(), clientId));
     }
 
     @Override

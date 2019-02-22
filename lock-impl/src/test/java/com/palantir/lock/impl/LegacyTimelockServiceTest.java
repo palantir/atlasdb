@@ -98,7 +98,7 @@ public class LegacyTimelockServiceTest {
 
         LockImmutableTimestampResponse expectedResponse = LockImmutableTimestampResponse.of(immutableTs,
                 toTokenV2(expectedToken));
-        assertEquals(expectedResponse, timelock.lockImmutableTimestamp(IdentifiedTimeLockRequest.create()));
+        assertEquals(expectedResponse, timelock.lockImmutableTimestamp());
     }
 
     @Test
