@@ -292,31 +292,33 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void testGetLockServerOptions() throws InterruptedException {
+    public void testGetLockServerOptions() {
         assertThat(cluster.lockService().getLockServerOptions())
                 .isEqualTo(LockServerOptions.builder().randomBitCount(127).build());
     }
 
     @Test
-    public void testCurrentTimeMillis() throws InterruptedException {
+    public void testCurrentTimeMillis() {
         assertThat(cluster.lockService().currentTimeMillis()).isPositive();
     }
 
     @Test
     public void lockRequestsToRpcClientAreIdempotent() {
-        IdentifiedLockRequest request = IdentifiedLockRequest.from(requestFor(LOCK_A));
+        IdentifiedLockRequest request_1 = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockToken token = cluster.timelockRpcClient().lock(request).accept(LockResponseV2.Visitor.of(
+        LockToken token = cluster.timelockRpcClient().lock(request_1).accept(LockResponseV2.Visitor.of(
                 LockResponseV2.Successful::getToken,
                 unsuccessful -> {
                     throw new RuntimeException("Unsuccessful lock request");
                 }));
 
+        IdentifiedLockRequest request_2 = IdentifiedLockRequest.from(requestFor(LOCK_A));
+
         CompletableFuture<LockResponseV2> response =
-                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request));
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
 
         CompletableFuture<LockResponseV2> duplicateResponse =
-                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request));
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
 
         cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
         assertThat(response.join()).isEqualTo(duplicateResponse.join());
