@@ -44,6 +44,7 @@ public class CassandraNoLeaderTestSuite extends EteSetup {
             CassandraNoLeaderTestSuite.class,
             "docker-compose.no-leader.cassandra.yml",
             CLIENTS,
-            CassandraEnvironment.get());
+            CassandraEnvironment.get(),
+            false);
 
 }

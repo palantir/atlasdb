@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 import java.net.SocketTimeoutException;
 
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -53,6 +54,7 @@ public class TodoEteTest {
     }
 
     @Test
+    @Ignore
     @ShouldRetry(numAttempts = 10, retryableExceptions = {SocketTimeoutException.class})
     public void shouldSweepStreamIndices() {
         // Stores five small streams, each of which fits into a single block

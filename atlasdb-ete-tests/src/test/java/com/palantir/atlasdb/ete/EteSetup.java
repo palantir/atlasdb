@@ -49,6 +49,7 @@ import com.palantir.remoting3.config.ssl.TrustContext;
 // Please don't make the setup methods private.
 public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+    private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Optional<TrustContext> NO_SSL = Optional.empty();
 
     private static final short SERVER_PORT = 3828;
@@ -66,15 +67,17 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime) {
-        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
+        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of(), false);
     }
 
     public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
-            Map<String, String> environment) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
+            Map<String, String> environment,
+            boolean usingTimelock) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment,
+                usingTimelock);
     }
 
     public static RuleChain setupComposition(
@@ -82,16 +85,18 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime,
-            Map<String, String> environment) {
+            Map<String, String> environment,
+            boolean usingTimelock) {
         waitDuration = waitTime;
-        return setup(eteClass, composeFile, availableClientNames, environment);
+        return setup(eteClass, composeFile, availableClientNames, environment, usingTimelock);
     }
 
     public static RuleChain setup(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
-            Map<String, String> environment) {
+            Map<String, String> environment,
+            boolean usingTimelock) {
         availableClients = ImmutableList.copyOf(availableClientNames);
 
         DockerMachine machine = DockerMachine.localMachine().withEnvironment(environment).build();
@@ -106,9 +111,11 @@ public abstract class EteSetup {
 
         DockerProxyRule dockerProxyRule = DockerProxyRule.fromProjectName(docker.projectName(), eteClass);
 
-        return RuleChain
-                .outerRule(GRADLE_PREPARE_TASK)
-                .around(docker)
+        RuleChain ruleChain = RuleChain.outerRule(GRADLE_PREPARE_TASK);
+        if (usingTimelock) {
+            ruleChain = ruleChain.around(TIMELOCK_TASK);
+        }
+        return ruleChain.around(docker)
                 .around(dockerProxyRule)
                 .around(waitForServersToBeReady());
     }
