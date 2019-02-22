@@ -306,24 +306,29 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     public void lockRequestsToRpcClientAreIdempotent() {
         IdentifiedLockRequest request_1 = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockToken token = cluster.timelockRpcClient().lock(request_1).accept(LockResponseV2.Visitor.of(
+        LockToken token = getToken(cluster.timelockRpcClient().lock(request_1));
+
+        IdentifiedLockRequest request_2 = IdentifiedLockRequest.from(requestFor(LOCK_A));
+        CompletableFuture<LockResponseV2> responseFuture =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
+        CompletableFuture<LockResponseV2> duplicateResponseFuture =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
+
+        LockResponseV2 response = responseFuture.join();
+        LockResponseV2 duplicateResponse = duplicateResponseFuture.join();
+        assertThat(response).isEqualTo(duplicateResponse);
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(getToken(response)));
+    }
+
+    private LockToken getToken(LockResponseV2 responseV2) {
+        return responseV2.accept(LockResponseV2.Visitor.of(
                 LockResponseV2.Successful::getToken,
                 unsuccessful -> {
                     throw new RuntimeException("Unsuccessful lock request");
                 }));
-
-        IdentifiedLockRequest request_2 = IdentifiedLockRequest.from(requestFor(LOCK_A));
-
-        CompletableFuture<LockResponseV2> response =
-                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
-
-        CompletableFuture<LockResponseV2> duplicateResponse =
-                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(request_2));
-
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
-        assertThat(response.join()).isEqualTo(duplicateResponse.join());
-
-        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
     }
 
     @Test
