@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |improved|
+         - Timelock clients now use leased lock tokens to reduce number of RPC's to Timelock server, and improve transaction performance.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3760>`__)
+
+    *    - |improved|
          - We now use jetty-alpn-agent 2.0.9
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
 

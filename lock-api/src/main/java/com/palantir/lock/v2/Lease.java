@@ -39,7 +39,7 @@ public abstract class Lease {
                 && currentLeaderTime.currentTime().isBefore(expiry());
     }
 
-    private NanoTime expiry() {
+    public NanoTime expiry() {
         return leaderTime().currentTime().plus(validity());
     }
 
