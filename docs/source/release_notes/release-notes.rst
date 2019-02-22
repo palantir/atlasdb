@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |devbreak|
+         - `startIdentifiedAtlasDbTransaction()` and `lockImmutableTimestamp()` now being called without an `IdentifiedTimeLockRequest` parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3769>`__)
+
+    *    - |devbreak|
          - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
 
