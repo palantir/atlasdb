@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.junit.Before;
@@ -32,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
@@ -67,7 +69,8 @@ public class LeasingTimelockClientTest {
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
 
     private TimelockService timelockService;
-    private Supplier<NanoTime> time = NanoTime::now;
+    private AtomicLong currentTime = new AtomicLong(123);
+    private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, currentTime::incrementAndGet);
 
     @Before
     public void before() {
