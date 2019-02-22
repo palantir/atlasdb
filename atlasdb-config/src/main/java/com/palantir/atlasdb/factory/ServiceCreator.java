@@ -42,14 +42,24 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
     private final MetricsManager metricsManager;
     private final Class<T> serviceClass;
     private final String userAgent;
+    private final boolean limitPayload;
 
     public ServiceCreator(MetricsManager metricsManager,
             Class<T> serviceClass,
             String userAgent) {
+        this(metricsManager, serviceClass, userAgent, false);
+    }
+
+    public ServiceCreator(MetricsManager metricsManager,
+            Class<T> serviceClass,
+            String userAgent,
+            boolean limitPayload) {
         this.metricsManager = metricsManager;
         this.serviceClass = serviceClass;
         this.userAgent = userAgent;
+        this.limitPayload = limitPayload;
     }
+
 
     @Override
     public T apply(ServerListConfig input) {
@@ -65,7 +75,8 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
                 SslSocketFactories::createTrustContext,
                 ServiceCreator::createProxySelector,
                 serviceClass,
-                userAgent);
+                userAgent,
+                limitPayload);
     }
 
     /**
@@ -82,10 +93,11 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayload) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent);
+                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

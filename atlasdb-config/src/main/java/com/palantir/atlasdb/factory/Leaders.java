@@ -235,7 +235,7 @@ public final class Leaders {
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients
                     .createProxy(metricsManager.getRegistry(), trustContext,
-                            endpoint, true, PingableLeader.class, userAgent);
+                            endpoint, true, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }
