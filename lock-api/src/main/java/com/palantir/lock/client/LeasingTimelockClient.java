@@ -24,8 +24,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
-import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.ImmutableStartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -35,6 +33,7 @@ import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
@@ -72,8 +71,7 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(
-                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(UUID.randomUUID(), clientId));
+                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
         return ImmutableLockImmutableTimestampResponse.of(
                 response.immutableTimestamp().getImmutableTimestamp(),
@@ -83,15 +81,14 @@ public final class LeasingTimelockClient implements TimelockService {
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(
-                        ImmutableStartIdentifiedAtlasDbTransactionRequest.of(UUID.randomUUID(), clientId));
+                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
-        return ImmutableStartIdentifiedAtlasDbTransactionResponse.of(
-                ImmutableLockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
+        return StartIdentifiedAtlasDbTransactionResponse.of(
+                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
                 response.startTimestampAndPartition());
     }
 

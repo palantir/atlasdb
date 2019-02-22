@@ -47,7 +47,6 @@ import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
@@ -62,8 +61,6 @@ public class LeasingTimelockClientTest {
     private static final Duration LEASE_DURATION = Duration.ofSeconds(1);
     private static final LeadershipId LEADER_ID = LeadershipId.random();
     private static final UUID SERVICE_ID = UUID.randomUUID();
-    private StartIdentifiedAtlasDbTransactionRequest startTxnRequest =
-            StartIdentifiedAtlasDbTransactionRequest.createForRequestor(SERVICE_ID);
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockResponse LOCK_RESPONSE = LockResponse.successful(LOCK_TOKEN);
