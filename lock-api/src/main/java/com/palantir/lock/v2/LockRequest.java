@@ -42,7 +42,7 @@ public interface LockRequest {
         return ImmutableLockRequest.of(
                 lockDescriptors,
                 acquireTimeoutMs,
-                Optional.of("Thread: " + Thread.currentThread().getName()));
+                Optional.empty());
     }
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {

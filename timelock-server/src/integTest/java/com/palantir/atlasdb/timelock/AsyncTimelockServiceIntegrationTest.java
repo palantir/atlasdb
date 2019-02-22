@@ -300,21 +300,21 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void lockRequestsToRpcClientAreIdempotent() {
-        IdentifiedLockRequest request = IdentifiedLockRequest.from(requestFor(LOCK_A));
+        LockRequest request = requestFor(LOCK_A);
+        IdentifiedLockRequest identifiedRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockResponseV2 response = cluster.timelockRpcClient().lock(request);
-        LockResponseV2 duplicateResponse = cluster.timelockRpcClient().lock(request);
+        LockToken token = cluster.lock(request).getToken();
 
-        LockToken token = response.accept(LockResponseV2.Visitor.of(
-                successful -> successful.getToken(),
-                unsuccessful -> {
-                    throw new RuntimeException("unsuccesful lock request");
-                }
-        ));
+        CompletableFuture<LockResponseV2> response =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(identifiedRequest));
+
+        CompletableFuture<LockResponseV2> duplicateResponse =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(identifiedRequest));
 
         cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
+        assertThat(response.join()).isEqualTo(duplicateResponse.join());
 
-        assertThat(response).isEqualTo(duplicateResponse);
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
     }
 
     @Test
