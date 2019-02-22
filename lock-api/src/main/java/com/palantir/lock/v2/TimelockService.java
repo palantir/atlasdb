@@ -40,14 +40,6 @@ public interface TimelockService {
 
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
-    /**
-     * @deprecated use {@link #lockImmutableTimestamp()} instead.
-     */
-    @Deprecated
-    default LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        return lockImmutableTimestamp();
-    }
-
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
     LockImmutableTimestampResponse lockImmutableTimestamp();
 

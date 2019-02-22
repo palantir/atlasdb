@@ -92,8 +92,7 @@ public class TimestampDecoratingTimelockServiceTest {
         decoratingService.currentTimeMillis();
         verify(delegate).currentTimeMillis();
 
-        IdentifiedTimeLockRequest immutableTimestampRequest = IdentifiedTimeLockRequest.create();
-        decoratingService.lockImmutableTimestamp(immutableTimestampRequest);
-        verify(delegate).lockImmutableTimestamp(eq(immutableTimestampRequest));
+        decoratingService.lockImmutableTimestamp();
+        verify(delegate).lockImmutableTimestamp();
     }
 }

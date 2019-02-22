@@ -95,9 +95,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void canLockImmutableTimestamp() {
         LockImmutableTimestampResponse response1 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
         LockImmutableTimestampResponse response2 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());

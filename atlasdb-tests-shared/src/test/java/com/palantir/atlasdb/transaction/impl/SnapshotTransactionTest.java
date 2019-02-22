@@ -1029,7 +1029,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1058,7 +1058,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1085,7 +1085,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
@@ -1109,7 +1109,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1129,7 +1129,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1149,7 +1149,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1170,7 +1170,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,

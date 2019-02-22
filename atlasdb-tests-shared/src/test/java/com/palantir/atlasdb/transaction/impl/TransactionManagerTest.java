@@ -192,7 +192,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 () -> ImmutableTransactionConfig.builder().build());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
+        when(timelock.lockImmutableTimestamp()).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
         when(timelock.startIdentifiedAtlasDbTransaction()).thenReturn(
                 StartIdentifiedAtlasDbTransactionResponse.of(
