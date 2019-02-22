@@ -21,6 +21,7 @@ import java.util.Set;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
@@ -50,7 +51,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
                 ImmutableSet.of(StringLockDescriptor.of(lockName)),
                 Long.MAX_VALUE,
                 client);
-        LockResponseV2 lockResponse = timelockService.lock(lockRequest);
+        LockResponseV2 lockResponse = timelockService.lock(IdentifiedLockRequest.from(lockRequest));
         return lockResponse.accept(LOCK_TOKEN_EXTRACTOR);
     }
 

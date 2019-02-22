@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.timelock.lock.LockEvents.RequestInfo;
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
 public final class LockLog {
@@ -35,7 +35,7 @@ public final class LockLog {
         this.thresholdMillis = thresholdMillis;
     }
 
-    public void registerRequest(LockRequest request, AsyncResult<?> result) {
+    public void registerRequest(IdentifiedLockRequest request, AsyncResult<?> result) {
         registerRequest(RequestInfo.of(request), result);
     }
 
