@@ -2,8 +2,6 @@
 # This is supported by Dropwizard starting v1.0.0.
 # http://www.dropwizard.io/1.0.6/docs/manual/configuration.html#http-2-over-tls
 ch.qos.logback:logback-classic = 1.1.7
-com.fasterxml.jackson.*:* = 2.6.7
-com.fasterxml.jackson.datatype:jackson-datatype-jdk7 = 2.6.7
 io.atomix.catalyst:catalyst-transport = 1.1.2
 io.dropwizard:* = 1.0.6
 io.dropwizard:dropwizard-jackson = 0.9.3

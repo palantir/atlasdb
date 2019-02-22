@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - We now use jetty-alpn-agent 2.0.9
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
+
     *    - |devbreak|
          - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
@@ -58,6 +62,10 @@ develop
          - `startIdentifiedAtlasDbTransaction` now accepts `IdentifiedTimeLockRequest` as a parameter rather than `StartIdentifiedAtlasDbTransactionRequest`. Moving the requestorId
            information to TimelockClient from the caller.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
+
+    *    - |improved| |devbreak|
+         - All usage of remoting-api and remoting3 have been replaced by their equivalents in `com.palantir.tracing`, `com.palantir.conjure.java.api`, and `com.palantir.conjure.java.runtime`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3764>`__)
 
     *    - |devbreak| |improved|
          - The `TableMetadata` class has been refactored to use Immutables.

@@ -47,6 +47,7 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
@@ -61,7 +62,6 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.remoting3.config.ssl.TrustContext;
 
 public final class Leaders {
     private Leaders() {

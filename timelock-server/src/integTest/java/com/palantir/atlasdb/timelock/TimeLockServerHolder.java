@@ -24,7 +24,6 @@ import org.junit.rules.ExternalResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
-import com.palantir.remoting3.http2.Http2Agent;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
