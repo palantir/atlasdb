@@ -193,66 +193,70 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3763">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><cite>startIdentifiedAtlasDbTransaction()</cite> and <cite>lockImmutableTimestamp()</cite> now being called without an <cite>IdentifiedTimeLockRequest</cite> parameter.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3769">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The deprecated <cite>startAtlasDbTransaction()</cite> method is removed from <cite>TimelockService</cite>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3758">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><cite>startIdentifiedAtlasDbTransaction</cite> now accepts <cite>IdentifiedTimeLockRequest</cite> as a parameter rather than <cite>StartIdentifiedAtlasDbTransactionRequest</cite>. Moving the requestorId
 information to TimelockClient from the caller.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3758">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>All usage of remoting-api and remoting3 have been replaced by their equivalents in <cite>com.palantir.tracing</cite>, <cite>com.palantir.conjure.java.api</cite>, and <cite>com.palantir.conjure.java.runtime</cite>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3764">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <cite>TableMetadata</cite> class has been refactored to use Immutables.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3624">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on <code class="docutils literal notranslate"><span class="pre">com.palantir.cassandra</span></code> instead of <code class="docutils literal notranslate"><span class="pre">org.apache.cassandra</span></code>.
 This version of Cassandra thrift client supports a <code class="docutils literal notranslate"><span class="pre">put_unless_exists</span></code> operation that can update multiple columns in the same row simultaneously.
 The Cassandra KVS putUnlessExists method has been updated to use the above call.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>We now correctly handle host restart in the clock skew monitor.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3716">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3701">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Key value services now require their <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility</span></code> to be specified.
 Refer to the contract of <code class="docutils literal notranslate"><span class="pre">KeyValueService#getCheckAndSetCompatibility</span></code> and the <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility</span></code> enum class to guide this decision.
 Please be very careful if you are explicitly setting this to <code class="docutils literal notranslate"><span class="pre">CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE</span></code>.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3713">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting <cite>install.asyncLock.useAsyncLockService</cite> to <cite>false</cite> (default is <cite>true</cite>) should migrate to <cite>AsyncLockService</cite> before taking this upgrade.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3718">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
 Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3733">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>TimeLock will now no longer create its high level paxos directory at configuration de-serialization time.
 Instead it waits until creating each individual learner or acceptor log directory, allowing timelock to rely more accurately on directory existence as a proxy for said timelock node being new or not.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3745">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3749">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">FailoverFeignTarget</span></code> now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
 Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3752">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3756">Pull Request</a>)</td>
 </tr>
