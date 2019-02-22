@@ -144,7 +144,7 @@ public class LeasingTimelockClientTest {
     }
 
     @Test
-    public void unlockShouldCallRemoteServer_inValidLeases() {
+    public void unlockShouldCallRemoteServer_invalidLeases() {
         setTime(123);
         LeasedLockToken token = LeasedLockToken.of(LOCK_TOKEN, getLease());
         advance(LEASE_DURATION);
