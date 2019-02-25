@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.ptobject;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.SortedMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Test;
 
@@ -284,5 +286,33 @@ public class EncodingUtilsTest {
 
             assertEquals(components, result);
         }
+    }
+
+    @Test
+    public void testReverseBitsEmptyArray() {
+        byte[] emptyByteArray = new byte[0];
+        assertThat(EncodingUtils.reverseBits(emptyByteArray)).isEqualTo(emptyByteArray);
+    }
+
+    @Test
+    public void testReverseBitsOneByteArray() {
+        byte[] oneByteArray = { (byte) 0b10110011 };
+        byte[] expected = { (byte) 0b11001101 };
+        assertThat(EncodingUtils.reverseBits(oneByteArray)).isEqualTo(expected);
+    }
+
+    @Test
+    public void testReverseBitsTwoByteArray() {
+        byte[] twoByteArray = { (byte) 0b10001100, (byte) 0b11011000 };
+        byte[] expected = { (byte) 0b00011011, (byte) 0b00110001 };
+        assertThat(EncodingUtils.reverseBits(twoByteArray)).isEqualTo(expected);
+    }
+
+    @Test
+    public void testReverseBitsIsSelfInverse() {
+        byte[] largeByteArray = new byte[1000];
+        ThreadLocalRandom.current().nextBytes(largeByteArray);
+        byte[] reversed = EncodingUtils.reverseBits(largeByteArray);
+        assertThat(EncodingUtils.reverseBits(reversed)).isEqualTo(largeByteArray);
     }
 }
