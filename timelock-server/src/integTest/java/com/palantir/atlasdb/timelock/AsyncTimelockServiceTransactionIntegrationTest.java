@@ -33,6 +33,7 @@ import java.util.stream.IntStream;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -63,7 +64,7 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private final TransactionManager txnManager;
 
     public AsyncTimelockServiceTransactionIntegrationTest() {
-        cluster.waitUntilLeaderIsElected(AGENT);
+        cluster.waitUntilLeaderIsElected(ImmutableList.of(AGENT));
 
         txnManager = TimeLockTestUtils.createTransactionManager(cluster, AGENT);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
