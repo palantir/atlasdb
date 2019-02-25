@@ -121,6 +121,26 @@ public class TicketsEncodingStrategyTest {
     }
 
     @Test
+    public void distributesRowsEvenlyAcrossBitSpace() {
+        int numPartitions = 16;
+        Set<ByteString> rowNamesForInitialRows = IntStream.range(0, numPartitions)
+                .mapToObj(STRATEGY::encodeStartTimestampAsCell)
+                .map(Cell::getRowName)
+                .map(ByteString::copyFrom)
+                .collect(Collectors.toSet());
+        assertThat(rowNamesForInitialRows.size()).isEqualTo(numPartitions);
+
+        // This test may be too strong.
+        Map<Integer, Integer> rowsKeyedByFirstFourBits = rowNamesForInitialRows.stream()
+                .collect(Collectors.groupingBy(byteString -> byteString.byteAt(0) >> 4))
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
+        assertThat(rowsKeyedByFirstFourBits.values()).containsOnly(1);
+        assertThat(rowsKeyedByFirstFourBits.size()).isEqualTo(16);
+    }
+
+    @Test
     public void canStoreTransactionsCommittingInstantaneously() {
         assertThatCode(() -> STRATEGY.encodeCommitTimestampAsValue(10, 10)).doesNotThrowAnyException();
     }

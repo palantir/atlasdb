@@ -32,7 +32,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
  * least significant bits of the timestamp and using that as the row number. For example, we would store timestamps
  * 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
  *
- * We store the row name as a little-endian representation of the row number to ensure even distribution in key-value
+ * We store the row name as a bit-wise reversed version the row number to ensure even distribution in key-value
  * services that rely on consistent hashing or similar mechanisms for partitioning.
  *
  * We also use a delta encoding for the commit timestamp as these differences are expected to be small.
