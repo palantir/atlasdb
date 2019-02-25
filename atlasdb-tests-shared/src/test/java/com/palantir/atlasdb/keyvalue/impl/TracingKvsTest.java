@@ -28,10 +28,10 @@ import org.junit.ClassRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.remoting2.tracing.Span;
-import com.palantir.remoting2.tracing.SpanObserver;
-import com.palantir.remoting2.tracing.SpanType;
-import com.palantir.remoting2.tracing.Tracer;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.api.Span;
+import com.palantir.tracing.api.SpanObserver;
+import com.palantir.tracing.api.SpanType;
 
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
     @ClassRule

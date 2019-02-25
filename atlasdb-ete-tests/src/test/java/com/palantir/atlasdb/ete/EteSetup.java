@@ -34,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -42,7 +43,6 @@ import com.palantir.docker.compose.execution.DockerComposeExecArgument;
 import com.palantir.docker.compose.execution.DockerComposeExecOption;
 import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.docker.proxy.DockerProxyRule;
-import com.palantir.remoting3.config.ssl.TrustContext;
 
 // Important: Some internal tests depend on this class.
 // Please recompile Oracle internal tests if any breaking changes are made to the setup.

@@ -21,13 +21,14 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+    compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
     processor project(":atlasdb-processors")
     processor group: 'org.immutables', name: 'value'
 
+    testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'
-    testCompile group: 'com.palantir.remoting3', name: 'jackson-support'
     testCompile group: 'org.awaitility', name: 'awaitility'
     testCompile group: 'org.hamcrest', name: 'hamcrest-core'
     testCompile group: 'org.hamcrest', name: 'hamcrest-library'
@@ -41,7 +42,7 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.timelock'
         productName = 'timelock-server'
-        minimumVersion = '0.51.0'
+        minimumVersion = '0.57.0'
         maximumVersion = '0.x.x'
     }
 }

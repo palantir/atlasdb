@@ -24,9 +24,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
 
 /**
  * The {@link InternalSchemaMetadataPayloadCodec} controls translation between the payload of a

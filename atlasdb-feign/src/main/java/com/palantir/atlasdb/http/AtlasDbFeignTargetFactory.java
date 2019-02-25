@@ -28,10 +28,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.reflect.Reflection;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.TrustContext;
-import com.palantir.remoting3.ext.refresh.RefreshableProxyInvocationHandler;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
 
 import feign.Client;
 import feign.Contract;
