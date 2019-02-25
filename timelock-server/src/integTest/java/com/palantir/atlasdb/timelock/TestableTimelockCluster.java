@@ -91,7 +91,7 @@ public class TestableTimelockCluster {
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        clients.forEach(client -> timelockServiceForClient(client).getFreshTimestamp());
+                        clients.forEach(name -> timelockServiceForClient(name).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -218,8 +218,8 @@ public class TestableTimelockCluster {
         return timelockServiceForClient(client);
     }
 
-    public TimelockService timelockServiceForClient(String client) {
-        return LeasingTimelockClient.create(proxies.failoverForClient(client, TimelockRpcClient.class));
+    public TimelockService timelockServiceForClient(String name) {
+        return LeasingTimelockClient.create(proxies.failoverForClient(name, TimelockRpcClient.class));
     }
 
     public <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
@@ -230,8 +230,8 @@ public class TestableTimelockCluster {
         return timelockRpcClient(client);
     }
 
-    private TimelockRpcClient timelockRpcClient(String client) {
-        return proxies.failoverForClient(client, TimelockRpcClient.class);
+    private TimelockRpcClient timelockRpcClient(String name) {
+        return proxies.failoverForClient(name, TimelockRpcClient.class);
     }
 
     public RuleChain getRuleChain() {
