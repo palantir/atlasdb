@@ -41,26 +41,28 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public LockResponse lockWithTimelock(int numLocks, int descriptorSize) {
+    public boolean lockWithTimelock(int numLocks, int descriptorSize) {
         Set<LockDescriptor> descriptors = generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
         LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
         if (response.wasSuccessful()) {
             transactionManager.getTimelockService().unlock(ImmutableSet.of(response.getToken()));
+            return true;
         }
-        return response;
+        return false;
     }
 
     @Override
-    public LockRefreshToken lockWithLockService(int numLocks, int descriptorSize) throws InterruptedException {
+    public boolean lockWithLockService(int numLocks, int descriptorSize) throws InterruptedException {
         ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
         generateDescriptors(numLocks, descriptorSize).forEach(descriptor -> builder.put(descriptor, LockMode.WRITE));
         com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(builder.build()).build();
         LockRefreshToken response = transactionManager.getLockService().lock("test", request);
         if (response != null) {
             transactionManager.getLockService().unlock(response);
+            return true;
         }
-        return response;
+        return false;
     }
 
     private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {

@@ -21,21 +21,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.palantir.atlasdb.lock.LockResource;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockResponse;
 
 public class LockWithoutTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
     public void hugeTimelockLockSucceeds() throws InterruptedException {
-        LockResponse response = lockResource.lockWithTimelock(100, 500_000);
-        assertThat(response.wasSuccessful()).isTrue();
+        assertThat(lockResource.lockWithTimelock(100, 500_000)).isTrue();
     }
 
     @Test
     public void hugeLockServiceLockSucceeds() throws InterruptedException {
-        LockRefreshToken response = lockResource.lockWithLockService(100, 500_000);
-        assertThat(response).isNotNull();
+        assertThat(lockResource.lockWithLockService(100, 500_000)).isTrue();
     }
 }

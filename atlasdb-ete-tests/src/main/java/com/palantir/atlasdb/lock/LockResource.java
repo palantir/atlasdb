@@ -23,21 +23,18 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockResponse;
-
 @Path("lock")
 public interface LockResource {
     @POST
     @Path("timelock-lock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    LockResponse lockWithTimelock(@QueryParam("number") int numDescriptors, int descriptorSize);
+    boolean lockWithTimelock(@QueryParam("number") int numDescriptors, int descriptorSize);
 
     @POST
     @Path("remote-lock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    LockRefreshToken lockWithLockService(@QueryParam("number") int numDescriptors, int descriptorSize)
+    boolean lockWithLockService(@QueryParam("number") int numDescriptors, int descriptorSize)
             throws InterruptedException;
 }

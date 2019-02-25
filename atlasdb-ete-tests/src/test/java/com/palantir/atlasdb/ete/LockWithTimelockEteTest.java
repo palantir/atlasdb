@@ -21,51 +21,44 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.palantir.atlasdb.lock.LockResource;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockResponse;
 
 public class LockWithTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
-    public void smallTimelockLockSucceeds() throws InterruptedException {
-        LockResponse response = lockResource.lockWithTimelock(1, 100);
-        assertThat(response.wasSuccessful()).isTrue();
+    public void smallTimelockLockSucceeds() throws InterruptedException, JsonProcessingException {
+        assertThat(lockResource.lockWithTimelock(1, 100)).isTrue();
     }
 
     @Test
     public void smallLockServiceLockSucceeds() throws InterruptedException {
-        LockRefreshToken response = lockResource.lockWithLockService(1, 100);
-        assertThat(response).isNotNull();
+        assertThat(lockResource.lockWithLockService(1, 100)).isTrue();
     }
 
     @Test
-    public void largeTimelockLockSucceeds() throws InterruptedException {
-        LockResponse response = lockResource.lockWithTimelock(50, 100_000);
-        assertThat(response.wasSuccessful()).isTrue();
+    public void largeTimelockLockSucceeds() throws InterruptedException, JsonProcessingException {
+        assertThat(lockResource.lockWithTimelock(50, 100_000)).isTrue();
     }
 
     @Test
     public void largeLockServiceLockSucceeds() throws InterruptedException {
-        LockRefreshToken response = lockResource.lockWithLockService(50, 100_000);
-        assertThat(response).isNotNull();
+        assertThat(lockResource.lockWithLockService(50, 100_000)).isTrue();
+
     }
 
     @Test
     public void hugeTimelockLockThrowsOnClientSide() throws InterruptedException {
         assertThatThrownBy(() -> lockResource.lockWithTimelock(100, 500_000))
-                .isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(ex ->
-                        ((AtlasDbRemoteException) ex).getErrorName().equals("java.lang.IllegalArgumentException"));
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("INVALID_ARGUMENT");
     }
 
     @Test
     public void hugeLockServiceLockThrowsOnClientSide() throws InterruptedException {
         assertThatThrownBy(() -> lockResource.lockWithLockService(100, 500_000))
-                .isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(ex ->
-                        ((AtlasDbRemoteException) ex).getErrorName().equals("java.lang.IllegalArgumentException"));
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("INVALID_ARGUMENT");
     }
 }

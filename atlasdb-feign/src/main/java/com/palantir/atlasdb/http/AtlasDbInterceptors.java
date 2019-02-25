@@ -21,6 +21,7 @@ import java.io.IOException;
 import com.google.common.base.Preconditions;
 
 import okhttp3.Interceptor;
+import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
@@ -44,7 +45,7 @@ public final class AtlasDbInterceptors {
 
         @Override
         public Response intercept(Chain chain) throws IOException {
-            okhttp3.Request requestWithUserAgent = chain.request()
+            Request requestWithUserAgent = chain.request()
                     .newBuilder()
                     .addHeader(USER_AGENT_HEADER, userAgent)
                     .build();
@@ -52,7 +53,7 @@ public final class AtlasDbInterceptors {
         }
     }
 
-    public static final class PayloadLimitingInterceptor implements Interceptor {
+    private static final class PayloadLimitingInterceptor implements Interceptor {
         @Override
         public Response intercept(Chain chain) throws IOException {
             RequestBody body = chain.request().body();
