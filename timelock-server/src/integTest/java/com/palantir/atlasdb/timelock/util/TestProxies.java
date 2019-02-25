@@ -64,7 +64,8 @@ public class TestProxies {
                 uri,
                 false,
                 serviceInterface,
-                MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));
+                MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
+                false));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {

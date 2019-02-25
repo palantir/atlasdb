@@ -24,7 +24,7 @@ import com.palantir.atlasdb.lock.LockResource;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockResponse;
 
-public class LockEteTestWithoutTimelock {
+public class LockWithoutTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
