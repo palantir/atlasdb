@@ -1838,21 +1838,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * it back.
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-        boolean isEmpty = true;
         Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
         for (long start : startTimestamps) {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
                 continue;
             }
-            isEmpty = false;
             lockDescriptors.add(
                     AtlasRowLockDescriptor.of(
                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                             TransactionConstants.getValueForTimestamp(start)));
         }
 
-        if (isEmpty) {
+        if (lockDescriptors.isEmpty()) {
             return;
         }
 
