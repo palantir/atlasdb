@@ -18,10 +18,9 @@ package com.palantir.atlasdb.transaction.encoding;
 
 import java.util.Arrays;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -91,7 +90,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
         long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
                 + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
         byte[] rowName = ValueType.VAR_LONG.convertFromJava(row);
-        ArrayUtils.reverse(rowName);
+        EncodingUtils.reverseBits(rowName);
         return rowName;
     }
 
@@ -101,7 +100,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     }
 
     private static long decodeRowName(byte[] rowName) {
-        ArrayUtils.reverse(rowName);
+        EncodingUtils.reverseBits(rowName);
         return (long) ValueType.VAR_LONG.convertToJava(rowName, 0);
     }
 
