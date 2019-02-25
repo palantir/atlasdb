@@ -464,4 +464,21 @@ public class EncodingUtils {
             return ArrayUtils.addAll(new byte[] { 1 }, PtBytes.toBytes(Long.MIN_VALUE ^ value));
         }
     }
+
+    public static byte[] reverseBits(byte[] value) {
+        ArrayUtils.reverse(value);
+        for (int index = 0; index < value.length; index++) {
+            value[index] = reverseBitsInByte(value[index]);
+        }
+        return value;
+    }
+
+    private static byte reverseBitsInByte(byte value) {
+        byte result = 0;
+        for (int index = Byte.SIZE - 1; index >= 0; index--) {
+            result += (value & 1) << index;
+            value >>= 1;
+        }
+        return result;
+    }
 }
