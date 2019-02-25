@@ -24,15 +24,17 @@ import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-//        TodoEteTest.class,
-//        TargetedSweepEteTest.class,
-//        CassandraTimestampsEteTest.class,
-//        TimestampManagementEteTest.class,
-//        CoordinationEteTest.class,
-//        MultipleSchemaVersionsCoordinationEteTest.class,
+        TodoEteTest.class,
+        TargetedSweepEteTest.class,
+        CassandraTimestampsEteTest.class,
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
+        MultipleSchemaVersionsCoordinationEteTest.class,
         LockEteTestWithTimelock.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
