@@ -28,14 +28,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.net.ProxySelector;
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -54,19 +51,12 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.lock.ByteArrayLockDescriptor;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.LockMode;
-import com.palantir.lock.LockRefreshToken;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.remoting.api.config.service.ProxyConfiguration;
 import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.remoting3.config.ssl.TrustContext;
@@ -103,7 +93,7 @@ public class AtlasDbHttpClientsTest {
         @Path(POST_ENDPOINT)
         @Produces(MediaType.APPLICATION_JSON)
         @Consumes(MediaType.APPLICATION_JSON)
-        boolean postRequest(LockRequest content);
+        boolean postRequest(byte[] content);
     }
 
     @Before
@@ -126,30 +116,17 @@ public class AtlasDbHttpClientsTest {
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
                 TestResource.class, true);
-        Set<LockDescriptor> descriptors = IntStream.range(0, 10).mapToObj(
-                ignore -> generateDescriptorOfSize(10_000_000)).collect(
-                Collectors.toSet());
-        LockRequest request = LockRequest.of(descriptors, 1_000);
-
-
-
-        assertThat(client.postRequest(request)).isTrue();
-//        assertThatThrownBy(() -> client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
-//            .isInstanceOf(IllegalArgumentException.class);
+        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE / 2])).isTrue();
+        assertThatThrownBy(() -> client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
-    private LockDescriptor generateDescriptorOfSize(int size) {
-        byte[] test = new byte[size];
-        new SecureRandom().nextBytes(test);
-        return ByteArrayLockDescriptor.of(test);
+    @Test
+    public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
+        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
+                TestResource.class);
+        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE])).isTrue();
     }
-
-//    @Test
-//    public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-//        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
-//                TestResource.class);
-//        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE])).isTrue();
-//    }
 
     @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
