@@ -21,12 +21,12 @@ import java.util.Set;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -42,7 +42,7 @@ public interface AsyncTimelockService extends ClientAwareManagedTimestampService
 
     AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<Leased<LockToken>> lock(LockRequest request);
+    AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request);
 
     long getImmutableTimestamp();
 

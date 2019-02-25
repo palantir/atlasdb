@@ -19,25 +19,21 @@ import java.util.List;
 import java.util.Set;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.LeasingTimelockClient;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponseV2;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockRpcClient;
+import com.palantir.lock.v2.TimelockService;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
-    private static final LockResponseV2.Visitor<LockToken> LOCK_TOKEN_EXTRACTOR =
-            LockResponseV2.Visitor.of(
-                    LockResponseV2.Successful::getToken,
-                    unsuccessful -> {
-                        throw new IllegalStateException("Jepsen failed to lock a lock, but it would wait for "
-                                + "Long.MAX_VALUE, so this is unexpected.");
-                    });
-    private final TimelockRpcClient timelockService;
+    private final TimelockService timelockService;
 
     private AsyncLockClient(TimelockRpcClient timelockService) {
-        this.timelockService = timelockService;
+        this.timelockService = LeasingTimelockClient.create(timelockService);
     }
 
     public static AsyncLockClient create(MetricRegistry metricRegistry, List<String> hosts) {
@@ -50,8 +46,10 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
                 ImmutableSet.of(StringLockDescriptor.of(lockName)),
                 Long.MAX_VALUE,
                 client);
-        LockResponseV2 lockResponse = timelockService.lock(lockRequest);
-        return lockResponse.accept(LOCK_TOKEN_EXTRACTOR);
+        LockResponse lockResponse = timelockService.lock(lockRequest);
+        Preconditions.checkState(lockResponse.wasSuccessful(),
+                "Jepsen failed to lock a lock, but it would wait for Long.MAX_VALUE, so this is unexpected.");
+        return lockResponse.getToken();
     }
 
     @Override
@@ -61,6 +59,6 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
 
     @Override
     public Set<LockToken> refresh(Set<LockToken> lockTokenV2s) throws InterruptedException {
-        return timelockService.refreshLockLeases(lockTokenV2s).refreshedTokens();
+        return timelockService.refreshLockLeases(lockTokenV2s);
     }
 }

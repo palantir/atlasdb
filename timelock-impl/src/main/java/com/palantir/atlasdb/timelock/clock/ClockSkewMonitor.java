@@ -32,7 +32,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.remoting3.config.ssl.TrustContext;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 /**
  * ClockSkewMonitor keeps track of the system time of the other nodes in the cluster, and compares it to the local

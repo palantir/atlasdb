@@ -30,13 +30,13 @@ import javax.ws.rs.core.MediaType;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -105,7 +105,7 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void deprecatedLock(@Suspended final AsyncResponse response, LockRequest request) {
+    public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
         AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
@@ -121,7 +121,7 @@ public class AsyncTimelockResource {
     
     @POST
     @Path("lock-v2")
-    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
+    public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
         AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {

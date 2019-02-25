@@ -79,7 +79,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
         long immutableLockTs = timestampService.getFreshTimestamp();
         LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
         com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
@@ -106,10 +106,9 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            IdentifiedTimeLockRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         return StartIdentifiedAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.getRequestId())),
+                lockImmutableTimestamp(),
                 TimestampAndPartition.of(getFreshTimestamp(), 0));
     }
 

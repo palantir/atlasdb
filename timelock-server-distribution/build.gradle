@@ -21,6 +21,6 @@ distribution {
 task runTimeLock(type: JavaExec) {
     classpath sourceSets.main.runtimeClasspath
     main = "com.palantir.atlasdb.timelock.TimeLockServerLauncher"
-    jvmArgs = ["-javaagent:service/lib/jetty-alpn-agent-2.0.6.jar"]
+    jvmArgs = ["-javaagent:service/lib/jetty-alpn-agent-${libVersions.jetty_alpn_agent}.jar"]
     args "server", "var/conf/timelock-http2.yml"
 }
