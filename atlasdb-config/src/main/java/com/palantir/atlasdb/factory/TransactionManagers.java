@@ -130,8 +130,6 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
-import com.palantir.lock.client.LockRequestSizeLimitingLockService;
-import com.palantir.lock.client.LockRequestSizeLimitingTimeLockClient;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -809,17 +807,19 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
-        LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent, true)
-                        .applyDynamic(timelockServerListConfig);
+        LockService lockService = ServiceCreator
+                .withPayloadLimiter(metricsManager, LockService.class, userAgent)
+                .applyDynamic(timelockServerListConfig);
 
-        TimelockRpcClient timelockRpcClient = new ServiceCreator<>(metricsManager, TimelockRpcClient.class, userAgent, true)
-                        .applyDynamic(timelockServerListConfig);
+        TimelockRpcClient timelockClient = ServiceCreator
+                .withPayloadLimiter(metricsManager, TimelockRpcClient.class, userAgent)
+                .applyDynamic(timelockServerListConfig);
 
-        TimelockService timelockService = DefaultTimelockService.create(timelockRpcClient);
+        TimelockService timelockService = DefaultTimelockService.create(timelockClient);
 
-        TimestampManagementService timestampManagementService =
-                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent, true)
-                        .applyDynamic(timelockServerListConfig);
+        TimestampManagementService timestampManagementService = ServiceCreator
+                .withPayloadLimiter(metricsManager, TimestampManagementService.class, userAgent)
+                .applyDynamic(timelockServerListConfig);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

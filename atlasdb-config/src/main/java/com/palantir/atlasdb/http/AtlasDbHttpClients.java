@@ -178,8 +178,8 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload),
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(serverListConfigSupplier,
+                        trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload),
                 MetricRegistry.name(type));
     }
 

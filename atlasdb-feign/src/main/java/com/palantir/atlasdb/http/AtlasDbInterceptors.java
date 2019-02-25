@@ -18,7 +18,6 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 import okhttp3.Interceptor;
@@ -26,7 +25,6 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public final class AtlasDbInterceptors {
-    @VisibleForTesting
     public static final String USER_AGENT_HEADER = "User-Agent";
     public static final int MAX_PAYLOAD_SIZE = 50_000_000;
 

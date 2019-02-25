@@ -60,6 +60,12 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         this.limitPayload = limitPayload;
     }
 
+    public static <T> ServiceCreator<T> withPayloadLimiter(
+            MetricsManager metricsManager,
+            Class<T> serviceClass,
+            String userAgent) {
+        return new ServiceCreator<>(metricsManager, serviceClass, userAgent, true);
+    }
 
     @Override
     public T apply(ServerListConfig input) {

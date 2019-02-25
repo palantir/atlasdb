@@ -29,7 +29,8 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TimestampManagementEteTest.class,
-        CoordinationEteTest.class
+        CoordinationEteTest.class,
+        LockEteTestWithTimelock.class
         })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

@@ -54,7 +54,6 @@ public class TodoEteTest {
     }
 
     @Test
-    @Ignore
     @ShouldRetry(numAttempts = 10, retryableExceptions = {SocketTimeoutException.class})
     public void shouldSweepStreamIndices() {
         // Stores five small streams, each of which fits into a single block

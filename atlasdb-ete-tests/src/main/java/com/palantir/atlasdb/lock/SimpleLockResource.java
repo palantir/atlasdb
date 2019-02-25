@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.lock;
 
+import java.security.SecureRandom;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -31,6 +33,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 
 public class SimpleLockResource implements LockResource {
+    private static final SecureRandom GENERATOR = new SecureRandom();
     private final TransactionManager transactionManager;
 
     public SimpleLockResource(TransactionManager transactionManager) {
@@ -38,10 +41,8 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public LockResponse lockWithTimelock(int lockDescriptorSize) {
-        Set<LockDescriptor> descriptors = IntStream.range(0, 10).mapToObj(
-                ignore -> generateDescriptorOfSize(lockDescriptorSize)).collect(
-                Collectors.toSet());
+    public LockResponse lockWithTimelock(int numLocks, int descriptorSize) {
+        Set<LockDescriptor> descriptors = generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
         LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
         if (response.wasSuccessful()) {
@@ -51,9 +52,10 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public LockRefreshToken lockWithLockService(int lockDescriptorSize) throws InterruptedException {
-        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(
-                ImmutableSortedMap.of(generateDescriptorOfSize(lockDescriptorSize), LockMode.WRITE)).build();
+    public LockRefreshToken lockWithLockService(int numLocks, int descriptorSize) throws InterruptedException {
+        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        generateDescriptors(numLocks, descriptorSize).forEach(descriptor -> builder.put(descriptor, LockMode.WRITE));
+        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(builder.build()).build();
         LockRefreshToken response = transactionManager.getLockService().lock("test", request);
         if (response != null) {
             transactionManager.getLockService().unlock(response);
@@ -61,7 +63,13 @@ public class SimpleLockResource implements LockResource {
         return response;
     }
 
+    private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {
+        return IntStream.range(0, numDescriptors).mapToObj(ignore -> generateDescriptorOfSize(descriptorSize));
+    }
+
     private LockDescriptor generateDescriptorOfSize(int size) {
-        return ByteArrayLockDescriptor.of(new byte[size]);
+        byte[] bytes = new byte[size];
+        GENERATOR.nextBytes(bytes);
+        return ByteArrayLockDescriptor.of(bytes);
     }
 }
