@@ -35,11 +35,9 @@ public class TimeLockServerDownIntegrationTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
     private static final byte[] DATA = "foo".getBytes();
     private static final Cell CELL = Cell.create("bar".getBytes(), "baz".getBytes());
-    private static final String CLIENT = "client";
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
-            CLIENT,
             "paxosSingleServer.yml");
 
     @ClassRule
