@@ -25,6 +25,7 @@ public final class CassandraConstants {
     static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
+    static final double DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE = 0.0001;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
 
@@ -58,6 +59,10 @@ public final class CassandraConstants {
     public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
     public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
     public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
+
+    static final int DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL = 1;
+    static final int DEFAULT_MiN_INDEX_INTERVAL = 128;
+    static final int DEFAULT_MAX_INDEX_INTERVAL = 2048;
 
     static final long CAS_TABLE_TIMESTAMP = 0L;
 
