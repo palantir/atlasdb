@@ -18,6 +18,7 @@ package com.palantir.atlasdb.lock;
 
 import java.security.SecureRandom;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -41,7 +42,7 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public boolean lockWithTimelock(int numLocks, int descriptorSize) {
+    public boolean lockUsingTimelockApi(int numLocks, int descriptorSize) {
         Set<LockDescriptor> descriptors = generateDescriptors(numLocks, descriptorSize).collect(Collectors.toSet());
         LockRequest request = LockRequest.of(descriptors, 1_000);
         LockResponse response = transactionManager.getTimelockService().lock(request);
@@ -53,16 +54,26 @@ public class SimpleLockResource implements LockResource {
     }
 
     @Override
-    public boolean lockWithLockService(int numLocks, int descriptorSize) throws InterruptedException {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
-        generateDescriptors(numLocks, descriptorSize).forEach(descriptor -> builder.put(descriptor, LockMode.WRITE));
-        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest.builder(builder.build()).build();
-        LockRefreshToken response = transactionManager.getLockService().lock("test", request);
-        if (response != null) {
-            transactionManager.getLockService().unlock(response);
-            return true;
+    public boolean lockUsingLegacyLockApi(int numLocks, int descriptorSize) {
+        com.palantir.lock.LockRequest request = com.palantir.lock.LockRequest
+                .builder(generateDescriptorMap(numLocks, descriptorSize))
+                .build();
+        try {
+            LockRefreshToken response = transactionManager.getLockService().lock("test", request);
+            if (response != null) {
+                transactionManager.getLockService().unlock(response);
+                return true;
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
         return false;
+    }
+
+    private SortedMap<LockDescriptor, LockMode> generateDescriptorMap(int numLocks, int descriptorSize) {
+        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
+        generateDescriptors(numLocks, descriptorSize).forEach(descriptor -> builder.put(descriptor, LockMode.WRITE));
+        return builder.build();
     }
 
     private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {

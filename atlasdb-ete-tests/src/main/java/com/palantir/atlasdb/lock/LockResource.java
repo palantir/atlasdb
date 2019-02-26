@@ -29,12 +29,11 @@ public interface LockResource {
     @Path("timelock-lock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    boolean lockWithTimelock(@QueryParam("number") int numDescriptors, int descriptorSize);
+    boolean lockUsingTimelockApi(@QueryParam("number") int numDescriptors, int descriptorSize);
 
     @POST
     @Path("remote-lock")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    boolean lockWithLockService(@QueryParam("number") int numDescriptors, int descriptorSize)
-            throws InterruptedException;
+    boolean lockUsingLegacyLockApi(@QueryParam("number") int numDescriptors, int descriptorSize);
 }

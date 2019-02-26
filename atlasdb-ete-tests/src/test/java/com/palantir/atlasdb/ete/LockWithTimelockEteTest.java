@@ -21,43 +21,42 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.palantir.atlasdb.lock.LockResource;
 
 public class LockWithTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
-    public void smallTimelockLockSucceeds() throws InterruptedException, JsonProcessingException {
-        assertThat(lockResource.lockWithTimelock(1, 100)).isTrue();
+    public void smallV1LockSucceeds() throws InterruptedException {
+        assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
     }
 
     @Test
-    public void smallLockServiceLockSucceeds() throws InterruptedException {
-        assertThat(lockResource.lockWithLockService(1, 100)).isTrue();
+    public void smallV2LockSucceeds() {
+        assertThat(lockResource.lockUsingTimelockApi(1, 100)).isTrue();
     }
 
     @Test
-    public void largeTimelockLockSucceeds() throws InterruptedException, JsonProcessingException {
-        assertThat(lockResource.lockWithTimelock(50, 100_000)).isTrue();
-    }
-
-    @Test
-    public void largeLockServiceLockSucceeds() throws InterruptedException {
-        assertThat(lockResource.lockWithLockService(50, 100_000)).isTrue();
+    public void largeV1LockSucceeds() throws InterruptedException {
+        assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
 
     }
 
     @Test
-    public void hugeTimelockLockThrowsOnClientSide() throws InterruptedException {
-        assertThatThrownBy(() -> lockResource.lockWithTimelock(100, 500_000))
+    public void largeV2LockSucceeds() {
+        assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
+    }
+
+    @Test
+    public void hugeV1LockThrowsOnClientSide() throws InterruptedException {
+        assertThatThrownBy(() -> lockResource.lockUsingLegacyLockApi(100, 500_000))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("INVALID_ARGUMENT");
     }
 
     @Test
-    public void hugeLockServiceLockThrowsOnClientSide() throws InterruptedException {
-        assertThatThrownBy(() -> lockResource.lockWithLockService(100, 500_000))
+    public void hugeV2ThrowsOnClientSide() {
+        assertThatThrownBy(() -> lockResource.lockUsingTimelockApi(100, 500_000))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("INVALID_ARGUMENT");
     }

@@ -46,6 +46,5 @@ public class MultiCassandraTestSuite extends EteSetup {
             MultiCassandraTestSuite.class,
             "docker-compose.multiple-cassandra.yml",
             CLIENTS,
-            CassandraEnvironment.get(),
-            false);
+            CassandraEnvironment.get());
 }

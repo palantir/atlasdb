@@ -19,6 +19,8 @@ package com.palantir.atlasdb.http;
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -57,10 +59,10 @@ public final class AtlasDbInterceptors {
         @Override
         public Response intercept(Chain chain) throws IOException {
             RequestBody body = chain.request().body();
-            if (body != null) {
-                Preconditions.checkArgument(body.contentLength() < MAX_PAYLOAD_SIZE,
-                        String.format("Request too large. Maximum allowed size is %s bytes, but the request has %s.",
-                                MAX_PAYLOAD_SIZE, body.contentLength()));
+            if (body != null && body.contentLength() >= MAX_PAYLOAD_SIZE) {
+                throw new SafeIllegalArgumentException(
+                        "Request too large. Maximum allowed payload size is {} bytes, but the request has {}.",
+                        SafeArg.of("maximumSize", MAX_PAYLOAD_SIZE), SafeArg.of("actualSize", body.contentLength()));
             }
             return chain.proceed(chain.request());
         }

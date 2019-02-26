@@ -807,19 +807,11 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
             String userAgent) {
-        LockService lockService = ServiceCreator
-                .withPayloadLimiter(metricsManager, LockService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
-
-        TimelockRpcClient timelockClient = ServiceCreator
-                .withPayloadLimiter(metricsManager, TimelockRpcClient.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
-
+        ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
+        LockService lockService = creator.createService(LockService.class);
+        TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
         TimelockService timelockService = LeasingTimelockClient.create(timelockClient);
-
-        TimestampManagementService timestampManagementService = ServiceCreator
-                .withPayloadLimiter(metricsManager, TimestampManagementService.class, userAgent)
-                .applyDynamic(timelockServerListConfig);
+        TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
@@ -867,13 +859,10 @@ public abstract class TransactionManagers {
                 .servers(leaderConfig.leaders())
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
-        LockService remoteLock = new ServiceCreator<>(metricsManager, LockService.class, userAgent)
-                .apply(serverListConfig);
-        TimestampService remoteTime = new ServiceCreator<>(metricsManager, TimestampService.class, userAgent)
-                .apply(serverListConfig);
-        TimestampManagementService remoteManagement =
-                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
-                        .apply(serverListConfig);
+        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> serverListConfig);
+        LockService remoteLock = creator.createService(LockService.class);
+        TimestampService remoteTime = creator.createService(TimestampService.class);
+        TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
 
         if (leaderConfig.leaders().size() == 1) {
             // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
@@ -939,13 +928,10 @@ public abstract class TransactionManagers {
 
     private static LockAndTimestampServices createRawRemoteServices(
             MetricsManager metricsManager, AtlasDbConfig config, String userAgent) {
-        LockService lockService = new ServiceCreator<>(metricsManager, LockService.class, userAgent)
-                .apply(config.lock().get());
-        TimestampService timeService = new ServiceCreator<>(metricsManager, TimestampService.class, userAgent)
-                .apply(config.timestamp().get());
-        TimestampManagementService timestampManagementService =
-                new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
-                        .apply(config.timestamp().get());
+        ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> config.lock().get());
+        LockService lockService = creator.createService(LockService.class);
+        TimestampService timeService = creator.createService(TimestampService.class);
+        TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)

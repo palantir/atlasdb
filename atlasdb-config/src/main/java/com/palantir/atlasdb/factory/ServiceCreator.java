@@ -38,46 +38,42 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
-public class ServiceCreator<T> implements Function<ServerListConfig, T> {
+public final class ServiceCreator {
     private final MetricsManager metricsManager;
-    private final Class<T> serviceClass;
     private final String userAgent;
+    private final Supplier<ServerListConfig> servers;
     private final boolean limitPayload;
 
-    public ServiceCreator(MetricsManager metricsManager,
-            Class<T> serviceClass,
-            String userAgent) {
-        this(metricsManager, serviceClass, userAgent, false);
-    }
-
-    public ServiceCreator(MetricsManager metricsManager,
-            Class<T> serviceClass,
-            String userAgent,
+    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers,
             boolean limitPayload) {
         this.metricsManager = metricsManager;
-        this.serviceClass = serviceClass;
         this.userAgent = userAgent;
+        this.servers = servers;
         this.limitPayload = limitPayload;
     }
 
-    public static <T> ServiceCreator<T> withPayloadLimiter(
-            MetricsManager metricsManager,
-            Class<T> serviceClass,
-            String userAgent) {
-        return new ServiceCreator<>(metricsManager, serviceClass, userAgent, true);
+    /**
+     * Creates clients without client-side restrictions on payload size.
+     */
+    public static ServiceCreator noPayloadLimiter(MetricsManager metrics, String agent,
+            Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList, false);
     }
 
-    @Override
-    public T apply(ServerListConfig input) {
-        return applyDynamic(() -> input);
+    /**
+     * Creates clients that intercept requests with payload greater than
+     * {@link com.palantir.atlasdb.http.AtlasDbInterceptors#MAX_PAYLOAD_SIZE} bytes. This ServiceCreator should be used
+     * for clients to servers that impose payload limits.
+     */
+    public static ServiceCreator withPayloadLimiter(MetricsManager metrics, String agent,
+            Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList, true);
     }
 
-    // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
-    // implementation of Function, leaving this here for now.
-    public T applyDynamic(Supplier<ServerListConfig> input) {
-        return createService(
+    public <T> T createService(Class<T> serviceClass) {
+        return create(
                 metricsManager,
-                input,
+                servers,
                 SslSocketFactories::createTrustContext,
                 ServiceCreator::createProxySelector,
                 serviceClass,
@@ -93,7 +89,7 @@ public class ServiceCreator<T> implements Function<ServerListConfig, T> {
         return sslConfiguration.map(SslSocketFactories::createTrustContext);
     }
 
-    private static <T> T createService(
+    private static <T> T create(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,

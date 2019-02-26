@@ -26,12 +26,12 @@ public class LockWithoutTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
 
     @Test
-    public void hugeTimelockLockSucceeds() throws InterruptedException {
-        assertThat(lockResource.lockWithTimelock(100, 500_000)).isTrue();
+    public void hugeV1LockSucceeds() throws InterruptedException {
+        assertThat(lockResource.lockUsingLegacyLockApi(100, 500_000)).isTrue();
     }
 
     @Test
-    public void hugeLockServiceLockSucceeds() throws InterruptedException {
-        assertThat(lockResource.lockWithLockService(100, 500_000)).isTrue();
+    public void hugeV2LockSucceeds() throws InterruptedException {
+        assertThat(lockResource.lockUsingTimelockApi(100, 500_000)).isTrue();
     }
 }

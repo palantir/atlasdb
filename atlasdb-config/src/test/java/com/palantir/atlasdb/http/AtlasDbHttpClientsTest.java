@@ -116,16 +116,22 @@ public class AtlasDbHttpClientsTest {
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
                 TestResource.class, true);
-        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE / 2])).isTrue();
+        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE / 2]))
+                .as("Request with payload size below limit succeeds")
+                .isTrue();
         assertThatThrownBy(() -> client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
-            .isInstanceOf(IllegalArgumentException.class);
+                .as("Request with payload size exceeding limit throws")
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Request too large");
     }
 
     @Test
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
                 TestResource.class);
-        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE])).isTrue();
+        assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
+                .as("Request with payload size exceeding limit succeeds when not limiting payload size")
+                .isTrue();
     }
 
     @Test

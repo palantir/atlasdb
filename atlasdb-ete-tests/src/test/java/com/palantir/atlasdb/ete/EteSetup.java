@@ -67,17 +67,16 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime) {
-        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of(), false);
+        return setupComposition(eteClass, composeFile, availableClientNames, waitTime, ImmutableMap.of());
     }
+
 
     public static RuleChain setupComposition(
             Class<?> eteClass,
             String composeFile,
             List<String> availableClientNames,
-            Map<String, String> environment,
-            boolean usingTimelock) {
-        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment,
-                usingTimelock);
+            Map<String, String> environment) {
+        return setupComposition(eteClass, composeFile, availableClientNames, Duration.TWO_MINUTES, environment);
     }
 
     public static RuleChain setupComposition(
@@ -85,10 +84,26 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Duration waitTime,
-            Map<String, String> environment,
-            boolean usingTimelock) {
+            Map<String, String> environment) {
         waitDuration = waitTime;
-        return setup(eteClass, composeFile, availableClientNames, environment, usingTimelock);
+        return setup(eteClass, composeFile, availableClientNames, environment);
+    }
+
+    public static RuleChain setupCompositionWithTimelock(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment) {
+        waitDuration = Duration.TWO_MINUTES;
+        return setup(eteClass, composeFile, availableClientNames, environment, true);
+    }
+
+    public static RuleChain setup(
+            Class<?> eteClass,
+            String composeFile,
+            List<String> availableClientNames,
+            Map<String, String> environment) {
+        return setup(eteClass, composeFile, availableClientNames, environment, false);
     }
 
     public static RuleChain setup(
