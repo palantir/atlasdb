@@ -32,6 +32,7 @@ public class TableMetadataTest {
             .explicitCompressionBlockSizeKB(32)
             .appendHeavyAndReadLight(true)
             .nameLogSafety(LogSafety.SAFE)
+            .denselyAccessedWideRows(true)
             .build();
 
     @Test

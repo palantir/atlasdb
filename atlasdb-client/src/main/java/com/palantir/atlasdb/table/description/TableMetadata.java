@@ -83,6 +83,15 @@ public abstract class TableMetadata implements Persistable {
         return LogSafety.UNSAFE;
     }
 
+    /**
+     * @return whether the table has densely accessed wide rows. This helps identify tables which could benefit from
+     * setting database tuning parameters to values more in line with such workflows, like the _transactions2 table.
+     */
+    @Value.Default
+    public boolean hasDenselyAccessedWideRows() {
+        return false;
+    }
+
     public static TableMetadata allDefault() {
         return builder().build();
     }
@@ -156,6 +165,7 @@ public abstract class TableMetadata implements Persistable {
         builder.setSweepStrategy(getSweepStrategy());
         builder.setAppendHeavyAndReadLight(isAppendHeavyAndReadLight());
         builder.setNameLogSafety(getNameLogSafety());
+        builder.setDenselyAccessedWideRows(hasDenselyAccessedWideRows());
         return builder;
     }
 
@@ -185,6 +195,9 @@ public abstract class TableMetadata implements Persistable {
         }
         if (message.hasNameLogSafety()) {
             builder.nameLogSafety(message.getNameLogSafety());
+        }
+        if (message.hasDenselyAccessedWideRows()) {
+            builder.denselyAccessedWideRows(message.getDenselyAccessedWideRows());
         }
 
         return builder.build();
