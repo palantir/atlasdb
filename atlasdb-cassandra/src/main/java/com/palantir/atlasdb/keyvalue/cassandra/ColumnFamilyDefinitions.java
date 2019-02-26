@@ -58,7 +58,8 @@ final class ColumnFamilyDefinitions {
         Map<String, String> compressionOptions = getCompressionOptions(tableMetadata);
         cf.setCompression_options(compressionOptions);
 
-        if (tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false)) {
+        boolean appendHeavyAndReadLight = tableMetadata.isPresent() && tableMetadata.get().isAppendHeavyAndReadLight();
+        if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
         }
@@ -82,32 +83,32 @@ final class ColumnFamilyDefinitions {
         }
 
         cf.setGc_grace_seconds(gcGraceSeconds);
-        cf.setBloom_filter_fp_chance(
-                tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
-                .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE));
-        cf.setMin_index_interval(
-                tableMetadata.map(CassandraTableOptions::minIndexInterval)
-                        .orElse(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL));
-        cf.setMax_index_interval(
-                tableMetadata.map(CassandraTableOptions::maxIndexInterval)
-                        .orElse(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL));
+
+        double bloomFilterFpChance = tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
+                .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE);
+        cf.setBloom_filter_fp_chance(bloomFilterFpChance);
+
+        int minIndexInterval = tableMetadata.map(CassandraTableOptions::minIndexInterval)
+                .orElse(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
+        cf.setMin_index_interval(minIndexInterval);
+
+        int maxIndexInterval = tableMetadata.map(CassandraTableOptions::maxIndexInterval)
+                .orElse(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL);
+        cf.setMax_index_interval(maxIndexInterval);
         return cf;
     }
 
     private static Map<String, String> getCompressionOptions(Optional<TableMetadata> tableMetadata) {
-        Map<String, String> compressionOptions = Maps.newHashMap();
-        compressionOptions.put(
-                CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-
         int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
                 .orElse(0);
         int actualCompressionBlockSizeKb = explicitCompressionBlockSizeKb == 0
                 ? AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB
                 : explicitCompressionBlockSizeKb;
-        compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                Integer.toString(actualCompressionBlockSizeKb));
-        return compressionOptions;
+        return ImmutableMap.<String, String>builder()
+                .put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE)
+                .put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                        Integer.toString(actualCompressionBlockSizeKb))
+                .build();
     }
 
     /**
