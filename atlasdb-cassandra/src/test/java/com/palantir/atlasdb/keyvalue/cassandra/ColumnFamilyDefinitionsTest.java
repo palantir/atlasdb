@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -37,6 +38,9 @@ public class ColumnFamilyDefinitionsTest {
             .denselyAccessedWideRows(true)
             .build()
             .persistToBytes();
+    private static final ImmutableMap<String, String> DEFAULT_COMPRESSION = ImmutableMap.of(
+            CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE,
+            CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, String.valueOf(4));
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
@@ -69,7 +73,7 @@ public class ColumnFamilyDefinitionsTest {
                 FOUR_DAYS_IN_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
+        assertFalse("ColumnFamilyDefinitions with different gc_grace_seconds should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
 
@@ -87,6 +91,32 @@ public class ColumnFamilyDefinitionsTest {
                 TableMetadata.builder().denselyAccessedWideRows(true).build().persistToBytes());
 
         assertFalse("denselyAccessedWideRows should be reflected in comparisons of ColumnFamilyDefinitions",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDifferingMinIndexIntervalValuesShouldNotMatch() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMin_index_interval(512);
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMin_index_interval(128);
+
+        assertFalse("ColumnFamilyDefinitions with different min_index_interval should not match",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDifferingMaxIndexIntervalValuesShouldNotMatch() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMax_index_interval(512);
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMax_index_interval(128);
+
+        assertFalse("ColumnFamilyDefinitions with different min_index_interval should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
 

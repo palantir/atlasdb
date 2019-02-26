@@ -208,12 +208,14 @@ final class ColumnFamilyDefinitions {
                     tableName,
                     clientSide.min_index_interval,
                     clusterSide.min_index_interval);
+            return false;
         }
         if (clientSide.max_index_interval != clusterSide.max_index_interval) {
             logMismatch("max index interval",
                     tableName,
                     clientSide.max_index_interval,
                     clusterSide.max_index_interval);
+            return false;
         }
 
         return true;
