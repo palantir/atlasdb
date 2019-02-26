@@ -87,8 +87,8 @@ class CassandraTableCreator {
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
                 .dcLocalReadRepairChance(0.1)
                 .gcGraceSeconds(config.gcGraceSeconds())
-                .minIndexInterval(minIndexInterval(tableMetadata))
-                .maxIndexInterval(maxIndexInterval(tableMetadata))
+                .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
+                .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
                 .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
                 .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
                 .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
@@ -99,18 +99,6 @@ class CassandraTableCreator {
                 .safeQueryFormat(query + " AND id = '%s'")
                 .addArgs(SafeArg.of("cfId", getUuidForTable(tableRef)))
                 .build();
-    }
-
-    private int minIndexInterval(TableMetadata tableMetadata) {
-        return tableMetadata.hasDenselyAccessedWideRows()
-                ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
-                : CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL;
-    }
-
-    private int maxIndexInterval(TableMetadata tableMetadata) {
-        return tableMetadata.hasDenselyAccessedWideRows()
-                ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
-                : CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL;
     }
 
     private String wrapInQuotes(String string) {

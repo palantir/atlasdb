@@ -50,32 +50,14 @@ final class ColumnFamilyDefinitions {
      */
     @SuppressWarnings("CyclomaticComplexity")
     static CfDef getCfDef(String keyspace, TableReference tableRef, int gcGraceSeconds, byte[] rawMetadata) {
-        Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
         Optional<TableMetadata> tableMetadata = CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)
                 ? Optional.empty()
                 : Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata));
 
-        int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
-                .orElse(0);
-        if (explicitCompressionBlockSizeKb != 0) {
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(explicitCompressionBlockSizeKb));
-        } else {
-            // We don't really need compression here nor anticipate it will garner us any gains
-            // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
-        }
+        Map<String, String> compressionOptions = getCompressionOptions(tableMetadata);
+        cf.setCompression_options(compressionOptions);
 
         if (tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false)) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
@@ -104,8 +86,29 @@ final class ColumnFamilyDefinitions {
         cf.setBloom_filter_fp_chance(
                 tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
                 .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE));
-        cf.setCompression_options(compressionOptions);
+        cf.setMin_index_interval(
+                tableMetadata.map(CassandraTableOptions::minIndexInterval)
+                        .orElse(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL));
+        cf.setMax_index_interval(
+                tableMetadata.map(CassandraTableOptions::maxIndexInterval)
+                        .orElse(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL));
         return cf;
+    }
+
+    private static Map<String, String> getCompressionOptions(Optional<TableMetadata> tableMetadata) {
+        Map<String, String> compressionOptions = Maps.newHashMap();
+        compressionOptions.put(
+                CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
+                CassandraConstants.DEFAULT_COMPRESSION_TYPE);
+
+        int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
+                .orElse(0);
+        int actualCompressionBlockSizeKb = explicitCompressionBlockSizeKb == 0
+                ? AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB
+                : explicitCompressionBlockSizeKb;
+        compressionOptions.put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                Integer.toString(actualCompressionBlockSizeKb));
+        return compressionOptions;
     }
 
     /**

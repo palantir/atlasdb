@@ -40,4 +40,18 @@ final class CassandraTableOptions {
                 ? CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE
                 : CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
     }
+
+    static int minIndexInterval(TableMetadata tableMetadata) {
+        return tableMetadata.hasDenselyAccessedWideRows()
+                ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
+                : CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL;
+    }
+
+    static int maxIndexInterval(TableMetadata tableMetadata) {
+        return tableMetadata.hasDenselyAccessedWideRows()
+                ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
+                : CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL;
+    }
+
+
 }
