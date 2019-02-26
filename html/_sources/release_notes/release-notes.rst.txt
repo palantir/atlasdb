@@ -66,6 +66,12 @@ v0.122.0
     *    - Type
          - Change
 
+    *    - |improved| |devbreak|
+         - Clients talking to Timelock will now throw instead of making a request with a payload larger than 50MB.
+           This addresses several internal issues concerning Timelock stability.
+           This is a devbreak in several AtlasDB utility classes used to create clients, where an additional boolean parameter has been added controlling whether its requests should be limited.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3772>`__)
+
     *    - |improved|
          - Timelock clients now use leased lock tokens to reduce number of RPC's to Timelock server, and improve transaction performance.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3760>`__)
