@@ -85,8 +85,8 @@ public class TimeLockMigrator extends AsyncInitializer {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfig,
             String userAgent) {
-        return new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
-                .applyDynamic(serverListConfig);
+        return ServiceCreator.noPayloadLimiter(metricsManager, userAgent, serverListConfig)
+                .createService(TimestampManagementService.class);
     }
 
     @Override

@@ -48,7 +48,7 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT);
+        return createProxy(metricRegistry, trustContext, uri, type, false);
     }
 
     public static <T> T createProxy(
@@ -56,12 +56,9 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent) {
-        return AtlasDbMetrics.instrument(
-                metricRegistry,
-                type,
-                AtlasDbFeignTargetFactory.createProxy(trustContext, uri, type, userAgent),
-                MetricRegistry.name(type));
+            boolean limitPayloadSize) {
+        return createProxy(metricRegistry, trustContext, uri, false, type, UserAgents.DEFAULT_USER_AGENT,
+                limitPayloadSize);
     }
 
     public static <T> T createProxy(
@@ -70,37 +67,14 @@ public final class AtlasDbHttpClients {
             String uri,
             boolean refreshingHttpClient,
             Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayloadSize) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(trustContext, uri, refreshingHttpClient, type, userAgent),
+                AtlasDbFeignTargetFactory
+                        .createProxy(trustContext, uri, refreshingHttpClient, type, userAgent, limitPayloadSize),
                 MetricRegistry.name(type));
-    }
-
-    /**
-     * Constructs a list, corresponding to the iteration order of the supplied endpoints, of dynamic proxies for the
-     * specified type, using the supplied SSL factory if it is present.
-     */
-    public static <T> List<T> createProxies(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Collection<String> endpointUris,
-            Class<T> type) {
-        return createProxies(metricRegistry, trustContext, endpointUris, type, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static <T> List<T> createProxies(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent) {
-        List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
-        for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, trustContext, uri, type, userAgent));
-        }
-        return ret;
     }
 
     public static <T> List<T> createProxies(
@@ -112,7 +86,7 @@ public final class AtlasDbHttpClients {
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, trustContext, uri, refreshingHttpClient, type, userAgent));
+            ret.add(createProxy(metricRegistry, trustContext, uri, refreshingHttpClient, type, userAgent, false));
         }
         return ret;
     }
@@ -199,12 +173,13 @@ public final class AtlasDbHttpClients {
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayload) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
-                        serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent),
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(serverListConfigSupplier,
+                        trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload),
                 MetricRegistry.name(type));
     }
 
@@ -227,7 +202,8 @@ public final class AtlasDbHttpClients {
                         QUICK_FEIGN_TIMEOUT_MILLIS,
                         QUICK_MAX_BACKOFF_MILLIS,
                         type,
-                        userAgent),
+                        userAgent,
+                        false),
                 MetricRegistry.name(type));
     }
 
@@ -249,7 +225,8 @@ public final class AtlasDbHttpClients {
                         QUICK_FEIGN_TIMEOUT_MILLIS,
                         QUICK_MAX_BACKOFF_MILLIS,
                         type,
-                        UserAgents.DEFAULT_USER_AGENT),
+                        UserAgents.DEFAULT_USER_AGENT,
+                        false),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

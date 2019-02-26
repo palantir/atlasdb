@@ -501,8 +501,10 @@ public class PaxosTimeLockServerIntegrationTest {
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
+                false,
                 clazz,
-                client);
+                client,
+                true);
     }
 
     private static String getRootUriForClient(String client) {
