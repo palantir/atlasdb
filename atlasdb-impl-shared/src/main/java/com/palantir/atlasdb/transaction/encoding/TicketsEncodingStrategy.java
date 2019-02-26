@@ -20,7 +20,6 @@ import java.util.Arrays;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
@@ -32,7 +31,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
  * least significant bits of the timestamp and using that as the row number. For example, we would store timestamps
  * 1, ROW_PER_QUANTUM + 1, 2 * ROW_PER_QUANTUM + 1 etc. in the same row.
  *
- * We store the row name as a bit-wise reversed version the row number to ensure even distribution in key-value
+ * We store the row name as a bit-wise reversed version of the row number to ensure even distribution in key-value
  * services that rely on consistent hashing or similar mechanisms for partitioning.
  *
  * We also use a delta encoding for the commit timestamp as these differences are expected to be small.
@@ -89,9 +88,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     private static byte[] encodeRowName(long startTimestamp) {
         long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
                 + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
-        byte[] rowName = ValueType.VAR_LONG.convertFromJava(row);
-        EncodingUtils.reverseBits(rowName);
-        return rowName;
+        return PtBytes.toBytes(Long.reverse(row));
     }
 
     private static byte[] encodeColumnName(long startTimestamp) {
@@ -100,8 +97,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     }
 
     private static long decodeRowName(byte[] rowName) {
-        EncodingUtils.reverseBits(rowName);
-        return (long) ValueType.VAR_LONG.convertToJava(rowName, 0);
+        return Long.reverse(PtBytes.toLong(rowName));
     }
 
     private static long decodeColumnName(byte[] columnName) {
