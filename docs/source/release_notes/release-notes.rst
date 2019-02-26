@@ -50,17 +50,60 @@ develop
     *    - Type
          - Change
 
+========
+v0.122.0
+========
+
+22 Feb 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - Timelock clients now use leased lock tokens to reduce number of RPC's to Timelock server, and improve transaction performance.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3760>`__)
+
+    *    - |devbreak|
+         - `startIdentifiedAtlasDbTransaction()` and `lockImmutableTimestamp()` now being called without an `IdentifiedTimeLockRequest` parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3769>`__)
+
+========
+v0.121.0
+========
+
+21 Feb 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
          - We now use jetty-alpn-agent 2.0.9
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3763>`__)
 
-    *    - |devbreak|
-         - `startIdentifiedAtlasDbTransaction()` and `lockImmutableTimestamp()` now being called without an `IdentifiedTimeLockRequest` parameter.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3769>`__)
+    *    - |improved| |devbreak|
+         - All usage of remoting-api and remoting3 have been replaced by their equivalents in `com.palantir.tracing`, `com.palantir.conjure.java.api`, and `com.palantir.conjure.java.runtime`.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3764>`__)
+
+========
+v0.120.0
+========
+
+19 Feb 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |devbreak|
          - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
@@ -71,9 +114,45 @@ develop
            information to TimelockClient from the caller.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
 
-    *    - |improved| |devbreak|
-         - All usage of remoting-api and remoting3 have been replaced by their equivalents in `com.palantir.tracing`, `com.palantir.conjure.java.api`, and `com.palantir.conjure.java.runtime`.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3764>`__)
+    *    - |fixed|
+         - ``FailoverFeignTarget`` now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
+           Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3752>`__)
+
+    *    - |fixed|
+         - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
+
+========
+v0.119.0
+========
+
+13 Feb 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed| |improved|
+         - TimeLock will now no longer create its high level paxos directory at configuration de-serialization time.
+           Instead it waits until creating each individual learner or acceptor log directory, allowing timelock to rely more accurately on directory existence as a proxy for said timelock node being new or not.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3745>`__)
+
+========
+v0.118.0
+========
+
+8 Feb 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |devbreak| |improved|
          - The `TableMetadata` class has been refactored to use Immutables.
@@ -85,13 +164,31 @@ develop
            The Cassandra KVS putUnlessExists method has been updated to use the above call.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
 
-    *    - |improved|
-         - We now correctly handle host restart in the clock skew monitor.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
+    *    - |fixed|
+         - Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
+           Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
     *    - |improved|
-         - AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3701>`__)
+         - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
+
+========
+v0.117.0
+========
+
+28 Jan 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |changed|
+         - Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting `install.asyncLock.useAsyncLockService` to `false` (default is `true`) should migrate to `AsyncLockService` before taking this upgrade.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3718>`__)
 
     *    - |devbreak|
          - Key value services now require their ``CheckAndSetCompatibility`` to be specified.
@@ -99,32 +196,13 @@ develop
            Please be very careful if you are explicitly setting this to ``CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3713>`__)
 
-    *    - |changed|
-         - Timelock service no longer supports synchronous lock endpoints. Users who explicitly stated timelock to use synchronous resources by setting `install.asyncLock.useAsyncLockService` to `false` (default is `true`) should migrate to `AsyncLockService` before taking this upgrade.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3718>`__)
-
-    *    - |fixed|
-         - Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
-           Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
-
-    *    - |changed| |improved|
-         - TimeLock will now no longer create its high level paxos directory at configuration de-serialization time.
-           Instead it waits until creating each individual learner or acceptor log directory, allowing timelock to rely more accurately on directory existence as a proxy for said timelock node being new or not.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3745>`__)
+    *    - |improved|
+         - AtlasDB now has an extra delay after leader elections; this lays the groundwork for leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3701>`__)
 
     *    - |improved|
-         - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
-
-    *    - |fixed|
-         - ``FailoverFeignTarget`` now retries correctly if calls to individual nodes take a long time and eventually fail with an exception.
-           Previously, we could fail out without having tried all nodes under certain circumstances, even when there existed a node that could legitimately service a request.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3752>`__)
-
-    *    - |fixed|
-         - Fixed cases where column range scans could result in NullPointerExceptions when there were concurrent writes to the same range.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3756>`__)
+         - We now correctly handle host restart in the clock skew monitor.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
 
 ========
 v0.116.1
