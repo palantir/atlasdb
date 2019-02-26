@@ -52,16 +52,6 @@ public class DistributingModulusGenerator {
         return chosenResidue.residue();
     }
 
-    private ReferenceCountedResidue getRandomLeastReferencedReferenceCountingResidue() {
-        SortedSet<ReferenceCountedResidue> leastReferencedResidues = getAllLeastReferencedResidues();
-        int elementIndex = ThreadLocalRandom.current().nextInt(leastReferencedResidues.size());
-        return leastReferencedResidues.stream()
-                .skip(elementIndex)
-                .findFirst()
-                .orElseThrow(() ->
-                        new IllegalStateException("Attempted to select a random element from an empty collection!"));
-    }
-
     public synchronized void unmarkResidue(int residue) {
         // There are usually only 16 elements, so this O(n) algo probably will do, but we can pair this with a HashMap
         // and/or make ReferenceCountedResidue modifiable if we decide to use higher moduli in the future.
@@ -77,6 +67,16 @@ public class DistributingModulusGenerator {
             }
         }
         throw new IllegalStateException("Residue " + residue + " was not found when unmarking!");
+    }
+
+    private ReferenceCountedResidue getRandomLeastReferencedReferenceCountingResidue() {
+        SortedSet<ReferenceCountedResidue> leastReferencedResidues = getAllLeastReferencedResidues();
+        int elementIndex = ThreadLocalRandom.current().nextInt(leastReferencedResidues.size());
+        return leastReferencedResidues.stream()
+                .skip(elementIndex)
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException("Attempted to select a random element from an empty collection!"));
     }
 
     private SortedSet<ReferenceCountedResidue> getAllLeastReferencedResidues() {
