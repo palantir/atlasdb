@@ -48,7 +48,6 @@ final class ColumnFamilyDefinitions {
      *
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
-    @SuppressWarnings("CyclomaticComplexity")
     static CfDef getCfDef(String keyspace, TableReference tableRef, int gcGraceSeconds, byte[] rawMetadata) {
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
@@ -129,8 +128,8 @@ final class ColumnFamilyDefinitions {
         cf.setDclocal_read_repair_chance(0.1);
         cf.setTriggers(ImmutableList.of());
         cf.setCells_per_row_to_cache("0");
-        cf.setMin_index_interval(128);
-        cf.setMax_index_interval(2048);
+        cf.setMin_index_interval(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
+        cf.setMax_index_interval(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL);
         cf.setComment("");
         cf.setColumn_metadata(ImmutableList.of());
         cf.setMin_compaction_threshold(4);
@@ -203,6 +202,18 @@ final class ColumnFamilyDefinitions {
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());
             return false;
+        }
+        if (clientSide.min_index_interval != clusterSide.min_index_interval) {
+            logMismatch("min index interval",
+                    tableName,
+                    clientSide.min_index_interval,
+                    clusterSide.min_index_interval);
+        }
+        if (clientSide.max_index_interval != clusterSide.max_index_interval) {
+            logMismatch("max index interval",
+                    tableName,
+                    clientSide.max_index_interval,
+                    clusterSide.max_index_interval);
         }
 
         return true;

@@ -34,6 +34,7 @@ public class ColumnFamilyDefinitionsTest {
             .negativeLookups(true)
             .sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
             .appendHeavyAndReadLight(true)
+            .denselyAccessedWideRows(true)
             .build()
             .persistToBytes();
 
@@ -69,6 +70,23 @@ public class ColumnFamilyDefinitionsTest {
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDenselyAccessedWideRowsShouldDifferFromOneWithout() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test",
+                TableReference.fromString("cf_def"),
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
+                TableMetadata.builder().build().persistToBytes());
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test",
+                TableReference.fromString("cf_def"),
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
+                TableMetadata.builder().denselyAccessedWideRows(true).build().persistToBytes());
+
+        assertFalse("denselyAccessedWideRows should be reflected in comparisons of ColumnFamilyDefinitions",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
 
