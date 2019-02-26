@@ -13,6 +13,7 @@ message TableMetadata {
     optional int32 explicitCompressionBlockSizeKiloBytes = 10;
     optional bool appendHeavyAndReadLight = 11;
     optional LogSafety nameLogSafety = 12 [default = UNSAFE];
+    optional bool denselyAccessedWideRows = 13;
 }
 
 message NameMetadataDescription {
