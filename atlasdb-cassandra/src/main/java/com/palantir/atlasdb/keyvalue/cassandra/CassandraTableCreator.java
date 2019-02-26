@@ -80,7 +80,7 @@ class CassandraTableCreator {
                 .addClusteringColumn(TIMESTAMP, DataType.bigint())
                 .addColumn(VALUE, DataType.blob())
                 .withOptions()
-                .bloomFilterFPChance(falsePositive(tableMetadata))
+                .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
                 .caching(SchemaBuilder.Caching.KEYS_ONLY)
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
@@ -104,7 +104,7 @@ class CassandraTableCreator {
     private int minIndexInterval(TableMetadata tableMetadata) {
         return tableMetadata.hasDenselyAccessedWideRows()
                 ? CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL
-                : CassandraConstants.DEFAULT_MiN_INDEX_INTERVAL;
+                : CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL;
     }
 
     private int maxIndexInterval(TableMetadata tableMetadata) {
@@ -115,20 +115,6 @@ class CassandraTableCreator {
 
     private String wrapInQuotes(String string) {
         return "\"" + string + "\"";
-    }
-
-    private double falsePositive(TableMetadata tableMetadata) {
-        if (tableMetadata.hasDenselyAccessedWideRows()) {
-            return CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE;
-        }
-        if (tableMetadata.isAppendHeavyAndReadLight()) {
-            return tableMetadata.hasNegativeLookups()
-                    ? CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE
-                    : CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        }
-        return tableMetadata.hasNegativeLookups()
-                ? CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE
-                : CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
     }
 
     private CompactionOptions<?> getCompaction(boolean appendHeavyReadLight) {

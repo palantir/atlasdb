@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.slf4j.Logger;
@@ -52,20 +53,12 @@ final class ColumnFamilyDefinitions {
         Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
-        boolean negativeLookups = false;
-        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        int explicitCompressionBlockSizeKb = 0;
-        boolean appendHeavyAndReadLight = false;
-        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
+        Optional<TableMetadata> tableMetadata = CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)
+                ? Optional.empty()
+                : Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata));
 
-        if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-            cachePriority = tableMetadata.getCachePriority();
-        }
-
+        int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
+                .orElse(0);
         if (explicitCompressionBlockSizeKb != 0) {
             compressionOptions.put(
                     CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
@@ -84,20 +77,13 @@ final class ColumnFamilyDefinitions {
                     Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
         }
 
-        if (negativeLookups) {
-            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
-        }
-
-        if (appendHeavyAndReadLight) {
+        if (tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false)) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
-            if (!negativeLookups) {
-                falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-            } else {
-                falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
-            }
         }
 
+        TableMetadataPersistence.CachePriority cachePriority = tableMetadata.map(TableMetadata::getCachePriority)
+                .orElse(TableMetadataPersistence.CachePriority.WARM);
         switch (cachePriority) {
             case COLDEST:
                 break;
@@ -115,7 +101,9 @@ final class ColumnFamilyDefinitions {
         }
 
         cf.setGc_grace_seconds(gcGraceSeconds);
-        cf.setBloom_filter_fp_chance(falsePositiveChance);
+        cf.setBloom_filter_fp_chance(
+                tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
+                .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE));
         cf.setCompression_options(compressionOptions);
         return cf;
     }
