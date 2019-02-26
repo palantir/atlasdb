@@ -53,5 +53,4 @@ final class CassandraTableOptions {
                 : CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL;
     }
 
-
 }
