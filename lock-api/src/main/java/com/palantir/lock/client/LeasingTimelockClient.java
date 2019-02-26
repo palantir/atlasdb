@@ -36,13 +36,9 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
-import com.palantir.lock.v2.TimelockService;
-import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.timestamp.TimestampRange;
 
-public final class LeasingTimelockClient implements TimelockService {
+final class LeasingTimelockClient {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
@@ -58,17 +54,6 @@ public final class LeasingTimelockClient implements TimelockService {
         return new LeasingTimelockClient(timelockRpcClient, UUID.randomUUID());
     }
 
-    @Override
-    public long getFreshTimestamp() {
-        return delegate.getFreshTimestamp();
-    }
-
-    @Override
-    public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return delegate.getFreshTimestamps(numTimestampsRequested);
-    }
-
-    @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
@@ -78,7 +63,6 @@ public final class LeasingTimelockClient implements TimelockService {
                 LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartAtlasDbTransactionResponseV3 response =
                 delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
@@ -92,12 +76,6 @@ public final class LeasingTimelockClient implements TimelockService {
                 response.startTimestampAndPartition());
     }
 
-    @Override
-    public long getImmutableTimestamp() {
-        return delegate.getImmutableTimestamp();
-    }
-
-    @Override
     public LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
@@ -107,12 +85,6 @@ public final class LeasingTimelockClient implements TimelockService {
                 unsuccessful -> LockResponse.timedOut()));
     }
 
-    @Override
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
-        return delegate.waitForLocks(request);
-    }
-
-    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
@@ -127,7 +99,6 @@ public final class LeasingTimelockClient implements TimelockService {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
@@ -136,11 +107,6 @@ public final class LeasingTimelockClient implements TimelockService {
         return leasedLockTokens.stream()
                 .filter(leasedLockToken -> unlocked.contains(leasedLockToken.serverToken()))
                 .collect(Collectors.toSet());
-    }
-
-    @Override
-    public long currentTimeMillis() {
-        return delegate.currentTimeMillis();
     }
 
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {
