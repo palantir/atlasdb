@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.lock;
 
 import java.security.SecureRandom;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
@@ -71,9 +72,8 @@ public class SimpleLockResource implements LockResource {
     }
 
     private SortedMap<LockDescriptor, LockMode> generateDescriptorMap(int numLocks, int descriptorSize) {
-        ImmutableSortedMap.Builder<LockDescriptor, LockMode> builder = ImmutableSortedMap.naturalOrder();
-        generateDescriptors(numLocks, descriptorSize).forEach(descriptor -> builder.put(descriptor, LockMode.WRITE));
-        return builder.build();
+        return generateDescriptors(numLocks, descriptorSize).collect(ImmutableSortedMap
+                .toImmutableSortedMap(Comparator.naturalOrder(), descriptor -> descriptor, no -> LockMode.WRITE));
     }
 
     private Stream<LockDescriptor> generateDescriptors(int numDescriptors, int descriptorSize) {
