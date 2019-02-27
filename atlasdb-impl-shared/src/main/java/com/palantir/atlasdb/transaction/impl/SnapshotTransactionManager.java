@@ -50,7 +50,6 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -85,8 +84,6 @@ import com.palantir.timestamp.TimestampService;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
-
-    final CommitProfileProcessor commitProfileProcessor;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -126,7 +123,6 @@ import com.palantir.timestamp.TimestampService;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
-        this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
     }
@@ -243,7 +239,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
     }
@@ -274,7 +269,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
         try {

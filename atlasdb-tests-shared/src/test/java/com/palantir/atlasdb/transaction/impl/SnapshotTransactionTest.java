@@ -113,7 +113,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -297,7 +296,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         try {
@@ -364,7 +362,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
@@ -1252,7 +1249,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 validateLocksOnReads,
                 () -> TRANSACTION_CONFIG);
     }
