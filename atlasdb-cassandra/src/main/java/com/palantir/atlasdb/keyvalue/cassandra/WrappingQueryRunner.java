@@ -73,4 +73,20 @@ class WrappingQueryRunner {
                     "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
         }
     }
+
+    Map<KeyPredicate, List<ColumnOrSuperColumn>> multiget_multislice(
+            String kvsMethodName,
+            CassandraClient client,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency) throws TException {
+        try {
+            return queryRunner.run(client, tableRef,
+                    () -> client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency));
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
+        }
+
+    }
 }
