@@ -32,24 +32,26 @@ public class SharedLockTokenTest {
 
     @Test
     public void allSharedLocksHaveCorrectUnderlyingToken() {
-        List<LockToken> tokens = SharedLockToken.share(LOCK_TOKEN, 3);
-        convertToSharedTokens(tokens).forEach(t -> assertThat(t.referencedToken()).isEqualTo(LOCK_TOKEN));
+        List<SharedLockToken> tokens = getSharedLockTokens(LOCK_TOKEN, 3);
+        assertThat(tokens)
+                .extracting(SharedLockToken::referencedToken)
+                .containsOnly(LOCK_TOKEN);
     }
 
     @Test
     public void allSharedTokensShouldHaveDifferentIds() {
         List<LockToken> tokens = SharedLockToken.share(LOCK_TOKEN, 3);
-        assertThat(tokens.stream()
-                .map(LockToken::getRequestId)
-                .collect(Collectors.toSet())
-                .size()).isEqualTo(3);
+        assertThat(tokens)
+                .extracting(LockToken::getRequestId)
+                .doesNotHaveDuplicates()
+                .hasSize(3);
     }
 
     @Test
     public void shouldReturnUnderlyingTokenAfterAllReferencesAreUnlocked() {
-        List<LockToken> tokens = SharedLockToken.share(LOCK_TOKEN, 2);
-        SharedLockToken firstToken = convertToSharedToken(tokens.get(0));
-        SharedLockToken secondToken = convertToSharedToken(tokens.get(1));
+        List<SharedLockToken> tokens = getSharedLockTokens(LOCK_TOKEN, 2);
+        SharedLockToken firstToken = tokens.get(0);
+        SharedLockToken secondToken = tokens.get(1);
 
         assertThat(firstToken.unlock()).isEmpty();
         assertThat(secondToken.unlock()).contains(LOCK_TOKEN);
@@ -57,9 +59,9 @@ public class SharedLockTokenTest {
 
     @Test
     public void callingUnlockOnSameTokenMultipleTimesShouldNotUnlockUnderlyingToken() {
-        List<LockToken> tokens = SharedLockToken.share(LOCK_TOKEN, 2);
+        List<SharedLockToken> tokens = getSharedLockTokens(LOCK_TOKEN, 2);
 
-        SharedLockToken firstToken = convertToSharedToken(tokens.get(0));
+        SharedLockToken firstToken = tokens.get(0);
 
         assertThat(firstToken.unlock()).isEmpty();
         assertThat(firstToken.unlock()).isEmpty();
@@ -67,10 +69,10 @@ public class SharedLockTokenTest {
 
     @Test
     public void shouldWorkAsExpectedIfThereIsOnlyOneSharedToken() {
-        List<LockToken> tokens = SharedLockToken.share(LOCK_TOKEN, 1);
+        List<SharedLockToken> tokens = getSharedLockTokens(LOCK_TOKEN, 1);
 
-        assertThat(tokens.size()).isEqualTo(1);
-        SharedLockToken sharedLockToken = convertToSharedToken(tokens.get(0));
+        assertThat(tokens).hasSize(1);
+        SharedLockToken sharedLockToken = tokens.get(0);
 
         assertThat(sharedLockToken.referencedToken()).isEqualTo(LOCK_TOKEN);
         assertThat(sharedLockToken.getRequestId()).isNotEqualTo(LOCK_TOKEN.getRequestId());
@@ -83,13 +85,9 @@ public class SharedLockTokenTest {
                 .hasMessage("Reference count should be more than zero");
     }
 
-    private List<SharedLockToken> convertToSharedTokens(List<LockToken> lockTokens) {
-        return lockTokens.stream()
-                .map(this::convertToSharedToken)
+    private static List<SharedLockToken> getSharedLockTokens(LockToken token, int numberOfReferences) {
+        return SharedLockToken.share(LOCK_TOKEN, numberOfReferences).stream()
+                .map(SharedLockToken.class::cast)
                 .collect(Collectors.toList());
-    }
-
-    private SharedLockToken convertToSharedToken(LockToken lockToken) {
-        return (SharedLockToken) lockToken;
     }
 }
