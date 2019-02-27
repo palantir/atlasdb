@@ -87,6 +87,10 @@ develop
          - AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3749>`__)
 
+    *    - |changed| |userbreak|
+         - The minimum Postgres version is now 9.5.2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
+
 ========
 v0.116.1
 ========
