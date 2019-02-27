@@ -29,7 +29,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public class RemoteTimelockServiceAdapter implements TimelockService {
+public final class RemoteTimelockServiceAdapter implements TimelockService {
     private final LockLeaseService lockLeaseService;
     private final TimelockRpcClient timelockRpcClient;
 
