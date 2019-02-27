@@ -58,7 +58,7 @@ final class ColumnFamilyDefinitions {
         Map<String, String> compressionOptions = getCompressionOptions(tableMetadata);
         cf.setCompression_options(compressionOptions);
 
-        boolean appendHeavyAndReadLight = tableMetadata.isPresent() && tableMetadata.get().isAppendHeavyAndReadLight();
+        boolean appendHeavyAndReadLight = tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false);
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
