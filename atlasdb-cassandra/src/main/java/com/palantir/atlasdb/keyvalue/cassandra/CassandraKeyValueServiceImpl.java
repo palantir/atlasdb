@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -1477,7 +1478,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private boolean metadataIsDifferent(byte[] existingMetadata, byte[] requestMetadata) {
-        return !Arrays.equals(existingMetadata, requestMetadata);
+        TableMetadata existingMetadataObject;
+        try {
+            existingMetadataObject = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(existingMetadata);
+        } catch (Exception e) {
+            // Not deserializable, so we are different.
+            return true;
+        }
+        TableMetadata requestMetadataObject = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(requestMetadata);
+        return Objects.equals(requestMetadataObject, existingMetadataObject);
     }
 
     private void putMetadataAndMaybeAlterTables(

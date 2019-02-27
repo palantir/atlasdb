@@ -165,9 +165,7 @@ public abstract class TableMetadata implements Persistable {
         builder.setSweepStrategy(getSweepStrategy());
         builder.setAppendHeavyAndReadLight(isAppendHeavyAndReadLight());
         builder.setNameLogSafety(getNameLogSafety());
-        if (hasDenselyAccessedWideRows()) {
-            builder.setDenselyAccessedWideRows(hasDenselyAccessedWideRows());
-        }
+        builder.setDenselyAccessedWideRows(hasDenselyAccessedWideRows());
         return builder;
     }
 
