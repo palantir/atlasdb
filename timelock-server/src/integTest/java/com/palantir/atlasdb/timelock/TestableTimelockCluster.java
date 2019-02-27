@@ -38,7 +38,7 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.client.LeasingTimelockClient;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -219,7 +219,7 @@ public class TestableTimelockCluster {
     }
 
     public TimelockService timelockServiceForClient(String name) {
-        return LeasingTimelockClient.create(proxies.failoverForClient(name, TimelockRpcClient.class));
+        return RemoteTimelockServiceAdapter.create(proxies.failoverForClient(name, TimelockRpcClient.class));
     }
 
     public <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
