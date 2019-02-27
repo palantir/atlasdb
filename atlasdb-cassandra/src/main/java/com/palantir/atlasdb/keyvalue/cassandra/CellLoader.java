@@ -136,7 +136,7 @@ class CellLoader {
                     new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
                         public Void apply(CassandraClient client) throws Exception {
-                            Map<ByteBuffer, SlicePredicate> query = Maps.newHashMapWithExpectedSize(partition.size());
+                            List<KeyPredicate> query = Lists.newArrayListWithExpectedSize(cells.size());
                             for (Cell cell : partition) {
                                 // TODO (jkong): Seems a bit wasteful to keep making predicates
                                 SlicePredicates.Range range = SlicePredicates.Range.singleColumn(cell.getColumnName(),
@@ -145,7 +145,7 @@ class CellLoader {
                                         loadAllTs ? SlicePredicates.Limit.NO_LIMIT : SlicePredicates.Limit.ONE;
                                 SlicePredicate predicate = SlicePredicates.create(range, limit);
 
-                                query.put(ByteBuffer.wrap(cell.getRowName()), predicate);
+                                query.add(new KeyPredicate().setPredicate(predicate));
                             }
 
                             if (log.isTraceEnabled()) {
@@ -157,9 +157,16 @@ class CellLoader {
                                         SafeArg.of("host", CassandraLogHelper.host(host)));
                             }
 
-                            Map<ByteBuffer, List<ColumnOrSuperColumn>> results = queryRunner.multiget_multislice(
+                            Map<KeyPredicate, List<ColumnOrSuperColumn>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
-                            visitor.visit(results);
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.newHashMap();
+                            results.forEach((keyPredicate, columns) -> {
+                                aggregatedResults.merge(keyPredicate.key, columns, (existingColumns, newColumns) -> {
+                                    existingColumns.addAll(newColumns);
+                                    return existingColumns;
+                                });
+                            });
+                            visitor.visit(aggregatedResults);
                             return null;
                         }
 
