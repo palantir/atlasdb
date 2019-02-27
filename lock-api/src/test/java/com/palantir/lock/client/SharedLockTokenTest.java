@@ -85,6 +85,13 @@ public class SharedLockTokenTest {
                 .hasMessage("Reference count should be more than zero");
     }
 
+    @Test
+    public void sharingSharedLockTokenThrows() {
+        SharedLockToken sharedLockToken = getSharedLockTokens(LOCK_TOKEN, 2).get(0);
+        assertThatThrownBy(() -> SharedLockToken.share(sharedLockToken, 2))
+                .hasMessage("Can not share a shared lock token");
+    }
+
     private static List<SharedLockToken> getSharedLockTokens(LockToken token, int numberOfReferences) {
         return SharedLockToken.share(LOCK_TOKEN, numberOfReferences).stream()
                 .map(SharedLockToken.class::cast)

@@ -39,6 +39,7 @@ class SharedLockToken implements LockToken {
 
     public static List<LockToken> share(LockToken token, int referenceCount) {
         Preconditions.checkArgument(referenceCount > 0, "Reference count should be more than zero");
+        Preconditions.checkArgument(!(token instanceof SharedLockToken), "Can not share a shared lock token");
         ReferenceCounter referenceCounter = new ReferenceCounter(token, referenceCount);
         return IntStream.range(0, referenceCount)
                 .mapToObj(unused -> new SharedLockToken(referenceCounter))
