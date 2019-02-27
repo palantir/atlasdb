@@ -61,6 +61,13 @@ public interface CassandraClient {
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
+    Map<KeyPredicate, List<ColumnOrSuperColumn>> multiget_multislice(
+            String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
     List<KeySlice> get_range_slices(String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,

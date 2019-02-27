@@ -87,6 +87,17 @@ public class CassandraClientImpl implements CassandraClient {
     }
 
     @Override
+    public Map<KeyPredicate, List<ColumnOrSuperColumn>> multiget_multislice(String kvsMethodName,
+            TableReference tableRef, List<KeyPredicate> keyPredicates, ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        ColumnParent colFam = getColumnParent(tableRef);
+        return executeHandlingExceptions(() -> client.multiget_multislice(
+                keyPredicates,
+                colFam,
+                consistency_level));
+    }
+
+    @Override
     public List<KeySlice> get_range_slices(String kvsMethodName,
             TableReference tableRef,
             SlicePredicate predicate,
