@@ -62,8 +62,9 @@ public abstract class TimestampPartitioningMap<T> {
     @Value.Parameter
     abstract Set<RangeAndValue<T>> timestampMappings();
 
+    // Visible for internal clients.
     @Value.Lazy
-    RangeMap<Long, T> rangeMapView() {
+    public RangeMap<Long, T> rangeMapView() {
         ImmutableRangeMap.Builder<Long, T> builder = new ImmutableRangeMap.Builder<>();
         timestampMappings()
                 .forEach(rangeAndValue -> builder.put(rangeAndValue.longRange(), rangeAndValue.value()));
