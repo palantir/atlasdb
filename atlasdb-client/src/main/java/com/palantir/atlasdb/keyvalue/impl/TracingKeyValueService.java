@@ -213,8 +213,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> keys, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getAllTimestamps({}, {} keys, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), keys.size(), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getAllTimestamps({}, {} keys)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), keys.size())) {
             return delegate().getAllTimestamps(tableRef, keys, timestamp);
         }
     }
@@ -233,8 +233,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             Iterable<RangeRequest> rangeRequests,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getFirstBatchForRanges({}, {} ranges, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rangeRequests), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getFirstBatchForRanges({}, {} ranges)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rangeRequests))) {
             return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
         }
     }
@@ -295,8 +295,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             ColumnSelection columnSelection,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRows({}, {} rows, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rows), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRows({}, {} rows)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rows))) {
             return delegate().getRows(tableRef, rows, columnSelection, timestamp);
         }
     }
@@ -307,8 +307,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rows), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("getRowsColumnRange({}, {} rows)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), Iterables.size(rows))) {
             return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection, timestamp);
         }
     }
@@ -327,8 +327,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable,
             long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("multiPut({} values, ts {})",
-                valuesByTable.size(), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("multiPut({} values)",
+                valuesByTable.size())) {
             delegate().multiPut(valuesByTable, timestamp);
         }
     }
@@ -336,8 +336,8 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         //noinspection unused - try-with-resources closes trace
-        try (CloseableTrace trace = startLocalTrace("put({}, {} values, ts {})",
-                LoggingArgs.safeTableOrPlaceholder(tableRef), values.size(), timestamp)) {
+        try (CloseableTrace trace = startLocalTrace("put({}, {} values)",
+                LoggingArgs.safeTableOrPlaceholder(tableRef), values.size())) {
             delegate().put(tableRef, values, timestamp);
         }
     }

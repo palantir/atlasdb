@@ -226,7 +226,7 @@ public class TracingKeyValueServiceTest {
         Set<Cell> cells = ImmutableSet.of(CELL);
         kvs.getAllTimestamps(TABLE_REF, cells, 1L);
 
-        checkSpan("atlasdb-kvs.getAllTimestamps({table}, 1 keys, ts 1)");
+        checkSpan("atlasdb-kvs.getAllTimestamps({table}, 1 keys)");
         verify(delegate).getAllTimestamps(TABLE_REF, cells, 1L);
         verifyNoMoreInteractions(delegate);
     }
@@ -249,7 +249,7 @@ public class TracingKeyValueServiceTest {
                 TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getFirstBatchForRanges({table}, 1 ranges, ts 1)");
+        checkSpan("atlasdb-kvs.getFirstBatchForRanges({table}, 1 ranges)");
         verify(delegate).getFirstBatchForRanges(TABLE_REF, RANGE_REQUESTS, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -301,7 +301,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, Value> result = kvs.getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getRows({table}, 1 rows, ts 1)");
+        checkSpan("atlasdb-kvs.getRows({table}, 1 rows)");
         verify(delegate).getRows(TABLE_REF, rows, ColumnSelection.all(), TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -317,7 +317,7 @@ public class TracingKeyValueServiceTest {
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
 
         assertThat(result, equalTo(expectedResult));
-        checkSpan("atlasdb-kvs.getRowsColumnRange({table}, 1 rows, ts 1)");
+        checkSpan("atlasdb-kvs.getRowsColumnRange({table}, 1 rows)");
         verify(delegate).getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -327,7 +327,7 @@ public class TracingKeyValueServiceTest {
         Map<TableReference, Map<Cell, byte[]>> values = ImmutableMap.of(TABLE_REF, ImmutableMap.of(CELL, VALUE_BYTES));
         kvs.multiPut(values, TIMESTAMP);
 
-        checkSpan("atlasdb-kvs.multiPut(1 values, ts 1)");
+        checkSpan("atlasdb-kvs.multiPut(1 values)");
         verify(delegate).multiPut(values, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
@@ -337,7 +337,7 @@ public class TracingKeyValueServiceTest {
         Map<Cell, byte[]> values = ImmutableMap.of(CELL, VALUE_BYTES);
         kvs.put(TABLE_REF, values, TIMESTAMP);
 
-        checkSpan("atlasdb-kvs.put({table}, 1 values, ts 1)");
+        checkSpan("atlasdb-kvs.put({table}, 1 values)");
         verify(delegate).put(TABLE_REF, values, TIMESTAMP);
         verifyNoMoreInteractions(delegate);
     }
