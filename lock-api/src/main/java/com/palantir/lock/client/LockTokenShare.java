@@ -25,34 +25,34 @@ import java.util.stream.IntStream;
 import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.LockToken;
 
-final class SharedLockToken implements LockToken {
+final class LockTokenShare implements LockToken {
     private final UUID requestId;
-    private final LockToken referencedToken;
+    private final LockToken sharedLockToken;
     private final ReferenceCounter referenceCounter;
 
     private boolean unlocked;
 
-    private SharedLockToken(ReferenceCounter referenceCounter, LockToken token) {
+    private LockTokenShare(ReferenceCounter referenceCounter, LockToken token) {
         this.referenceCounter = referenceCounter;
         this.requestId = UUID.randomUUID();
-        this.referencedToken = token;
+        this.sharedLockToken = token;
         this.unlocked = false;
     }
 
     public static List<LockToken> share(LockToken token, int referenceCount) {
         Preconditions.checkArgument(referenceCount > 0, "Reference count should be more than zero");
-        Preconditions.checkArgument(!(token instanceof SharedLockToken), "Can not share a shared lock token");
+        Preconditions.checkArgument(!(token instanceof LockTokenShare), "Can not share a shared lock token");
         ReferenceCounter referenceCounter = new ReferenceCounter(referenceCount);
         return IntStream.range(0, referenceCount)
-                .mapToObj(unused -> new SharedLockToken(referenceCounter, token))
+                .mapToObj(unused -> new LockTokenShare(referenceCounter, token))
                 .collect(Collectors.toList());
     }
 
     /**
      * Unlocks shared token on client side - does not guarantee underlying token to be unlocked on server side.
      *
-     * @return referenced lock token if all shared lock tokens are unlocked; that is lock token on server side is good
-     * to be unlocked.
+     * @return referenced shared lock token if all lock token shares are unlocked; that is lock token on server side is
+     * good to be unlocked.
      */
     public synchronized Optional<LockToken> unlock() {
         if (!unlocked) {
@@ -60,11 +60,11 @@ final class SharedLockToken implements LockToken {
             referenceCounter.unmark();
         }
 
-        return referenceCounter.dereferenced() ? Optional.of(referencedToken) : Optional.empty();
+        return referenceCounter.dereferenced() ? Optional.of(sharedLockToken) : Optional.empty();
     }
 
-    public LockToken referencedToken() {
-        return referencedToken;
+    public LockToken sharedLockToken() {
+        return sharedLockToken;
     }
 
     @Override
