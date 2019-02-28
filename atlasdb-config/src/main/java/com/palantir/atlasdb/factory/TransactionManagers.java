@@ -129,8 +129,8 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.client.LeasingTimelockClient;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -810,7 +810,7 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
         LockService lockService = creator.createService(LockService.class);
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        TimelockService timelockService = LeasingTimelockClient.create(timelockClient);
+        TimelockService timelockService = RemoteTimelockServiceAdapter.create(timelockClient);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
