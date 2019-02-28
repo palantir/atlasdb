@@ -345,7 +345,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
         if (writes != null) {
             for (byte[] row : rows) {
-                extractLocalWritesForRow(result, writes, row);
+                extractLocalWritesForRow(result, writes, row, columnSelection);
             }
         }
 
@@ -546,7 +546,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * If an empty value was written as a delete, this will also be included in the map.
      */
     private void extractLocalWritesForRow(@Output Map<Cell, byte[]> result,
-            SortedMap<Cell, byte[]> writes, byte[] row) {
+            SortedMap<Cell, byte[]> writes, byte[] row, ColumnSelection columnSelection) {
         Cell lowCell = Cells.createSmallestCellForRow(row);
         Iterator<Entry<Cell, byte[]>> it = writes.tailMap(lowCell).entrySet().iterator();
         while (it.hasNext()) {
@@ -555,7 +555,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             if (!Arrays.equals(row, cell.getRowName())) {
                 break;
             }
-            result.put(cell, entry.getValue());
+            if (columnSelection.allColumnsSelected()
+                    || columnSelection.getSelectedColumns().contains(cell.getColumnName())) {
+                result.put(cell, entry.getValue());
+            }
         }
     }
 

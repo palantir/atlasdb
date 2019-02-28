@@ -99,6 +99,10 @@ develop
            Note that the sweep CLI itself has been deprecated in favour of using the sweep priority override configuration, possibly in conjunction with the thread count (:ref:`Docs<sweep_tunable_parameters>`).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3369>`__)
 
+    *    - |fixed|
+         - Fix ``SnapshotTransaction#getRows`` to apply ``ColumnSelection`` when there are local writes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3008>`__)
+
 =======
 v0.38.0
 =======
