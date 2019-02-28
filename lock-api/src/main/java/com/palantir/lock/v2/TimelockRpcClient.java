@@ -71,6 +71,11 @@ public interface TimelockRpcClient {
             StartIdentifiedAtlasDbTransactionRequest request);
 
     @POST
+    @Path("batched-start-atlasdb-transaction")
+    BatchedStartTransactionReponse batchedStartTransaction(
+            BatchedStartTransactionRequest request);
+
+    @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp();
 

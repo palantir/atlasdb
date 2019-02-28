@@ -27,6 +27,8 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.v2.BatchedStartTransactionReponse;
+import com.palantir.lock.v2.BatchedStartTransactionRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.RefreshLockResponseV2;
@@ -139,6 +141,17 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 timestampAndPartition,
                 leasedLock.lease());
 
+    }
+
+    @Override
+    public BatchedStartTransactionReponse batchedStartTransaction(BatchedStartTransactionRequest request) {
+        long timestamp = timestampService.getFreshTimestamp();
+
+        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
+        long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
+
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
     }
 
     @Override
