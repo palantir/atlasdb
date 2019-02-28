@@ -72,7 +72,7 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("batched-start-atlasdb-transaction")
-    BatchedStartTransactionReponse batchedStartTransaction(
+    BatchedStartTransactionResponse batchedStartTransaction(
             BatchedStartTransactionRequest request);
 
     @POST

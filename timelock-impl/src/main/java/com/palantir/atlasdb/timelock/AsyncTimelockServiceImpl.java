@@ -24,10 +24,11 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.atlasdb.timelock.transaction.timestamp.BatchingTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.BatchedStartTransactionReponse;
+import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.BatchedStartTransactionRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -38,13 +39,14 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.v2.TimestampRangeAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
-    private final ClientAwareManagedTimestampService timestampService;
+    private final BatchingTimestampService timestampService;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService,
@@ -134,7 +136,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         LockImmutableTimestampResponse lockImmutableTimestampResponse =
                 LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
 
-        TimestampAndPartition timestampAndPartition = getFreshTimestampForClient(request.requestorId());
+        TimestampAndPartition timestampAndPartition =
+                timestampService.getFreshTimestampForClient(request.requestorId());
 
         return StartAtlasDbTransactionResponseV3.of(
                 lockImmutableTimestampResponse,
@@ -144,7 +147,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public BatchedStartTransactionReponse batchedStartTransaction(BatchedStartTransactionRequest request) {
+    public BatchedStartTransactionResponse batchedStartTransaction(BatchedStartTransactionRequest request) {
         long timestamp = timestampService.getFreshTimestamp();
 
         Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
@@ -152,6 +155,14 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
         LockImmutableTimestampResponse lockImmutableTimestampResponse =
                 LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
+
+        TimestampRangeAndPartition timestampRangeAndPartition =
+                timestampService.getFreshTimestampsForClient(request.requestorId(), request.batchSize());
+
+        return BatchedStartTransactionResponse.of(
+                lockImmutableTimestampResponse,
+                timestampRangeAndPartition,
+                leasedLock.lease());
     }
 
     @Override

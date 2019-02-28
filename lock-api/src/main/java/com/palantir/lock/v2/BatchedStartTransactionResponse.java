@@ -22,23 +22,23 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableBatchedStartTransactionReponse.class)
-@JsonDeserialize(as = ImmutableBatchedStartTransactionReponse.class)
-public interface BatchedStartTransactionReponse {
+@JsonSerialize(as = ImmutableBatchedStartTransactionResponse.class)
+@JsonDeserialize(as = ImmutableBatchedStartTransactionResponse.class)
+public interface BatchedStartTransactionResponse {
     @Value.Parameter
     LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    TimestampAndPartition startTimestamp();
+    TimestampRangeAndPartition startTimestamp();
 
     @Value.Parameter
     Lease lease();
 
-    static BatchedStartTransactionReponse of(
+    static BatchedStartTransactionResponse of(
             LockImmutableTimestampResponse immutableTimestamp,
-            TimestampAndPartition startTimestamp,
+            TimestampRangeAndPartition startTimestamp,
             Lease lease) {
-        return ImmutableBatchedStartTransactionReponse.builder()
+        return ImmutableBatchedStartTransactionResponse.builder()
                 .immutableTimestamp(immutableTimestamp)
                 .startTimestamp(startTimestamp)
                 .lease(lease)

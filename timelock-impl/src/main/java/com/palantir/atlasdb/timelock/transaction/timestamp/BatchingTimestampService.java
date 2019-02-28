@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.atlasdb.timelock.transaction.timestamp;
 
-import org.immutables.value.Value;
+import java.util.UUID;
 
-import com.palantir.timestamp.TimestampRange;
+import com.palantir.lock.v2.TimestampRangeAndPartition;
 
-@Value.Immutable
-public interface TimestampRangeAndPartition {
-    @Value.Parameter
-    TimestampRange range();
-
-    @Value.Parameter
-    int partition();
-
-    static TimestampRangeAndPartition of(TimestampRange range, int partition) {
-        return ImmutableTimestampRangeAndPartition.of(range, partition);
-    }
+public interface BatchingTimestampService extends ClientAwareManagedTimestampService {
+    TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested);
 }

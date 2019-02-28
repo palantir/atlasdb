@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.v2.TimestampRangeAndPartition;
 
 /**
  * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client

@@ -45,12 +45,8 @@ public final class TimestampRanges {
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
-    public static OptionalLong getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
-        Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
-        Preconditions.checkArgument(Math.abs(residue) < modulus,
-                "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
-                residue,
-                modulus);
+    public static OptionalLong getLowestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+        checkModulusAndResidue(residue, modulus);
 
         long lowerBoundResidue = LongMath.mod(range.getLowerBound(), modulus);
         long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
@@ -60,5 +56,26 @@ public final class TimestampRanges {
         return range.getUpperBound() >= candidate
                 ? OptionalLong.of(candidate)
                 : OptionalLong.empty();
+    }
+
+    public static OptionalLong getHighestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+        checkModulusAndResidue(residue, modulus);
+
+        long upperBoundResidue = LongMath.mod(range.getUpperBound(), modulus);
+        long shift = residue > upperBoundResidue ? modulus + upperBoundResidue - residue :
+                residue - upperBoundResidue;
+        long candidate = range.getUpperBound() - shift;
+
+        return range.getLowerBound() <= candidate
+                ? OptionalLong.of(candidate)
+                : OptionalLong.empty();
+    }
+
+    private static void checkModulusAndResidue(int residue, int modulus) {
+        Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
+        Preconditions.checkArgument(Math.abs(residue) < modulus,
+                "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
+                residue,
+                modulus);
     }
 }

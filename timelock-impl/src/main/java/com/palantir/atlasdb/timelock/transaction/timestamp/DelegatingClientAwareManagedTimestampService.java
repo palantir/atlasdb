@@ -29,12 +29,13 @@ import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocato
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.v2.TimestampRangeAndPartition;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
 
 public class DelegatingClientAwareManagedTimestampService
-        implements AutoDelegate_ManagedTimestampService, ClientAwareManagedTimestampService {
+        implements AutoDelegate_ManagedTimestampService, BatchingTimestampService {
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     @VisibleForTesting
@@ -51,22 +52,36 @@ public class DelegatingClientAwareManagedTimestampService
         this.delegate = delegate;
     }
 
-    public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
+    public static BatchingTimestampService createDefault(ManagedTimestampService delegate) {
         NumericPartitionAllocator<UUID> allocator = CachingPartitionAllocator.createDefault(NUM_PARTITIONS);
         return new DelegatingClientAwareManagedTimestampService(allocator, delegate);
     }
 
     @Override
     public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
+        TimestampRangeAndPartition timestampRangeAndPartition = getFreshTimestampsForClient(clientIdentifier, 1);
+        return TimestampAndPartition.of(
+                timestampRangeAndPartition.range().getLowerBound(),
+                timestampRangeAndPartition.partition());
+    }
+
+    @Override
+    public TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested) {
         while (true) {
-            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS);
+            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTimestampsRequested);
             int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
-            OptionalLong relevantTimestamp = TimestampRanges.getTimestampMatchingModulus(
+            OptionalLong startTimestamp = TimestampRanges.getLowestTimestampMatchingModulus(
                     timestampRange,
                     targetResidue,
                     NUM_PARTITIONS);
-            if (relevantTimestamp.isPresent()) {
-                return TimestampAndPartition.of(relevantTimestamp.getAsLong(), targetResidue);
+            if (startTimestamp.isPresent()) {
+                OptionalLong endTimestamp = TimestampRanges.getHighestTimestampMatchingModulus(
+                        timestampRange,
+                        targetResidue,
+                        NUM_PARTITIONS);
+                return TimestampRangeAndPartition.of(
+                        TimestampRange.createInclusiveRange(startTimestamp.getAsLong(), endTimestamp.getAsLong()),
+                        targetResidue);
             }
 
             // Not a bug - getFreshTimestamps is permitted to return less than the number of timestamps asked for,
