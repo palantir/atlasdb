@@ -25,24 +25,26 @@ import java.util.stream.IntStream;
 import com.google.common.base.Preconditions;
 import com.palantir.lock.v2.LockToken;
 
-class SharedLockToken implements LockToken {
+final class SharedLockToken implements LockToken {
     private final UUID requestId;
+    private final LockToken referencedToken;
     private final ReferenceCounter referenceCounter;
 
-    private volatile boolean unlocked;
+    private boolean unlocked;
 
-    private SharedLockToken(ReferenceCounter referenceCounter) {
+    private SharedLockToken(ReferenceCounter referenceCounter, LockToken token) {
         this.referenceCounter = referenceCounter;
         this.requestId = UUID.randomUUID();
+        this.referencedToken = token;
         this.unlocked = false;
     }
 
     public static List<LockToken> share(LockToken token, int referenceCount) {
         Preconditions.checkArgument(referenceCount > 0, "Reference count should be more than zero");
         Preconditions.checkArgument(!(token instanceof SharedLockToken), "Can not share a shared lock token");
-        ReferenceCounter referenceCounter = new ReferenceCounter(token, referenceCount);
+        ReferenceCounter referenceCounter = new ReferenceCounter(referenceCount);
         return IntStream.range(0, referenceCount)
-                .mapToObj(unused -> new SharedLockToken(referenceCounter))
+                .mapToObj(unused -> new SharedLockToken(referenceCounter, token))
                 .collect(Collectors.toList());
     }
 
@@ -58,11 +60,11 @@ class SharedLockToken implements LockToken {
             referenceCounter.unmark();
         }
 
-        return referenceCounter.dereferenced() ? Optional.of(referenceCounter.lockToken) : Optional.empty();
+        return referenceCounter.dereferenced() ? Optional.of(referencedToken) : Optional.empty();
     }
 
     public LockToken referencedToken() {
-        return referenceCounter.lockToken;
+        return referencedToken;
     }
 
     @Override
@@ -70,18 +72,16 @@ class SharedLockToken implements LockToken {
         return requestId;
     }
 
-    private static class ReferenceCounter {
-        private LockToken lockToken;
+    private static final class ReferenceCounter {
         private int referenceCount;
 
-        private ReferenceCounter(LockToken lockToken, int referenceCount) {
-            this.lockToken = lockToken;
+        private ReferenceCounter(int referenceCount) {
             this.referenceCount = referenceCount;
         }
 
-        synchronized int unmark() {
+        synchronized void unmark() {
             Preconditions.checkState(referenceCount >= 0, "Reference count can not go below zero!");
-            return referenceCount--;
+            referenceCount--;
         }
 
         synchronized boolean dereferenced() {
