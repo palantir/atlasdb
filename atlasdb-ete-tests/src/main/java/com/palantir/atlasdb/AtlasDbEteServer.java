@@ -35,6 +35,7 @@ import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cas.CheckAndSetClient;
 import com.palantir.atlasdb.cas.CheckAndSetSchema;
 import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -113,7 +114,9 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
-        environment.jersey().register(new SimpleGetRowKeysResource(txManager.getKeyValueService()));
+        if (config.getAtlasDbConfig().keyValueService().type().equals(CassandraKeyValueServiceConfig.TYPE)) {
+            environment.jersey().register(new SimpleGetRowKeysResource(txManager.getKeyValueService()));
+        }
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config,
