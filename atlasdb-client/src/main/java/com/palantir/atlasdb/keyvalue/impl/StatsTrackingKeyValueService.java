@@ -107,7 +107,7 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 
