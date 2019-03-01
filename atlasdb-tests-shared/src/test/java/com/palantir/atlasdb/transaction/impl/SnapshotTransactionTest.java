@@ -86,6 +86,7 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -94,7 +95,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -147,7 +147,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
 
-    private class UnstableKeyValueService extends ForwardingKeyValueService {
+    private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
         private final KeyValueService delegate;
         private final Random random;
 
@@ -157,6 +157,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         public UnstableKeyValueService(KeyValueService keyValueService, Random random) {
             this.delegate = keyValueService;
             this.random = random;
+        }
+
+        @Override
+        public KeyValueService delegate() {
+            return delegate;
         }
 
         @Override
@@ -172,7 +177,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
                 throw new RuntimeException();
             }
-            super.put(tableRef, values, timestamp);
+            delegate().put(tableRef, values, timestamp);
         }
 
         public void setRandomlyHang(boolean randomlyHang) {
@@ -181,11 +186,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         public void setRandomlyThrow(boolean randomlyThrow) {
             this.randomlyThrow = randomlyThrow;
-        }
-
-        @Override
-        protected KeyValueService delegate() {
-            return delegate;
         }
     }
 
