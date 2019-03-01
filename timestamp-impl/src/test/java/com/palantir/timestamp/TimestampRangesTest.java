@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.OptionalLong;
 
+import org.junit.Test;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -35,41 +36,42 @@ public class TimestampRangesTest {
             = TimestampRange.createInclusiveRange(SEVENTY_THREE, EIGHTY_TWO);
 
     @DataPoints
-    public static SearchEnd[] preference = SearchEnd.values();
+    public static SearchEnd[] searchEnd = SearchEnd.values();
 
+    //these tests should hold for both highest value and lowest value search
     @Theory
-    public void canGetTimestampFromRangeIfItIsTheLowerBound(SearchEnd preference) {
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10, preference))
+    public void canGetTimestampFromRangeIfItIsTheLowerBound(SearchEnd searchEnd) {
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10, searchEnd))
                 .isPresent()
                 .hasValue(SEVENTY_THREE);
     }
 
     @Theory
-    public void canGetTimestampFromRangeIfItIsTheUpperBound(SearchEnd preference) {
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10, preference))
+    public void canGetTimestampFromRangeIfItIsTheUpperBound(SearchEnd searchEnd) {
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10, searchEnd))
                 .isPresent()
                 .hasValue(EIGHTY_TWO);
     }
 
     @Theory
-    public void canGetTimestampsFromRangeInTheMiddle(SearchEnd preference) {
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10, preference))
+    public void canGetTimestampsFromRangeInTheMiddle(SearchEnd searchEnd) {
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10, searchEnd))
                 .isPresent()
                 .hasValue(77L);
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10, preference))
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10, searchEnd))
                 .isPresent()
                 .hasValue(78L);
     }
 
     @Theory
-    public void canHandleMultipleValidMatches(SearchEnd preference) {
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2, preference))
+    public void canHandleMultipleValidMatches(SearchEnd searchEnd) {
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2, searchEnd))
                 .isPresent()
                 .satisfies(optionalLong -> {
                     long value = optionalLong.getAsLong();
                     assertThat(value).isIn(73L, 75L, 77L, 79L, 81L);
                 });
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2, preference))
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2, searchEnd))
                 .isPresent()
                 .satisfies(optionalLong -> {
                     long value = optionalLong.getAsLong();
@@ -78,46 +80,60 @@ public class TimestampRangesTest {
     }
 
     @Theory
-    public void canHandleNegativeResidues(SearchEnd preference) {
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10, preference))
+    public void canHandleNegativeResidues(SearchEnd searchEnd) {
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10, searchEnd))
                 .isPresent()
                 .hasValue(SEVENTY_THREE);
-        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10, preference))
+        assertThat(getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10, searchEnd))
                 .isPresent()
                 .hasValue(75);
     }
 
     @Theory
-    public void throwsIfModulusIsNegative(SearchEnd preference) {
-        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8, preference))
+    public void throwsIfModulusIsNegative(SearchEnd searchEnd) {
+        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8, searchEnd))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -8.");
-        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2, preference))
+        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2, searchEnd))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -2.");
     }
 
     @Theory
-    public void throwsIfModulusIsZero(SearchEnd preference) {
-        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0, preference))
+    public void throwsIfModulusIsZero(SearchEnd searchEnd) {
+        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0, searchEnd))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found 0.");
     }
 
     @Theory
-    public void throwsIfResidueEqualsOrExceedsModulus(SearchEnd preference) {
-        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2, preference))
+    public void throwsIfResidueEqualsOrExceedsModulus(SearchEnd searchEnd) {
+        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2, searchEnd))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Absolute value of residue 2 equals or exceeds modulus 2 - no solutions");
-        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2, preference))
+        assertThatThrownBy(() -> getTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2, searchEnd))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Absolute value of residue -3 equals or exceeds modulus 2 - no solutions");
     }
 
     @Theory
-    public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus(SearchEnd preference) {
+    public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus(SearchEnd searchEnd) {
         TimestampRange oneTimestamp = TimestampRange.createInclusiveRange(77, 77);
-        assertThat(getTimestampMatchingModulus(oneTimestamp, 6, 10, preference)).isNotPresent();
+        assertThat(getTimestampMatchingModulus(oneTimestamp, 6, 10, searchEnd)).isNotPresent();
+    }
+
+    @Test
+    public void lowestSearchShouldReturnLowest() {
+        assertThat(TimestampRanges.getLowestTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
+                .isPresent()
+                .hasValue(SEVENTY_THREE);
+    }
+
+    @Test
+    public void highestSearchShouldReturnHighest() {
+        assertThat(TimestampRanges.getHighestTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
+                .isPresent()
+                .hasValue(EIGHTY_TWO);
     }
 
     private enum SearchEnd {

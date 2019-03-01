@@ -62,8 +62,8 @@ public final class TimestampRanges {
         checkModulusAndResidue(residue, modulus);
 
         long upperBoundResidue = LongMath.mod(range.getUpperBound(), modulus);
-        long shift = residue > upperBoundResidue ? modulus + upperBoundResidue - residue :
-                residue - upperBoundResidue;
+        long shift = residue > upperBoundResidue ? modulus + upperBoundResidue - residue:
+                upperBoundResidue - residue;
         long candidate = range.getUpperBound() - shift;
 
         return range.getLowerBound() <= candidate
