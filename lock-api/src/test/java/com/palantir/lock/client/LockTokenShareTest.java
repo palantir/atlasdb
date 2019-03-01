@@ -53,18 +53,18 @@ public class LockTokenShareTest {
         LockTokenShare firstToken = tokens.get(0);
         LockTokenShare secondToken = tokens.get(1);
 
-        assertThat(firstToken.unlock()).isEmpty();
-        assertThat(secondToken.unlock()).contains(LOCK_TOKEN);
-    }
-
-    @Test
-    public void callingUnlockOnSameTokenMultipleTimesShouldNotUnlockUnderlyingToken() {
-        List<LockTokenShare> tokens = getSharedLockTokens(LOCK_TOKEN, 2);
-
-        LockTokenShare firstToken = tokens.get(0);
-
-        assertThat(firstToken.unlock()).isEmpty();
-        assertThat(firstToken.unlock()).isEmpty();
+        assertThat(firstToken.unlock())
+                .as("no token as second token still has reference")
+                .isEmpty();
+        assertThat(firstToken.unlock())
+                .as("no token as second token still has reference")
+                .isEmpty();
+        assertThat(secondToken.unlock())
+                .as("get lock token since both references are unlocked")
+                .contains(LOCK_TOKEN);
+        assertThat(firstToken.unlock())
+                .as("first token now has lock token since both references unlocked")
+                .contains(LOCK_TOKEN);
     }
 
     @Test
