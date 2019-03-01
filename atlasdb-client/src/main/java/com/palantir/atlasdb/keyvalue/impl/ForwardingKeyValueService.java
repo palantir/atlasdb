@@ -149,11 +149,6 @@ public abstract class ForwardingKeyValueService extends ForwardingObject impleme
     }
 
     @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
-        return delegate().getRowKeysInRange(tableRef, startRowInclusive, batchSize);
-    }
-
-    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return delegate().getFirstBatchForRanges(tableRef, rangeRequests, timestamp);

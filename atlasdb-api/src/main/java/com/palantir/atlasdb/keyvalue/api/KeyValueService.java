@@ -426,16 +426,6 @@ public interface KeyValueService extends AutoCloseable {
             TableReference tableRef,
             CandidateCellForSweepingRequest request);
 
-    /**
-     * Scans a range of a table and returns the row keys in that range.
-     * <p>
-     * This endpoint specifically avoids paging through each full row.
-     * <p>
-     * The batch size limits the number of results from each request.
-     */
-    default List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
-        throw new UnsupportedOperationException("Not implemented for this KVS");
-    }
 
     /**
      * For each range passed in the result will have the first page of results for that range.

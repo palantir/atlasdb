@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Compression;
@@ -75,8 +78,11 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.random.RandomBytes;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+
+import okio.ByteString;
 
 public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final Logger logger = mock(Logger.class);
@@ -86,6 +92,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
     private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
+    private static final TableReference GET_ROW_KEYS_TABLE = TableReference.createFromFullyQualifiedName("test.rows");
 
     @ClassRule
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
@@ -356,6 +363,78 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         ((CassandraKeyValueServiceImpl) keyValueService).upgradeFromOlderInternalSchema();
         verify(logger, never()).error(anyString(), any(Object.class));
+    }
+
+    @Test
+    public void getRowKeysInRangeTest() {
+        CassandraKeyValueServiceImpl kvs = setupForGetRowKeysTests();
+
+        List<Cell> cells = createCells(50, 3);
+
+        kvs.multiPut(ImmutableMap.of(GET_ROW_KEYS_TABLE,
+                cells.stream().collect(Collectors.toMap(cell -> cell, Cell::getRowName))), 100L);
+
+        List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
+
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(20), 10);
+        List<byte[]> expected = sortedRows.subList(20, 30);
+
+        assertThat(result.size(), is(expected.size()));
+        for (int i = 0; i < result.size(); i++) {
+            assertArrayEquals(result.get(i), expected.get(i));
+        }
+    }
+
+    @Test
+    public void getRowKeysInRangeReturnsTombstonedRows() {
+        CassandraKeyValueServiceImpl kvs = setupForGetRowKeysTests();
+
+        List<Cell> cells = createCells(10, 1);
+
+        kvs.multiPut(ImmutableMap.of(GET_ROW_KEYS_TABLE,
+                cells.stream().collect(Collectors.toMap(cell -> cell, Cell::getRowName))), 100L);
+
+        kvs.delete(GET_ROW_KEYS_TABLE, ImmutableListMultimap.of(cells.get(0), 100L));
+        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE, ImmutableMap.of(cells.get(1), Long.MAX_VALUE), true);
+
+        List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
+
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(0), 10);
+
+        assertThat(result.size(), is(sortedRows.size()));
+        for (int i = 0; i < result.size(); i++) {
+            assertArrayEquals(result.get(i), sortedRows.get(i));
+        }
+    }
+
+    private CassandraKeyValueServiceImpl setupForGetRowKeysTests() {
+        CassandraKeyValueServiceImpl kvs = (CassandraKeyValueServiceImpl) keyValueService;
+        kvs.createTable(GET_ROW_KEYS_TABLE, AtlasDbConstants.EMPTY_TABLE_METADATA);
+        kvs.truncateTable(GET_ROW_KEYS_TABLE);
+        return kvs;
+    }
+
+    private static List<Cell> createCells(int numRows, int colsPerRow) {
+        return IntStream.generate(() -> colsPerRow).limit(numRows).boxed()
+                .flatMap(CassandraKeyValueServiceIntegrationTest::createRandomCellsInSameRow)
+                .collect(Collectors.toList());
+    }
+
+    private static Stream<Cell> createRandomCellsInSameRow(int number) {
+        byte[] row = RandomBytes.ofLength(10);
+        return IntStream.range(0, number)
+                .mapToObj(ignore -> RandomBytes.ofLength(10))
+                .map(col -> Cell.create(row, col));
+    }
+
+    private static List<byte[]> sortedUniqueRowKeys(List<Cell> cells) {
+        return cells.stream()
+                .map(Cell::getRowName)
+                .map(ByteString::of)
+                .distinct()
+                .sorted()
+                .map(ByteString::toByteArray)
+                .collect(Collectors.toList());
     }
 
     private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {

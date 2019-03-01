@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - ``CassandraKeyValueServiceImpl`` now exposes a lightweight method for obtaining row keys.
+           If you believe you need to use this method, you should reach out to the AtlasDB team first to asses your options.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3757>`__)
+
     *    - |devbreak| |improved|
          - The `TableMetadata` class has been refactored to use Immutables.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)

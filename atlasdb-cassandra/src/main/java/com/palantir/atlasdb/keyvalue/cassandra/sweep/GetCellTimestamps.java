@@ -122,7 +122,7 @@ public class GetCellTimestamps {
         KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
         SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
 
-        List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
+        List<KeySlice> rows = rowGetter.getRows("getRowKeys", keyRange, slicePredicate);
         return rows.stream().map(KeySlice::getKey).collect(Collectors.toList());
     }
 

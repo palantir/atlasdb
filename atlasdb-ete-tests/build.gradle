@@ -13,6 +13,7 @@ schemas = [
 dependencies {
     compile project(':lock-impl')
     compile project(':leader-election-impl')
+    compile project(':atlasdb-cassandra')
     compile project(':atlasdb-config')
     compile project(':atlasdb-ete-test-utils')
     compile project(':atlasdb-hikari')
@@ -23,7 +24,6 @@ dependencies {
 
     runtime project(':atlasdb-dbkvs')
 
-    runtime project(':atlasdb-cassandra')
 
     compile group: 'org.apache.thrift', name: 'libthrift'
 

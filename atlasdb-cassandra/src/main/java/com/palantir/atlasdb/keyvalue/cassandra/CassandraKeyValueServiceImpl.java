@@ -1215,19 +1215,25 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config);
     }
 
-    @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int batchSize) {
+    /**
+     * Scans a range of a table and returns the row keys in that range. Note that this method may return row keys where
+     * the row only contains Cassandra tombstones.
+     * <p>
+     * This endpoint specifically avoids paging through each full row.
+     * <p>
+     * maxResults limits the number of results from each request.
+     */
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int maxResults) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef);
         GetCellTimestamps getCellTimestamps = new GetCellTimestamps(
                 newInstrumentedCqlExecutor(),
                 rowGetter,
                 tableRef,
                 startRowInclusive,
-                batchSize,
+                maxResults,
                 config);
 
-        List<byte[]> rows = getCellTimestamps.getRows(startRowInclusive);
-        return rows;
+        return getCellTimestamps.getRows(startRowInclusive);
     }
 
     private CqlExecutor newInstrumentedCqlExecutor() {
