@@ -29,7 +29,8 @@ import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TimestampManagementEteTest.class,
-        CoordinationEteTest.class
+        CoordinationEteTest.class,
+        LockWithoutTimelockEteTest.class
         })
 public class DbKvsTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1", "ete2", "ete3");

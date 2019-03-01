@@ -32,16 +32,19 @@ public class LockAcquirer {
 
     private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
+    private final LeaderClock leaderClock;
 
     public LockAcquirer(LockLog lockLog,
-            ScheduledExecutorService timeoutExecutor) {
+            ScheduledExecutorService timeoutExecutor,
+            LeaderClock leaderClock) {
         this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
+        this.leaderClock = leaderClock;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
         return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
-                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId));
+                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {

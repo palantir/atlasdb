@@ -17,7 +17,6 @@ package com.palantir.lock.v2;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -31,9 +30,6 @@ import com.palantir.lock.LockDescriptor;
 public interface LockRequest {
 
     @Value.Parameter
-    UUID getRequestId();
-
-    @Value.Parameter
     Set<LockDescriptor> getLockDescriptors();
 
     @Value.Parameter
@@ -44,15 +40,13 @@ public interface LockRequest {
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
         return ImmutableLockRequest.of(
-                UUID.randomUUID(),
                 lockDescriptors,
                 acquireTimeoutMs,
-                Optional.of("Thread: " + Thread.currentThread().getName()));
+                Optional.empty());
     }
 
     static LockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableLockRequest.of(
-                UUID.randomUUID(),
                 lockDescriptors,
                 acquireTimeoutMs,
                 Optional.of(clientDescription));

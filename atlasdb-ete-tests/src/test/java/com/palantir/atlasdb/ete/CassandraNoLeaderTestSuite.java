@@ -35,6 +35,7 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationE
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
         MultipleSchemaVersionsCoordinationEteTest.class,
+        LockWithoutTimelockEteTest.class,
         CassandraGetRowKeysEteTest.class
         })
 public class CassandraNoLeaderTestSuite extends EteSetup {

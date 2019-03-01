@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl.logging;
 
-import java.util.function.Supplier;
+package com.palantir.atlasdb.timelock.lock;
 
-public interface LogConsumerProcessor {
-    LogConsumerProcessor NO_OP = unused -> {
-        // no op
-    };
+import com.palantir.lock.v2.Lease;
 
-    void maybeLog(Supplier<LogTemplate> logTemplateSupplier);
+public class Leased<T> {
+    private final T value;
+    private final Lease lease;
+
+    private Leased (T value, Lease lease) {
+        this.value = value;
+        this.lease = lease;
+    }
+
+    public static <T> Leased<T> of(T value, Lease lease) {
+        return new Leased<>(value, lease);
+    }
+
+    public T value() {
+        return value;
+    }
+
+    public Lease lease() {
+        return lease;
+    }
 }

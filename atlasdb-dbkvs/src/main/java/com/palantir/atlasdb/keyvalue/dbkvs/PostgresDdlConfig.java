@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 
 @JsonDeserialize(as = ImmutablePostgresDdlConfig.class)
 @JsonSerialize(as = ImmutablePostgresDdlConfig.class)

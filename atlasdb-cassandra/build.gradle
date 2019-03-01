@@ -39,9 +39,9 @@ dependencies {
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  explicitShadow group: 'com.palantir.remoting-api', name: 'ssl-config'
-  explicitShadow group: 'com.palantir.remoting3', name: 'keystores'
-  explicitShadow group: 'com.palantir.remoting3', name: 'tracing'
+  explicitShadow group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
+  explicitShadow group: 'com.palantir.tracing', name: 'tracing'
 
   // does shadowing statically analysed annotations really buy us anything?
   explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'

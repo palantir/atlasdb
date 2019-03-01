@@ -113,7 +113,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -133,7 +132,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -298,7 +296,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         try {
@@ -365,7 +362,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
@@ -1029,7 +1025,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1058,7 +1054,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1085,7 +1081,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
@@ -1109,7 +1105,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1129,7 +1125,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1149,7 +1145,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1170,7 +1166,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1253,7 +1249,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 validateLocksOnReads,
                 () -> TRANSACTION_CONFIG);
     }

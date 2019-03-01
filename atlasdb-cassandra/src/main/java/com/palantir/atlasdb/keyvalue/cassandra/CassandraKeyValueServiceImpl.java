@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -724,7 +723,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             RowColumnRangeExtractor.RowColumnRangeResult firstPage =
                     getRowsColumnRangeForSingleHost(host, tableRef, rows, batchColumnRangeSelection, startTs);
 
-            Map<byte[], LinkedHashMap<Cell, Value>> results = firstPage.getResults();
+            Map<byte[], Map<Cell, Value>> results = firstPage.getResults();
             Map<byte[], Column> rowsToLastCompositeColumns = firstPage.getRowsToLastCompositeColumns();
             Map<byte[], byte[]> incompleteRowsToNextColumns = Maps.newHashMap();
             for (Entry<byte[], Column> e : rowsToLastCompositeColumns.entrySet()) {
@@ -864,8 +863,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         RowColumnRangeExtractor extractor = new RowColumnRangeExtractor(metricsManager);
                         extractor.extractResults(ImmutableList.of(row), results, startTs);
                         RowColumnRangeExtractor.RowColumnRangeResult decoded = extractor.getRowColumnRangeResult();
-                        Map<Cell, Value> ret = decoded.getResults().get(row);
 
+                        // May be empty if all results are at ts > startTs
+                        Map<Cell, Value> ret = decoded.getResults().getOrDefault(row, Collections.emptyMap());
                         ColumnOrSuperColumn lastColumn = values.get(values.size() - 1);
                         byte[] lastCol = CassandraKeyValueServices.decomposeName(lastColumn.getColumn()).getLhSide();
                         // Same idea as the getRows case to handle seeing only newer entries of a column

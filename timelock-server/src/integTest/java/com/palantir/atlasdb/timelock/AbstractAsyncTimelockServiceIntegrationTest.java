@@ -21,11 +21,9 @@ import org.junit.rules.RuleChain;
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     protected static final String LOCALHOST = "https://localhost";
-    protected static final String CLIENT = "test";
 
     protected static final TestableTimelockCluster CLUSTER_WITH_ASYNC = new TestableTimelockCluster(
             LOCALHOST,
-            CLIENT,
             "paxosSingleServerWithAsyncLock.yml");
 
     @ClassRule
