@@ -24,13 +24,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
 public class SimpleGetRowKeysResource implements GetRowKeysResource {
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("test.getRows");
     private static final byte[] BYTES = new byte[] {1, 2, 3};
 
-    private final CassandraKeyValueServiceImpl kvs;
+    private final CassandraKeyValueService kvs;
 
     public SimpleGetRowKeysResource(KeyValueService wrappedKvs) {
         this.kvs = unwrapCassandraKvs(wrappedKvs);
@@ -53,12 +53,12 @@ public class SimpleGetRowKeysResource implements GetRowKeysResource {
         return kvs.getRowKeysInRange(TABLE_REFERENCE, PtBytes.toBytes(startRow), maxRows);
     }
 
-    private static CassandraKeyValueServiceImpl unwrapCassandraKvs(KeyValueService wrappedKvs) {
+    private static CassandraKeyValueService unwrapCassandraKvs(KeyValueService wrappedKvs) {
         KeyValueService keyValueService = wrappedKvs;
-        while (!(keyValueService instanceof CassandraKeyValueServiceImpl)) {
+        while (!(keyValueService instanceof CassandraKeyValueService)) {
             keyValueService = getDelegate(keyValueService);
         }
-        return (CassandraKeyValueServiceImpl) keyValueService;
+        return (CassandraKeyValueService) keyValueService;
     }
 
     private static KeyValueService getDelegate(KeyValueService keyValueService) {

@@ -15,7 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.util.List;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
@@ -24,4 +27,5 @@ public interface CassandraKeyValueService extends KeyValueService {
     TracingQueryRunner getTracingQueryRunner();
     CassandraClientPool getClientPool();
     boolean isInitialized();
+    List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRowInclusive, int maxResults);
 }
