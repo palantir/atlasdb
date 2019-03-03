@@ -187,7 +187,7 @@ public final class WriteBatchingTransactionService implements TransactionService
                 batchElement.result().setException(
                         new SafeIllegalArgumentException("Attempted to putUnlessExists the same start timestamp as"
                                 + " another request which came first, so we will prioritise that.",
-                                SafeArg.of("startTimestamp", pair.startTimestamp()),
+                                SafeArg.of("startTimestamps", pair.startTimestamp()),
                                 SafeArg.of("commitTimestamp", pair.commitTimestamp())));
             }
         }

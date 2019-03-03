@@ -29,7 +29,7 @@ public interface BatchedStartTransactionResponse {
     LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    TimestampRangeAndPartition startTimestamp();
+    TimestampRangeAndPartition startTimestamps();
 
     @Value.Parameter
     Lease lease();
@@ -40,7 +40,7 @@ public interface BatchedStartTransactionResponse {
             Lease lease) {
         return ImmutableBatchedStartTransactionResponse.builder()
                 .immutableTimestamp(immutableTimestamp)
-                .startTimestamp(startTimestamp)
+                .startTimestamps(startTimestamp)
                 .lease(lease)
                 .build();
     }
