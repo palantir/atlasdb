@@ -30,12 +30,8 @@ public final class TimestampRanges {
     }
 
     /**
-     * Returns a timestamp in the provided timestamp range that has the provided residue class modulo the provided
-     * modulus.
-     *
-     * We do not make any guarantees on which timestamp is provided if multiple timestamps in the range reside
-     * in the provided residue class. For example, if the TimestampRange is from 1 to 5 inclusive and we want a
-     * timestamp with residue 1 modulo 2, this method may return any of 1, 3 and 5.
+     * Returns the lowest timestamp in the provided timestamp range that has the provided residue class modulo the
+     * provided modulus.
      *
      * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
      *
@@ -58,6 +54,18 @@ public final class TimestampRanges {
                 : OptionalLong.empty();
     }
 
+    /**
+     * Returns the lowest timestamp in the provided timestamp range that has the provided residue class modulo the
+     * provided modulus.
+     *
+     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
+     *
+     * @param residue desired residue class of the timestamp returned
+     * @param modulus modulus used to partition numbers into residue classes
+     * @return a timestamp in the given range in the relevant residue class modulo modulus
+     * @throws IllegalArgumentException if modulus <= 0
+     * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
+     */
     public static OptionalLong getHighestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
         checkModulusAndResidue(residue, modulus);
 

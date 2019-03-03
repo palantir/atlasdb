@@ -66,9 +66,9 @@ public class DelegatingClientAwareManagedTimestampService
     }
 
     @Override
-    public TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested) {
+    public TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
         while (true) {
-            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTimestampsRequested);
+            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTransactionsRequested);
             int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
             OptionalLong startTimestamp = TimestampRanges.getLowestTimestampMatchingModulus(
                     timestampRange,
