@@ -77,7 +77,7 @@ public class PreStartHandlingTransactionService implements TransactionService {
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         if (!isTimestampValid(startTimestamp)) {
             throw new SafeIllegalStateException("Attempted to putUnlessExists({}, {}) which is disallowed.",
-                    SafeArg.of("startTimestamps", startTimestamp),
+                    SafeArg.of("startTimestamp", startTimestamp),
                     SafeArg.of("commitTimestamp", commitTimestamp));
         }
         delegate.putUnlessExists(startTimestamp, commitTimestamp);
