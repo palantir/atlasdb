@@ -55,7 +55,7 @@ public final class TimestampRanges {
     }
 
     /**
-     * Returns the lowest timestamp in the provided timestamp range that has the provided residue class modulo the
+     * Returns the highest timestamp in the provided timestamp range that has the provided residue class modulo the
      * provided modulus.
      *
      * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
