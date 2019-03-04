@@ -16,8 +16,11 @@
 
 package com.palantir.lock.client;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -32,10 +35,12 @@ import com.palantir.timestamp.TimestampRange;
 public final class RemoteTimelockServiceAdapter implements TimelockService {
     private final LockLeaseService lockLeaseService;
     private final TimelockRpcClient timelockRpcClient;
+    private final CoalescingTransactionService transactionService;
 
     private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
         this.timelockRpcClient = timelockRpcClient;
         this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
+        this.transactionService = CoalescingTransactionService.create(lockLeaseService);
     }
 
     public static TimelockService create(TimelockRpcClient timelockRpcClient) {
@@ -59,7 +64,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return lockLeaseService.startIdentifiedAtlasDbTransaction();
+        return transactionService.startIdentifiedAtlasDbTransaction();
     }
 
     @Override
@@ -79,16 +84,68 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return lockLeaseService.refreshLockLeases(tokens);
+        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
+        Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
+
+
+        Set<LockToken> result = lockLeaseService.refreshLockLeases(reduceForRefresh(tokens));
+
+        return Sets.union(
+                immutableTsTokens.stream()
+                        .filter(t -> result.contains(t.sharedLockToken()))
+                        .collect(Collectors.toSet()),
+                lockTokens.stream().filter(result::contains).collect(Collectors.toSet()));
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockLeaseService.unlock(tokens);
+        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
+        Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
+
+
+        Set<LockToken> result = lockLeaseService.refreshLockLeases(reduceForUnlock(tokens));
+
+        return Sets.union(
+                immutableTsTokens.stream()
+                        .filter(t -> result.contains(t.sharedLockToken()))
+                        .collect(Collectors.toSet()),
+                lockTokens.stream().filter(result::contains).collect(Collectors.toSet()));
     }
 
     @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
     }
+
+    public Set<LockToken> reduceForRefresh(Set<LockToken> tokens) {
+        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
+        Set<LockToken> reducedImmutableTsTokens = immutableTsTokens.stream()
+                .map(LockTokenShare::sharedLockToken)
+                .collect(Collectors.toSet());
+
+        return Sets.union(filterOutImmutableTsTokens(tokens), reducedImmutableTsTokens);
+    }
+
+    public Set<LockToken> reduceForUnlock(Set<LockToken> tokens) {
+        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
+        Set<LockToken> toUnlock = immutableTsTokens.stream()
+                .map(LockTokenShare::unlock)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+
+        return Sets.union(filterOutImmutableTsTokens(tokens), toUnlock);
+    }
+
+    private Set<LockTokenShare> filterImmutableTsTokens(Set<LockToken> tokens) {
+        return tokens.stream().filter(t -> t instanceof LockTokenShare)
+                .map(t -> (LockTokenShare) t)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<LockToken> filterOutImmutableTsTokens(Set<LockToken> tokens) {
+        return tokens.stream().filter(t -> !(t instanceof LockTokenShare))
+                .collect(Collectors.toSet());
+    }
+
 }

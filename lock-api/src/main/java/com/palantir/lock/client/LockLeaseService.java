@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
+import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -74,6 +76,20 @@ final class LockLeaseService {
         return StartIdentifiedAtlasDbTransactionResponse.of(
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
                 response.startTimestampAndPartition());
+    }
+
+    public BatchedStartTransactionResponse batchedStartTransaction(int batchSize) {
+        BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(clientId, batchSize);
+        BatchedStartTransactionResponse response = delegate.batchedStartTransaction(request);
+
+        Lease lease = response.lease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
+        long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
+
+        return BatchedStartTransactionResponse.of(
+                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
+                response.startTimestamps(),
+                lease);
     }
 
     public LockResponse lock(LockRequest request) {
