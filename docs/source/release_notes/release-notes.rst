@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
     
-    *    -
-         -
+    *    - |changed| |userbreak|
+         - The minimum Postgres version is now 9.5.2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
 
 ========
 v0.122.0
@@ -212,10 +213,6 @@ v0.117.0
     *    - |improved|
          - We now correctly handle host restart in the clock skew monitor.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3716>`__)
-
-    *    - |changed| |userbreak|
-         - The minimum Postgres version is now 9.5.2
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
 
 ========
 v0.116.1
