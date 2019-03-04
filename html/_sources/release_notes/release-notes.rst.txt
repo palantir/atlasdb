@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
     
-    *    -
-         -
+    *    - |changed| |userbreak|
+         - The minimum Postgres version is now 9.5.2
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
 
 ========
 v0.122.0
