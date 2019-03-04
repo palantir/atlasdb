@@ -117,8 +117,11 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionService build() {
-        Preconditions.checkState(randomWaitBeforeProposingLeadershipMs >= 0, "randomWaitBeforeProposingLeadershipMs should be positive; was " + randomWaitBeforeProposingLeadershipMs);
-        Preconditions.checkState(noQuorumMaxDelayMs >= 0, "noQuorumMaxDelayMs should be positive; was " + noQuorumMaxDelayMs);
+        Preconditions.checkState(randomWaitBeforeProposingLeadershipMs >= 0,
+                "randomWaitBeforeProposingLeadershipMs should be positive; was "
+                        + randomWaitBeforeProposingLeadershipMs);
+        Preconditions.checkState(noQuorumMaxDelayMs >= 0,
+                "noQuorumMaxDelayMs should be positive; was " + noQuorumMaxDelayMs);
         return new PaxosLeaderElectionService(
                 proposer,
                 knowledge,

@@ -71,7 +71,7 @@ import com.palantir.paxos.PaxosValue;
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
     private static final double LOG_RATE = 1;
-    private static final int DEFAULT_NO_QUORUM_MAX_DELAY_MS = 2000;
+    static final int DEFAULT_NO_QUORUM_MAX_DELAY_MS = 2000;
 
     private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
     private final ReentrantLock lock;
@@ -109,20 +109,27 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs,
-                                      PaxosLeaderElectionEventRecorder eventRecorder,
                                       Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer, knowledge, potentialLeadersToHosts, acceptors, learners, executor,
-                updatePollingWaitInMs, randomWaitBeforeProposingLeadership,
+        this(proposer,
+                knowledge,
+                otherPotentialLeadersToHosts,
+                acceptors,
+                learners,
+                executorServiceFactory,
+                updatePollingWaitInMs,
+                randomWaitBeforeProposingLeadership,
                 DEFAULT_NO_QUORUM_MAX_DELAY_MS,
-                leaderPingResponseWaitMs, PaxosLeaderElectionEventRecorder.NO_OP, onlyLogOnQuorumFailure);
+                leaderPingResponseWaitMs,
+                PaxosLeaderElectionEventRecorder.NO_OP,
+                onlyLogOnQuorumFailure);
     }
 
     PaxosLeaderElectionService(PaxosProposer proposer,
             PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> potentialLeadersToHosts,
+            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
             List<PaxosAcceptor> acceptors,
             List<PaxosLearner> learners,
-            ExecutorService executor,
+            Function<String, ExecutorService> executorServiceFactory,
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
             long noQuorumMaxDelay,
@@ -198,7 +205,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 case NO_QUORUM:
                     // If we don't have quorum we should just retry our calls.
                     long backoffTime = ThreadLocalRandom.current().nextLong(0, noQuorumMaxDelay + 1);
-                    log.debug("Waiting for [{}] ms before rerequesting leadership status", SafeArg.of("waitTimeMs", backoffTime));
+                    log.debug("Waiting for [{}] ms before rerequesting leadership status",
+                            SafeArg.of("waitTimeMs", backoffTime));
                     Thread.sleep(backoffTime);
                     continue;
                 case NOT_LEADING:
