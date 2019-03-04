@@ -135,7 +135,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 leasedLockImmutableTimestampResponse.value(),
                 timestampAndPartition,
                 leasedLockImmutableTimestampResponse.lease());
-
     }
 
     @Override
