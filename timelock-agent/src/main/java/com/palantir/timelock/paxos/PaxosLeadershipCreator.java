@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.timelock.paxos;
 
 import java.nio.file.Paths;
@@ -22,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderRuntimeConfig;
 import com.palantir.atlasdb.config.LeaderConfig;
@@ -39,7 +39,6 @@ import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import com.palantir.util.JavaSuppliers;
 
 public class PaxosLeadershipCreator {
     private final MetricsManager metricsManager;
@@ -58,7 +57,7 @@ public class PaxosLeadershipCreator {
             Consumer<Object> registrar) {
         this.metricsManager = metricsManager;
         this.install = install;
-        this.runtime = JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime);
+        this.runtime = Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get);
         this.registrar = registrar;
     }
 
@@ -72,7 +71,7 @@ public class PaxosLeadershipCreator {
         Leaders.LocalPaxosServices localPaxosServices = Leaders.createInstrumentedLocalServices(
                 metricsManager,
                 leaderConfig,
-                JavaSuppliers.compose(getLeaderRuntimeConfig, runtime),
+                Suppliers.compose(getLeaderRuntimeConfig::apply, runtime::get),
                 ImmutableRemotePaxosServerSpec.builder()
                         .remoteLeaderUris(remoteServers)
                         .remoteAcceptorUris(paxosSubresourceUris)

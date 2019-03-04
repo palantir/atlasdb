@@ -1,12 +1,12 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,12 +35,15 @@ public class PostgresTableInitializer implements DbTableInitializer {
     @Override
     public void createUtilityTables() {
         executeIgnoringError(
-                "CREATE TABLE dual (id BIGINT)",
+                "CREATE TABLE dual (id BIGINT, CONSTRAINT "
+                        + PrimaryKeyConstraintNames.get("dual")
+                        + " PRIMARY KEY (id))",
                 "already exists"
         );
 
-        connectionSupplier.get().executeUnregisteredQuery(
-                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )"
+        executeIgnoringError(
+                "INSERT INTO dual (id) SELECT 1 WHERE NOT EXISTS ( SELECT id FROM dual WHERE id = 1 )",
+                "duplicate key"
         );
     }
 

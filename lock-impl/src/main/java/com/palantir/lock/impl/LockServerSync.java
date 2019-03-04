@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -44,6 +44,10 @@ class LockServerSync extends AbstractQueuedSynchronizer {
 
     private boolean isAnonymous(int clientIndex) {
         return clientIndex < 0;
+    }
+
+    synchronized boolean safeHoldsWriteLock(int clientIndex) {
+        return getState() > 0 && clientIndex == writeLockHolder && !isAnonymous(clientIndex);
     }
 
     private synchronized boolean holdsWriteLock(int clientIndex) {
@@ -245,7 +249,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
         return readLockHolders != null && !readLockHolders.isEmpty();
     }
 
-    private synchronized boolean holdsReadLock(int clientIndex) {
+    synchronized boolean holdsReadLock(int clientIndex) {
         return !isAnonymous(clientIndex) && readLockHolders != null && readLockHolders.get(clientIndex) > 0;
     }
 

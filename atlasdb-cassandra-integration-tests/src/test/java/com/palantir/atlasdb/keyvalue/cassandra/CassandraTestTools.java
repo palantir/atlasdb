@@ -1,12 +1,12 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
- * <p>
- * Licensed under the BSD-3 License (the "License");
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://opensource.org/licenses/BSD-3-Clause
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,11 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,10 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
-import org.joda.time.Duration;
 
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
@@ -49,17 +41,6 @@ public final class CassandraTestTools {
         // Empty constructor for utility class
     }
 
-    public static void waitTillServiceIsUp(String host, int port, Duration timeout) {
-        try {
-            Awaitility.await()
-                    .pollInterval(50, TimeUnit.MILLISECONDS)
-                    .atMost(timeout.getMillis(), TimeUnit.MILLISECONDS)
-                    .until(isPortListening(host, port));
-        } catch (ConditionTimeoutException e) {
-            throw new IllegalStateException("Timeout for port " + port + " on host " + host + ".");
-        }
-    }
-
     public static Future async(ExecutorService executorService, Runnable callable) {
         return executorService.submit(callable);
     }
@@ -73,17 +54,6 @@ public final class CassandraTestTools {
                 // if execution is done, we expect it to have failed
             }
         }
-    }
-
-    private static Callable<Boolean> isPortListening(String host, int port) {
-        return () -> {
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(host, port), 500);
-                return true;
-            } catch (IOException e) {
-                return false;
-            }
-        };
     }
 
     public static void executeInParallelOnExecutorService(Runnable runnable) {

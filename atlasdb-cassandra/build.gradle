@@ -25,7 +25,7 @@ dependencies {
   explicitShadow project(":commons-api")
   explicitShadow project(':timestamp-impl')
 
-  explicitShadow ('org.apache.cassandra:cassandra-thrift:' + libVersions.cassandra) {
+  explicitShadow ('com.palantir.cassandra:cassandra-thrift:' + libVersions.palantir_cassandra_thrift) {
     exclude(group: 'de.jflex', module: 'jflex')
     exclude(group: 'org.apache.ant', module: 'ant')
     exclude(group: 'com.github.rholder', module: 'snowball-stemmer')
@@ -39,9 +39,9 @@ dependencies {
 
   explicitShadow 'org.apache.commons:commons-pool2:2.4.2'
 
-  explicitShadow group: 'com.palantir.remoting-api', name: 'ssl-config'
-  explicitShadow group: 'com.palantir.remoting3', name: 'keystores'
-  explicitShadow group: 'com.palantir.remoting3', name: 'tracing'
+  explicitShadow group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  explicitShadow group: 'com.palantir.conjure.java.runtime', name: 'keystores'
+  explicitShadow group: 'com.palantir.tracing', name: 'tracing'
 
   // does shadowing statically analysed annotations really buy us anything?
   explicitShadow group: 'com.google.code.findbugs', name: 'findbugs-annotations'
@@ -56,6 +56,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'
   testCompile group: 'org.awaitility', name: 'awaitility'
   testCompile group: 'uk.org.lidalia', name: 'slf4j-test', version: '1.1.0'
+  testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 
   processor group: 'org.immutables', name: 'value'
   processor 'com.google.auto.service:auto-service:1.0-rc2'
@@ -87,7 +88,14 @@ recommendedProductDependencies {
     productDependency {
         productGroup = 'com.palantir.rescue'
         productName = 'rescue'
-        minimumVersion = '3.0.0'
+        minimumVersion = '3.22.0'
+        maximumVersion = '4.x.x'
+    }
+
+    productDependency {
+        productGroup = 'com.palantir.cassandra'
+        productName = 'sls-cassandra'
+        minimumVersion = '3.27.0'
         maximumVersion = '3.x.x'
     }
 }

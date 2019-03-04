@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
@@ -22,12 +21,11 @@ import java.util.function.Supplier;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.AtlasDbMetricNames;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
@@ -51,7 +49,7 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
-        return executeWithRecord(() -> timelockService.getFreshTimestamp());
+        return executeWithRecord(timelockService::getFreshTimestamp);
     }
 
     @Override
@@ -60,19 +58,18 @@ public class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(
-            IdentifiedTimeLockRequest request) {
-        return executeWithRecord(() -> timelockService.lockImmutableTimestamp(request));
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        return executeWithRecord(timelockService::lockImmutableTimestamp);
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return executeWithRecord(() -> timelockService.startAtlasDbTransaction(request));
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return executeWithRecord(timelockService::startIdentifiedAtlasDbTransaction);
     }
 
     @Override
     public long getImmutableTimestamp() {
-        return executeWithRecord(() -> timelockService.getImmutableTimestamp());
+        return executeWithRecord(timelockService::getImmutableTimestamp);
     }
 
     @Override
@@ -106,7 +103,7 @@ public class InstrumentedTimelockService implements TimelockService {
 
     @Override
     public long currentTimeMillis() {
-        return executeWithRecord(() -> timelockService.currentTimeMillis());
+        return executeWithRecord(timelockService::currentTimeMillis);
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {

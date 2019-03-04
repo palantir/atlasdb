@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,18 +24,24 @@ import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
+import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TargetedSweepEteTest.class,
-        CassandraTimestampsEteTest.class
+        CassandraTimestampsEteTest.class,
+        TimestampManagementEteTest.class,
+        CoordinationEteTest.class,
+        MultipleSchemaVersionsCoordinationEteTest.class,
+        LockWithTimelockEteTest.class
         })
 public class CassandraTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
             CassandraTimeLockTestSuite.class,
             "docker-compose.timelock.cassandra.yml",
             CLIENTS,

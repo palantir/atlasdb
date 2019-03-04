@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,7 +18,8 @@ package com.palantir.leader.proxy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -194,6 +195,23 @@ public class AwaitingLeadershipProxyTest {
 
         verify(leaderElectionService).getCurrentTokenIfLeading();
         verify(leaderElectionService).blockOnBecomingLeader();
+    }
+
+    @Test
+    public void shouldRetryBecomingLeader() throws Exception {
+        when(leaderElectionService.blockOnBecomingLeader())
+                .thenThrow(new RuntimeException())
+                .thenReturn(leadershipToken);
+
+        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                Runnable.class,
+                delegateSupplier,
+                leaderElectionService);
+
+        Thread.sleep(1000); //wait for retrying on gaining leadership
+
+        proxy.run();
+        verify(leaderElectionService, atLeast(2)).blockOnBecomingLeader();
     }
 
     @SuppressWarnings("IllegalThrows")

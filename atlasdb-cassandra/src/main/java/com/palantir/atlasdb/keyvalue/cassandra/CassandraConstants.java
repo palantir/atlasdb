@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,13 +20,12 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 
 public final class CassandraConstants {
-    static final int MAX_TRUNCATION_ATTEMPTS = 3; // tied to an exponential timeout, be careful if you change it
-
     static final String DEFAULT_COMPRESSION_TYPE = "LZ4Compressor";
     static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
     static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
     static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
+    static final double DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE = 0.0001;
     static final String SIMPLE_STRATEGY = "org.apache.cassandra.locator.SimpleStrategy";
     static final String NETWORK_STRATEGY = "org.apache.cassandra.locator.NetworkTopologyStrategy";
 
@@ -56,15 +55,16 @@ public final class CassandraConstants {
     static final String SIZE_TIERED_COMPACTION_STRATEGY =
             "org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy";
 
-    public static final String GLOBAL_DDL_LOCK_ROW_NAME = "Global DDL lock";
-    public static final String GLOBAL_DDL_LOCK_COLUMN_NAME = "id_with_lock";
-
-    static final int SCHEMA_MUTATION_LOCK_TIMEOUT_MULTIPLIER = 10;
-
     public static final int DEFAULT_FETCH_BATCH_COUNT = 5000;
     public static final int DEFAULT_MUTATION_BATCH_SIZE_BYTES = 4 * 1024 * 1024;
     public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
     public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
+
+    static final int DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL = 1;
+    static final int DEFAULT_MIN_INDEX_INTERVAL = 128;
+    static final int DEFAULT_MAX_INDEX_INTERVAL = 2048;
+
+    static final long CAS_TABLE_TIMESTAMP = 0L;
 
     private CassandraConstants() {
         // Utility class

@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,12 +18,15 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
@@ -60,6 +63,10 @@ class CassandraTables {
         return getTableNames(client, keyspace, CfDef::getName);
     }
 
+    Stream<TableReference> getTableReferencesWithoutFiltering() {
+        return getExisting().stream().map(TableReference::fromInternalTableName);
+    }
+
     Set<String> getExistingLowerCased() throws TException {
         return getExistingLowerCased(config.getKeyspaceOrThrow());
     }
@@ -74,6 +81,14 @@ class CassandraTables {
 
     private Set<String> getTableNames(CassandraClient client, String keyspace,
             Function<CfDef, String> nameGetter) throws TException {
+        try {
+            CassandraKeyValueServices
+                    .waitForSchemaVersions(config, client, "before making a call to get all table names.");
+        } catch (IllegalStateException e) {
+            throw new InsufficientConsistencyException("Could not reach a quorum of nodes agreeing on schema versions "
+                    + "before making a call to get all table names.", e);
+        }
+
         KsDef ks = client.describe_keyspace(keyspace);
 
         return ks.getCf_defs().stream()

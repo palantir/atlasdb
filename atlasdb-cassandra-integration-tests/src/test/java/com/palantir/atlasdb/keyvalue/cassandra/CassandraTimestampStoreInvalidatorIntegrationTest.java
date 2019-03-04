@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,18 +21,14 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.RuleChain;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -40,30 +36,19 @@ import com.palantir.timestamp.TimestampBoundStore;
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
     @ClassRule
-    public static final Containers CONTAINERS = new Containers(CassandraTimestampStoreInvalidatorIntegrationTest.class)
-            .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private static final long ONE_MILLION = 1_000_000;
 
-    private final CassandraKeyValueService kv = CassandraKeyValueServiceImpl.createForTesting(
-            CassandraContainer.KVS_CONFIG,
-            CassandraContainer.LEADER_CONFIG);
-    private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
+    private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
 
-    @Rule
-    public final RuleChain ruleChain = SchemaMutationLockReleasingRule.createChainedReleaseAndRetry(kv,
-            CassandraContainer.KVS_CONFIG);
+    private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
     @Before
     public void setUp() {
-        kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         kv.createTable(AtlasDbConstants.TIMESTAMP_TABLE,
-                CassandraTimestampUtils.TIMESTAMP_TABLE_METADATA.persistToBytes());
-    }
-
-    @After
-    public void close() {
-        kv.close();
+                CassandraTimestampBoundStore.TIMESTAMP_TABLE_METADATA.persistToBytes());
+        kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
     @Test

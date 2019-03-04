@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -25,8 +26,10 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.Before;
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -34,56 +37,37 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.MoreCollectors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.CassandraContainer;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
-    public static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
-    public static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
+    private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
+    private static final TableReference BAD_TABLE = TableReference.createFromFullyQualifiedName("foo.b@r");
+
+    private static CassandraKeyValueService kvs;
+    private static CassandraKeyValueService slowTimeoutKvs;
 
     @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraKeyValueServiceTableCreationIntegrationTest.class)
-                    .with(new CassandraContainer());
+    public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
-    protected CassandraKeyValueService kvs;
-    protected CassandraKeyValueService slowTimeoutKvs;
-
-    @Before
-    public void setUp() {
-        ImmutableCassandraKeyValueServiceConfig quickTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
-                .withSchemaMutationTimeoutMillis(500);
-        kvs = CassandraKeyValueServiceImpl.createForTesting(
-                quickTimeoutConfig,
-                CassandraContainer.LEADER_CONFIG);
-
-        ImmutableCassandraKeyValueServiceConfig slowTimeoutConfig = ImmutableCassandraKeyValueServiceConfig
-                .copyOf(CassandraContainer.KVS_CONFIG)
-                .withSchemaMutationTimeoutMillis(6 * 1000);
-        slowTimeoutKvs = CassandraKeyValueServiceImpl.createForTesting(
-                slowTimeoutConfig,
-                CassandraContainer.LEADER_CONFIG);
-
-        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-    }
-
-    @After
-    public void close() {
-        kvs.close();
+    @BeforeClass
+    public static void initializeKvs() {
+        kvs = kvsWithSchemaMutationTimeout(500);
+        CASSANDRA.registerKvs(kvs);
+        slowTimeoutKvs = kvsWithSchemaMutationTimeout(6 * 1000);
+        CASSANDRA.registerKvs(slowTimeoutKvs);
     }
 
     @Test(timeout = 10 * 1000)
@@ -119,12 +103,6 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
 
         slowTimeoutKvs.dropTable(GOOD_TABLE);
     }
-
-    @Test
-    public void describeVersionBehavesCorrectly() throws Exception {
-        kvs.getClientPool().runWithRetry(CassandraVerifier.underlyingCassandraClusterSupportsCASOperations);
-    }
-
 
     @Test
     public void testCreateTableCanRestoreLostMetadata() {
@@ -193,5 +171,37 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         assertThat(initialMetadata, is(existingMetadata));
 
         kvs.dropTable(caseSensitiveTable);
+    }
+
+    @Test
+    public void testCreateTransactions2TableProducesCorrectMetadata() throws TException {
+        kvs.createTable(
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes());
+
+        KsDef ksDef = kvs.getClientPool()
+                .run(client -> client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()));
+        CfDef transactions2CfDef = ksDef.cf_defs.stream()
+                .filter(cfDef -> cfDef.name.equals(
+                        AbstractKeyValueService.internalTableName(TransactionConstants.TRANSACTIONS2_TABLE)))
+                .collect(MoreCollectors.onlyElement());
+        assertThat(transactions2CfDef.bloom_filter_fp_chance, equalTo(
+                CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE));
+        assertThat(transactions2CfDef.min_index_interval,
+                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
+        assertThat(transactions2CfDef.max_index_interval,
+                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
+        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
+                equalTo(String.valueOf(
+                        TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB())));
+    }
+
+    private static CassandraKeyValueService kvsWithSchemaMutationTimeout(int millis) {
+        ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
+                .copyOf(CASSANDRA.getConfig())
+                .withSchemaMutationTimeoutMillis(millis);
+        return CassandraKeyValueServiceImpl.createForTesting(
+                config,
+                CassandraResource.LEADER_CONFIG);
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +22,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,7 +57,7 @@ public class AsyncInitializerTest {
         }
 
         @Override
-        ScheduledExecutorService getExecutorService() {
+        ScheduledExecutorService createExecutorService() {
             deterministicScheduler = new DeterministicSchedulerShutdownAware();
             return deterministicScheduler;
         }
@@ -136,31 +136,67 @@ public class AsyncInitializerTest {
     }
 
     @Test
-    public void canCancelInitializationAndNoCleanupIfNotInitialized() throws InterruptedException {
+    public void canCancelInitializationAndNoCleanupIfNotInitializedBetweenIterations() throws InterruptedException {
         AlwaysFailingInitializer initializer = new AlwaysFailingInitializer();
         Runnable cleanupTask = mock(Runnable.class);
-        doNothing().when(cleanupTask).run();
 
-        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(0);
-        initializeAsyncCancelAndVerifyCancelled(initializer, cleanupTask);
-        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(1);
+        initializer.initialize(true);
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(initializer, 0, 6);
+
+        initializer.cancelInitialization(cleanupTask);
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(initializer, 1, 6);
+
         verify(cleanupTask, never()).run();
     }
 
     @Test
-    public void canCancelInitializationAndCleanupIfInitialized() throws InterruptedException {
+    public void canCancelInitializationAndCleanupIfInitializedAfterCancel() throws InterruptedException {
+        Runnable cleanupTask = mock(Runnable.class);
+        doNothing().when(cleanupTask).run();
+        AlwaysFailingInitializer selfCancellingInitializer = new AlwaysFailingInitializer() {
+            @Override
+            public void tryInitialize() {
+                if (++initializationAttempts <= 6) {
+                    throw new RuntimeException("Fail 6 times");
+                }
+                cancelInitialization(cleanupTask);
+            }
+        };
+
+        selfCancellingInitializer.initialize(true);
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(selfCancellingInitializer, 0, 6);
+
+        // cancellation is called during the next run of tryInitialize
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(selfCancellingInitializer, 1, 7);
+
+        verify(cleanupTask, times(1)).run();
+    }
+
+    @Test
+    public void canCancelInitializationAndCleanupIfAlreadyInitialized() throws InterruptedException {
         AlwaysFailingInitializer successfulInitializer = new AlwaysFailingInitializer() {
             @Override
-            public boolean isInitialized() {
-                return true;
+            public void tryInitialize() {
+                ++initializationAttempts;
             }
         };
         Runnable cleanupTask = mock(Runnable.class);
         doNothing().when(cleanupTask).run();
 
-        initializeAsyncCancelAndVerifyCancelled(successfulInitializer, cleanupTask);
-        verify(cleanupTask).run();
-        assertThat(successfulInitializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(1);
+        successfulInitializer.initialize(true);
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(successfulInitializer, 1, 1);
+
+        successfulInitializer.cancelInitialization(cleanupTask);
+        fiveTicksAndAssertNumberOfShutdownsAndAttempts(successfulInitializer, 1, 1);
+
+        verify(cleanupTask, times(1)).run();
+    }
+
+    private void fiveTicksAndAssertNumberOfShutdownsAndAttempts(AlwaysFailingInitializer initializer,
+            int shutdowns, int attempts) {
+        tickSchedulerFiveTimes(initializer);
+        assertThat(initializer.deterministicScheduler.numberOfTimesShutdownCalled).isEqualTo(shutdowns);
+        assertThat(initializer.initializationAttempts).isEqualTo(attempts);
     }
 
     private AsyncInitializer getMockedInitializer() {
@@ -169,15 +205,6 @@ public class AsyncInitializerTest {
         doThrow(new RuntimeException("Failed initializing")).when(initializer).tryInitialize();
         doNothing().when(initializer).scheduleInitialization();
         return initializer;
-    }
-
-    private void initializeAsyncCancelAndVerifyCancelled(AlwaysFailingInitializer initializer,
-            Runnable cleanupTask) throws InterruptedException {
-        initializer.initialize(true);
-        initializer.cancelInitialization(cleanupTask);
-        int numberOfAttemptsWhenCancelled = initializer.initializationAttempts;
-        tickSchedulerFiveTimes(initializer);
-        assertThat(initializer.initializationAttempts).isEqualTo(numberOfAttemptsWhenCancelled);
     }
 
     private void tickSchedulerFiveTimes(AlwaysFailingInitializer initializer) {

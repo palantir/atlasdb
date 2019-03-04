@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.mockito.Mockito.spy;
@@ -33,12 +32,10 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
+import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -79,26 +76,20 @@ public abstract class AbstractSweepQueueTest {
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
         metricsManager = MetricsManagers.createForTests();
-        spiedKvs = spy(new InMemoryKeyValueService(true));
-        spiedKvs.createTable(TABLE_CONS, metadataBytes(TableMetadataPersistence.SweepStrategy.CONSERVATIVE));
-        spiedKvs.createTable(TABLE_THOR, metadataBytes(TableMetadataPersistence.SweepStrategy.THOROUGH));
-        spiedKvs.createTable(TABLE_NOTH, metadataBytes(TableMetadataPersistence.SweepStrategy.NOTHING));
         timestampsSupplier = new SpecialTimestampsSupplier(() -> unreadableTs, () -> immutableTs);
+        spiedKvs = spy(new SafeTableClearerKeyValueService(
+                timestampsSupplier::getImmutableTimestamp, new InMemoryKeyValueService(true)));
+        spiedKvs.createTable(TABLE_CONS, metadataBytes(SweepStrategy.CONSERVATIVE));
+        spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
+        spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
-        txnService = TransactionServices.createTransactionService(spiedKvs);
+        txnService = TransactionServices.createV1TransactionService(spiedKvs);
     }
 
-    static byte[] metadataBytes(TableMetadataPersistence.SweepStrategy sweepStrategy) {
-        return new TableMetadata(new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                TableMetadataPersistence.CachePriority.WARM,
-                false,
-                0,
-                false,
-                sweepStrategy,
-                false,
-                TableMetadataPersistence.LogSafety.UNSAFE)
+    static byte[] metadataBytes(SweepStrategy sweepStrategy) {
+        return TableMetadata.builder()
+                .sweepStrategy(sweepStrategy)
+                .build()
                 .persistToBytes();
     }
 

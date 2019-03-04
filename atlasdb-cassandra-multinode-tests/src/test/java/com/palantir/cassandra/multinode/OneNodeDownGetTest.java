@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,117 +17,108 @@ package com.palantir.cassandra.multinode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
-@ShouldRetry
-public class OneNodeDownGetTest {
-    private static final String REQUIRES_ALL_CASSANDRA_NODES = "requires ALL Cassandra nodes to be up and available.";
+public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
+    private static final Set<Map.Entry<Cell, Value>> expectedRowEntries = ImmutableMap
+            .of(CELL_1_1, VALUE, CELL_1_2, VALUE).entrySet();
 
-    @Rule
-    public final FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
-
-    ImmutableMap<Cell, Value> expectedRow = ImmutableMap.of(
-            OneNodeDownTestSuite.CELL_1_1, OneNodeDownTestSuite.DEFAULT_VALUE,
-            OneNodeDownTestSuite.CELL_1_2, OneNodeDownTestSuite.DEFAULT_VALUE);
+    @Override
+    void testSetup(CassandraKeyValueService kvs) {
+        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        kvs.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, PtBytes.toBytes("old_value")), TIMESTAMP - 1);
+        kvs.put(TEST_TABLE, ImmutableMap.of(CELL_1_1, CONTENTS), TIMESTAMP);
+        kvs.put(TEST_TABLE, ImmutableMap.of(CELL_1_2, CONTENTS), TIMESTAMP);
+        kvs.put(TEST_TABLE, ImmutableMap.of(CELL_2_1, CONTENTS), TIMESTAMP);
+    }
 
     @Test
     public void canGet() {
-        OneNodeDownTestSuite.verifyValue(OneNodeDownTestSuite.CELL_1_1,
-                OneNodeDownTestSuite.DEFAULT_VALUE);
+        assertLatestValueInCellEquals(CELL_1_1, VALUE);
     }
 
     @Test
     public void canGetRows() {
-        Map<Cell, Value> row = OneNodeDownTestSuite.kvs.getRows(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
+        Map<Cell, Value> row = getTestKvs()
+                .getRows(TEST_TABLE, ImmutableList.of(FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE);
 
-        assertThat(row).containsAllEntriesOf(expectedRow);
+        assertThat(row.entrySet()).hasSameElementsAs(expectedRowEntries);
     }
 
     @Test
     public void canGetRange() {
-        final RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        ClosableIterator<RowResult<Value>> it = OneNodeDownTestSuite.kvs.getRange(OneNodeDownTestSuite.TEST_TABLE,
-                range, Long.MAX_VALUE);
+        RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
+        ClosableIterator<RowResult<Value>> resultIterator = getTestKvs().getRange(TEST_TABLE, range, Long.MAX_VALUE);
 
-        ImmutableMap<byte[], Value> expectedColumns = ImmutableMap.of(
-                OneNodeDownTestSuite.FIRST_COLUMN, OneNodeDownTestSuite.DEFAULT_VALUE,
-                OneNodeDownTestSuite.SECOND_COLUMN, OneNodeDownTestSuite.DEFAULT_VALUE);
-        RowResult<Value> expectedRowResult = RowResult.create(OneNodeDownTestSuite.FIRST_ROW,
+        Map<byte[], Value> expectedColumns = ImmutableMap.of(FIRST_COLUMN, VALUE, SECOND_COLUMN, VALUE);
+        RowResult<Value> expectedRowResult = RowResult.create(FIRST_ROW,
                 ImmutableSortedMap.copyOf(expectedColumns, UnsignedBytes.lexicographicalComparator()));
 
-        assertThat(it).containsExactly(expectedRowResult);
+        assertThat(resultIterator).containsExactlyElementsOf(ImmutableList.of(expectedRowResult));
     }
 
     @Test
     public void canGetRowsColumnRange() {
-        BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
-                PtBytes.EMPTY_BYTE_ARRAY, 1);
-        Map<byte[], RowColumnRangeIterator> rowsColumnRange = OneNodeDownTestSuite.kvs.getRowsColumnRange(
-                OneNodeDownTestSuite.TEST_TABLE, ImmutableList.of(OneNodeDownTestSuite.FIRST_ROW),
-                rangeSelection, Long.MAX_VALUE);
+        BatchColumnRangeSelection rangeSelection = BatchColumnRangeSelection.create(null, null, 1);
+        Map<byte[], RowColumnRangeIterator> rowsColumnRange = getTestKvs()
+                .getRowsColumnRange(TEST_TABLE, ImmutableList.of(FIRST_ROW), rangeSelection, Long.MAX_VALUE);
 
-        assertEquals(1, rowsColumnRange.size());
-        byte[] rowName = rowsColumnRange.entrySet().iterator().next().getKey();
-        assertTrue(Arrays.equals(OneNodeDownTestSuite.FIRST_ROW, rowName));
-
-        RowColumnRangeIterator it = rowsColumnRange.get(rowName);
-        assertThat(it).containsExactlyElementsOf(expectedRow.entrySet());
+        assertThat(Iterables.getOnlyElement(rowsColumnRange.keySet())).isEqualTo(FIRST_ROW);
+        assertThat(rowsColumnRange.get(FIRST_ROW)).containsExactlyElementsOf(expectedRowEntries);
     }
 
     @Test
     public void canGetAllTableNames() {
-        assertTrue(OneNodeDownTestSuite.tableExists(OneNodeDownTestSuite.TEST_TABLE));
+        assertThat(getTestKvs().getAllTableNames()).contains(TEST_TABLE);
     }
 
     @Test
     public void canGetLatestTimestamps() {
-        Map<Cell, Long> latest = OneNodeDownTestSuite.kvs.getLatestTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableMap.of(OneNodeDownTestSuite.CELL_1_1, Long.MAX_VALUE));
-        assertEquals(OneNodeDownTestSuite.DEFAULT_TIMESTAMP, latest.get(OneNodeDownTestSuite.CELL_1_1).longValue());
+        Map<Cell, Long> latestTs = getTestKvs()
+                .getLatestTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, Long.MAX_VALUE));
+        assertThat(latestTs.get(CELL_1_1).longValue()).isEqualTo(TIMESTAMP);
     }
 
     @Test
     public void getRangeOfTimestampsThrows() {
-        RangeRequest range = RangeRequest.builder().endRowExclusive(OneNodeDownTestSuite.SECOND_ROW).build();
-        ClosableIterator<RowResult<Set<Long>>> it = OneNodeDownTestSuite.kvs.getRangeOfTimestamps(
-                OneNodeDownTestSuite.TEST_TABLE, range, Long.MAX_VALUE);
-        assertThatThrownBy(() -> it.next())
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
+        RangeRequest range = RangeRequest.builder().endRowExclusive(SECOND_ROW).build();
+        try (ClosableIterator<RowResult<Set<Long>>> resultIterator = getTestKvs()
+                .getRangeOfTimestamps(TEST_TABLE, range, Long.MAX_VALUE)) {
+            assertThatThrownBy(resultIterator::next).isInstanceOf(AtlasDbDependencyException.class);
+        }
     }
 
     @Test
     public void getAllTimestampsThrows() {
-        assertThatThrownBy(() -> OneNodeDownTestSuite.kvs.getAllTimestamps(OneNodeDownTestSuite.TEST_TABLE,
-                ImmutableSet.of(OneNodeDownTestSuite.CELL_1_1), Long.MAX_VALUE))
-                .isExactlyInstanceOf(InsufficientConsistencyException.class)
-                .hasMessageContaining(REQUIRES_ALL_CASSANDRA_NODES);
+        assertThatThrownBy(() -> getTestKvs().getAllTimestamps(TEST_TABLE, ImmutableSet.of(CELL_1_1), Long.MAX_VALUE))
+                .isInstanceOf(AtlasDbDependencyException.class);
+    }
+
+    private void assertLatestValueInCellEquals(Cell cell, Value value) {
+        Map<Cell, Value> result = getTestKvs().get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
+        assertThat(result.get(cell)).isEqualTo(value);
     }
 }

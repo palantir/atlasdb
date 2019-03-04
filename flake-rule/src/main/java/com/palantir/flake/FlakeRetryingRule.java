@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.flake;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import org.junit.rules.TestRule;
@@ -92,16 +92,18 @@ public class FlakeRetryingRule implements TestRule {
                         attempt,
                         retryAnnotation.numAttempts());
                 return;
-            } catch (Exception | AssertionError e) {
-                // This includes AssertionErrors because of tests where a flaky operation takes place, and then
-                // assertions are made on the state of the world assuming that said flaky operation was successful.
-                // TODO (jkong): Make whether AssertionError is permitted configurable.
-                logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, e);
             } catch (Throwable t) {
-                // This covers other Errors, where it generally doesn't make sense to retry.
-                throw Throwables.propagate(t);
+                if (Arrays.stream(retryAnnotation.retryableExceptions()).anyMatch(type -> causeHasType(t, type))) {
+                    logFailureAndThrowIfNeeded(retryAnnotation, description, attempt, t);
+                } else {
+                    throw Throwables.propagate(t);
+                }
             }
         }
+    }
+
+    private static boolean causeHasType(Throwable cause, Class<? extends Throwable> type) {
+        return cause != null && (type.isInstance(cause) || causeHasType(cause.getCause(), type));
     }
 
     private static void logFailureAndThrowIfNeeded(

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -23,6 +24,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.validation.constraints.NotNull;
 
 import com.codahale.metrics.Timer;
 import com.google.common.base.Preconditions;
@@ -47,15 +50,14 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
@@ -65,6 +67,7 @@ import com.palantir.timestamp.TimestampService;
     final KeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
+    final TimestampManagementService timestampManagementService;
     final LockService lockService;
     final ConflictDetectionManager conflictDetectionManager;
     final SweepStrategyManager sweepStrategyManager;
@@ -82,14 +85,13 @@ import com.palantir.timestamp.TimestampService;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
 
-    final CommitProfileProcessor commitProfileProcessor;
-
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
             LockService lockService,
-            TransactionService transactionService,
+            @NotNull TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
@@ -102,11 +104,12 @@ import com.palantir.timestamp.TimestampService;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
-        super(metricsManager, timestampCache);
+        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
+        this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
         this.transactionService = transactionService;
         this.conflictDetectionManager = conflictDetectionManager;
@@ -120,7 +123,6 @@ import com.palantir.timestamp.TimestampService;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
-        this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
     }
@@ -147,15 +149,16 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
-        StartAtlasDbTransactionResponse transactionResponse = timelockService.startAtlasDbTransaction(
-                IdentifiedTimeLockRequest.create());
+        StartIdentifiedAtlasDbTransactionResponse transactionResponse
+                = timelockService.startIdentifiedAtlasDbTransaction();
         try {
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
             recordImmutableTimestamp(immutableTs);
 
-            cleaner.punch(transactionResponse.freshTimestamp());
-            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(transactionResponse.freshTimestamp());
+            cleaner.punch(transactionResponse.startTimestampAndPartition().timestamp());
+            Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
+                    transactionResponse.startTimestampAndPartition().timestamp());
 
             SnapshotTransaction transaction = createTransaction(immutableTs, startTimestampSupplier,
                     immutableTsLock, condition);
@@ -236,7 +239,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
     }
@@ -267,7 +269,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
         try {
@@ -302,10 +303,19 @@ import com.palantir.timestamp.TimestampService;
             shutdownExecutor(deleteExecutor);
             shutdownExecutor(getRangesExecutor);
             closeLockServiceIfPossible();
+
+            List<Throwable> suppressedExceptions = new ArrayList<>();
             for (Runnable callback : Lists.reverse(closingCallbacks)) {
-                callback.run();
+                runShutdownCallbackSafely(callback).ifPresent(suppressedExceptions::add);
             }
             metricsManager.deregisterMetrics();
+
+            if (!suppressedExceptions.isEmpty()) {
+                RuntimeException closeFailed = new RuntimeException(
+                        "Close failed. Please inspect the code and fix wherever shutdown hooks throw exceptions");
+                suppressedExceptions.forEach(closeFailed::addSuppressed);
+                throw closeFailed;
+            }
         }
     }
 
@@ -398,6 +408,16 @@ import com.palantir.timestamp.TimestampService;
     }
 
     @Override
+    public TimestampManagementService getTimestampManagementService() {
+        return timestampManagementService;
+    }
+
+    @Override
+    public TransactionService getTransactionService() {
+        return transactionService;
+    }
+
+    @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
         ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {
@@ -410,6 +430,16 @@ import com.palantir.timestamp.TimestampService;
             case NO_QUORUM_AVAILABLE:
             default:
                 return KeyValueServiceStatus.UNHEALTHY;
+        }
+    }
+
+    private Optional<Throwable> runShutdownCallbackSafely(Runnable callback) {
+        try {
+            callback.run();
+            return Optional.empty();
+        } catch (Throwable exception) {
+            log.warn("Exception thrown from a shutdown hook. Swallowing to proceed.", exception);
+            return Optional.of(exception);
         }
     }
 

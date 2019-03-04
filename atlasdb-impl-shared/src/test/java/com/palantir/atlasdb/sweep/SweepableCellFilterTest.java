@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
@@ -123,6 +124,23 @@ public class SweepableCellFilterTest {
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells.size()).isEqualTo(1);
         assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(LOW_START_TS);
+    }
+
+    @Test
+    public void thorough_getTimestampsToSweep_oneSentinel_returnsIt() {
+        List<CandidateCellForSweeping> candidate = ImmutableList.of(
+                ImmutableCandidateCellForSweeping.builder()
+                        .cell(SINGLE_CELL)
+                        .sortedTimestamps(ImmutableList.of(Value.INVALID_VALUE_TIMESTAMP))
+                        .isLatestValueEmpty(true)
+                        .build());
+        when(mockTransactionService.get(anyCollection()))
+                .thenReturn(ImmutableMap.of());
+        SweepableCellFilter filter = new SweepableCellFilter(
+                commitTsCache, Sweeper.THOROUGH, HIGH_START_TS);
+        List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
+        assertThat(cells.size()).isEqualTo(1);
+        assertThat(Iterables.getOnlyElement(cells).sortedTimestamps()).containsExactly(Value.INVALID_VALUE_TIMESTAMP);
     }
 
     @Test

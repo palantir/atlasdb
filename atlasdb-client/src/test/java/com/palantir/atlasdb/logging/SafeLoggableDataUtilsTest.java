@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +31,6 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class SafeLoggableDataUtilsTest {
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createFromFullyQualifiedName("atlas.db");
@@ -55,21 +53,20 @@ public class SafeLoggableDataUtilsTest {
             new ColumnMetadataDescription(ImmutableList.of(new NamedColumnDescription("bar", COLUMN_LONG_NAME,
                     ColumnValueDescription.forType(ValueType.VAR_LONG), LogSafety.SAFE)));
 
-    private static final TableMetadata TABLE_METADATA_1 = new TableMetadata(
-            NameMetadataDescription.create(
-                    ImmutableList.of(new NameComponentDescription.Builder()
-                            .componentName(ROW_COMPONENT_NAME).type(ValueType.VAR_LONG).build()),
-                    0),
-            new ColumnMetadataDescription(
-                    ImmutableList.of(new NamedColumnDescription("bar", "barrrr",
-                            ColumnValueDescription.forType(ValueType.VAR_LONG)))),
-            ConflictHandler.RETRY_ON_WRITE_WRITE);
-    private static final TableMetadata TABLE_METADATA_2 = createTableMetadataWithLoggingAllowed(
-            NAME_METADATA_DESCRIPTION, COLUMN_METADATA_DESCRIPTION);
-    private static final TableMetadata TABLE_METADATA_DYNAMIC_COLUMNS = createTableMetadataWithLoggingAllowed(
-            NAME_METADATA_DESCRIPTION,
-            new ColumnMetadataDescription()
-    );
+    private static final TableMetadata TABLE_METADATA_1 = TableMetadata.builder()
+            .singleRowComponent(ROW_COMPONENT_NAME, ValueType.VAR_LONG)
+            .singleNamedColumn("bar", COLUMN_LONG_NAME, ValueType.VAR_LONG)
+            .build();
+
+    private static final TableMetadata TABLE_METADATA_2 = TableMetadata.builder()
+            .rowMetadata(NAME_METADATA_DESCRIPTION)
+            .columns(COLUMN_METADATA_DESCRIPTION)
+            .nameLogSafety(LogSafety.SAFE)
+            .build();
+    private static final TableMetadata TABLE_METADATA_DYNAMIC_COLUMNS = TableMetadata.builder()
+            .rowMetadata(NAME_METADATA_DESCRIPTION)
+            .nameLogSafety(LogSafety.SAFE)
+            .build();
 
     @Test
     public void nothingLoggableByDefault() {
@@ -122,21 +119,5 @@ public class SafeLoggableDataUtilsTest {
         assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_1, COLUMN_LONG_NAME)).isFalse();
         assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_2, COLUMN_LONG_NAME)).isTrue();
         assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_3, COLUMN_LONG_NAME)).isFalse();
-    }
-
-    private static TableMetadata createTableMetadataWithLoggingAllowed(
-            NameMetadataDescription nameMetadataDescription,
-            ColumnMetadataDescription columnMetadataDescription) {
-        return new TableMetadata(
-                nameMetadataDescription,
-                columnMetadataDescription,
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                TableMetadataPersistence.CachePriority.WARM,
-                false,
-                0,
-                false,
-                TableMetadataPersistence.SweepStrategy.CONSERVATIVE,
-                false,
-                LogSafety.SAFE);
     }
 }

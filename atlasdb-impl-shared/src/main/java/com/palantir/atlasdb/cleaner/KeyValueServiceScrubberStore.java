@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -36,16 +36,10 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.DynamicColumnDescription;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.AbstractBatchingVisitable;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitableFromIterable;
@@ -94,25 +88,13 @@ public final class KeyValueServiceScrubberStore implements ScrubberStore {
     }
 
     private void tryInitialize() {
-        TableMetadata scrubTableMeta = new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription.Builder()
-                                .componentName("row")
-                                .type(ValueType.BLOB)
-                                .build())),
-                new ColumnMetadataDescription(new DynamicColumnDescription(
-                        NameMetadataDescription.create(ImmutableList.of(
-                                new NameComponentDescription.Builder()
-                                        .componentName("table")
-                                        .type(ValueType.VAR_STRING)
-                                        .build(),
-                                new NameComponentDescription.Builder()
-                                        .componentName("col")
-                                        .type(ValueType.BLOB)
-                                        .build())),
-                        ColumnValueDescription.forType(ValueType.VAR_LONG))),
-                ConflictHandler.IGNORE_ALL,
-                TableMetadataPersistence.LogSafety.SAFE);
+        TableMetadata scrubTableMeta = TableMetadata.internal()
+                .singleRowComponent("row", ValueType.BLOB)
+                .dynamicColumns(ImmutableList.of(
+                        NameComponentDescription.of("table", ValueType.VAR_STRING),
+                        NameComponentDescription.of("col", ValueType.BLOB)),
+                        ValueType.VAR_LONG)
+                .build();
         keyValueService.createTable(AtlasDbConstants.SCRUB_TABLE, scrubTableMeta.persistToBytes());
     }
 

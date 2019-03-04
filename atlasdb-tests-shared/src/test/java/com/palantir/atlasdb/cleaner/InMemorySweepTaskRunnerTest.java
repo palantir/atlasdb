@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,35 +16,24 @@
 package com.palantir.atlasdb.cleaner;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
 import org.junit.Assert;
+import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
-import com.palantir.common.concurrent.PTExecutors;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    private ExecutorService exec;
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    @Override
-    @After
-    public void close() {
-        super.close();
-        exec.shutdown();
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        exec = PTExecutors.newCachedThreadPool();
-        return new InMemoryKeyValueService(false, exec);
+    public InMemorySweepTaskRunnerTest() {
+        super(TRM, TRM);
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.

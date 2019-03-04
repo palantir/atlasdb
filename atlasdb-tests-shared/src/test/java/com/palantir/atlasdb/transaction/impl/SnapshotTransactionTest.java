@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -86,6 +86,7 @@ import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -94,13 +95,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -116,7 +113,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -136,7 +132,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
@@ -152,7 +147,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics
             = TransactionOutcomeMetrics.create(metricsManager);
 
-    private class UnstableKeyValueService extends ForwardingKeyValueService {
+    private class UnstableKeyValueService implements AutoDelegate_KeyValueService {
         private final KeyValueService delegate;
         private final Random random;
 
@@ -162,6 +157,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         public UnstableKeyValueService(KeyValueService keyValueService, Random random) {
             this.delegate = keyValueService;
             this.random = random;
+        }
+
+        @Override
+        public KeyValueService delegate() {
+            return delegate;
         }
 
         @Override
@@ -177,7 +177,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
                 throw new RuntimeException();
             }
-            super.put(tableRef, values, timestamp);
+            delegate().put(tableRef, values, timestamp);
         }
 
         public void setRandomlyHang(boolean randomlyHang) {
@@ -186,11 +186,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         public void setRandomlyThrow(boolean randomlyThrow) {
             this.randomlyThrow = randomlyThrow;
-        }
-
-        @Override
-        protected KeyValueService delegate() {
-            return delegate;
         }
     }
 
@@ -219,6 +214,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        keyValueService.createTable(
+                TABLE_SWEPT_THOROUGH,
+                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
     }
 
     @Test
@@ -298,7 +296,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         try {
@@ -365,7 +362,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
         snapshot.delete(TABLE, ImmutableSet.of(cell));
@@ -387,6 +383,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
+                timestampService,
                 timestampService,
                 lockClient,
                 lockService,
@@ -602,10 +599,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() throws Exception {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
+    public void readsFromThoroughlySweptTableShouldFailWhenLocksAreInvalid() {
         List<String> successfulTasks = getThoroughTableReadTasks().stream()
                 .map(this::runTaskWithInvalidLocks)
                 .filter(Optional::isPresent)
@@ -851,6 +845,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 keyValueService,
                 timestampService,
+                timestampService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -1030,7 +1025,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 unused -> doReturn(ImmutableSet.of()).when(timelockService).refreshLockLeases(any());
 
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1059,7 +1054,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
         long transactionTs = timelockService.getFreshTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
@@ -1086,7 +1081,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TimelockService timelockService = new LegacyTimelockService(timestampServiceSpy, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction snapshot = getSnapshotTransactionWith(
                 timelockService,
@@ -1107,14 +1102,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @Test
     public void validateLocksOnReadsIfThoroughlySwept() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1125,22 +1116,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() ->
-            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead)));
+            transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)));
     }
 
     @Test
     public void validateLocksOnlyOnCommitIfValidationFlagIsFalse() {
-        keyValueService.createTable(
-                TABLE_SWEPT_THOROUGH,
-                getTableMetadataForSweepStrategy(SweepStrategy.THOROUGH).persistToBytes());
-
         TimelockService timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
         long transactionTs = timelockService.getFreshTimestamp();
         LockImmutableTimestampResponse res =
-                timelockService.lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                timelockService.lockImmutableTimestamp();
 
         SnapshotTransaction transaction = getSnapshotTransactionWith(
                 timelockService,
@@ -1150,10 +1135,77 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 false);
 
         timelockService.unlock(ImmutableSet.of(res.getLock()));
-        Cell cellToRead = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
-        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(cellToRead));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
 
         assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(() -> transaction.commit());
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithValidationOnReads() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp();
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                true);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void checkImmutableTsLockOnceIfThoroughlySwept_WithoutValidationOnReads() {
+        TimelockService timelockService = spy(new LegacyTimelockService(timestampService, lockService, lockClient));
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res =
+                timelockService.lockImmutableTimestamp();
+
+        SnapshotTransaction transaction = getSnapshotTransactionWith(
+                timelockService,
+                () -> transactionTs,
+                res,
+                PreCommitConditions.NO_OP,
+                false);
+
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+        transaction.commit();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void testThrowsIfSweepSentinelSeen() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        Transaction t1 = txManager.createNewTransaction();
+        Transaction t2 = txManager.createNewTransaction();
+        t1.getTimestamp();
+        t2.getTimestamp();
+
+        t1.put(TABLE, ImmutableMap.of(cell, new byte[1]));
+        t1.commit();
+
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+
+        assertThatExceptionOfType(TransactionFailedRetriableException.class)
+                .isThrownBy(() -> t2.get(TABLE, ImmutableSet.of(cell)))
+                .withMessageContaining("Tried to read a value that has been deleted.");
+    }
+
+    @Test
+    public void testIgnoresOrphanedSweepSentinel() {
+        Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
+        keyValueService.addGarbageCollectionSentinelValues(TABLE, ImmutableSet.of(cell));
+        Transaction txn = txManager.createNewTransaction();
+        assertThat(txn.get(TABLE, ImmutableSet.of(cell)), is(ImmutableMap.of()));
     }
 
     private SnapshotTransaction getSnapshotTransactionWith(
@@ -1197,7 +1249,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 validateLocksOnReads,
                 () -> TRANSACTION_CONFIG);
     }
@@ -1215,16 +1266,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private TableMetadata getTableMetadataForSweepStrategy(SweepStrategy sweepStrategy) {
-        return new TableMetadata(
-                new NameMetadataDescription(),
-                new ColumnMetadataDescription(),
-                ConflictHandler.RETRY_ON_WRITE_WRITE,
-                CachePriority.WARM,
-                false,
-                0,
-                false,
-                sweepStrategy,
-                false);
+        return TableMetadata.builder().sweepStrategy(sweepStrategy).build();
     }
 
     private HeldLocksToken getExpiredHeldLocksToken() {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
@@ -39,11 +38,9 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
-import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
@@ -53,14 +50,11 @@ import com.palantir.logsafe.SafeArg;
 class CellLoader {
     private static final Logger log = LoggerFactory.getLogger(CellLoader.class);
 
-    private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
     private final WrappingQueryRunner queryRunner;
     private final TaskRunner taskRunner;
 
-    CellLoader(CassandraKeyValueServiceConfig config, CassandraClientPool clientPool, WrappingQueryRunner queryRunner,
-            TaskRunner taskRunner) {
-        this.config = config;
+    CellLoader(CassandraClientPool clientPool, WrappingQueryRunner queryRunner, TaskRunner taskRunner) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.taskRunner = taskRunner;
@@ -82,7 +76,7 @@ class CellLoader {
             CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             ConsistencyLevel consistency) {
         Map<InetSocketAddress, List<Cell>> hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells,
-                Cells.getRowFunction());
+                Cell::getRowName);
         int totalPartitions = hostsAndCells.keySet().size();
 
         if (log.isTraceEnabled()) {

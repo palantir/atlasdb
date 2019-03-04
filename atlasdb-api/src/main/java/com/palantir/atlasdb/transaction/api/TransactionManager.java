@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,15 +18,17 @@ package com.palantir.atlasdb.transaction.api;
 import com.google.common.base.Supplier;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate(typeToExtend = TransactionManager.class)
+@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
@@ -258,6 +260,24 @@ public interface TransactionManager extends AutoCloseable {
     TimestampService getTimestampService();
 
     /**
+     * The timestamp management service is used by libraries providing additional functionality
+     * around AtlasDB. End-user clients probably should not require it.
+     *
+     * @return the timestamp management service for this transaction manager
+     */
+    TimestampManagementService getTimestampManagementService();
+
+    /**
+     * The transaction service is used by libraries providing additional functionality around AtlasDB.
+     * End-user clients probably should not require it.
+     * Abuse of the transaction service, especially involving putting new records in, may result in severe and
+     * irrecoverable data corruption.
+     *
+     * @return the transaction service for this transaction manager
+     */
+    TransactionService getTransactionService();
+
+    /**
      * Returns the cleaner used by this transaction manager.
      *
      * @return the cleaner for this transaction manager
@@ -318,8 +338,7 @@ public interface TransactionManager extends AutoCloseable {
     void clearTimestampCache();
 
     /**
-     * Registers a Runnable that will be run when the transaction manager is closed, provided no callback already
-     * submitted throws an exception.
+     * Registers a Runnable that will be run after the transaction manager is closed.
      *
      * Concurrency: If this method races with close(), then closingCallback may not be called.
      */
@@ -358,10 +377,13 @@ public interface TransactionManager extends AutoCloseable {
      * Frees resources used by this TransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
      *
+     * All callbacks will execute in the reverse order of registration, regardless
+     * of any exceptions thrown. If any exceptions occur, they will be collected and rethrown as a new exception
+     * with any exceptions that occurred set as suppressed exceptions.
+     *
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
      * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
-     * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception
-     * arises, then no guarantees are made with regard to subsequent callbacks being executed.
+     * guaranteed to be executed.
      */
     @Override
     void close();

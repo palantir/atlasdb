@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -57,21 +57,21 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class TableTasksTest {
     private MetricsManager metricsManager;
     private KeyValueService kvs;
     private LockServiceImpl lockService;
     private TransactionManager txManager;
+    private TransactionService txService;
 
     @Before
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
-        TimestampService tsService = new InMemoryTimestampService();
+        InMemoryTimestampService tsService = new InMemoryTimestampService();
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        TransactionService txService = TransactionServices.createTransactionService(kvs);
+        txService = TransactionServices.createRaw(kvs, tsService, false);
         Supplier<AtlasDbConstraintCheckingMode> constraints = Suppliers.ofInstance(
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -80,7 +80,7 @@ public class TableTasksTest {
         metricsManager = MetricsManagers.createForTests();
         TransactionManager transactionManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                kvs, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
+                kvs, tsService, tsService, lockClient, lockService, txService, constraints, cdm, ssm, cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP);
@@ -121,7 +121,7 @@ public class TableTasksTest {
                 key++;
             }
         }
-        TransactionServices.createTransactionService(kvs).putUnlessExists(1, 1);
+        txService.putUnlessExists(1, 1);
         AtomicLong rowsOnlyInSource = new AtomicLong();
         AtomicLong rowsPartiallyInCommon = new AtomicLong();
         AtomicLong rowsCompletelyInCommon = new AtomicLong();

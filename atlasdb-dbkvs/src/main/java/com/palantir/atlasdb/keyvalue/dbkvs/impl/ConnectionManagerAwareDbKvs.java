@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.Connection;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -48,7 +47,7 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
 
     private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
             ReentrantManagedConnectionSupplier connectionSupplier) {
-        Supplier<Connection> supplier = () -> connectionSupplier.get();
+        Supplier<Connection> supplier = connectionSupplier::get;
         SQL sql = new SQL() {
             @Override
             protected SqlConfig getSqlConfig() {
@@ -100,7 +99,6 @@ public final class ConnectionManagerAwareDbKvs extends ForwardingKeyValueService
         this.sqlConnectionSupplier = sqlConnectionSupplier;
     }
 
-    @VisibleForTesting
     @Override
     public KeyValueService delegate() {
         return kvs;

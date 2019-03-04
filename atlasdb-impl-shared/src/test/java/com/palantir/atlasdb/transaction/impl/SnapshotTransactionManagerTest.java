@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -29,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.CloseableLockService;
@@ -50,7 +49,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
@@ -66,13 +64,15 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
+    private final InMemoryTimestampService timestampService = new InMemoryTimestampService();
     private final SnapshotTransactionManager snapshotTransactionManager = new SnapshotTransactionManager(
             metricsManager,
             keyValueService,
-            new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+            new LegacyTimelockService(timestampService, closeableLockService,
                     LockClient.of("lock")),
+            timestampService,
             closeableLockService,
-            null,
+            mock(TransactionService.class),
             () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
             null,
             null,
@@ -111,13 +111,15 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                new LegacyTimelockService(new InMemoryTimestampService(), closeableLockService,
+                new LegacyTimelockService(ts, closeableLockService,
                         LockClient.of("lock")),
+                ts,
                 mock(LockService.class), // not closeable
-                null,
+                mock(TransactionService.class),
                 null,
                 null,
                 null,
@@ -172,14 +174,5 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
         assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
-    }
-
-    @Test
-    public void profilingIsSharedAcrossTransactions() {
-        SnapshotTransaction tx1 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        SnapshotTransaction tx2 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        assertThat(tx1.commitProfileProcessor).isSameAs(tx2.commitProfileProcessor);
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,69 +23,83 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
-public class ServiceCreator<T> implements Function<ServerListConfig, T> {
+public final class ServiceCreator {
     private final MetricsManager metricsManager;
-    private final Class<T> serviceClass;
     private final String userAgent;
+    private final Supplier<ServerListConfig> servers;
+    private final boolean limitPayload;
 
-    public ServiceCreator(MetricsManager metricsManager,
-            Class<T> serviceClass,
-            String userAgent) {
+    private ServiceCreator(MetricsManager metricsManager, String userAgent, Supplier<ServerListConfig> servers,
+            boolean limitPayload) {
         this.metricsManager = metricsManager;
-        this.serviceClass = serviceClass;
         this.userAgent = userAgent;
-    }
-
-    @Override
-    public T apply(ServerListConfig input) {
-        return applyDynamic(() -> input);
-    }
-
-    // Semi-horrible, but given that we create ServiceCreators explicitly and I'd rather not API break our
-    // implementation of Function, leaving this here for now.
-    public T applyDynamic(Supplier<ServerListConfig> input) {
-        return createService(
-                metricsManager,
-                input,
-                SslSocketFactories::createSslSocketFactory,
-                ServiceCreator::createProxySelector,
-                serviceClass,
-                userAgent);
+        this.servers = servers;
+        this.limitPayload = limitPayload;
     }
 
     /**
-     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link SSLSocketFactory}.
+     * Creates clients without client-side restrictions on payload size.
      */
-    public static Optional<SSLSocketFactory> createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
-        return sslConfiguration.map(config -> SslSocketFactories.createSslSocketFactory(config));
+    public static ServiceCreator noPayloadLimiter(MetricsManager metrics, String agent,
+            Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList, false);
     }
 
-    private static <T> T createService(
+    /**
+     * Creates clients that intercept requests with payload greater than
+     * {@link com.palantir.atlasdb.http.AtlasDbInterceptors#MAX_PAYLOAD_SIZE} bytes. This ServiceCreator should be used
+     * for clients to servers that impose payload limits.
+     */
+    public static ServiceCreator withPayloadLimiter(MetricsManager metrics, String agent,
+            Supplier<ServerListConfig> serverList) {
+        return new ServiceCreator(metrics, agent, serverList, true);
+    }
+
+    public <T> T createService(Class<T> serviceClass) {
+        return create(
+                metricsManager,
+                servers,
+                SslSocketFactories::createTrustContext,
+                ServiceCreator::createProxySelector,
+                serviceClass,
+                userAgent,
+                limitPayload);
+    }
+
+    /**
+     * Utility method for transforming an optional {@link SslConfiguration} into an optional {@link TrustContext}.
+     */
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Just mapping
+    public static Optional<TrustContext> createTrustContext(Optional<SslConfiguration> sslConfiguration) {
+        return sslConfiguration.map(SslSocketFactories::createTrustContext);
+    }
+
+    private static <T> T create(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            java.util.function.Function<SslConfiguration, SSLSocketFactory> sslSocketFactoryCreator,
-            java.util.function.Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
+            Function<SslConfiguration, TrustContext> trustContextCreator,
+            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayload) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, sslSocketFactoryCreator, proxySelectorCreator, type, userAgent);
+                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

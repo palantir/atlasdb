@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,12 +20,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 // TODO(nziebart): these tests are mostly sanity checks, until we have better tests for {@link PaxosQuorumChecker}.
 public class PaxosLatestRoundVerifierTest {
@@ -45,9 +47,14 @@ public class PaxosLatestRoundVerifierTest {
             acceptor3);
 
     private final Supplier<Boolean> onlyLogOnQuorumFailure = () -> false;
+    private final Map<PaxosAcceptor, ExecutorService> executorServiceMap = ImmutableMap.of(
+            acceptor1, Executors.newSingleThreadExecutor(),
+            acceptor2, Executors.newSingleThreadExecutor(),
+            acceptor3, Executors.newSingleThreadExecutor()
+    );
 
     private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptors, 2,
-            Executors.newCachedThreadPool(), onlyLogOnQuorumFailure);
+            executorServiceMap, onlyLogOnQuorumFailure);
 
     @Test
     public void hasQuorumIfAllNodesAgree() {

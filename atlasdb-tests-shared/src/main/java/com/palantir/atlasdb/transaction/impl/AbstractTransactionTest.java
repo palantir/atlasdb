@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -58,13 +59,17 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -78,7 +83,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -93,6 +97,10 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 @SuppressWarnings({"checkstyle:all","DefaultCharset"}) // TODO(someonebored): clean this horrible test class up!
 public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final TransactionConfig TRANSACTION_CONFIG = ImmutableTransactionConfig.builder().build();
+
+    public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        super(kvsManager, tmManager);
+    }
 
     protected boolean supportsReverse() {
         return true;
@@ -128,7 +136,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> TRANSACTION_CONFIG);
     }
@@ -250,6 +257,81 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         byte[] rowBytes = PtBytes.toBytes("row1");
         ImmutableList<RowResult<Value>> list = ImmutableList.copyOf(keyValueService.getRange(TEST_TABLE, RangeRequest.builder().startRowInclusive(rowBytes).endRowExclusive(rowBytes).build(), 1));
         assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testRowsColumnRange_allResultsPostFiltered() {
+        putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                1);
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_postFilteredFirstPage() {
+        putDirect("row1", "col1", "v1", 5);
+        putDirect("row1", "col1", "v1a", 6);
+        putDirect("row1", "col2", "v2", 5);
+        putDirect("row1", "col3", "v3", 0);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                1);
+        assertThat(PtBytes.toBytes("v3")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_forwardProgressAfterValidResult() {
+        putDirect("row1", "col1", "v1a", 1);
+        putDirect("row1", "col1", "v1b", 2);
+        putDirect("row1", "col1", "v1c", 3);
+        putDirect("row1", "col1", "v1d", 4);
+        putDirect("row1", "col1", "v1e", 5);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                6);
+        assertThat(PtBytes.toBytes("v1e")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
+    }
+
+    @Test
+    public void testRowsColumnRange_abortsCorrectlyHalfway() {
+        putDirect("row1", "col1", "v1a", 3);
+        putDirect("row1", "col1", "v1b", 4);
+        putDirect("row1", "col1", "v1c", 5);
+        putDirect("row1", "col1", "v1d", 7);
+        putDirect("row1", "col1", "v1e", 8);
+        putDirect("row1", "col2", "v2", 5);
+
+        byte[] rowBytes = PtBytes.toBytes("row1");
+        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+                TEST_TABLE,
+                ImmutableList.of(rowBytes),
+                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+                1,
+                6);
+        assertThat(PtBytes.toBytes("v1c")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
+        assertThat(iterator.hasNext()).isFalse();
     }
 
     @Test
@@ -712,7 +794,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertNull(pair);
     }
@@ -724,7 +806,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 2L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 2L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -737,7 +819,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(0L, (long)pair.getRhSide());
         assertEquals("v0", pair.getLhSide());
@@ -762,7 +844,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 0L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 0L)));
         pair = getDirect("row1", "col1", 2);
         assertEquals(1L, (long)pair.getRhSide());
         assertEquals("v1", pair.getLhSide());
@@ -775,7 +857,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
@@ -787,8 +869,8 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         Pair<String, Long> pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 1L)));
-        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(getCell("row1", "col1"), 3L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 1L)));
+        keyValueService.delete(TEST_TABLE, Multimaps.forMap(ImmutableMap.of(createCell("row1", "col1"), 3L)));
         pair = getDirect("row1", "col1", 3);
         assertEquals(2L, (long)pair.getRhSide());
         assertEquals("v2", pair.getLhSide());
@@ -1160,7 +1242,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
 
         byte[] metadataForTable = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(metadataForTable == null || Arrays.equals(AtlasDbConstants.GENERIC_TABLE_METADATA, metadataForTable));
-        byte[] bytes = new TableMetadata().persistToBytes();
+        byte[] bytes = TableMetadata.allDefault().persistToBytes();
         keyValueService.putMetadataForTable(TEST_TABLE, bytes);
         byte[] bytesRead = keyValueService.getMetadataForTable(TEST_TABLE);
         assertTrue(Arrays.equals(bytes, bytesRead));

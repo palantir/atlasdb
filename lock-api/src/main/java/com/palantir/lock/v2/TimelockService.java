@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,26 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.lock.v2;
 
 import java.util.Set;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
-@Path("/timelock")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
-@AutoDelegate(typeToExtend = TimelockService.class)
+@AutoDelegate
 public interface TimelockService {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
@@ -45,37 +36,21 @@ public interface TimelockService {
         return true;
     }
 
-    @POST
-    @Path("fresh-timestamp")
     long getFreshTimestamp();
 
-    @POST
-    @Path("fresh-timestamps")
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
-    @POST
-    @Path("lock-immutable-timestamp")
     // TODO (jkong): Can this be deprecated? Are there users outside of Atlas transactions?
-    LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
+    LockImmutableTimestampResponse lockImmutableTimestamp();
 
-    @POST
-    @Path("start-atlasdb-transaction")
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction();
 
-    @POST
-    @Path("immutable-timestamp")
     long getImmutableTimestamp();
 
-    @POST
-    @Path("lock")
     LockResponse lock(LockRequest request);
 
-    @POST
-    @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
 
-    @POST
-    @Path("refresh-locks")
     Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
 
     /**
@@ -87,8 +62,6 @@ public interface TimelockService {
      * @param tokens Tokens for which associated locks should be unlocked.
      * @return Tokens for which associated locks were unlocked
      */
-    @POST
-    @Path("unlock")
     Set<LockToken> unlock(Set<LockToken> tokens);
 
     /**
@@ -103,8 +76,6 @@ public interface TimelockService {
         unlock(tokens);
     }
 
-    @POST
-    @Path("current-time-millis")
     long currentTimeMillis();
 
 }

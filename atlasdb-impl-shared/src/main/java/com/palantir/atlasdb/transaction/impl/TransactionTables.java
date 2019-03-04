@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 
 public final class TransactionTables {
@@ -22,17 +24,17 @@ public final class TransactionTables {
         // Utility class
     }
 
+    // todo(gmaretic): consider creating the transaction table(s) dynamically as needed to avoid having an empty one
     public static void createTables(KeyValueService keyValueService) {
-        keyValueService.createTable(
+        keyValueService.createTables(ImmutableMap.of(
                 TransactionConstants.TRANSACTION_TABLE,
-                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes());
-    }
-
-    public static void deleteTables(KeyValueService keyValueService) {
-        keyValueService.dropTable(TransactionConstants.TRANSACTION_TABLE);
+                TransactionConstants.TRANSACTION_TABLE_METADATA.persistToBytes(),
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes()));
     }
 
     public static void truncateTables(KeyValueService keyValueService) {
-        keyValueService.truncateTable(TransactionConstants.TRANSACTION_TABLE);
+        keyValueService.truncateTables(
+                ImmutableSet.of(TransactionConstants.TRANSACTION_TABLE, TransactionConstants.TRANSACTIONS2_TABLE));
     }
 }

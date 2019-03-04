@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,6 @@
  */
 package com.palantir.leader;
 
-import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -47,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.logsafe.SafeArg;
@@ -68,7 +69,9 @@ import com.palantir.paxos.PaxosValue;
  */
 public class PaxosLeaderElectionService implements PingableLeader, LeaderElectionService {
     private static final Logger log = LoggerFactory.getLogger(PaxosLeaderElectionService.class);
+    private static final double LOG_RATE = 1;
 
+    private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
     private final ReentrantLock lock;
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
@@ -99,52 +102,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                                       Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
                                       List<PaxosAcceptor> acceptors,
                                       List<PaxosLearner> learners,
-                                      ExecutorService executor,
+                                      Function<String, ExecutorService> executorServiceFactory,
                                       long updatePollingWaitInMs,
                                       long randomWaitBeforeProposingLeadership,
                                       long leaderPingResponseWaitMs,
+                                      PaxosLeaderElectionEventRecorder eventRecorder,
                                       Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer, knowledge, otherPotentialLeadersToHosts, acceptors, learners, executor,
-                updatePollingWaitInMs, randomWaitBeforeProposingLeadership, leaderPingResponseWaitMs,
-                PaxosLeaderElectionEventRecorder.NO_OP, onlyLogOnQuorumFailure);
-    }
-
-    PaxosLeaderElectionService(PaxosProposer proposer,
-            PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            ExecutorService executor,
-            long updatePollingWaitInMs,
-            long randomWaitBeforeProposingLeadership,
-            long leaderPingResponseWaitMs,
-            PaxosLeaderElectionEventRecorder eventRecorder,
-            Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer,
-                knowledge,
-                otherPotentialLeadersToHosts,
-                acceptors,
-                learners,
-                unused -> executor,
-                updatePollingWaitInMs,
-                randomWaitBeforeProposingLeadership,
-                leaderPingResponseWaitMs,
-                eventRecorder,
-                onlyLogOnQuorumFailure);
-    }
-
-    // Please use the builder instead.
-    PaxosLeaderElectionService(PaxosProposer proposer,
-            PaxosLearner knowledge,
-            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            Function<String, ExecutorService> executorServiceFactory,
-            long updatePollingWaitInMs,
-            long randomWaitBeforeProposingLeadership,
-            long leaderPingResponseWaitMs,
-            PaxosLeaderElectionEventRecorder eventRecorder,
-            Supplier<Boolean> onlyLogOnQuorumFailure) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -162,7 +125,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 new PaxosLatestRoundVerifierImpl(
                         acceptors,
                         proposer.getQuorumSize(),
-                        executorServiceFactory.apply("latest-round-verifier"),
+                        createLatestRoundVerifierExecutors(acceptors, executorServiceFactory),
                         onlyLogOnQuorumFailure));
     }
 
@@ -189,6 +152,16 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 .collect(Collectors.toMap(
                         paxosLearners::get,
                         index -> executorServiceFactory.apply("knowledge-update-" + index)));
+    }
+
+    private Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
+            List<PaxosAcceptor> paxosAcceptors,
+            Function<String, ExecutorService> executorServiceFactory) {
+        Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
+        for (int i = 0; i < paxosAcceptors.size(); i++) {
+            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("latest-round-verifier-" + i));
+        }
+        return executors;
     }
 
     @Override
@@ -319,8 +292,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         // kick off requests to get leader uuids
         List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
         for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
-            allFutures.add(pingService.submit(potentialLeader,
-                    () -> new AbstractMap.SimpleEntry<>(potentialLeader.getUUID(), potentialLeader)));
+            try {
+                allFutures.add(pingService.submit(potentialLeader,
+                        () -> Maps.immutableEntry(potentialLeader.getUUID(), potentialLeader)));
+            } catch (RejectedExecutionException e) {
+                if (logRateLimiter.tryAcquire()) {
+                    log.info("Leader ping executor rejected task. "
+                            + "This may signal a problem with cluster if happens frequently");
+                }
+            }
         }
 
         // collect responses

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,6 +31,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.NameMetadataDescription.Builder;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.base.Throwables;
 import com.palantir.util.Pair;
@@ -83,6 +84,27 @@ public class NameMetadataDescription {
             withHashRowComponent.addAll(components);
             return new NameMetadataDescription(withHashRowComponent, numberOfComponentsHashed);
         }
+    }
+
+    public static NameMetadataDescription create(String name, ValueType valueType) {
+        return create(ImmutableList.of(NameComponentDescription.of(name, valueType)));
+    }
+
+    public static NameMetadataDescription create(String name, ValueType valueType, ValueByteOrder byteOrder) {
+        return create(ImmutableList.of(
+                new NameComponentDescription.Builder()
+                        .componentName(name)
+                        .type(valueType)
+                        .byteOrder(byteOrder)
+                        .build()));
+    }
+
+    public static NameMetadataDescription safe(String name, ValueType valueType) {
+        return create(ImmutableList.of(new NameComponentDescription.Builder()
+                .componentName(name)
+                .type(valueType)
+                .logSafety(TableMetadataPersistence.LogSafety.SAFE)
+                .build()));
     }
 
     public List<NameComponentDescription> getRowParts() {

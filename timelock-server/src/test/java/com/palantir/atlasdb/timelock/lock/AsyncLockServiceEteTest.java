@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,7 +35,6 @@ import org.junit.rules.TestRule;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.common.time.Clock;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -54,23 +52,25 @@ public class AsyncLockServiceEteTest {
     private static final String LOCK_C = "c";
     private static final String LOCK_D = "d";
 
-    private static final Clock CLOCK = System::currentTimeMillis;
-
     private static final TimeLimit TIMEOUT = TimeLimit.of(10_000L);
     private static final TimeLimit SHORT_TIMEOUT = TimeLimit.of(500L);
     private static final TimeLimit LONG_TIMEOUT = TimeLimit.of(100_000L);
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
+    private final LeaderClock clock = LeaderClock.create();
+
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
-                    Executors.newSingleThreadScheduledExecutor()),
-            new HeldLocksCollection(),
+                    Executors.newSingleThreadScheduledExecutor(),
+                    clock),
+            HeldLocksCollection.create(clock),
             new AwaitedLocksCollection(),
-            executor);
+            executor,
+            clock);
 
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
@@ -98,7 +98,7 @@ public class AsyncLockServiceEteTest {
     public void waitingRequestGetsTheLockAfterItIsUnlocked() {
         LockToken request1 = lockSynchronously(REQUEST_1, LOCK_A);
 
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A);
+        AsyncResult<Leased<LockToken>> request2 = lock(REQUEST_2, LOCK_A);
         assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
@@ -109,7 +109,7 @@ public class AsyncLockServiceEteTest {
     public void waitingRequestGetsTheLockAfterItIsUnlockedWithMultipleLocks() {
         LockToken request1 = lockSynchronously(REQUEST_1, LOCK_A, LOCK_C);
 
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
+        AsyncResult<Leased<LockToken>> request2 = lock(REQUEST_2, LOCK_A, LOCK_B, LOCK_C, LOCK_D);
         assertThat(request2.isComplete()).isFalse();
 
         service.unlock(request1);
@@ -120,15 +120,15 @@ public class AsyncLockServiceEteTest {
     public void requestsAreIdempotentDuringAcquisitionPhase() {
         LockToken currentHolder = lockSynchronously(REQUEST_1, LOCK_A);
 
-        AsyncResult<LockToken> tokenResult = lock(REQUEST_2, LOCK_A);
-        AsyncResult<LockToken> duplicateResult = lock(REQUEST_2, LOCK_A);
+        AsyncResult<Leased<LockToken>> tokenResult = lock(REQUEST_2, LOCK_A);
+        AsyncResult<Leased<LockToken>> duplicateResult = lock(REQUEST_2, LOCK_A);
 
         service.unlock(currentHolder);
 
         assertThat(tokenResult.isCompletedSuccessfully()).isTrue();
         assertThat(duplicateResult.isCompletedSuccessfully()).isTrue();
 
-        assertThat(tokenResult.get()).isEqualTo(duplicateResult.get());
+        assertThat(tokenResult.get().value()).isEqualTo(duplicateResult.get().value());
     }
 
     @Test
@@ -144,7 +144,7 @@ public class AsyncLockServiceEteTest {
     public void requestsAreIdempotentWithRespectToTimeout() {
         lockSynchronously(REQUEST_1, LOCK_A);
         service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
-        AsyncResult<LockToken> duplicate = service.lock(REQUEST_2, descriptors(LOCK_A), LONG_TIMEOUT);
+        AsyncResult<Leased<LockToken>> duplicate = service.lock(REQUEST_2, descriptors(LOCK_A), LONG_TIMEOUT);
 
         waitForTimeout(SHORT_TIMEOUT);
 
@@ -200,11 +200,11 @@ public class AsyncLockServiceEteTest {
     @Test
     public void canLockAndUnlockImmutableTimestamp() {
         long timestamp = 123L;
-        LockToken token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
+        Leased<LockToken> token = service.lockImmutableTimestamp(REQUEST_1, timestamp).get();
 
         assertThat(service.getImmutableTimestamp().get()).isEqualTo(123L);
 
-        service.unlock(token);
+        service.unlock(token.value());
 
         assertThat(service.getImmutableTimestamp()).isEqualTo(Optional.empty());
     }
@@ -241,7 +241,7 @@ public class AsyncLockServiceEteTest {
     @ShouldRetry
     public void lockRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
-        AsyncResult<LockToken> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
+        AsyncResult<Leased<LockToken>> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
         assertThat(result.isTimedOut()).isFalse();
 
         waitForTimeout(SHORT_TIMEOUT);
@@ -277,7 +277,7 @@ public class AsyncLockServiceEteTest {
     @Test
     public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
         lockSynchronously(REQUEST_1, LOCK_A);
-        AsyncResult<LockToken> request2 = lock(REQUEST_2, LOCK_A);
+        AsyncResult<Leased<LockToken>> request2 = lock(REQUEST_2, LOCK_A);
 
         service.close();
 
@@ -286,10 +286,27 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
+    public void leaseShouldExpireBeforeReapingLocks() {
+        Leased<LockToken> result = lock(REQUEST_1, LOCK_A).get();
+        assertThat(result.lease().isValid(service.leaderTime())).isTrue();
+
+        waitForTimeout(TimeLimit.of(
+                LockLeaseContract.CLIENT_LEASE_TIMEOUT.toMillis()));
+        assertThat(result.lease().isValid(service.leaderTime())).isFalse();
+
+        assertLocked(LOCK_A);
+    }
+
+    @Test
     public void reaperIsShutDownOnClose() {
         service.close();
 
         assertThat(executor.isShutdown()).isTrue();
+    }
+
+    @Test
+    public void clientSideLeasePeriodShouldBeLessThanServerSideLeasePeriod() {
+        assertThat(LockLeaseContract.CLIENT_LEASE_TIMEOUT).isLessThan(LockLeaseContract.SERVER_LEASE_TIMEOUT);
     }
 
     private void waitForTimeout(TimeLimit timeout) {
@@ -301,10 +318,10 @@ public class AsyncLockServiceEteTest {
     }
 
     private LockToken lockSynchronously(UUID requestId, String... locks) {
-        return lock(requestId, locks).get();
+        return lock(requestId, locks).get().value();
     }
 
-    private AsyncResult<LockToken> lock(UUID requestId, String... locks) {
+    private AsyncResult<Leased<LockToken>> lock(UUID requestId, String... locks) {
         return service.lock(requestId, descriptors(locks), TIMEOUT);
     }
 
@@ -324,10 +341,9 @@ public class AsyncLockServiceEteTest {
     }
 
     private void assertLocked(String... locks) {
-        AsyncResult<LockToken> result = lock(UUID.randomUUID(), locks);
+        AsyncResult<Leased<LockToken>> result = lock(UUID.randomUUID(), locks);
         assertFalse(result.isComplete());
 
-        result.map(token -> service.unlock(token));
+        result.map(token -> service.unlock(token.value()));
     }
-
 }

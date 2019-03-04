@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,15 +33,8 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
@@ -73,24 +66,15 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(CassandraTimestampBoundStore.class);
 
     private static final long CASSANDRA_TIMESTAMP = 0L;
-    private static final String ROW_AND_COLUMN_NAME = "ts";
+    static final String ROW_AND_COLUMN_NAME = "ts";
 
     private final InitializingWrapper wrapper = new InitializingWrapper();
     private CassandraKeyValueService kvs;
 
-    public static final TableMetadata TIMESTAMP_TABLE_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder()
-                            .componentName("timestamp_name")
-                            .type(ValueType.STRING)
-                            .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                new NamedColumnDescription(
-                        ROW_AND_COLUMN_NAME,
-                        "current_max_ts",
-                        ColumnValueDescription.forType(ValueType.FIXED_LONG)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
+    static final TableMetadata TIMESTAMP_TABLE_METADATA = TableMetadata.internal()
+            .singleRowComponent("timestamp_name", ValueType.STRING)
+            .singleNamedColumn(ROW_AND_COLUMN_NAME, "current_max_ts", ValueType.FIXED_LONG)
+            .build();
 
     @GuardedBy("this")
     private long currentLimit = -1;

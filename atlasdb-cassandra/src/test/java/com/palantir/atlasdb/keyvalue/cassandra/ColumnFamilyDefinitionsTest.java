@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,27 +21,26 @@ import static org.junit.Assert.assertTrue;
 import org.apache.cassandra.thrift.CfDef;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class ColumnFamilyDefinitionsTest {
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
-    private static final byte[] TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES =
-            new TableMetadata(
-                    new NameMetadataDescription(),
-                    new ColumnMetadataDescription(),
-                    ConflictHandler.RETRY_ON_WRITE_WRITE,
-                    TableMetadataPersistence.CachePriority.WARM,
-                    true,
-                    64,
-                    true,
-                    TableMetadataPersistence.SweepStrategy.THOROUGH,
-                    true).persistToBytes();
+    private static final byte[] TABLE_METADATA_WITH_MANY_NON_DEFAULT_FEATURES = TableMetadata.builder()
+            .rangeScanAllowed(true)
+            .explicitCompressionBlockSizeKB(64)
+            .negativeLookups(true)
+            .sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH)
+            .appendHeavyAndReadLight(true)
+            .denselyAccessedWideRows(true)
+            .build()
+            .persistToBytes();
+    private static final ImmutableMap<String, String> DEFAULT_COMPRESSION = ImmutableMap.of(
+            CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE,
+            CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY, String.valueOf(4));
 
     @Test
     public void compactionStrategiesShouldMatchWithOrWithoutPackageName() {
@@ -74,7 +73,50 @@ public class ColumnFamilyDefinitionsTest {
                 FOUR_DAYS_IN_SECONDS,
                 AtlasDbConstants.GENERIC_TABLE_METADATA);
 
-        assertFalse("ColumnDefinitions with different gc_grace_seconds should not match",
+        assertFalse("ColumnFamilyDefinitions with different gc_grace_seconds should not match",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDenselyAccessedWideRowsShouldDifferFromOneWithout() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test",
+                TableReference.fromString("cf_def"),
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
+                TableMetadata.builder().build().persistToBytes());
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getCfDef(
+                "test",
+                TableReference.fromString("cf_def"),
+                CassandraConstants.DEFAULT_GC_GRACE_SECONDS,
+                TableMetadata.builder().denselyAccessedWideRows(true).build().persistToBytes());
+
+        assertFalse("denselyAccessedWideRows should be reflected in comparisons of ColumnFamilyDefinitions",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDifferingMinIndexIntervalValuesShouldNotMatch() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMin_index_interval(512);
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMin_index_interval(128);
+
+        assertFalse("ColumnFamilyDefinitions with different min_index_interval should not match",
+                ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
+    }
+
+    @Test
+    public void cfDefWithDifferingMaxIndexIntervalValuesShouldNotMatch() {
+        CfDef clientSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMax_index_interval(512);
+        CfDef clusterSideTable = ColumnFamilyDefinitions.getStandardCfDef("test", "cf_def")
+                .setCompression_options(DEFAULT_COMPRESSION)
+                .setMax_index_interval(128);
+
+        assertFalse("ColumnFamilyDefinitions with different min_index_interval should not match",
                 ColumnFamilyDefinitions.isMatchingCf(clientSideTable, clusterSideTable));
     }
 

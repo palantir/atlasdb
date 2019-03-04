@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +32,6 @@ import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
-import com.palantir.common.base.Throwables;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -116,12 +115,9 @@ public class KvsMigrationCommand implements Callable<Integer> {
             printer.error("At least one of --setup, --migrate, or --validate should be specified.");
             return 1;
         }
+
         KeyValueServiceMigrator migrator;
-        try {
-            migrator = getMigrator(fromServices, toServices);
-        } catch (IOException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        migrator = getMigrator(fromServices, toServices);
         if (setup) {
             migrator.setup();
         }
@@ -169,8 +165,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
     }
 
-    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices)
-            throws IOException {
+    private KeyValueServiceMigrator getMigrator(AtlasDbServices fromServices, AtlasDbServices toServices) {
         return KeyValueServiceMigrators.setupMigrator(ImmutableMigratorSpec.builder()
                 .fromServices(fromServices)
                 .toServices(toServices)

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,24 +22,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.thrift.TException;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 
-@RunWith(Parameterized.class)
 public class CassandraKeyValueServicesSchemaConsensusTest {
     private static CassandraKeyValueServiceConfig config = mock(CassandraKeyValueServiceConfig.class);
     private static CassandraKeyValueServiceConfig waitingConfig = mock(CassandraKeyValueServiceConfig.class);
@@ -60,21 +53,6 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final List<String> REST_OF_NODES = ImmutableList.of("4", "5");
     private static final List<String> ALL_NODES = ImmutableList.of("1", "2", "3", "4", "5");
 
-    @SuppressWarnings("WeakerAccess") // test parameter
-    @Parameterized.Parameter
-    public boolean requiresQuorum;
-
-    @SuppressWarnings("WeakerAccess") // test parameter
-    @Parameterized.Parameter(value = 1)
-    public int expectedAttempts;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {
-                { true, 3 },
-                { false, 4 }});
-    }
-
     @BeforeClass
     public static void initializeMocks() {
         when(config.schemaMutationTimeoutMillis()).thenReturn(0);
@@ -86,7 +64,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitSucceedsForSameSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, ALL_NODES));
-        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
+        assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
@@ -117,14 +95,14 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     @Test
     public void waitSucceedsForQuorumOnlyWithUnknownSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
+        assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
     public void waitSucceedsForQuorumOnlyWithUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
+        assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
@@ -138,7 +116,7 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
     public void waitSucceedsForQuorumOnlyWithUnknownAndUnreachableSchemaVersion() throws TException {
         when(client.describe_schema_versions()).thenReturn(
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, ImmutableList.of("5")));
-        assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll();
+        assertWaitForSchemaVersionsDoesNotThrow();
     }
 
     @Test
@@ -150,21 +128,17 @@ public class CassandraKeyValueServicesSchemaConsensusTest {
                 ImmutableMap.of(VERSION_1, QUORUM_OF_NODES, VERSION_UNREACHABLE, REST_OF_NODES),
                 ImmutableMap.of(VERSION_1, ALL_NODES));
 
-        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE, requiresQuorum);
-        verify(waitingClient, times(expectedAttempts)).describe_schema_versions();
+        CassandraKeyValueServices.waitForSchemaVersions(waitingConfig, waitingClient, TABLE);
+        verify(waitingClient, times(3)).describe_schema_versions();
     }
 
     private void assertWaitForSchemaVersionsThrowsAndContainsConfigNodesInformation() {
-        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum))
+        assertThatThrownBy(() -> CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(FIVE_SERVERS.iterator().next().getHostName());
     }
 
-    private void assertWaitForSchemaVersionsThrowsOnlyIfRequiresAll() throws TException {
-        try {
-            CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE, requiresQuorum);
-        } catch (IllegalStateException e) {
-            Assert.assertFalse(requiresQuorum);
-        }
+    private void assertWaitForSchemaVersionsDoesNotThrow() throws TException {
+        CassandraKeyValueServices.waitForSchemaVersions(config, client, TABLE);
     }
 }

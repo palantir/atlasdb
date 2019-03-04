@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -57,6 +58,7 @@ public final class PaxosQuorumChecker {
             new NamedThreadFactory("paxos-quorum-checker-canceller", true));
     private static final long OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS = 2;
 
+    private static final Meter requestExecutionRejection = new Meter();
     private static final Meter cancelOutstandingRequestNoOp =  new Meter();
     private static final Meter cancelOutstandingRequestSuccess = new Meter();
 
@@ -72,30 +74,30 @@ public final class PaxosQuorumChecker {
      * @param remotes a list endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
      * @param quorumSize number of acknowledge requests required to reach quorum
-     * @param executor runs the requests
+     * @param executorService runs the requests
      * @return a list responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec) {
-        return collectQuorumResponses(remotes, request, quorumSize, executor, remoteRequestTimeoutInSec, false);
+        return collectQuorumResponses(remotes, request, quorumSize, executorService, remoteRequestTimeoutInSec, false);
     }
 
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectQuorumResponses(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec,
             boolean onlyLogOnQuorumFailure) {
         return collectResponses(
                 remotes,
                 request,
                 quorumSize,
-                mapToSingleExecutorService(remotes, executor),
+                mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeoutInSec,
                 onlyLogOnQuorumFailure,
                 true);
@@ -126,19 +128,19 @@ public final class PaxosQuorumChecker {
      *
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
-     * @param executor runs the requests
+     * @param executorService runs the requests
      * @return a list of responses
      */
     public static <SERVICE, RESPONSE extends PaxosResponse> List<RESPONSE> collectAsManyResponsesAsPossible(
             ImmutableList<SERVICE> remotes,
             final Function<SERVICE, RESPONSE> request,
-            ExecutorService executor,
+            ExecutorService executorService,
             long remoteRequestTimeoutInSec) {
         return collectResponses(
                 remotes,
                 request,
                 remotes.size(),
-                mapToSingleExecutorService(remotes, executor),
+                mapToSingleExecutorService(remotes, executorService),
                 remoteRequestTimeoutInSec,
                 false,
                 false);
@@ -175,7 +177,16 @@ public final class PaxosQuorumChecker {
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
         for (final SERVICE remote : remotes) {
-            allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
+            try {
+                allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
+            } catch (RejectedExecutionException e) {
+                requestExecutionRejection.mark();
+                if (shouldLogDiagnosticInformation()) {
+                    log.info("Quorum checker executor rejected task", e);
+                    log.info("Rate of execution rejections: {}",
+                            SafeArg.of("rate1m", requestExecutionRejection.getOneMinuteRate()));
+                }
+            }
         }
 
         List<Throwable> toLog = Lists.newArrayList();
@@ -279,7 +290,7 @@ public final class PaxosQuorumChecker {
             }
         }, OUTSTANDING_REQUEST_CANCELLATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
-        if (log.isDebugEnabled() && shouldLogCancellationStatus()) {
+        if (log.isDebugEnabled() && shouldLogDiagnosticInformation()) {
             log.debug("Quorum checker canceled pending requests"
                     + ". Rate of successful cancellations: {}, rate of no-op cancellations: {}",
                     SafeArg.of("rateCancelled", cancelOutstandingRequestSuccess.getOneMinuteRate()),
@@ -305,7 +316,7 @@ public final class PaxosQuorumChecker {
         return responses.stream().anyMatch(response -> !response.isSuccessful());
     }
 
-    private static boolean shouldLogCancellationStatus() {
-        return Math.random() < 0.01;
+    private static boolean shouldLogDiagnosticInformation() {
+        return Math.random() < 0.001;
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock.util;
 
 import java.nio.file.Paths;
@@ -22,8 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-import javax.net.ssl.SSLSocketFactory;
-
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -31,13 +28,14 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class TestProxies {
 
-    public static final SSLSocketFactory SSL_SOCKET_FACTORY =
-            SslSocketFactories.createSslSocketFactory(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
+    public static final TrustContext TRUST_CONTEXT =
+            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     private final String baseUri;
     private final List<TimeLockServerHolder> servers;
@@ -62,10 +60,12 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(SSL_SOCKET_FACTORY),
+                Optional.of(TRUST_CONTEXT),
                 uri,
+                false,
                 serviceInterface,
-                MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));
+                MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
+                false));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
@@ -76,7 +76,7 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                Optional.of(SSL_SOCKET_FACTORY),
+                Optional.of(TRUST_CONTEXT),
                 uris,
                 serviceInterface,
                 getClass().toString()));

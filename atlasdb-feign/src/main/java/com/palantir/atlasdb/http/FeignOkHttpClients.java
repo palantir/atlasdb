@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.io.IOException;
 import java.net.ProxySelector;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -25,21 +24,17 @@ import java.util.function.Supplier;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
 import okhttp3.CipherSuite;
 import okhttp3.ConnectionPool;
 import okhttp3.ConnectionSpec;
-import okhttp3.Interceptor;
-import okhttp3.Response;
 import okhttp3.TlsVersion;
 
 public final class FeignOkHttpClients {
-    @VisibleForTesting
-    static final String USER_AGENT_HEADER = "User-Agent";
     private static final int CONNECTION_POOL_SIZE = 100;
     private static final long KEEP_ALIVE_TIME_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
@@ -94,65 +89,57 @@ public final class FeignOkHttpClients {
     }
 
     /**
-     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
-     * specified {@link SSLSocketFactory}.
-     */
-    public static Client newOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
-            Optional<ProxySelector> proxySelector,
-            String userAgent) {
-        return new OkHttpClient(newRawOkHttpClient(sslSocketFactory, proxySelector, userAgent));
-    }
-
-    /**
-     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}, which re-creates
-     * itself periodically (by default, every ScheduledRefreshingClient.STANDARD_REFRESH_INTERVAL time).
+     * Returns a Feign {@link Client} wrapping an {@link okhttp3.OkHttpClient}. This {@link Client} recreates
+     * itself in the event that either {@link CounterBackedRefreshingClient#DEFAULT_REQUEST_COUNT_BEFORE_REFRESH}
+     * requests have been made, or if {@link ExceptionCountingRefreshingClient#DEFAULT_EXCEPTION_COUNT_BEFORE_REFRESH}
+     * consecutive exceptions have been thrown by the underlying client.
      */
     public static Client newRefreshingOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayloadSize) {
         Supplier<Client> clientSupplier = () -> CounterBackedRefreshingClient.createRefreshingClient(
-                () -> newOkHttpClient(sslSocketFactory, proxySelector, userAgent));
+                () -> newOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
 
         return ExceptionCountingRefreshingClient.createRefreshingClient(clientSupplier);
     }
 
+    /**
+     * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
+     * specified {@link SSLSocketFactory}.
+     */
+    public static Client newOkHttpClient(
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return new OkHttpClient(newRawOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+    }
+
     @VisibleForTesting
     static okhttp3.OkHttpClient newRawOkHttpClient(
-            Optional<SSLSocketFactory> sslSocketFactory,
+            Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayloadSize) {
         // Don't allow retrying on connection failures - see ticket #2194
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
                 .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
                 .retryOnConnectionFailure(false);
-        if (sslSocketFactory.isPresent()) {
-            builder.sslSocketFactory(sslSocketFactory.get());
+        if (trustContext.isPresent()) {
+            builder.sslSocketFactory(trustContext.get().sslSocketFactory(), trustContext.get().x509TrustManager());
         }
-        builder.interceptors().add(new UserAgentAddingInterceptor(userAgent));
+        if (limitPayloadSize) {
+            builder.interceptors().add(AtlasDbInterceptors.REQUEST_PAYLOAD_LIMITER);
+        }
+        builder.interceptors().add(new AtlasDbInterceptors.UserAgentAddingInterceptor(userAgent));
 
         globalClientSettings.accept(builder);
         return builder.build();
     }
 
-    private static final class UserAgentAddingInterceptor implements Interceptor {
-        private final String userAgent;
 
-        private UserAgentAddingInterceptor(String userAgent) {
-            Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
-            this.userAgent = userAgent;
-        }
-
-        @Override
-        public Response intercept(Chain chain) throws IOException {
-            okhttp3.Request requestWithUserAgent = chain.request()
-                    .newBuilder()
-                    .addHeader(USER_AGENT_HEADER, userAgent)
-                    .build();
-            return chain.proceed(requestWithUserAgent);
-        }
-    }
 }

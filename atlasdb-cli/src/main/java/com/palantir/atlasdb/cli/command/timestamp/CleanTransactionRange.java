@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,20 +15,14 @@
  */
 package com.palantir.atlasdb.cli.command.timestamp;
 
+import java.util.OptionalLong;
+
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.restore.V1TransactionsTableRangeDeleter;
 import com.palantir.atlasdb.services.AtlasDbServices;
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.common.base.ClosableIterator;
-import com.palantir.logsafe.SafeArg;
+import com.palantir.timestamp.TimestampRange;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -68,69 +62,11 @@ public class CleanTransactionRange extends AbstractTimestampCommand {
 
     @Override
     protected int executeTimestampCommand(AtlasDbServices services) {
-        KeyValueService kvs = services.getKeyValueService();
-
-        byte[] startBytes = TransactionConstants.getValueForTimestamp(startTimestamp);
-        byte[] timestampBytes = TransactionConstants.getValueForTimestamp(timestamp);
-
-        if (startBytes.length != timestampBytes.length && !skipStartTimestampCheck) {
-            throw new RuntimeException(String.format(
-                    "Start timestamp and timestamp to clean after need to have the same number of bytes! %s != %s",
-                    startBytes.length, timestampBytes.length));
-        }
-
-        ClosableIterator<RowResult<Value>> range = kvs.getRange(
-                TransactionConstants.TRANSACTION_TABLE,
-                startTimestamp == null
-                        ? RangeRequest.all()
-                        : RangeRequest.builder()
-                                .startRowInclusive(startBytes)
-                                .build(),
-                Long.MAX_VALUE);
-
-        Multimap<Cell, Long> toDelete = HashMultimap.create();
-
-        long lastLoggedTsCountdown = 0;
-        while (range.hasNext()) {
-            RowResult<Value> row = range.next();
-            byte[] rowName = row.getRowName();
-            long startTs = TransactionConstants.getTimestampForValue(rowName);
-
-            if (lastLoggedTsCountdown == 0) {
-                printer.info("Currently at timestamp {}.", SafeArg.of("startTs", startTs));
-                lastLoggedTsCountdown = 100000;
-            }
-            lastLoggedTsCountdown -= 1;
-
-            Value value;
-            try {
-                value = row.getOnlyColumnValue();
-            } catch (IllegalStateException e) {
-                //this should never happen
-                printer.error("Found a row in the transactions table that didn't have 1"
-                        + " and only 1 column value: start={}", SafeArg.of("startTs", startTs));
-                continue;
-            }
-
-            long commitTs = TransactionConstants.getTimestampForValue(value.getContents());
-            if (commitTs <= timestamp) {
-                continue; // this is a valid transaction
-            }
-
-            printer.info("Found and cleaning possibly inconsistent transaction: [start={}, commit={}]",
-                    SafeArg.of("startTs", startTs), SafeArg.of("commitTs", commitTs));
-
-            Cell key = Cell.create(rowName, TransactionConstants.COMMIT_TS_COLUMN);
-            toDelete.put(key, value.getTimestamp());  //value.getTimestamp() should always be 0L
-        }
-
-        if (!toDelete.isEmpty()) {
-            kvs.delete(TransactionConstants.TRANSACTION_TABLE, toDelete);
-            printer.info("Delete completed.");
-        } else {
-            printer.info("Found no transactions after the given timestamp to delete.");
-        }
-
+        new V1TransactionsTableRangeDeleter(
+                services.getKeyValueService(),
+                startTimestamp == null ? OptionalLong.empty() : OptionalLong.of(startTimestamp),
+                skipStartTimestampCheck,
+                printer).deleteRange(TimestampRange.createInclusiveRange(timestamp, Long.MAX_VALUE));
         return 0;
     }
 }

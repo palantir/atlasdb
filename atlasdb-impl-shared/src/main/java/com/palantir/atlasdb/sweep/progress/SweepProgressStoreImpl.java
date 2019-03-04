@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,7 +27,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -39,15 +38,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public final class SweepProgressStoreImpl implements SweepProgressStore {
 
@@ -85,19 +77,10 @@ public final class SweepProgressStoreImpl implements SweepProgressStore {
     static final Cell LEGACY_CELL = Cell.create(ROW_AND_COLUMN_NAME_BYTES, ROW_AND_COLUMN_NAME_BYTES);
     private static final byte[] FINISHED_TABLE = PtBytes.toBytes("Table finished");
 
-    private static final TableMetadata SWEEP_PROGRESS_METADATA = new TableMetadata(
-            NameMetadataDescription.create(ImmutableList.of(
-                    new NameComponentDescription.Builder()
-                            .componentName("dummy")
-                            .type(ValueType.STRING)
-                            .build())),
-            new ColumnMetadataDescription(ImmutableList.of(
-                    new NamedColumnDescription(
-                            ROW_AND_COLUMN_NAME,
-                            "sweep_progress",
-                            ColumnValueDescription.forType(ValueType.BLOB)))),
-            ConflictHandler.IGNORE_ALL,
-            TableMetadataPersistence.LogSafety.SAFE);
+    private static final TableMetadata SWEEP_PROGRESS_METADATA = TableMetadata.internal()
+            .singleRowComponent("dummy", ValueType.STRING)
+            .singleNamedColumn(ROW_AND_COLUMN_NAME, "sweep_progress", ValueType.BLOB)
+            .build();
 
     private SweepProgressStoreImpl(KeyValueService kvs) {
         this.kvs = kvs;

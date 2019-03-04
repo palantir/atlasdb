@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -36,10 +38,10 @@ import com.palantir.exception.NotInitializedException;
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(AtlasDbConfig.class);
+
     @VisibleForTesting
     static final String UNSPECIFIED_NAMESPACE = "unspecified";
-
-    private String namespace;
 
     public abstract KeyValueServiceConfig keyValueService();
 
@@ -275,6 +277,18 @@ public abstract class AtlasDbConfig {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
         checkNamespaceConfigAndGetNamespace();
+        checkSweepConfigs();
+    }
+
+    private void checkSweepConfigs() {
+        if (getSweepBatchSize() != null
+                || getSweepCellBatchSize() != null
+                || getSweepReadLimit() != null
+                || getSweepCandidateBatchHint() != null
+                || getSweepDeleteBatchHint() != null) {
+            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
+                    + " Please use the runtime config to specify them.");
+        }
     }
 
     private void checkLeaderAndTimelockBlocks() {
@@ -359,10 +373,7 @@ public abstract class AtlasDbConfig {
     @Value.Derived
     @JsonIgnore
     public String getNamespaceString() {
-        if (namespace == null) {
-            namespace = checkNamespaceConfigAndGetNamespace();
-        }
-        return namespace;
+        return checkNamespaceConfigAndGetNamespace();
     }
 
     private boolean areTimeAndLockConfigsAbsent() {

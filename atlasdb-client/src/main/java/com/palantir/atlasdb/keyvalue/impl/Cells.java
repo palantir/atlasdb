@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -58,19 +58,11 @@ public final class Cells {
 
     private Cells() { /* */ }
 
-    public static Function<Cell, byte[]> getRowFunction() {
-        return from -> from.getRowName();
-    }
-
-    public static Function<Cell, byte[]> getColumnFunction() {
-        return from -> from.getColumnName();
-    }
-
     public static SortedSet<byte[]> getRows(Iterable<Cell> cells) {
         if (Iterables.isEmpty(cells)) {
             return ImmutableSortedSet.orderedBy(UnsignedBytes.lexicographicalComparator()).build();
         }
-        return FluentIterable.from(cells).transform(getRowFunction())
+        return FluentIterable.from(cells).transform(Cell::getRowName)
                 .toSortedSet(UnsignedBytes.lexicographicalComparator());
     }
 

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -22,7 +23,6 @@ import javax.annotation.Generated;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
@@ -232,7 +232,7 @@ public final class SweepShardProgressTable implements
                 return false;
             }
             SweepShardProgressRow other = (SweepShardProgressRow) obj;
-            return Objects.equal(hashOfRowComponents, other.hashOfRowComponents) && Objects.equal(shard, other.shard) && Arrays.equals(sweepConservative, other.sweepConservative);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
         @SuppressWarnings("ArrayHashCode")
@@ -441,18 +441,6 @@ public final class SweepShardProgressTable implements
         put(Multimaps.forMap(toPut));
     }
 
-    public void putValueUnlessExists(SweepShardProgressRow row, Long value) {
-        putUnlessExists(ImmutableMultimap.of(row, Value.of(value)));
-    }
-
-    public void putValueUnlessExists(Map<SweepShardProgressRow, Long> map) {
-        Map<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
-        for (Entry<SweepShardProgressRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Value.of(e.getValue()));
-        }
-        putUnlessExists(Multimaps.forMap(toPut));
-    }
-
     @Override
     public void put(Multimap<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> rows) {
         t.useTable(tableRef, this);
@@ -460,19 +448,6 @@ public final class SweepShardProgressTable implements
         for (SweepShardProgressTrigger trigger : triggers) {
             trigger.putSweepShardProgress(rows);
         }
-    }
-
-    /** @deprecated Use separate read and write in a single transaction instead. */
-    @Deprecated
-    public void putUnlessExists(Multimap<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> rows) {
-        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> existing = getRowsMultimap(rows.keySet());
-        Multimap<SweepShardProgressRow, SweepShardProgressNamedColumnValue<?>> toPut = HashMultimap.create();
-        for (Entry<SweepShardProgressRow, ? extends SweepShardProgressNamedColumnValue<?>> entry : rows.entries()) {
-            if (!existing.containsEntry(entry.getKey(), entry.getValue())) {
-                toPut.put(entry.getKey(), entry.getValue());
-            }
-        }
-        put(toPut);
     }
 
     public void deleteValue(SweepShardProgressRow row) {
@@ -708,5 +683,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wUxlBDV2VZEpPgFfykXxqQ==";
+    static String __CLASS_HASH = "tTaBGffFKZLsQNSbGhRrFQ==";
 }

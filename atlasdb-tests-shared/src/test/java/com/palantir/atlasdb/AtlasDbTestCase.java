@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,17 +17,11 @@ package com.palantir.atlasdb;
 
 import static org.mockito.Mockito.spy;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -58,57 +52,33 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
 
 public class AtlasDbTestCase {
-    protected static LockClient lockClient;
-    protected static LockService lockService;
+    protected LockClient lockClient;
+    protected LockService lockService;
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected StatsTrackingKeyValueService keyValueServiceWithStats;
     protected TrackingKeyValueService keyValueService;
-    protected TimestampService timestampService;
+    protected InMemoryTimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManagerImpl serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
-    protected Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     protected TargetedSweeper sweepQueue;
     protected int sweepQueueShards = 128;
 
-    @BeforeClass
-    public static void setupLockClient() {
-        if (lockClient == null) {
-            lockClient = LockClient.of("fake lock client");
-        }
-    }
-
-    @BeforeClass
-    public static void setupLockService() {
-        if (lockService == null) {
-            lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
-        }
-    }
-
-    @AfterClass
-    public static void tearDownLockService() throws IOException {
-        if (lockService instanceof Closeable) {
-            ((Closeable) lockService).close();
-        }
-        if (lockService != null) {
-            lockService = null;
-        }
-    }
-
     @Before
     public void setUp() throws Exception {
+        lockClient = LockClient.of("fake lock client");
+        lockService = LockServiceImpl.create(LockServerOptions.builder().isStandaloneServer(false).build());
         timestampService = new InMemoryTimestampService();
         KeyValueService kvs = getBaseKeyValueService();
         keyValueServiceWithStats = new StatsTrackingKeyValueService(kvs);
         keyValueService = spy(new TrackingKeyValueService(keyValueServiceWithStats));
         TransactionTables.createTables(kvs);
-        transactionService = TransactionServices.createTransactionService(kvs);
+        transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -117,6 +87,7 @@ public class AtlasDbTestCase {
         serializableTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
+                timestampService,
                 timestampService,
                 lockClient,
                 lockService,
@@ -144,7 +115,12 @@ public class AtlasDbTestCase {
         // some fields to prevent OOMs.
         keyValueService.close();
         keyValueService = null;
+        transactionService.close();
+        transactionService = null;
+        sweepQueue.close();
+        sweepQueue = null;
         timestampService = null;
+        txManager.close();
         txManager = null;
     }
 
@@ -154,7 +130,7 @@ public class AtlasDbTestCase {
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
         txManager = new TestTransactionManagerImpl(metricsManager, keyValueService,
-                timestampService, lockClient, lockService, transactionService, mode);
+                timestampService, timestampService, lockClient, lockService, transactionService, mode);
     }
 
     protected void clearTablesWrittenTo() {

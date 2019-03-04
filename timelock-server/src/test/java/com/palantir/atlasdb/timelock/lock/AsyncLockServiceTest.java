@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -50,18 +49,19 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
-    public static final long REAPER_PERIOD_MS = LeaseExpirationTimer.LEASE_TIMEOUT_MILLIS / 2;
+    public static final long REAPER_PERIOD_MS = LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2;
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 
+    private final LeaderClock leaderClock = LeaderClock.create();
     private final LockAcquirer acquirer = mock(LockAcquirer.class);
     private final LockCollection locks = mock(LockCollection.class);
-    private final HeldLocksCollection heldLocks = spy(new HeldLocksCollection());
+    private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
-            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor);
+            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor, leaderClock);
 
     @Before
     public void before() {

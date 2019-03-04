@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.timelock.paxos;
 
 import java.util.List;
@@ -21,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
@@ -31,8 +31,8 @@ import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.lock.LockService;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
@@ -41,7 +41,6 @@ import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
-import com.palantir.util.JavaSuppliers;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
 public class TimeLockAgent {
@@ -87,17 +86,15 @@ public class TimeLockAgent {
         this.lockCreator = new LockCreator(runtime, deprecated);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime));
-        this.timelockCreator = install.asyncLock().useAsyncLockService()
-                ? new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator, install.asyncLock())
-                : new LegacyTimeLockServicesCreator(metricsManager.getRegistry(), leadershipCreator);
+                Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
+        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
     }
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
         TsBoundPersisterConfiguration timestampBoundPersistence = install.timestampBoundPersistence();
-        if (PaxosTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+        if (timestampBoundPersistence instanceof PaxosTsBoundPersisterConfiguration) {
             return getPaxosTimestampCreator(metrics);
-        } else if (DatabaseTsBoundPersisterConfiguration.class.isInstance(timestampBoundPersistence)) {
+        } else if (timestampBoundPersistence instanceof DatabaseTsBoundPersisterConfiguration) {
             return new DbBoundTimestampCreator(
                     ((DatabaseTsBoundPersisterConfiguration) timestampBoundPersistence)
                             .keyValueServiceConfig());
@@ -109,8 +106,8 @@ public class TimeLockAgent {
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
         return new PaxosTimestampCreator(metrics, paxosResource,
                 PaxosRemotingUtils.getRemoteServerPaths(install),
-                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createSslSocketFactory),
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime));
+                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createTrustContext),
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
     }
 
     private void createAndRegisterResources() {
@@ -123,7 +120,7 @@ public class TimeLockAgent {
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
-                JavaSuppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime));
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
         registrar.accept(resource);
 
         ClockSkewMonitorCreator.create(metricsManager, install, registrar).registerClockServices();

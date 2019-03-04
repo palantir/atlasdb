@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,17 +26,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.ColumnValueDescription;
-import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
-import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 
 /**
@@ -83,17 +77,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
     }
 
     private void tryInitialize() {
-        keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, new TableMetadata(
-                NameMetadataDescription.create(ImmutableList.of(
-                        new NameComponentDescription.Builder()
-                                .componentName("time")
-                                .type(ValueType.VAR_LONG)
-                                .byteOrder(ValueByteOrder.DESCENDING)
-                                .build())),
-                new ColumnMetadataDescription(ImmutableList.of(
-                        new NamedColumnDescription("t", "t", ColumnValueDescription.forType(ValueType.VAR_LONG)))),
-                ConflictHandler.IGNORE_ALL,
-                TableMetadataPersistence.LogSafety.SAFE).persistToBytes());
+        keyValueService.createTable(AtlasDbConstants.PUNCH_TABLE, TableMetadata.internal()
+                .rowMetadata(NameMetadataDescription.create("time", ValueType.VAR_LONG, ValueByteOrder.DESCENDING))
+                .singleNamedColumn("t", "t", ValueType.VAR_LONG)
+                .build()
+                .persistToBytes());
     }
 
     @Override
@@ -149,7 +137,11 @@ public final class KeyValueServicePuncherStore implements PuncherStore {
         long timestampExclusive = timestamp + 1;
         byte[] startRow = EncodingUtils.encodeUnsignedVarLong(Long.MAX_VALUE);
         EncodingUtils.flipAllBitsInPlace(startRow);
-        RangeRequest rangeRequest = RangeRequest.builder().startRowInclusive(startRow).batchHint(1).build();
+        RangeRequest rangeRequest = RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .retainColumns(ImmutableList.of(COLUMN))
+                .batchHint(1000)
+                .build();
 
         try (ClosableIterator<RowResult<Value>> result = kvs.getRange(AtlasDbConstants.PUNCH_TABLE, rangeRequest,
                 timestampExclusive)) {

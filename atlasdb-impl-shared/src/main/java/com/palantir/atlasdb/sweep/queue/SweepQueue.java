@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.List;
@@ -29,7 +28,12 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionServices;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -52,17 +56,25 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.metrics = factory.metrics;
     }
 
-    public static SweepQueue create(TargetedSweepMetrics metrics, KeyValueService kvs, Supplier<Integer> shardsConfig,
+    public static SweepQueue create(
+            TargetedSweepMetrics metrics,
+            KeyValueService kvs,
+            TimelockService timelock,
+            Supplier<Integer> shardsConfig,
+            TransactionService transaction,
             TargetedSweepFollower follower) {
-        return new SweepQueue(SweepQueueFactory.create(metrics, kvs, shardsConfig), follower);
+        return new SweepQueue(SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction), follower);
     }
 
     /**
      * Creates a SweepQueueWriter, performing all the necessary initialization.
      */
-    public static MultiTableSweepQueueWriter createWriter(TargetedSweepMetrics metrics, KeyValueService kvs,
+    public static MultiTableSweepQueueWriter createWriter(
+            TargetedSweepMetrics metrics,
+            KeyValueService kvs,
+            TimelockService timelock,
             Supplier<Integer> shardsConfig) {
-        return SweepQueueFactory.create(metrics, kvs, shardsConfig).createWriter();
+        return SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig).createWriter();
     }
 
     /**
@@ -119,7 +131,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
-        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp());
+        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp(), sweepBatch.dedicatedRows());
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
@@ -145,27 +157,49 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         private final SweepableTimestamps timestamps;
         private final TargetedSweepMetrics metrics;
         private final KeyValueService kvs;
+        private final TimelockService timelock;
 
-        private SweepQueueFactory(ShardProgress progress, Supplier<Integer> numShards, SweepableCells cells,
-                SweepableTimestamps timestamps, TargetedSweepMetrics metrics, KeyValueService kvs) {
+        private SweepQueueFactory(
+                ShardProgress progress, Supplier<Integer> numShards, SweepableCells cells,
+                SweepableTimestamps timestamps, TargetedSweepMetrics metrics,
+                KeyValueService kvs, TimelockService timelock) {
             this.progress = progress;
             this.numShards = numShards;
             this.cells = cells;
             this.timestamps = timestamps;
             this.metrics = metrics;
             this.kvs = kvs;
+            this.timelock = timelock;
         }
 
-        static SweepQueueFactory create(TargetedSweepMetrics metrics, KeyValueService kvs,
+        static SweepQueueFactory create(
+                TargetedSweepMetrics metrics,
+                KeyValueService kvs,
+                TimelockService timelock,
                 Supplier<Integer> shardsConfig) {
+            // It is OK that the transaction service is different from the one used by the transaction manager,
+            // as transaction services must not hold any local state in them that would affect correctness.
+            TransactionService transaction = TransactionServices.createRaw(
+                    kvs,
+                    new TimelockTimestampServiceAdapter(timelock),
+                    false);
+            return create(metrics, kvs, timelock, shardsConfig, transaction);
+        }
+
+        static SweepQueueFactory create(
+                TargetedSweepMetrics metrics,
+                KeyValueService kvs,
+                TimelockService timelock,
+                Supplier<Integer> shardsConfig,
+                TransactionService transaction) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards = createProgressUpdatingSupplier(shardsConfig, shardProgress,
                     SweepQueueUtils.REFRESH_TIME);
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-            SweepableCells cells = new SweepableCells(kvs, partitioner, metrics);
+            SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
-            return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs);
+            return new SweepQueueFactory(shardProgress, shards, cells, timestamps, metrics, kvs, timelock);
         }
 
         private SweepQueueWriter createWriter() {
@@ -177,7 +211,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {
-            return new SweepQueueDeleter(kvs, follower);
+            return new SweepQueueDeleter(kvs, follower, new DefaultTableClearer(kvs, timelock::getImmutableTimestamp));
         }
 
         private SweepQueueCleaner createCleaner() {

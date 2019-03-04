@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class SweepableCellFilter {
@@ -41,7 +42,7 @@ public class SweepableCellFilter {
     // Here we need to load the commit timestamps, and it's important to do that in bulk
     // to reduce the number of round trips to the database.
     public BatchOfCellsToSweep getCellsToSweep(List<CandidateCellForSweeping> candidates) {
-        Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(getAllTimestamps(candidates));
+        Map<Long, Long> startToCommitTs = commitTsCache.loadBatch(getAllValidTimestamps(candidates));
         ImmutableBatchOfCellsToSweep.Builder builder = ImmutableBatchOfCellsToSweep.builder();
         long numCellTsPairsExamined = 0;
         for (CandidateCellForSweeping candidate : candidates) {
@@ -60,9 +61,9 @@ public class SweepableCellFilter {
         boolean lastIsCommittedBeforeSweepTs = false;
 
         for (long startTs : candidate.sortedTimestamps()) {
-            long commitTs = startToCommitTs.get(startTs);
+            Long commitTs = startToCommitTs.get(startTs);
             lastIsCommittedBeforeSweepTs = false;
-            if (commitTs == TransactionConstants.FAILED_COMMIT_TS) {
+            if (candidateIsNotFromACommittedTransaction(startTs, commitTs)) {
                 uncommittedTs.add(startTs);
             } else if (commitTs < sweepTs) {
                 tsToSweep.add(startTs);
@@ -86,10 +87,23 @@ public class SweepableCellFilter {
         }
     }
 
-    private static Set<Long> getAllTimestamps(Collection<CandidateCellForSweeping> candidates) {
+    private static boolean candidateIsNotFromACommittedTransaction(long startTs, Long commitTs) {
+        return candidateIsASentinel(startTs) || candidateTransactionWasRolledBack(commitTs);
+    }
+
+    private static boolean candidateIsASentinel(long startTs) {
+        return startTs == Value.INVALID_VALUE_TIMESTAMP;
+    }
+
+    private static boolean candidateTransactionWasRolledBack(Long commitTs) {
+        return commitTs == TransactionConstants.FAILED_COMMIT_TS;
+    }
+
+    private static Set<Long> getAllValidTimestamps(Collection<CandidateCellForSweeping> candidates) {
         return candidates.stream()
                 .map(CandidateCellForSweeping::sortedTimestamps)
                 .flatMap(Collection::stream)
+                .filter(timestamp -> timestamp != Value.INVALID_VALUE_TIMESTAMP)
                 .collect(Collectors.toSet());
     }
 

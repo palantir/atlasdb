@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -44,10 +45,14 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.visitor.Visitor;
 import com.palantir.util.Pair;
@@ -57,18 +62,11 @@ public final class CassandraKeyValueServices {
 
     private static final long INITIAL_SLEEP_TIME = 100;
     private static final long MAX_SLEEP_TIME = 5000;
-    private static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    public static final String VERSION_UNREACHABLE = "UNREACHABLE";
+    public static final byte[] METADATA_COL = "m".getBytes(StandardCharsets.UTF_8);
 
     private CassandraKeyValueServices() {
         // Utility class
-    }
-
-    static void waitForSchemaVersions(
-            CassandraKeyValueServiceConfig config,
-            CassandraClient client,
-            String tableName)
-            throws TException {
-        waitForSchemaVersions(config, client, tableName, false);
     }
 
     /**
@@ -76,15 +74,14 @@ public final class CassandraKeyValueServices {
      *
      * @param config the KVS configuration.
      * @param client Cassandra client.
-     * @param tableName table being modified.
-     * @param allowQuorumAgreement if true, only a quorum of nodes must agree if the rest of the nodes are unreachable.
+     * @param unsafeSchemaChangeDescription description of the schema change that was performed prior to this check.
+     *
      * @throws IllegalStateException if we wait for more than schemaMutationTimeoutMillis specified in config.
      */
     static void waitForSchemaVersions(
             CassandraKeyValueServiceConfig config,
             CassandraClient client,
-            String tableName,
-            boolean allowQuorumAgreement)
+            String unsafeSchemaChangeDescription)
             throws TException {
         long start = System.currentTimeMillis();
         long sleepTime = INITIAL_SLEEP_TIME;
@@ -94,15 +91,10 @@ public final class CassandraKeyValueServices {
             // shook hands with goes down, it will have schema version UNREACHABLE; however, if we never shook hands
             // with a node, there will simply be no entry for it in the map. Hence the check for the number of nodes.
             versions = client.describe_schema_versions();
-            if (requiredNumberNodesAgreeOnSchemaVersion(allowQuorumAgreement, config, versions)) {
+            if (uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(config, versions)) {
                 return;
             }
-            try {
-                Thread.sleep(sleepTime);
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-            sleepTime = Math.min(sleepTime * 2, MAX_SLEEP_TIME);
+            sleepTime = sleepAndGetNextBackoffTime(sleepTime);
         } while (System.currentTimeMillis() < start + config.schemaMutationTimeoutMillis());
 
         StringBuilder schemaVersions = new StringBuilder();
@@ -117,8 +109,7 @@ public final class CassandraKeyValueServices {
                 config.servers().stream().map(InetSocketAddress::getHostName).collect(Collectors.toList()))
                 .toString();
 
-        String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions,"
-                        + " after attempting to modify table %s. %s"
+        String errorMessage = String.format("Cassandra cluster cannot come to agreement on schema versions, %s. %s"
                         + " \nFind the nodes above that diverge from the majority schema and examine their logs to"
                         + " determine the issue. If nodes have schema 'UNKNOWN', they are likely down/unresponsive."
                         + " Fixing the underlying issue and restarting Cassandra should resolve the problem."
@@ -126,40 +117,58 @@ public final class CassandraKeyValueServices {
                         + " \nIf nodes are specified in the config file, but do not have a schema version listed"
                         + " above, then they may have never joined the cluster. Verify your configuration is correct"
                         + " and that the nodes specified in the config are up and joined the cluster. %s",
-                tableName,
+                unsafeSchemaChangeDescription,
                 schemaVersions.toString(),
                 configNodes);
         throw new IllegalStateException(errorMessage);
     }
 
-    /**
-     * @param allowQuorumAgreement if true, requires only a quorum of nodes to be in agreement. If false, all nodes
-     * need to have the same schema version.
-     */
-    private static boolean requiredNumberNodesAgreeOnSchemaVersion(
-            boolean allowQuorumAgreement,
+    static void runWithWaitingForSchemas(
+            RunnableCheckedException<TException> task,
+            CassandraKeyValueServiceConfig config,
+            CassandraClient client,
+            String unsafeSchemaChangeDescription)
+            throws TException {
+        waitForSchemaVersions(config, client, "before " + unsafeSchemaChangeDescription);
+        task.run();
+        waitForSchemaVersions(config, client, "after " + unsafeSchemaChangeDescription);
+    }
+
+    static boolean uniqueSchemaWithQuorumAgreementAndOtherNodesUnreachable(
             CassandraKeyValueServiceConfig config,
             Map<String, List<String>> versions) {
-        if (getNumberOfDistinctReachableSchemas(versions) > 1) {
+        List<String> reachableSchemas = getDistinctReachableSchemas(versions);
+        if (reachableSchemas.size() > 1) {
             return false;
         }
 
         int numberOfServers = config.servers().size();
         int numberOfVisibleNodes = getNumberOfReachableNodes(versions);
 
-        if (allowQuorumAgreement) {
-            return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
-        }
-        return numberOfVisibleNodes == numberOfServers;
+        return numberOfVisibleNodes >= ((numberOfServers / 2) + 1);
     }
 
-    private static long getNumberOfDistinctReachableSchemas(Map<String, List<String>> versions) {
-        return versions.keySet().stream().filter(schema -> !schema.equals(VERSION_UNREACHABLE)).count();
+    private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {
+        return versions.keySet().stream()
+                .filter(schema -> !schema.equals(VERSION_UNREACHABLE))
+                .collect(Collectors.toList());
     }
 
     private static int getNumberOfReachableNodes(Map<String, List<String>> versions) {
         return versions.entrySet().stream().filter(entry -> !entry.getKey().equals(VERSION_UNREACHABLE))
-                .map(Entry::getValue).mapToInt(List::size).sum();
+                .map(Entry::getValue)
+                .mapToInt(List::size)
+                .sum();
+    }
+
+    private static long sleepAndGetNextBackoffTime(long sleepTime) {
+        try {
+            Thread.sleep(sleepTime);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw Throwables.throwUncheckedException(e);
+        }
+        return Math.min(sleepTime * 2, MAX_SLEEP_TIME);
     }
 
     private static StringBuilder addNodeInformation(StringBuilder builder, String message, List<String> nodes) {
@@ -180,11 +189,7 @@ public final class CassandraKeyValueServices {
             CassandraKeyValueServiceConfig config) {
         try {
             clientPool.run(client -> {
-                waitForSchemaVersions(
-                        config,
-                        client,
-                        "(none, just an initialization check)",
-                        true);
+                waitForSchemaVersions(config, client, " during an initialization check");
                 return null;
             });
         } catch (Exception e) {
@@ -315,28 +320,51 @@ public final class CassandraKeyValueServices {
 
     static Cell getMetadataCell(TableReference tableRef) {
         // would have preferred an explicit charset, but thrift uses default internally
-        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), "m".getBytes(StandardCharsets.UTF_8));
+        return Cell.create(lowerCaseTableReferenceToBytes(tableRef), METADATA_COL);
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static Cell getOldMetadataCell(TableReference tableRef) {
         return Cell.create(
-                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()),
-                "m".getBytes(StandardCharsets.UTF_8));
+                tableRef.getQualifiedName().getBytes(Charset.defaultCharset()), METADATA_COL);
+    }
+
+    static RangeRequest metadataRangeRequest() {
+        return RangeRequest.builder().retainColumns(ImmutableSet.of(METADATA_COL)).build();
+    }
+
+    static RangeRequest metadataRangeRequestForTable(TableReference tableRef) {
+        byte[] startRow = upperCaseTableReferenceToBytes(tableRef);
+        byte[] endRow = lowerCaseTableReferenceToBytes(tableRef);
+        return RangeRequest.builder()
+                .startRowInclusive(startRow)
+                .endRowExclusive(RangeRequests.nextLexicographicName(endRow))
+                .retainColumns(ImmutableSet.of(METADATA_COL))
+                .build();
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
-    private static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
+    static byte[] lowerCaseTableReferenceToBytes(TableReference tableRef) {
         return tableRef.getQualifiedName().toLowerCase().getBytes(Charset.defaultCharset());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static byte[] upperCaseTableReferenceToBytes(TableReference tableRef) {
+        return tableRef.getQualifiedName().toUpperCase().getBytes(Charset.defaultCharset());
+    }
+
+    @SuppressWarnings("checkstyle:RegexpSinglelineJava")
+    static TableReference lowerCaseTableReferenceFromBytes(byte[] name) {
+        return TableReference.createUnsafe(new String(name, Charset.defaultCharset()).toLowerCase());
+    }
+
+    static TableReference tableReferenceFromCfDef(CfDef cf) {
+        return TableReference.fromInternalTableName(cf.getName());
     }
 
     @SuppressWarnings("checkstyle:RegexpSinglelineJava")
     static TableReference tableReferenceFromBytes(byte[] name) {
         return TableReference.createUnsafe(new String(name, Charset.defaultCharset()));
-    }
-
-    static TableReference tableReferenceFromCfDef(CfDef cf) {
-        return TableReference.fromInternalTableName(cf.getName());
     }
 
     interface ThreadSafeResultVisitor extends Visitor<Map<ByteBuffer, List<ColumnOrSuperColumn>>> {
@@ -387,13 +415,17 @@ public final class CassandraKeyValueServices {
         }
     }
 
-    public static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
-        if (metadata == null
+    static boolean isEmptyOrInvalidMetadata(byte[] metadata) {
+        return metadata == null
                 || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)
-                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA)) {
-            return true;
+                || Arrays.equals(metadata, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    }
+
+    static TableMetadata getMetadataOrDefaultToGeneric(byte[] metadata) {
+        if (metadata == null || Arrays.equals(metadata, AtlasDbConstants.EMPTY_TABLE_METADATA)) {
+            return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(AtlasDbConstants.GENERIC_TABLE_METADATA);
         }
-        return false;
+        return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata);
     }
 
 }

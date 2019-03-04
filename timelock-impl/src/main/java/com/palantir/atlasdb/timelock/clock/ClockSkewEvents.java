@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock.clock;
-
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,18 +21,11 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 
 public class ClockSkewEvents {
-    private static final long WARN_SKEW_THRESHOLD_NANOS = 10_000_000; // 10 ms
-    private static final long ERROR_SKEW_THRESHOLD_NANOS = 50_000_000; // 50 ms
-
-    @VisibleForTesting
-    static final Duration REPRESENTATIVE_INTERVAL_SINCE_PREVIOUS_REQUEST = Duration.of(10, ChronoUnit.SECONDS);
-    @VisibleForTesting
-    static final Duration REPRESENTATIVE_REQUEST_DURATION = Duration.of(10, ChronoUnit.MILLIS);
+    private static final long WARN_SKEW_THRESHOLD_NANOS = 1_000_000; // 1 ms
 
     private static final double SECONDS_BETWEEN_EXCEPTION_LOGS = 600; // 10 minutes
     private static final double EXCEPTION_PERMIT_RATE = 1.0 / SECONDS_BETWEEN_EXCEPTION_LOGS;
@@ -55,23 +44,18 @@ public class ClockSkewEvents {
         this.exception = metricRegistry.counter("clock.monitor-exception");
     }
 
-    public void clockSkew(String server, long skew, long minRequestInterval, long duration) {
-        if (skew >= ERROR_SKEW_THRESHOLD_NANOS && requestHasLikelyRepresentativeSkew(minRequestInterval, duration)) {
-            log.debug("Significant skew of {} ns over at least {} ns was detected on the remote server {}."
+    public void clockSkew(
+            String server, ClockSkewEvent event , long requestDuration) {
+        if (event.getClockSkew() >= WARN_SKEW_THRESHOLD_NANOS) {
+            log.info("Skew of {} ns over at least {} ns was detected on the remote server {}."
                             + " (Our request took approximately {} ns.)",
-                    SafeArg.of("skew", skew),
-                    SafeArg.of("minRequestInterval", minRequestInterval),
+                    SafeArg.of("remoteElapsedTime", event.remoteElapsedTime()),
+                    SafeArg.of("minElapsedTime", event.minElapsedTime()),
+                    SafeArg.of("maxElapsedTime", event.maxElapsedTime()),
                     SafeArg.of("server", server),
-                    SafeArg.of("requestDuration", duration));
-        } else if (skew >= WARN_SKEW_THRESHOLD_NANOS) {
-            log.debug("Skew of {} ns over at least {} ns was detected on the remote server {}."
-                            + " (Our request took approximately {} ns.)",
-                    SafeArg.of("skew", skew),
-                    SafeArg.of("minRequestInterval", minRequestInterval),
-                    SafeArg.of("server", server),
-                    SafeArg.of("requestDuration", duration));
+                    SafeArg.of("requestDuration", requestDuration));
         }
-        clockSkew.update(skew);
+        clockSkew.update(event.getClockSkew());
     }
 
     public void clockWentBackwards(String server, long amount) {
@@ -87,11 +71,5 @@ public class ClockSkewEvents {
             log.debug("ClockSkewMonitor threw an exception", throwable);
         }
         exception.inc();
-    }
-
-    @VisibleForTesting
-    static boolean requestHasLikelyRepresentativeSkew(long minTimeBetweenRequests, long duration) {
-        return minTimeBetweenRequests <= REPRESENTATIVE_INTERVAL_SINCE_PREVIOUS_REQUEST.toNanos()
-                && duration <= REPRESENTATIVE_REQUEST_DURATION.toNanos();
     }
 }

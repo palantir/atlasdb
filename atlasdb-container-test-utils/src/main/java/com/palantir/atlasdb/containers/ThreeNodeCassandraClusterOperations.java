@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,22 +20,20 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
-import com.palantir.docker.compose.execution.DockerComposeRunOption;
+import com.palantir.docker.compose.execution.ImmutableDockerComposeRunOption;
 
 public class ThreeNodeCassandraClusterOperations {
     private static final Logger log = LoggerFactory.getLogger(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
-    private static final int NODETOOL_REPAIR_TIMEOUT_SECONDS = 60;
 
     private final DockerComposeRule dockerComposeRule;
     private final CassandraCliParser cassandraCliParser;
-    private final CassandraVersion cassandraVersion;
 
     public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, CassandraVersion version) {
         this.dockerComposeRule = dockerComposeRule;
-        this.cassandraVersion = version;
         this.cassandraCliParser = new CassandraCliParser(version);
     }
 
@@ -48,41 +46,6 @@ public class ThreeNodeCassandraClusterOperations {
             log.warn("Failed while running nodetool status", e);
             return false;
         }
-    }
-
-    public void replicateSystemAuthenticationDataOnAllNodes()
-            throws IOException, InterruptedException {
-        if (!systemAuthenticationKeyspaceHasReplicationFactorThree()) {
-            setReplicationFactorOfSystemAuthenticationKeyspaceToThree();
-            runNodetoolRepair();
-        }
-    }
-
-    private void runNodetoolRepair() throws IOException, InterruptedException {
-        runNodetoolCommand("repair system_auth", NODETOOL_REPAIR_TIMEOUT_SECONDS);
-    }
-
-    private void setReplicationFactorOfSystemAuthenticationKeyspaceToThree()
-            throws IOException, InterruptedException {
-        runCql("ALTER KEYSPACE system_auth "
-                + "WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : 3};");
-    }
-
-    private boolean systemAuthenticationKeyspaceHasReplicationFactorThree()
-            throws IOException, InterruptedException {
-        String getAllKeyspaces = cassandraVersion.getAllKeyspacesCql();
-        String output = runCql(getAllKeyspaces);
-        int replicationFactor = cassandraCliParser.parseSystemAuthReplicationFromCqlsh(output);
-        return replicationFactor == 3;
-    }
-
-    private String runCql(String cql) throws IOException, InterruptedException {
-        return runCommandInCliContainer(
-                "cqlsh",
-                "--username", CassandraContainer.USERNAME,
-                "--password", CassandraContainer.PASSWORD,
-                ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME,
-                "--execute", cql);
     }
 
     private String runNodetoolCommand(String nodetoolCommand, int timeoutSeconds) throws IOException,
@@ -98,7 +61,7 @@ public class ThreeNodeCassandraClusterOperations {
     private String runCommandInCliContainer(String... arguments) throws IOException,
             InterruptedException {
         return dockerComposeRule.run(
-                DockerComposeRunOption.options("-T"),
+                ImmutableDockerComposeRunOption.of(ImmutableList.of()),
                 ThreeNodeCassandraCluster.CLI_CONTAINER_NAME,
                 DockerComposeRunArgument.arguments(arguments));
     }

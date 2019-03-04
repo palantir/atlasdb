@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,10 @@ import javax.inject.Singleton;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.config.SweepConfig;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -84,8 +88,11 @@ public class KeyValueServiceModule {
 
     @Provides
     @Singleton
-    public TransactionService provideTransactionService(@Named("kvs") KeyValueService kvs) {
-        return TransactionServices.createTransactionService(kvs);
+    public TransactionService provideTransactionService(
+            @Named("kvs") KeyValueService kvs,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        return TransactionServices.createTransactionService(kvs,
+                new TransactionSchemaManager(coordinationService));
     }
 
     @Provides
@@ -98,6 +105,15 @@ public class KeyValueServiceModule {
     @Singleton
     public SweepStrategyManager provideSweepStrategyManager(@Named("kvs") KeyValueService kvs) {
         return SweepStrategyManagers.createDefault(kvs);
+    }
+
+    @Provides
+    @Singleton
+    public CoordinationService<InternalSchemaMetadata> provideMetadataCoordinationService(
+            @Named("kvs") KeyValueService kvs,
+            TimestampService ts,
+            ServicesConfig config) {
+        return CoordinationServices.createDefault(kvs, ts, config.atlasDbConfig().initializeAsync());
     }
 
 }

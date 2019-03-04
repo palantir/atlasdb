@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsSerializableTable;
@@ -36,19 +37,17 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
     private static final BenchmarksTableFactory tableFactory = BenchmarksTableFactory.of();
 
     private final TransactionManager txnManager;
-    private final Map<byte[], byte[]> originalValuesByKey = ImmutableMap.of(
-            RandomBytes.ofLength(16), RandomBytes.ofLength(16),
-            RandomBytes.ofLength(16), RandomBytes.ofLength(16));
+    private final Map<byte[], byte[]> originalValuesByKey;
 
-    // TODO(gmaretic): currently does not work for requestsPerClient > 1 since we never update originalValuesByKey
     public static Map<String, Object> execute(TransactionManager txnManager, int numClients,
             int requestsPerClient) {
         return new TransactionWriteBenchmarkContended(txnManager, numClients, requestsPerClient).execute();
     }
 
     private TransactionWriteBenchmarkContended(TransactionManager txnManager, int numClients, int requestsPerClient) {
-        super(numClients, requestsPerClient);
-
+        super(numClients, 1);
+        originalValuesByKey = LongStream.range(0, requestsPerClient).boxed()
+                .collect(Collectors.toMap(PtBytes::toBytes, ignore -> RandomBytes.ofLength(16)));
         this.txnManager = txnManager;
     }
 
@@ -80,6 +79,11 @@ public final class TransactionWriteBenchmarkContended extends AbstractBenchmark 
 
             return null;
         });
+    }
+
+    @Override
+    protected void cleanup() {
+        txnManager.getKeyValueService().truncateTable(tableFactory.getBlobsSerializableTable(null).getTableRef());
     }
 
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -271,7 +271,7 @@ public class StreamStoreRenderer {
                     line(StreamMetadataRow, " row = ", StreamMetadataRow, ".of(id);");
                     line("StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
                     line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being cleaned up while storing blocks: %s\", id);");
-                    line("Builder builder = StreamMetadata.newBuilder(metadata);");
+                    line("StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
                     line("metaTable.putMetadata(row, builder.build());");
                 } line("}");
@@ -661,15 +661,17 @@ public class StreamStoreRenderer {
             private void packageAndImports() {
                 line("package ", packageName, ";");
                 line();
+                line("import java.util.Map;");
                 line("import java.util.Set;");
                 line();
-                line("import com.google.common.collect.Multimap;");
                 line("import com.google.common.collect.Sets;");
                 line("import com.palantir.atlasdb.cleaner.api.OnCleanupTask;");
+                line("import com.palantir.atlasdb.encoding.PtBytes;");
+                line("import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;");
                 line("import com.palantir.atlasdb.keyvalue.api.Cell;");
                 line("import com.palantir.atlasdb.keyvalue.api.Namespace;");
-                line("import com.palantir.atlasdb.table.description.ValueType;");
                 line("import com.palantir.atlasdb.transaction.api.Transaction;");
+                line("import com.palantir.common.base.BatchingVisitable;");
 
                 if (streamIdType == ValueType.SHA256HASH) {
                     line("import com.palantir.util.crypto.Sha256Hash;");
@@ -684,9 +686,26 @@ public class StreamStoreRenderer {
                     line("for (Cell cell : cells) {"); {
                         line("rows.add(", StreamIdxRow, ".BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName()));");
                     } line("}");
-                    line("Multimap<", StreamIdxRow, ", ", StreamIdxColumnValue, "> rowsInDb = usersIndex.getRowsMultimap(rows);");
-                    line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.keySet().size());");
-                    line("for (", StreamIdxRow, " rowToDelete : Sets.difference(rows, rowsInDb.keySet())) {"); {
+
+                    line("BatchColumnRangeSelection oneColumn = BatchColumnRangeSelection.create(");
+                    line("        PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1);");
+                    line("Map<", StreamIdxRow, ", BatchingVisitable<", StreamIdxColumnValue, ">> existentRows");
+                    line("        = usersIndex.getRowsColumnRange(rows, oneColumn);");
+
+                    line("Set<", StreamIdxRow, "> rowsInDb = Sets.newHashSetWithExpectedSize(cells.size());");
+
+                    line("for (Map.Entry<", StreamIdxRow, ", BatchingVisitable<", StreamIdxColumnValue, ">> rowVisitable");
+                    line("        : existentRows.entrySet()) {"); {
+                        line("rowVisitable.getValue().batchAccept(1, columnValues -> {"); {
+                            line("if (!columnValues.isEmpty()) {"); {
+                                line("rowsInDb.add(rowVisitable.getKey());");
+                            } line("}");
+                            line("return false;");
+                        } line("});");
+                    } line("}");
+
+                    line("Set<", StreamId, "> toDelete = Sets.newHashSetWithExpectedSize(rows.size() - rowsInDb.size());");
+                    line("for (", StreamIdxRow, " rowToDelete : Sets.difference(rows, rowsInDb)) {"); {
                         line("toDelete.add(rowToDelete.getId());");
                     } line("}");
                     line(StreamStore, ".of(tables).deleteStreams(t, toDelete);");
@@ -806,7 +825,6 @@ public class StreamStoreRenderer {
         ByteString.class,
         Status.class,
         StreamMetadata.class,
-        StreamMetadata.Builder.class,
         Throwables.class,
         ConcatenatedInputStream.class,
         Cell.class,

@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.nio.ByteBuffer;
@@ -46,7 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.processors.AutoDelegate;
 
 @SuppressWarnings({"all"}) // thrift variable names.
-@AutoDelegate(typeToExtend = CassandraClient.class)
+@AutoDelegate
 public interface CassandraClient {
     /**
      * Checks if the client has a valid connection to Cassandra cluster. Can be used by a client pool
@@ -84,6 +83,13 @@ public interface CassandraClient {
     CASResult cas(TableReference tableReference,
             ByteBuffer key,
             List<Column> expected,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
+
+    public CASResult put_unless_exists(TableReference tableReference,
+            ByteBuffer key,
             List<Column> updates,
             ConsistencyLevel serial_consistency_level,
             ConsistencyLevel commit_consistency_level)

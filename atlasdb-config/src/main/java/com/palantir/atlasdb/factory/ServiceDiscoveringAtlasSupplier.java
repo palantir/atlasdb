@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,12 +38,11 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.qos.FakeQosClient;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
@@ -67,8 +66,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -84,7 +82,6 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 timestampTable,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                FakeQosClient.INSTANCE,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
@@ -94,8 +91,7 @@ public class ServiceDiscoveringAtlasSupplier {
             java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
-            boolean initializeAsync,
-            QosClient qosClient) {
+            boolean initializeAsync) {
         this(metricsManager,
                 config,
                 runtimeConfig,
@@ -103,7 +99,6 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 Optional.empty(),
                 initializeAsync,
-                qosClient,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
@@ -115,7 +110,6 @@ public class ServiceDiscoveringAtlasSupplier {
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
-            QosClient qosClient,
             LongSupplier timestampSupplier) {
         // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
@@ -130,8 +124,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         leaderConfig,
                         namespace,
                         timestampSupplier,
-                        initializeAsync,
-                        qosClient));
+                        initializeAsync));
         timestampService = () ->
                 atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
@@ -152,6 +145,10 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
+    }
+
+    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
+        return AtlasDbFactory.createTimestampManagementService(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {

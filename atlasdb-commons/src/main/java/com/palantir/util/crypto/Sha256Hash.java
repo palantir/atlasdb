@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,6 +41,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     public static final Sha256Hash EMPTY = Sha256Hash.computeHash(new byte[0]);
 
     private final byte[] bytes;
+    private transient int hashCode = 0;
 
     /**
      * Constructs a type-safe {@link Sha256Hash} object from the given hash
@@ -116,7 +117,13 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(bytes);
+        // same mechanism as java.lang.String. Note: Don't return hashCode directly
+        int localHash = hashCode;
+        if (localHash == 0) {
+            localHash = Arrays.hashCode(bytes);
+            hashCode = localHash;
+        }
+        return localHash;
     }
 
     @Override

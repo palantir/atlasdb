@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.common.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,11 +85,11 @@ public class MultiplexingCompletionServiceTest {
 
         executor1.runUntilIdle();
         executor2.runUntilIdle();
-
         assertThat(service.poll().get()).isEqualTo(5);
         assertThatThrownBy(() -> service.poll().get())
                 .isInstanceOf(ExecutionException.class)
-                .hasCauseInstanceOf(IllegalArgumentException.class);
+                .hasCauseInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bad");
     }
 
     @Test
@@ -124,17 +123,13 @@ public class MultiplexingCompletionServiceTest {
     @Test
     public void rejectsExecutionsIfUnderlyingExecutorRejects() throws InterruptedException, ExecutionException {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, createBoundedExecutor(2), KEY_2, createBoundedExecutor(2)));
+                ImmutableMap.of(KEY_1, createBoundedExecutor(1)));
 
         Callable<Integer> sleepForFiveSeconds = getSleepCallable(5_000);
 
         boundedService.submit(KEY_1, sleepForFiveSeconds);
-        boundedService.submit(KEY_2, sleepForFiveSeconds);
-        boundedService.submit(KEY_1, sleepForFiveSeconds);
-        boundedService.submit(KEY_2, getSleepCallable(2));
         boundedService.submit(KEY_1, sleepForFiveSeconds);
 
-        assertThat(boundedService.poll(1, TimeUnit.SECONDS).get()).isEqualTo(2);
         assertThat(boundedService.poll()).isNull();
         assertThatThrownBy(() -> boundedService.submit(KEY_1, sleepForFiveSeconds))
                 .isInstanceOf(RejectedExecutionException.class);
@@ -145,10 +140,11 @@ public class MultiplexingCompletionServiceTest {
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
                 ImmutableMap.of(KEY_1, createBoundedExecutor(2), KEY_2, createBoundedExecutor(2)));
 
-        for (int i = 0; i < 50_000; i++) {
+        for (int i = 0; i < 4; i++) {
             try {
                 boundedService.submit(KEY_1, getSleepCallable(5_000));
             } catch (RejectedExecutionException e) {
+                e.printStackTrace();
                 // This is permissible
             }
         }
@@ -160,22 +156,25 @@ public class MultiplexingCompletionServiceTest {
 
     @Test
     public void valuesMayBeRetrievedFromFuturesReturned() throws ExecutionException, InterruptedException {
+        DeterministicScheduler scheduler = new DeterministicScheduler();
         MultiplexingCompletionService<String, Integer> boundedService = MultiplexingCompletionService.create(
-                ImmutableMap.of(KEY_1, createBoundedExecutor(2)));
+                ImmutableMap.of(KEY_1, scheduler));
         Future<Integer> returnedFuture = boundedService.submit(KEY_1, () -> 1234567);
+
+        scheduler.runUntilIdle();
 
         assertThat(returnedFuture.get()).isEqualTo(1234567);
         assertThat(boundedService.poll().get()).isEqualTo(1234567);
     }
 
-    private Callable<Integer> getSleepCallable(int durationMillis) {
+    private static Callable<Integer> getSleepCallable(int durationMillis) {
         return () -> {
                 Thread.sleep(durationMillis);
                 return durationMillis;
             };
     }
 
-    private ThreadPoolExecutor createBoundedExecutor(int poolSize) {
+    private static ThreadPoolExecutor createBoundedExecutor(int poolSize) {
         return PTExecutors.newThreadPoolExecutor(
                 poolSize, poolSize, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1));
     }

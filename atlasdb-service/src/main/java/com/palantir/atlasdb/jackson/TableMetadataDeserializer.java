@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,7 @@ import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Format;
 import com.palantir.atlasdb.table.description.DynamicColumnDescription;
+import com.palantir.atlasdb.table.description.ImmutableTableMetadata;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
@@ -52,42 +53,29 @@ public class TableMetadataDeserializer extends StdDeserializer<TableMetadata> {
     @Override
     public TableMetadata deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         JsonNode node = jp.readValueAsTree();
-        NameMetadataDescription row = deserializeRowish(node);
-        ColumnMetadataDescription col;
-        if (node.get("is_dynamic").asBoolean()) {
-            col = deserializeDynamicCol(node);
-        } else {
-            col = deserializeNamedCols(node);
-        }
-        // TODO(dxiao): make defaults not duplicated with TableMetadata code.
-        ConflictHandler conflictHandler = Optional.ofNullable(node.get("conflictHandler"))
-                .map(JsonNode::textValue).map(ConflictHandler::valueOf).orElse(ConflictHandler.RETRY_ON_WRITE_WRITE);
-        CachePriority cachePriority = Optional.ofNullable(node.get("cachePriority"))
-                .map(JsonNode::textValue).map(CachePriority::valueOf).orElse(CachePriority.WARM);
-        boolean rangeScanAllowed = Optional.ofNullable(node.get("rangeScanAllowed"))
-                .map(JsonNode::booleanValue).orElse(false);
-        int compressionBlockSize = Optional.ofNullable(node.get("explicitCompressionBlockSizeKB"))
-                .map(JsonNode::numberValue).map(Number::intValue).orElse(0);
-        boolean negativeLookups = Optional.ofNullable(node.get("negativeLookups"))
-                .map(JsonNode::booleanValue).orElse(false);
-        SweepStrategy sweepStrategy = Optional.ofNullable(node.get("sweepStrategy"))
-                .map(JsonNode::textValue).map(SweepStrategy::valueOf).orElse(SweepStrategy.CONSERVATIVE);
-        boolean appendHeavyAndReadLight = Optional.ofNullable(node.get("appendHeavyAndReadLight"))
-                .map(JsonNode::booleanValue).orElse(false);
-        LogSafety logSafety = Optional.ofNullable(node.get("nameLogSafety"))
-                .map(JsonNode::textValue).map(LogSafety::valueOf).orElse(LogSafety.UNSAFE);
 
-        return new TableMetadata(
-                row,
-                col,
-                conflictHandler,
-                cachePriority,
-                rangeScanAllowed,
-                compressionBlockSize,
-                negativeLookups,
-                sweepStrategy,
-                appendHeavyAndReadLight,
-                logSafety);
+        ImmutableTableMetadata.Builder builder = TableMetadata.builder()
+                .rowMetadata(deserializeRowish(node))
+                .columns(node.get("is_dynamic").asBoolean() ? deserializeDynamicCol(node) : deserializeNamedCols(node));
+
+        Optional.ofNullable(node.get("conflictHandler"))
+                .map(JsonNode::textValue).map(ConflictHandler::valueOf).ifPresent(builder::conflictHandler);
+        Optional.ofNullable(node.get("cachePriority"))
+                .map(JsonNode::textValue).map(CachePriority::valueOf).ifPresent(builder::cachePriority);
+        Optional.ofNullable(node.get("rangeScanAllowed"))
+                .map(JsonNode::booleanValue).ifPresent(builder::rangeScanAllowed);
+        Optional.ofNullable(node.get("explicitCompressionBlockSizeKB"))
+                .map(JsonNode::numberValue).map(Number::intValue).ifPresent(builder::explicitCompressionBlockSizeKB);
+        Optional.ofNullable(node.get("negativeLookups"))
+                .map(JsonNode::booleanValue).ifPresent(builder::negativeLookups);
+        Optional.ofNullable(node.get("sweepStrategy"))
+                .map(JsonNode::textValue).map(SweepStrategy::valueOf).ifPresent(builder::sweepStrategy);
+        Optional.ofNullable(node.get("appendHeavyAndReadLight"))
+                .map(JsonNode::booleanValue).ifPresent(builder::appendHeavyAndReadLight);
+        Optional.ofNullable(node.get("nameLogSafety"))
+                .map(JsonNode::textValue).map(LogSafety::valueOf).ifPresent(builder::nameLogSafety);
+
+        return builder.build();
     }
 
     private NameMetadataDescription deserializeRowish(JsonNode node) {

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang.Validate;
+import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  *   - How we validate query inputs for sanity / correctness
  *   - Not having a ton of boilerplate in each KVS
  */
-public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
+public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
     private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
 
@@ -67,7 +67,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 
@@ -89,7 +89,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         tableRefToTableMetadata.keySet().forEach(this::sanityCheckTableName);
-        tableRefToTableMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
+        tableRefToTableMetadata.forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableMetadata);
         delegate.createTables(tableRefToTableMetadata);
     }
 
@@ -98,7 +98,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
         String tableName = tableRef.getQualifiedName();
         Validate.isTrue(
                 (!tableName.startsWith("_") && tableName.contains("."))
-                        || AtlasDbConstants.hiddenTables.contains(tableRef)
+                        || AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)
                         || tableName.startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                 "invalid tableName: %s", tableName);
     }

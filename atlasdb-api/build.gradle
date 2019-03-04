@@ -7,19 +7,15 @@ dependencies {
   compile project(":atlasdb-commons")
   compile project(":lock-api")
   compile project(":timestamp-api")
-  compile project(":qos-service-api")
-  compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
   compile group: 'org.apache.commons', name: 'commons-lang3'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
+  compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'javax.validation', name: 'validation-api'
 
-  compile group: 'com.palantir.remoting-api', name: 'ssl-config'
-  compile (group: 'com.palantir.remoting3', name: 'jaxrs-clients') {
-    exclude (module:'jsr305')
-  }
+  compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   compile (group: 'com.palantir.tritium', name: 'tritium-registry') {
-    exclude (group: 'com.palantir.remoting3', module: 'tracing')
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
     exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
   }

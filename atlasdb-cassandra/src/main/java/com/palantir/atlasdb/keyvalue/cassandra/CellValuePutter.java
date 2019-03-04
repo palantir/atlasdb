@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
@@ -24,7 +23,6 @@ import java.util.function.LongSupplier;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Mutation;
 
 import com.google.common.base.Function;
@@ -52,38 +50,35 @@ public class CellValuePutter {
     private CassandraClientPool clientPool;
     private TaskRunner taskRunner;
     private WrappingQueryRunner queryRunner;
-    private ConsistencyLevel writeConsistency;
 
     public CellValuePutter(CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             TaskRunner taskRunner,
             WrappingQueryRunner queryRunner,
-            ConsistencyLevel writeConsistency,
             LongSupplier timestampOverrideSupplier) {
         this.config = config;
         this.clientPool = clientPool;
         this.taskRunner = taskRunner;
         this.queryRunner = queryRunner;
-        this.writeConsistency = writeConsistency;
         this.timestampOverrideSupplier = timestampOverrideSupplier;
     }
 
     void putWithOverriddenTimestamps(final String kvsMethodName,
             final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values) {
         put(kvsMethodName, tableRef, values, true);
     }
 
     void put(final String kvsMethodName,
             final TableReference tableRef,
-            final Iterable<Map.Entry<Cell, Value>> values) throws Exception {
+            final Iterable<Map.Entry<Cell, Value>> values) {
         put(kvsMethodName, tableRef, values, false);
     }
 
     private void put(final String kvsMethodName,
             final TableReference tableRef,
             final Iterable<Map.Entry<Cell, Value>> values,
-            boolean overwriteTimestamps) throws Exception {
+            boolean overwriteTimestamps) {
         Map<InetSocketAddress, Map<Cell, Value>> cellsByHost = HostPartitioner.partitionMapByHost(clientPool, values);
         List<Callable<Void>> tasks = Lists.newArrayListWithCapacity(cellsByHost.size());
         for (final Map.Entry<InetSocketAddress, Map<Cell, Value>> entry : cellsByHost.entrySet()) {
@@ -145,7 +140,7 @@ public class CellValuePutter {
                             }
 
                             queryRunner.batchMutate(kvsMethodName, client, ImmutableSet.of(tableRef), map,
-                                    writeConsistency);
+                                    CassandraKeyValueServiceImpl.WRITE_CONSISTENCY);
                         }
                         return null;
                     }

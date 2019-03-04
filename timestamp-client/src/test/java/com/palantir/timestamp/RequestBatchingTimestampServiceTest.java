@@ -1,11 +1,11 @@
 /*
- * Copyright 2017 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,27 +13,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.timestamp;
 
-import static org.junit.Assert.assertEquals;
+import static java.util.stream.Collectors.toList;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.immutables.value.Value;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Spy;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import com.palantir.common.concurrent.PTExecutors;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.autobatch.BatchElement;
 
-public class RequestBatchingTimestampServiceTest {
+@RunWith(MockitoJUnitRunner.class)
+public final class RequestBatchingTimestampServiceTest {
+    private static final int MAX_TIMESTAMPS = 10_000;
+
+    @Spy private TimestampService unbatchedDelegate = new MaxTimestampsToGiveTimestampService();
+
+    private CloseableTimestampService timestamp;
+
+    @Before
+    public void before() {
+        timestamp = RequestBatchingTimestampService.create(unbatchedDelegate);
+    }
+
+    @After
+    public void after() {
+        timestamp.close();
+    }
+
     @Test
     public void delegatesInitializationCheck() {
         TimestampService delegate = mock(TimestampService.class);
-        RequestBatchingTimestampService service = new RequestBatchingTimestampService(delegate);
+        RequestBatchingTimestampService service = RequestBatchingTimestampService.create(delegate);
 
         when(delegate.isInitialized())
                 .thenReturn(false)
@@ -44,60 +76,67 @@ public class RequestBatchingTimestampServiceTest {
     }
 
     @Test
-    public void testRateLimiting() throws Exception {
-        final long minRequestMillis = 100L;
-        final long testDurationMillis = 2000L;
-        final int numThreads = 3;
-
-        final StatsTrackingTimestampService rawTs = new StatsTrackingTimestampService(new InMemoryTimestampService());
-        final RequestBatchingTimestampService cachedTs = new RequestBatchingTimestampService(rawTs, minRequestMillis);
-        final AtomicLong timestampsGenerated = new AtomicLong(0);
-        final long startMillis = System.currentTimeMillis();
-
-        ExecutorService executor = PTExecutors.newCachedThreadPool();
-        try {
-            for (int i = 0; i < numThreads; ++i) {
-                executor.submit(() -> {
-                    while (System.currentTimeMillis() - startMillis < testDurationMillis) {
-                        cachedTs.getFreshTimestamp();
-                        timestampsGenerated.incrementAndGet();
-                    }
-                    return null;
-                });
-            }
-        } finally {
-            executor.shutdown();
-            executor.awaitTermination(1000, TimeUnit.SECONDS);
-        }
-
-        assertEquals(0, rawTs.getFreshTimestampReqCount.get());
-        long approxFreshTimestampReqTotal = rawTs.getFreshTimestampsReqCount.get() * numThreads;
-        assertEquals(approxFreshTimestampReqTotal, timestampsGenerated.get(), approxFreshTimestampReqTotal);
+    public void throwsIfAskForZeroTimestamps() {
+        assertThatThrownBy(() -> timestamp.getFreshTimestamps(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Must not request zero or negative timestamps");
     }
 
-    private static class StatsTrackingTimestampService implements TimestampService {
-        AtomicLong getFreshTimestampReqCount = new AtomicLong(0);
-        AtomicLong getFreshTimestampsReqCount = new AtomicLong(0);
-        AtomicLong timestampsCount = new AtomicLong(0);
+    @Test
+    public void coalescesRequestsTogether() {
+        assertThat(requestBatches(1, 2, 3)).containsExactly(single(1), range(2, 4), range(4, 7));
+        verify(unbatchedDelegate).getFreshTimestamps(6);
+        verifyNoMoreInteractions(unbatchedDelegate);
+    }
 
-        final TimestampService delegate;
+    @Test
+    public void handsOutMaximumNumberOfTimestampsIfLimited() {
+        assertThat(requestBatches(1, 20_000, 3))
+                .containsExactly(single(1), range(10_001, 20_001), range(20_001, 20_004));
+        verify(unbatchedDelegate).getFreshTimestamps(20_004);
+        verify(unbatchedDelegate).getFreshTimestamps(20_003);
+        verify(unbatchedDelegate).getFreshTimestamps(3);
+        verifyNoMoreInteractions(unbatchedDelegate);
+    }
 
-        StatsTrackingTimestampService(TimestampService delegate) {
-            this.delegate = delegate;
-        }
+    private List<TimestampRange> requestBatches(int... sizes) {
+        List<BatchElement<Integer, TimestampRange>> elements = Arrays.stream(sizes)
+                .mapToObj(size -> ImmutableTestBatchElement.builder()
+                        .argument(size)
+                        .result(SettableFuture.create())
+                        .build())
+                .collect(toList());
+        RequestBatchingTimestampService.consumer(unbatchedDelegate).accept(elements);
+        return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
+    }
+
+    private static TimestampRange single(int ts) {
+        return TimestampRange.createInclusiveRange(ts, ts);
+    }
+
+    private static TimestampRange range(int start, int end) {
+        return TimestampRange.createInclusiveRange(start, end - 1);
+    }
+
+    @Value.Immutable
+    interface TestBatchElement extends BatchElement<Integer, TimestampRange> {}
+
+    private static class MaxTimestampsToGiveTimestampService implements TimestampService {
+        private final AtomicLong counter = new AtomicLong(0);
 
         @Override
         public long getFreshTimestamp() {
-            getFreshTimestampReqCount.incrementAndGet();
-            timestampsCount.incrementAndGet();
-            return delegate.getFreshTimestamp();
+            return counter.incrementAndGet();
         }
 
         @Override
-        public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-            getFreshTimestampsReqCount.incrementAndGet();
-            timestampsCount.addAndGet(numTimestampsRequested);
-            return delegate.getFreshTimestamps(numTimestampsRequested);
+        public TimestampRange getFreshTimestamps(int timestampsToGet) {
+            if (timestampsToGet <= 0) {
+                throw new IllegalArgumentException("Argument must be positive: " + timestampsToGet);
+            }
+            long timestampsToRequest = Math.min(timestampsToGet, MAX_TIMESTAMPS);
+            long topValue = counter.addAndGet(timestampsToRequest);
+            return TimestampRange.createInclusiveRange(topValue - timestampsToRequest + 1, topValue);
         }
     }
 }

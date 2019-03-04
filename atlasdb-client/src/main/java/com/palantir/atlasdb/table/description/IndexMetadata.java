@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -211,17 +211,18 @@ public class IndexMetadata {
         } else {
             throw new IllegalArgumentException("Unknown index type " + indexType);
         }
-        return new TableMetadata(
-                NameMetadataDescription.create(rowDescList, numberOfComponentsHashed),
-                column,
-                conflictHandler,
-                cachePriority,
-                rangeScanAllowed,
-                explicitCompressionBlockSizeKB,
-                negativeLookups,
-                sweepStrategy,
-                appendHeavyAndReadLight,
-                nameLogSafety);
+        return TableMetadata.builder()
+                .rowMetadata(NameMetadataDescription.create(rowDescList, numberOfComponentsHashed))
+                .columns(column)
+                .conflictHandler(conflictHandler)
+                .cachePriority(cachePriority)
+                .rangeScanAllowed(rangeScanAllowed)
+                .explicitCompressionBlockSizeKB(explicitCompressionBlockSizeKB)
+                .negativeLookups(negativeLookups)
+                .sweepStrategy(sweepStrategy)
+                .appendHeavyAndReadLight(appendHeavyAndReadLight)
+                .nameLogSafety(nameLogSafety)
+                .build();
     }
 
     public boolean isDynamicIndex() {
@@ -260,14 +261,6 @@ public class IndexMetadata {
         return indexType;
     }
 
-    public String getIndexTable() {
-        String indexTable = getJavaIndexName();
-        if (indexTable == null) {
-            indexTable = Renderers.CamelCase(getIndexName());
-        }
-        return indexTable;
-    }
-
     private static ColumnMetadataDescription getAdditiveIndexColumn() {
         ColumnValueDescription columnValue = ColumnValueDescription.forType(ValueType.VAR_LONG);
         NamedColumnDescription namedColumn = new NamedColumnDescription("e", "exists", columnValue);
@@ -283,10 +276,8 @@ public class IndexMetadata {
 
     private static ColumnMetadataDescription getCellReferencingIndexColumn(List<NameComponentDescription> components) {
         components = ImmutableList.<NameComponentDescription>builder()
-                .add(new NameComponentDescription.Builder().componentName("row_name").type(ValueType.SIZED_BLOB)
-                        .build())
-                .add(new NameComponentDescription.Builder().componentName("column_name").type(ValueType.SIZED_BLOB)
-                        .build())
+                .add(NameComponentDescription.of("row_name", ValueType.SIZED_BLOB))
+                .add(NameComponentDescription.of("column_name", ValueType.SIZED_BLOB))
                 .addAll(components)
                 .build();
         NameMetadataDescription columnDescription = NameMetadataDescription.create(components);

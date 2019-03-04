@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -37,7 +37,6 @@ import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.qos.QosClient;
 import com.palantir.atlasdb.schema.AtlasSchema;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -110,7 +109,6 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
      * @param unused unused.
      * @param unusedLongSupplier unused.
      * @param initializeAsync unused. Async initialization has not been implemented and is not propagated.
-     * @param unusedQosClient unused.
      * @return The requested KeyValueService instance
      */
     @Override
@@ -121,8 +119,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
             Optional<LeaderConfig> leaderConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
-            boolean initializeAsync,
-            QosClient unusedQosClient) {
+            boolean initializeAsync) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }
@@ -164,13 +161,14 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     private static TransactionManager createInMemoryTransactionManagerInternal(Set<Schema> schemas) {
-        TimestampService ts = new InMemoryTimestampService();
+        InMemoryTimestampService ts = new InMemoryTimestampService();
         KeyValueService keyValueService = new InMemoryKeyValueService(false);
 
         schemas.forEach(s -> Schemas.createTablesAndIndexes(s, keyValueService));
         TransactionTables.createTables(keyValueService);
 
-        TransactionService transactionService = TransactionServices.createTransactionService(keyValueService);
+        TransactionService transactionService
+                = TransactionServices.createRaw(keyValueService, ts, false);
         LockService lock = LockRefreshingLockService.create(LockServiceImpl.create(
                  LockServerOptions.builder().isStandaloneServer(false).build()));
         LockClient client = LockClient.of("in memory atlasdb instance");
@@ -188,6 +186,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
         TransactionManager ret = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
+                ts,
                 ts,
                 client,
                 lock,

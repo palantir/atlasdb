@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.schema;
-
 
 import java.util.Arrays;
 import java.util.List;
@@ -87,10 +86,10 @@ public class KeyValueServiceValidator {
         try {
             validateTables(tables);
         } catch (Throwable t) {
-            KeyValueServiceMigrators.processMessage(messageProcessor,
+            KeyValueServiceMigratorUtils.processMessage(messageProcessor,
                     "Validation failed.", t, KvsMigrationMessageLevel.ERROR);
             if (!logOnly) {
-                Throwables.throwUncheckedException(t);
+                throw Throwables.throwUncheckedException(t);
             }
         }
     }
@@ -103,15 +102,14 @@ public class KeyValueServiceValidator {
                 try {
                     validateTable(table);
                 } catch (RuntimeException e) {
-                    Throwables.rewrapAndThrowUncheckedException("Exception while validating "
-                            + table, e);
+                    throw Throwables.rewrapAndThrowUncheckedException("Exception while validating " + table, e);
                 }
                 return null;
             });
             futures.add(future);
         }
 
-        futures.forEach(future -> Futures.getUnchecked(future));
+        futures.forEach(Futures::getUnchecked);
     }
 
     private void validateTable(final TableReference table) {
@@ -122,7 +120,8 @@ public class KeyValueServiceValidator {
                     validateTable(table, limit, t1);
                     return null;
                 });
-        KeyValueServiceMigrators.processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
+        KeyValueServiceMigratorUtils
+                .processMessage(messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
     private void validateTable(final TableReference table, final int limit, final Transaction t1) {
@@ -174,11 +173,9 @@ public class KeyValueServiceValidator {
     private void validateEquality(Map<Cell, byte[]> cells1, Map<Cell, byte[]> cells2) {
         Set<Cell> ks1 = cells1.keySet();
         Set<Cell> ks2 = cells2.keySet();
-        Preconditions.checkArgument(ks1.equals(ks2),
-                "Cells not equal. Expected: %s. Actual: %s", ks1, ks2);
+        Preconditions.checkArgument(ks1.equals(ks2), "Cells not equal. Expected: %s. Actual: %s", ks1, ks2);
         for (Cell c : ks1) {
-            Preconditions.checkArgument(Arrays.equals(cells1.get(c), cells2.get(c)),
-                    "Values not equal for cell %s", c);
+            Preconditions.checkArgument(Arrays.equals(cells1.get(c), cells2.get(c)), "Values not equal for cell %s", c);
         }
     }
 }

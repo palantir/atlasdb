@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,6 +48,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -58,7 +60,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -68,13 +69,18 @@ import com.palantir.lock.impl.LegacyTimelockService;
 
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
+    public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        super(kvsManager, tmManager);
+    }
+
     @Override
-    protected TransactionManager getManager() {
+    protected TransactionManager createManager() {
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 keyValueService,
                 timestampService,
+                timestampManagementService,
                 lockClient,
                 lockService,
                 transactionService,
@@ -117,7 +123,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 () -> ImmutableTransactionConfig.builder().build()) {
             @Override
@@ -700,6 +705,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         columnRangeAgain.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
         put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows() {
+        byte[] row = PtBytes.toBytes("row");
+        byte[] differentRow = PtBytes.toBytes("differentRow");
+
+        Transaction transaction = startTransaction();
+        BatchColumnRangeSelection sameColumnRangeSelection =
+                BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1);
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
+        columnRangeResultForRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
+                transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(differentRow), sameColumnRangeSelection);
+        columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(transaction, "mutation to ensure", "conflict", "handling");
+        transaction.commit();
     }
 
     private void writeColumns() {

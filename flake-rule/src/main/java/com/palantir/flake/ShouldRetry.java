@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.flake;
 
 import java.lang.annotation.Retention;
@@ -39,4 +38,10 @@ public @interface ShouldRetry {
      * Values provided should be strictly positive; behaviour when this value is zero or negative is undefined.
      */
     int numAttempts() default 5;
+
+    /**
+     * Array specifying which types of Throwables should be retried. The default value throws a very wide net, and
+     * should ideally be replaced by a more specific list.
+     */
+    Class<? extends Throwable>[] retryableExceptions() default {AssertionError.class, Exception.class};
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,14 @@
 package com.palantir.atlasdb.http;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +31,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.common.time.Clock;
+import com.palantir.logsafe.SafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import feign.Client;
@@ -57,25 +62,30 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
-    private final AtomicLong startTimeOfFastFailover = new AtomicLong();
+    private final AtomicReference<Optional<FastFailoverState>> fastFailoverState
+            = new AtomicReference<>(Optional.empty());
 
     private final ThreadLocal<Integer> mostRecentServerIndex = new ThreadLocal<>();
 
-    public FailoverFeignTarget(Collection<String> servers, Class<T> type) {
-        this(servers, DEFAULT_MAX_BACKOFF_MILLIS, type);
-    }
+    private final Clock clock;
 
     public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+        this(servers, maxBackoffMillis, type, System::currentTimeMillis);
+    }
+
+    @VisibleForTesting
+    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, Clock clock) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;
+        this.clock = clock;
     }
 
-    public void sucessfulCall() {
+    private void successfulCall() {
         numSwitches.set(0);
         failuresSinceLastSwitch.set(0);
-        startTimeOfFastFailover.set(0);
+        fastFailoverState.set(Optional.empty());
     }
 
     @Override
@@ -123,27 +133,28 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
             // We did talk to a node successfully. It was shutting down but nodes are available
             // so we shouldn't keep making the backoff higher.
             numSwitches.set(0);
-            startTimeOfFastFailover.compareAndSet(0, System.currentTimeMillis());
+            fastFailoverState.updateAndGet(stateOptional ->
+                    Optional.of(stateOptional.map(FastFailoverState::withAdditionalFailedServer)
+                            .orElseGet(() -> FastFailoverState.of(clock.getTimeMillis(), 1))));
         } else {
             numSwitches.incrementAndGet();
-            startTimeOfFastFailover.set(0);
+            fastFailoverState.set(Optional.empty());
         }
         failuresSinceLastSwitch.set(0);
         failoverCount.incrementAndGet();
     }
 
     private void checkAndHandleFailure(RetryableException ex) {
-        final long fastFailoverStartTime = startTimeOfFastFailover.get();
-        final long currentTime = System.currentTimeMillis();
-        boolean failedDueToFastFailover = fastFailoverStartTime != 0
-                && (currentTime - fastFailoverStartTime) > fastFailoverTimeoutMillis;
+        boolean failedDueToFastFailover = hasFailedDueToFastFailover();
         boolean failedDueToNumSwitches = numSwitches.get() >= numServersToTryBeforeFailing;
 
         if (failedDueToFastFailover) {
             log.error("This connection has been instructed to fast failover for {}"
-                    + " seconds without establishing a successful connection."
+                    + " seconds without establishing a successful connection, and connected to all remote hosts ({})."
                     + " The remote hosts have been in a fast failover state for too long.",
-                    TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis), ex);
+                    SafeArg.of("duration", TimeUnit.MILLISECONDS.toSeconds(fastFailoverTimeoutMillis)),
+                    SafeArg.of("remoteHosts", servers),
+                    ex);
         } else if (failedDueToNumSwitches) {
             log.error("This connection has tried {} hosts rolling across {} servers, each {} times and has failed out.",
                     numServersToTryBeforeFailing, servers.size(), failuresBeforeSwitching, ex);
@@ -154,6 +165,34 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
     }
 
+    /**
+     * We say that a {@link FailoverFeignTarget} has failed due to fast failover if two conditions are satisfied:
+     *
+     * <ol>
+     *     <li>
+     *         The cluster has only received fast failover exceptions from remote hosts for the last
+     *         {@link FailoverFeignTarget#fastFailoverTimeoutMillis} milliseconds.
+     *     </li>
+     *     <li>
+     *         All nodes have been tried at least once.
+     *     </li>
+     * </ol>
+     *
+     * @return whether this target has failed due to fast failover
+     */
+    private boolean hasFailedDueToFastFailover() {
+        return fastFailoverState.get()
+                .map(state -> hasBeenInFastFailoverStateForTooLong(state) && hasTriedAllNodesInFastFailover(state))
+                .orElse(false);
+    }
+
+    private boolean hasBeenInFastFailoverStateForTooLong(FastFailoverState failoverState) {
+        return clock.getTimeMillis() - failoverState.startTime() > fastFailoverTimeoutMillis;
+    }
+
+    private boolean hasTriedAllNodesInFastFailover(FastFailoverState failoverState) {
+        return failoverState.numberOfServersTried() >= servers.size();
+    }
 
     private void pauseForBackoff(RetryableException ex) {
         double exponentialPauseTime = Math.pow(
@@ -218,9 +257,25 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         return (request, options) -> {
             Response response = client.execute(request, options);
             if (response.status() >= 200 && response.status() < 300) {
-                sucessfulCall();
+                successfulCall();
             }
             return response;
         };
+    }
+
+    @Value.Immutable
+    interface FastFailoverState {
+        @Value.Parameter
+        long startTime();
+        @Value.Parameter
+        long numberOfServersTried();
+
+        default FastFailoverState withAdditionalFailedServer() {
+            return FastFailoverState.of(startTime(), numberOfServersTried() + 1);
+        }
+
+        static FastFailoverState of(long startTime, long numberOfServersTried) {
+            return ImmutableFastFailoverState.of(startTime, numberOfServersTried);
+        }
     }
 }

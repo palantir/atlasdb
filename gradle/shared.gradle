@@ -80,10 +80,6 @@ afterEvaluate {
 }
 
 tasks.withType(Test) {
-    if (System.env.CIRCLE_TEST_REPORTS) {
-        reports.junitXml.destination = new File(System.env.CIRCLE_TEST_REPORTS, it.getName())
-    }
-
     enableAssertions = true
 
     testLogging {

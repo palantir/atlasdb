@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,28 +18,32 @@ package com.palantir.atlasdb.cli.output;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
+import com.palantir.atlasdb.restore.OutputStateLogger;
 import com.palantir.logsafe.Arg;
 
 @SuppressWarnings("Slf4jConstantLogMessage")
-public class OutputPrinter {
+public class OutputPrinter implements OutputStateLogger {
     private Logger logger;
 
     public OutputPrinter(Logger logger) {
         this.logger = logger;
     }
 
+    @Override
     public void info(String message, Arg... args) {
         String infoMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.info(message, args);
         System.out.println(infoMessage);
     }
 
+    @Override
     public void warn(String message, Arg... args) {
         String warnMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.warn(message, args);
         System.err.println(warnMessage);
     }
 
+    @Override
     public void error(final String message, Arg... args) {
         String errorMessage = MessageFormatter.arrayFormat(message, args).getMessage();
         logger.error(message, args);

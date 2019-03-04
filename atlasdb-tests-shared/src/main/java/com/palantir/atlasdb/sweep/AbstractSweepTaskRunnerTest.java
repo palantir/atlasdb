@@ -1,11 +1,11 @@
 /*
- * Copyright 2016 Palantir Technologies, Inc. All rights reserved.
+ * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
  *
- * Licensed under the BSD-3 License (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://opensource.org/licenses/BSD-3-Clause
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,8 +21,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.ArrayList;
@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
-import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -39,17 +38,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.ImmutableSweepResults;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.util.Pair;
 
 public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
@@ -58,6 +62,10 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     protected SweepTaskRunner sweepRunner;
     protected LongSupplier tsSupplier;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
+
+    public AbstractSweepTaskRunnerTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        super(kvsManager, tmManager);
+    }
 
     @Before
     public void setup() {
@@ -291,14 +299,35 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertEquals(ImmutableSet.of(125L), getAllTsFromDefaultColumn("foo"));
     }
 
-    @Test(timeout = 50000)
+    @Test
     public void testSweepHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 
-        IntStream.rangeClosed(1, 1_000)
-                .forEach(i -> putIntoDefaultColumn("row", RandomStringUtils.random(10), i));
+        Multimap<Cell, Value> commits = HashMultimap.create();
+        for (int i = 1; i <= 1_000; i++) {
+            putUncommitted("row", RandomStringUtils.random(10), i);
+            Cell tsCell = Cell.create(
+                    TransactionConstants.getValueForTimestamp(i),
+                    TransactionConstants.COMMIT_TS_COLUMN);
+            commits.put(tsCell, Value.create(TransactionConstants.getValueForTimestamp(i), 0));
+        }
+        kvs.putWithTimestamps(TransactionConstants.TRANSACTION_TABLE, commits);
+
         Optional<SweepResults> results = completeSweep(TABLE_NAME, 100_000, 1);
         Assert.assertEquals(1_000 - 1, results.get().getStaleValuesDeleted());
+    }
+
+    @Test
+    public void shouldReturnValuesForMultipleColumnsWhenSweeping() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+
+        for (int ts = 10; ts <= 150; ts += 10) {
+            put("row", "col1", "value", ts);
+            put("row", "col2", "value", ts + 5);
+        }
+
+        SweepResults results = completeSweep(350).get();
+        Assert.assertEquals(28, results.getStaleValuesDeleted());
     }
 
     @SuppressWarnings("unchecked")
@@ -350,7 +379,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
             totalStaleValuesDeleted += results.getStaleValuesDeleted();
             totalCellsExamined += results.getCellTsPairsExamined();
             if (!results.getNextStartRow().isPresent()) {
-                return Optional.of(ImmutableSweepResults.builder()
+                return Optional.of(SweepResults.builder()
                         .staleValuesDeleted(totalStaleValuesDeleted)
                         .cellTsPairsExamined(totalCellsExamined)
                         .timeInMillis(1)
