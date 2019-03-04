@@ -25,8 +25,11 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.LockToken;
 
 public class AsyncLockService implements Closeable {
@@ -39,33 +42,41 @@ public class AsyncLockService implements Closeable {
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
+    private final LeaderClock leaderClock;
 
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor) {
+
+        LeaderClock clock = LeaderClock.create();
+
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor),
-                new HeldLocksCollection(),
+                new LockAcquirer(lockLog, timeoutExecutor, clock),
+                HeldLocksCollection.create(clock),
                 new AwaitedLocksCollection(),
-                reaperExecutor);
+                reaperExecutor,
+                clock);
     }
 
-    public AsyncLockService(
+    @VisibleForTesting
+    AsyncLockService(
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
-            ScheduledExecutorService reaperExecutor) {
+            ScheduledExecutorService reaperExecutor,
+            LeaderClock leaderClock) {
         this.locks = locks;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
+        this.leaderClock = leaderClock;
 
         scheduleExpiredLockReaper();
     }
@@ -77,16 +88,16 @@ public class AsyncLockService implements Closeable {
             } catch (Throwable t) {
                 log.warn("Error while removing expired lock requests. Trying again on next iteration.", t);
             }
-        }, 0, LeaseExpirationTimer.LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
+        }, 0, LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2, TimeUnit.MILLISECONDS);
     }
 
-    public AsyncResult<LockToken> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
+    public AsyncResult<Leased<LockToken>> lock(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireLocks(requestId, lockDescriptors, timeout));
     }
 
-    public AsyncResult<LockToken> lockImmutableTimestamp(UUID requestId, long timestamp) {
+    public AsyncResult<Leased<LockToken>> lockImmutableTimestamp(UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId,
                 () -> acquireImmutableTimestampLock(requestId, timestamp));
@@ -128,11 +139,20 @@ public class AsyncLockService implements Closeable {
     }
 
     public boolean refresh(LockToken token) {
-        return refresh(ImmutableSet.of(token)).contains(token);
+        return refresh(ImmutableSet.of(token)).refreshedTokens().contains(token);
     }
 
-    public Set<LockToken> refresh(Set<LockToken> tokens) {
-        return heldLocks.refresh(tokens);
+    public RefreshLockResponseV2 refresh(Set<LockToken> tokens) {
+
+        Leased<Set<LockToken>> refreshedTokens = heldLocks.refresh(tokens);
+
+        return RefreshLockResponseV2.of(
+                refreshedTokens.value(),
+                refreshedTokens.lease());
+    }
+
+    public LeaderTime leaderTime() {
+        return leaderClock.time();
     }
 
     /**

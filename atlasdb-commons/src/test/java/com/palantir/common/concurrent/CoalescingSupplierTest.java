@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
+package com.palantir.common.concurrent;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.concurrent.CoalescingSupplier;
 
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;

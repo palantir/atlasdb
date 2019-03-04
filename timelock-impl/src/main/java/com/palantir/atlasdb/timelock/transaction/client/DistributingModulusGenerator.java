@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.transaction.client;
 
 import java.util.Comparator;
 import java.util.SortedSet;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -30,7 +31,9 @@ import com.google.common.collect.Sets;
  * Distributes residues of a given modulus in a balanced fashion (though we don't automatically rebalance between
  * residues).
  *
- * Unmarking residues may not be performant if the number of residues used is large.
+ * The implementation of this class takes time linear in the number of residues for getAndMarkResidue and unmarkResidue.
+ * A logarithmic implementation with balanced trees is possible, but we haven't implemented it as in our usage the
+ * number of residues is very small.
  */
 public class DistributingModulusGenerator {
     private final SortedSet<ReferenceCountedResidue> referenceCounts;
@@ -43,10 +46,10 @@ public class DistributingModulusGenerator {
     }
 
     public synchronized int getAndMarkResidue() {
-        ReferenceCountedResidue leastReferenced = referenceCounts.first();
-        referenceCounts.remove(leastReferenced);
-        referenceCounts.add(leastReferenced.mark());
-        return leastReferenced.residue();
+        ReferenceCountedResidue chosenResidue = getRandomLeastReferencedReferenceCountingResidue();
+        referenceCounts.remove(chosenResidue);
+        referenceCounts.add(chosenResidue.mark());
+        return chosenResidue.residue();
     }
 
     public synchronized void unmarkResidue(int residue) {
@@ -64,6 +67,24 @@ public class DistributingModulusGenerator {
             }
         }
         throw new IllegalStateException("Residue " + residue + " was not found when unmarking!");
+    }
+
+    private ReferenceCountedResidue getRandomLeastReferencedReferenceCountingResidue() {
+        SortedSet<ReferenceCountedResidue> leastReferencedResidues = getAllLeastReferencedResidues();
+        int elementIndex = ThreadLocalRandom.current().nextInt(leastReferencedResidues.size());
+        return leastReferencedResidues.stream()
+                .skip(elementIndex)
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalStateException("Attempted to select a random element from an empty collection!"));
+    }
+
+    private SortedSet<ReferenceCountedResidue> getAllLeastReferencedResidues() {
+        return referenceCounts.headSet(upperBoundOnEquallyReferencedResidues(referenceCounts.first()));
+    }
+
+    private static ReferenceCountedResidue upperBoundOnEquallyReferencedResidues(ReferenceCountedResidue residue) {
+        return ImmutableReferenceCountedResidue.of(residue.references() + 1, Integer.MIN_VALUE);
     }
 
     @Value.Immutable

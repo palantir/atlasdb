@@ -110,7 +110,6 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
                 TimeUnit.SECONDS);
     }
 
-    @VisibleForTesting
     @Override
     public KeyValueService delegate() {
         return delegate;

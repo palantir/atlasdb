@@ -23,20 +23,23 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.ete.coordination.CoordinationEteTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         TodoEteTest.class,
         TimestampManagementEteTest.class,
-        CoordinationEteTest.class
+        CoordinationEteTest.class,
+        LockWithTimelockEteTest.class
         })
 public class PostgresDbPersistenceTimeLockTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");
 
     @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
+    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
             PostgresDbPersistenceTimeLockTestSuite.class,
             "docker-compose.timelock.database.bound.postgres.yml",
-            CLIENTS);
+            CLIENTS,
+            ImmutableMap.of());
 }

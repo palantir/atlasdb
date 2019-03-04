@@ -29,7 +29,6 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -100,7 +99,6 @@ public class ShouldNotDeleteAndRollbackTransaction extends SnapshotTransaction {
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
                 IGNORING_EXECUTOR,
-                CommitProfileProcessor.createNonLogging(metricsManager),
                 true,
                 transactionConfig);
     }

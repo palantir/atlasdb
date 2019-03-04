@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
+package com.palantir.common.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -28,13 +28,13 @@ import com.google.common.base.Throwables;
  * concurrent requests will result in a single computation. Computations are guaranteed to execute after being
  * requested; requests will not receive results for computations that started prior to the request.
  */
-class CoalescingSupplier<T> implements Supplier<T> {
+public class CoalescingSupplier<T> implements Supplier<T> {
 
     private final Supplier<T> delegate;
     private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
     private final Lock fairLock = new ReentrantLock(true);
 
-    CoalescingSupplier(Supplier<T> delegate) {
+    public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
     }
 

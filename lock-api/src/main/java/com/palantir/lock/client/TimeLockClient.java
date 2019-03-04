@@ -26,13 +26,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -89,24 +86,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request) {
-        LockImmutableTimestampResponse response = executeOnTimeLock(() -> delegate.lockImmutableTimestamp(request));
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        LockImmutableTimestampResponse response = executeOnTimeLock(delegate::lockImmutableTimestamp);
         lockRefresher.registerLock(response.getLock());
         return response;
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        StartAtlasDbTransactionResponse response = executeOnTimeLock(() -> delegate.startAtlasDbTransaction(request));
-        lockRefresher.registerLock(response.immutableTimestamp().getLock());
-        return response;
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request) {
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartIdentifiedAtlasDbTransactionResponse response = executeOnTimeLock(
-                () -> delegate.startIdentifiedAtlasDbTransaction(request));
+                delegate::startIdentifiedAtlasDbTransaction);
         lockRefresher.registerLock(response.immutableTimestamp().getLock());
         return response;
     }

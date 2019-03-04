@@ -34,7 +34,7 @@ public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 

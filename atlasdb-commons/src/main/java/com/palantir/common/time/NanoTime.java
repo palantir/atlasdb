@@ -21,14 +21,13 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 @Value.Immutable
 @Value.Style(visibility = Value.Style.ImplementationVisibility.PACKAGE)
-@JsonSerialize(as = ImmutableNanoTime.class)
-@JsonDeserialize(as = ImmutableNanoTime.class)
 public abstract class NanoTime implements Comparable<NanoTime> {
+    @JsonValue
     abstract long time();
 
     public static NanoTime now() {
@@ -39,7 +38,8 @@ public abstract class NanoTime implements Comparable<NanoTime> {
         return create(nanos);
     }
 
-    private static NanoTime create(long nanos) {
+    @JsonCreator
+    static NanoTime create(long nanos) {
         return ImmutableNanoTime.builder()
                 .time(nanos)
                 .build();

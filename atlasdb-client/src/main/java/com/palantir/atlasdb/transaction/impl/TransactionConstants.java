@@ -22,8 +22,6 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
-import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
-import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 
@@ -63,11 +61,18 @@ public class TransactionConstants {
             .singleNamedColumn(COMMIT_TS_COLUMN_STRING, "commit_ts", ValueType.VAR_LONG)
             .build();
 
-
+    /**
+     * Metadata for the _transactions2 table.
+     *
+     * In internal benchmarking, an explicit compression block size of 64, along with very low bloom filter
+     * false-positive chances and a low index interval were found to be very beneficial for reads.
+     */
     public static final TableMetadata TRANSACTIONS2_TABLE_METADATA = TableMetadata.internal()
             .singleSafeRowComponent("start_ts_row", ValueType.BLOB)
-            .singleDynamicColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
+            .singleDynamicSafeColumn("start_ts_col", ValueType.BLOB, ValueType.BLOB)
             .nameLogSafety(TableMetadataPersistence.LogSafety.SAFE)
             .sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING)
+            .explicitCompressionBlockSizeKB(64)
+            .denselyAccessedWideRows(true)
             .build();
 }

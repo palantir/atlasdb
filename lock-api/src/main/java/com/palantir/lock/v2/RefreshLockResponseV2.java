@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl.logging;
+
+package com.palantir.lock.v2;
+
+import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
-public interface LogTemplate {
+@JsonSerialize(as = ImmutableRefreshLockResponseV2.class)
+@JsonDeserialize(as = ImmutableRefreshLockResponseV2.class)
+public interface RefreshLockResponseV2 {
     @Value.Parameter
-    String format();
+    Set<LockToken> refreshedTokens();
 
     @Value.Parameter
-    Object[] arguments();
+    Lease getLease();
 
-    default LogTemplate create(String format, Object[] arguments) {
-        return ImmutableLogTemplate.of(format, arguments);
+    static RefreshLockResponseV2 of(Set<LockToken> tokens, Lease lease) {
+        return ImmutableRefreshLockResponseV2.of(tokens, lease);
     }
 }

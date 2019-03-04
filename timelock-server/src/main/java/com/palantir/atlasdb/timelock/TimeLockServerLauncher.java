@@ -21,13 +21,14 @@ import java.util.function.Consumer;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.config.TimeLockConfigMigrator;
 import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -57,8 +58,10 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
 
     @Override
     public void run(TimeLockServerConfiguration configuration, Environment environment) {
-        environment.getObjectMapper().registerModule(new Jdk8Module());
-        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.getObjectMapper()
+                .registerModule(new Jdk8Module())
+                .registerModule(new JavaTimeModule());
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         CombinedTimeLockServerConfiguration combined = TimeLockConfigMigrator.convert(configuration, environment);

@@ -16,12 +16,15 @@
 package com.palantir.atlasdb.timelock;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.awaitility.Awaitility;
@@ -35,7 +38,7 @@ import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
-import com.palantir.lock.v2.DefaultTimelockService;
+import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -54,36 +57,41 @@ public class TestableTimelockCluster {
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    private final String defaultClient;
+    private final String client = UUID.randomUUID().toString();
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
     private final TestProxies proxies;
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    public TestableTimelockCluster(String baseUri, String defaultClient, String... configFileTemplates) {
-        this.defaultClient = defaultClient;
+    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
         this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
         this.servers = configs.stream()
                 .map(this::getServerHolder)
-                .map(holder -> new TestableTimelockServer(baseUri, defaultClient, holder))
+                .map(holder -> new TestableTimelockServer(baseUri, client, holder))
                 .collect(Collectors.toList());
         this.proxies = new TestProxies(baseUri, servers);
     }
 
     public void waitUntilLeaderIsElected() {
-        waitUntilReadyToServeClients(ImmutableList.of(defaultClient));
+        waitUntilLeaderIsElected(ImmutableList.of());
     }
 
-    public void waitUntilReadyToServeClients(List<String> clients) {
+    public void waitUntilLeaderIsElected(List<String> additionalClients) {
+        List<String> clients = new ArrayList<>(additionalClients);
+        clients.add(client);
+        waitUntilReadyToServeClients(clients);
+    }
+
+    private void waitUntilReadyToServeClients(List<String> clients) {
         Awaitility.await()
                 .atMost(60, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
                 .until(() -> {
                     try {
-                        clients.forEach(client -> timelockServiceForClient(client).getFreshTimestamp());
+                        clients.forEach(name -> timelockServiceForClient(name).getFreshTimestamp());
                         return true;
                     } catch (Throwable t) {
                         return false;
@@ -91,9 +99,9 @@ public class TestableTimelockCluster {
                 });
     }
 
-    public void waitUntilAllServersOnlineAndReadyToServeClients(List<String> clients) {
+    public void waitUntilAllServersOnlineAndReadyToServeClients(List<String> additionalClients) {
         servers.forEach(TestableTimelockServer::start);
-        waitUntilReadyToServeClients(clients);
+        waitUntilReadyToServeClients(additionalClients);
     }
 
     public TestableTimelockServer currentLeader() {
@@ -156,7 +164,7 @@ public class TestableTimelockCluster {
         return timestampService().getFreshTimestamps(number);
     }
 
-    public LockRefreshToken remoteLock(String client, com.palantir.lock.LockRequest lockRequest)
+    public LockRefreshToken remoteLock(com.palantir.lock.LockRequest lockRequest)
             throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
@@ -195,23 +203,35 @@ public class TestableTimelockCluster {
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelockService().startIdentifiedAtlasDbTransaction(request);
+        return timelockRpcClient(client).startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
     public TimestampService timestampService() {
-        return proxies.failoverForClient(defaultClient, TimestampService.class);
+        return proxies.failoverForClient(client, TimestampService.class);
     }
 
     public LockService lockService() {
-        return proxies.failoverForClient(defaultClient, LockService.class);
+        return proxies.failoverForClient(client, LockService.class);
     }
 
     public TimelockService timelockService() {
-        return timelockServiceForClient(defaultClient);
+        return timelockServiceForClient(client);
     }
 
-    public TimelockService timelockServiceForClient(String client) {
-        return DefaultTimelockService.create(proxies.failoverForClient(client, TimelockRpcClient.class));
+    public TimelockService timelockServiceForClient(String name) {
+        return RemoteTimelockServiceAdapter.create(proxies.failoverForClient(name, TimelockRpcClient.class));
+    }
+
+    public <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
+        return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
+    }
+
+    public TimelockRpcClient timelockRpcClient() {
+        return timelockRpcClient(client);
+    }
+
+    private TimelockRpcClient timelockRpcClient(String name) {
+        return proxies.failoverForClient(name, TimelockRpcClient.class);
     }
 
     public RuleChain getRuleChain() {
