@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.cassandra.thrift.CfDef;
 import org.slf4j.Logger;
@@ -47,57 +48,24 @@ final class ColumnFamilyDefinitions {
      *
      *  Warning to developers: you must update CKVS.isMatchingCf if you update this method
      */
-    @SuppressWarnings("CyclomaticComplexity")
     static CfDef getCfDef(String keyspace, TableReference tableRef, int gcGraceSeconds, byte[] rawMetadata) {
-        Map<String, String> compressionOptions = Maps.newHashMap();
         CfDef cf = getStandardCfDef(keyspace, AbstractKeyValueService.internalTableName(tableRef));
 
-        boolean negativeLookups = false;
-        double falsePositiveChance = CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        int explicitCompressionBlockSizeKb = 0;
-        boolean appendHeavyAndReadLight = false;
-        TableMetadataPersistence.CachePriority cachePriority = TableMetadataPersistence.CachePriority.WARM;
+        Optional<TableMetadata> tableMetadata = CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)
+                ? Optional.empty()
+                : Optional.of(TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata));
 
-        if (!CassandraKeyValueServices.isEmptyOrInvalidMetadata(rawMetadata)) {
-            TableMetadata tableMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(rawMetadata);
-            negativeLookups = tableMetadata.hasNegativeLookups();
-            explicitCompressionBlockSizeKb = tableMetadata.getExplicitCompressionBlockSizeKB();
-            appendHeavyAndReadLight = tableMetadata.isAppendHeavyAndReadLight();
-            cachePriority = tableMetadata.getCachePriority();
-        }
+        Map<String, String> compressionOptions = getCompressionOptions(tableMetadata);
+        cf.setCompression_options(compressionOptions);
 
-        if (explicitCompressionBlockSizeKb != 0) {
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(explicitCompressionBlockSizeKb));
-        } else {
-            // We don't really need compression here nor anticipate it will garner us any gains
-            // (which is why we're doing such a small chunk size), but this is how we can get "free" CRC checking.
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY,
-                    CassandraConstants.DEFAULT_COMPRESSION_TYPE);
-            compressionOptions.put(
-                    CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
-                    Integer.toString(AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB));
-        }
-
-        if (negativeLookups) {
-            falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE;
-        }
-
+        boolean appendHeavyAndReadLight = tableMetadata.map(TableMetadata::isAppendHeavyAndReadLight).orElse(false);
         if (appendHeavyAndReadLight) {
             cf.setCompaction_strategy(CassandraConstants.SIZE_TIERED_COMPACTION_STRATEGY);
             cf.setCompaction_strategy_optionsIsSet(false);
-            if (!negativeLookups) {
-                falsePositiveChance = CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-            } else {
-                falsePositiveChance = CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE;
-            }
         }
 
+        TableMetadataPersistence.CachePriority cachePriority = tableMetadata.map(TableMetadata::getCachePriority)
+                .orElse(TableMetadataPersistence.CachePriority.WARM);
         switch (cachePriority) {
             case COLDEST:
                 break;
@@ -115,9 +83,32 @@ final class ColumnFamilyDefinitions {
         }
 
         cf.setGc_grace_seconds(gcGraceSeconds);
-        cf.setBloom_filter_fp_chance(falsePositiveChance);
-        cf.setCompression_options(compressionOptions);
+
+        double bloomFilterFpChance = tableMetadata.map(CassandraTableOptions::bloomFilterFpChance)
+                .orElse(CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE);
+        cf.setBloom_filter_fp_chance(bloomFilterFpChance);
+
+        int minIndexInterval = tableMetadata.map(CassandraTableOptions::minIndexInterval)
+                .orElse(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
+        cf.setMin_index_interval(minIndexInterval);
+
+        int maxIndexInterval = tableMetadata.map(CassandraTableOptions::maxIndexInterval)
+                .orElse(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL);
+        cf.setMax_index_interval(maxIndexInterval);
         return cf;
+    }
+
+    private static Map<String, String> getCompressionOptions(Optional<TableMetadata> tableMetadata) {
+        int explicitCompressionBlockSizeKb = tableMetadata.map(TableMetadata::getExplicitCompressionBlockSizeKB)
+                .orElse(0);
+        int actualCompressionBlockSizeKb = explicitCompressionBlockSizeKb == 0
+                ? AtlasDbConstants.MINIMUM_COMPRESSION_BLOCK_SIZE_KB
+                : explicitCompressionBlockSizeKb;
+        return ImmutableMap.<String, String>builder()
+                .put(CassandraConstants.CFDEF_COMPRESSION_TYPE_KEY, CassandraConstants.DEFAULT_COMPRESSION_TYPE)
+                .put(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY,
+                        Integer.toString(actualCompressionBlockSizeKb))
+                .build();
     }
 
     /**
@@ -138,8 +129,8 @@ final class ColumnFamilyDefinitions {
         cf.setDclocal_read_repair_chance(0.1);
         cf.setTriggers(ImmutableList.of());
         cf.setCells_per_row_to_cache("0");
-        cf.setMin_index_interval(128);
-        cf.setMax_index_interval(2048);
+        cf.setMin_index_interval(CassandraConstants.DEFAULT_MIN_INDEX_INTERVAL);
+        cf.setMax_index_interval(CassandraConstants.DEFAULT_MAX_INDEX_INTERVAL);
         cf.setComment("");
         cf.setColumn_metadata(ImmutableList.of());
         cf.setMin_compaction_threshold(4);
@@ -211,6 +202,20 @@ final class ColumnFamilyDefinitions {
                     tableName,
                     clientSide.isSetPopulate_io_cache_on_flush(),
                     clusterSide.isSetPopulate_io_cache_on_flush());
+            return false;
+        }
+        if (clientSide.min_index_interval != clusterSide.min_index_interval) {
+            logMismatch("min index interval",
+                    tableName,
+                    clientSide.min_index_interval,
+                    clusterSide.min_index_interval);
+            return false;
+        }
+        if (clientSide.max_index_interval != clusterSide.max_index_interval) {
+            logMismatch("max index interval",
+                    tableName,
+                    clientSide.max_index_interval,
+                    clusterSide.max_index_interval);
             return false;
         }
 

@@ -52,7 +52,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
  *   - How we validate query inputs for sanity / correctness
  *   - Not having a ton of boilerplate in each KVS
  */
-public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService implements KeyValueService {
+public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueService {
     private static final Logger log = LoggerFactory.getLogger(ValidatingQueryRewritingKeyValueService.class);
     private static final String TRANSACTION_ERROR = "shouldn't be putting into the transaction table at this level of KVS abstraction";
 
@@ -67,7 +67,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
-    protected KeyValueService delegate() {
+    public KeyValueService delegate() {
         return delegate;
     }
 
@@ -89,7 +89,7 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
             return;
         }
         tableRefToTableMetadata.keySet().forEach(this::sanityCheckTableName);
-        tableRefToTableMetadata.forEach((key, value) -> sanityCheckTableMetadata(key, value));
+        tableRefToTableMetadata.forEach(ValidatingQueryRewritingKeyValueService::sanityCheckTableMetadata);
         delegate.createTables(tableRefToTableMetadata);
     }
 

@@ -21,10 +21,14 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Test;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 public class DistributingModulusGeneratorTest {
     private DistributingModulusGenerator generator;
@@ -127,6 +131,19 @@ public class DistributingModulusGeneratorTest {
         assertThat(additionalResponses).containsExactly(2, 2, 2);
 
         requestResiduesAndAssertEachUsedOnce(3);
+    }
+
+    @Test
+    public void selectionOnFreshGeneratorsDoesNotHotSpot() {
+        Map<Integer, Integer> frequencyMap = Maps.newHashMap();
+        for (int trial = 0; trial < 20; trial++) {
+            setupGeneratorWithModulus(16);
+            int residue = Iterables.getOnlyElement(requestResidues(1));
+            frequencyMap.compute(residue, (unusedKey, oldValue) -> oldValue == null ? 1 : oldValue + 1);
+        }
+
+        // Assuming uniform randomness, strobes once in 2^80 times, which we can live with
+        assertThat(frequencyMap.size()).isGreaterThanOrEqualTo(2);
     }
 
     private void setupGeneratorWithModulus(int modulus) {
