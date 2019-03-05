@@ -16,7 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -26,17 +29,28 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class TableRemappingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");
+    private static final String TABLENAME = "test";
+    private static final TableReference DATA_TABLE_REF = TableReference.create(NAMESPACE, TABLENAME);
+
+    private static final int NUM_THREADS = 100;
+    private static final int NUM_ITERATIONS = 1_000;
 
     private final AtomicLong timestamp = new AtomicLong();
     private final KeyValueService rawKvs = new InMemoryKeyValueService(true);
@@ -45,37 +59,51 @@ public class TableRemappingKeyValueServiceTest {
 
     @Test
     public void canConcurrentlyDropAndCreateDisjointSetsOfTables() {
-        tableMapper.readTableMap();
-        ExecutorService executor = Executors.newFixedThreadPool(1_000);
-        for (int i = 0; i < 10_000; i++) {
+        ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
             String firstWorld = generateRandomTablesPrefixed();
             String secondWorld = generateRandomTablesPrefixed();
             final Set<Future<Void>> futures = new HashSet<>();
+            futures.add(executor.submit(() -> dropTablesWithPrefix(firstWorld)));
+            futures.add(executor.submit(() -> dropTablesWithPrefix(secondWorld)));
+            futures.forEach(Futures::getUnchecked);
+        }
+    }
+
+    @Test
+    public void canConcurrentlyReadFromStableTablesWhileCreatingAndDroppingOtherTables() {
+        ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
+        kvs.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Cell testCell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        byte[] value = PtBytes.toBytes("value");
+        long timestamp = 1L;
+        kvs.put(DATA_TABLE_REF, ImmutableMap.of(testCell, value), timestamp);
+        for (int i = 0; i < NUM_ITERATIONS; i++) {
+            String prefix = generateRandomTablesPrefixed();
+            final Set<Future<Void>> futures = new HashSet<>();
+            futures.add(executor.submit(() -> dropTablesWithPrefix(prefix)));
             futures.add(executor.submit(() -> {
-                String worldPrefix = NAMESPACE.getName() + "." + firstWorld + "__";
-                Set<TableReference> tablesToDrop = Sets.newHashSet();
-                for (TableReference tableRef : kvs.getAllTableNames()) {
-                    if (tableRef.getQualifiedName().startsWith(worldPrefix)) {
-                        tablesToDrop.add(tableRef);
-                    }
-                }
-                kvs.dropTables(tablesToDrop);
-                return null;
-            }));
-            futures.add(executor.submit(() -> {
-                String worldPrefix = NAMESPACE.getName() + "." + secondWorld + "__";
-                Set<TableReference> tablesToDrop = Sets.newHashSet();
-                for (TableReference tableRef : kvs.getAllTableNames()) {
-                    if (tableRef.getQualifiedName().startsWith(worldPrefix)) {
-                        tablesToDrop.add(tableRef);
-                    }
-                }
-                kvs.dropTables(tablesToDrop);
+                Map<Cell, Value> read = kvs.get(DATA_TABLE_REF, ImmutableMap.of(testCell, 2L));
+                assertThat(read).containsExactly(Maps.immutableEntry(testCell,
+                        Value.create(value, timestamp)));
                 return null;
             }));
             futures.forEach(Futures::getUnchecked);
         }
     }
+
+    private Void dropTablesWithPrefix(String prefix) {
+        String namespacedPrefix = NAMESPACE.getName() + "." + prefix + "__";
+        Set<TableReference> tablesToDrop = Sets.newHashSet();
+        for (TableReference tableRef : kvs.getAllTableNames()) {
+            if (tableRef.getQualifiedName().startsWith(namespacedPrefix)) {
+                tablesToDrop.add(tableRef);
+            }
+        }
+        kvs.dropTables(tablesToDrop);
+        return null;
+    }
+
     private String generateRandomTablesPrefixed() {
         String worldName = UUID.randomUUID().toString().replace("-", "_");
         String tableName = UUID.randomUUID().toString().replace("-", "_");

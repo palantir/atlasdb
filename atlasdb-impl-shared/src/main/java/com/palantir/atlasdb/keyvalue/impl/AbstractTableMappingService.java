@@ -72,17 +72,15 @@ public abstract class AbstractTableMappingService implements TableMappingService
 
     private TableReference getFullTableName(TableReference shortTableName) throws TableMappingNotFoundException {
         BiMap<TableReference, TableReference> mapToConsider = tableMap.get();
-        while (true) {
-            if (mapToConsider.containsValue(shortTableName)) {
-                return mapToConsider.inverse().get(shortTableName);
-            } else {
-                updateTableMap();
-                mapToConsider = tableMap.get();
-                if (!mapToConsider.containsValue(shortTableName)) {
-                    throw new TableMappingNotFoundException("Unable to resolve full name for table " + shortTableName);
-                }
-                return mapToConsider.inverse().get(shortTableName);
+        if (mapToConsider.containsValue(shortTableName)) {
+            return mapToConsider.inverse().get(shortTableName);
+        } else {
+            updateTableMap();
+            mapToConsider = tableMap.get();
+            if (!mapToConsider.containsValue(shortTableName)) {
+                throw new TableMappingNotFoundException("Unable to resolve full name for table " + shortTableName);
             }
+            return mapToConsider.inverse().get(shortTableName);
         }
     }
 
