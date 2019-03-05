@@ -70,14 +70,19 @@ public abstract class AbstractTableMappingService implements TableMappingService
                 "Table mapper has an invalid table name for table reference %s: %s", tableRef, shortName);
     }
 
-    private TableReference getFullTableName(TableReference shortTableName) {
-        if (tableMap.get().containsValue(shortTableName)) {
-            return tableMap.get().inverse().get(shortTableName);
-        } else {
-            updateTableMap();
-            Validate.isTrue(tableMap.get().containsValue(shortTableName),
-                    "Unable to resolve full name for table %s", shortTableName);
-            return tableMap.get().inverse().get(shortTableName);
+    private TableReference getFullTableName(TableReference shortTableName) throws TableMappingNotFoundException {
+        BiMap<TableReference, TableReference> mapToConsider = tableMap.get();
+        while (true) {
+            if (mapToConsider.containsValue(shortTableName)) {
+                return mapToConsider.inverse().get(shortTableName);
+            } else {
+                updateTableMap();
+                mapToConsider = tableMap.get();
+                if (!mapToConsider.containsValue(shortTableName)) {
+                    throw new TableMappingNotFoundException("Unable to resolve full name for table " + shortTableName);
+                }
+                return mapToConsider.inverse().get(shortTableName);
+            }
         }
     }
 
@@ -102,7 +107,11 @@ public abstract class AbstractTableMappingService implements TableMappingService
             if (inputName.isFullyQualifiedName()) {
                 shortNameToFullTableName.put(inputName, inputName);
             } else if (tableMap.get().containsValue(inputName)) {
-                shortNameToFullTableName.put(inputName, getFullTableName(inputName));
+                try {
+                    shortNameToFullTableName.put(inputName, getFullTableName(inputName));
+                } catch (TableMappingNotFoundException e) {
+                    // Possible if the table was concurrently dropped. Continue.
+                }
             } else if (unmappedTables.containsKey(inputName)) {
                 shortNameToFullTableName.put(inputName, inputName);
             } else {
@@ -116,7 +125,11 @@ public abstract class AbstractTableMappingService implements TableMappingService
                 shortNameToFullTableName.put(tableRef, tableRef);
             }
             for (TableReference tableRef : Sets.intersection(tablesToReload, tableMap.get().values())) {
-                shortNameToFullTableName.put(tableRef, getFullTableName(tableRef));
+                try {
+                    shortNameToFullTableName.put(tableRef, getFullTableName(tableRef));
+                } catch (TableMappingNotFoundException e) {
+                    // Possible if the table was concurrently dropped. Continue.
+                }
             }
         }
         return shortNameToFullTableName;

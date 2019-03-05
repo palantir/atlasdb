@@ -132,10 +132,14 @@ public class KvTableMappingService extends AbstractTableMappingService {
         }
 
         // Need to invalidate the table refs in case we end up re-creating the same table again.
-        tableMap.updateAndGet(bimap -> {
-            tableRefs.forEach(bimap::remove);
-            return bimap;
-        });
+        while (true) {
+            BiMap<TableReference, TableReference> existingMap = tableMap.get();
+            BiMap<TableReference, TableReference> newMap = HashBiMap.create(existingMap);
+            tableRefs.forEach(newMap::remove);
+            if (tableMap.compareAndSet(existingMap, newMap)) {
+                return;
+            }
+        }
     }
 
     @Override
