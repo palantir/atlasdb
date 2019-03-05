@@ -24,11 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.palantir.atlasdb.timelock.benchmarks.RandomBytes;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BenchmarksTableFactory;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable.BlobsRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.random.RandomBytes;
 
 public final class TransactionReadRowsBenchmark extends AbstractBenchmark {
 

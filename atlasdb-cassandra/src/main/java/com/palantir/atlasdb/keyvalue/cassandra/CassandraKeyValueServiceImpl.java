@@ -1220,6 +1220,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config);
     }
 
+    /**
+     * Returns a sorted list of row keys in the specified range; see
+     * {@link CassandraKeyValueService#getRowKeysInRange(TableReference, byte[], byte[], int)}.
+     *
+     * Implementation specific: this method specifically does not read any of the columns and can therefore be used
+     * in the presence of wide rows. However, as a side-effect, it may return row where the row only contains Cassandra
+     * tombstones.
+     */
+    @Override
+    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef);
+        return rowGetter.getRowKeysInRange(startRow, endRow, maxResults);
+    }
+
     private CqlExecutor newInstrumentedCqlExecutor() {
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 CqlExecutor.class,
