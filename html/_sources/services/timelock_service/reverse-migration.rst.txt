@@ -115,11 +115,23 @@ This will vary depending on your choice of key-value service:
       0x7473 |  0x7473 |      -1 | 0x00000000075bcd15
 
 - If you are using DBKVS and have followed the steps outlined in :ref:`Manual TimeLock Migration<manual-timelock-migration>`,
-  it suffices to rename the column back:
+  you will first want to rename the column back to its original name.
 
   .. code:: sql
 
-     ALTER TABLE atlasdb_timestamp RENAME LEGACY_last_allocated TO last_allocated;
+     ALTER TABLE timestamp RENAME LEGACY_last_allocated TO last_allocated;
+
+  After that, you will want to set the value stored in that table in the database to be ``TS``.
+
+  .. code:: sql
+
+     a_db=# UPDATE _timestamp SET last_allocated = 314159265;
+     UPDATE 1
+     a_db=# SELECT * FROM _timestamp;
+      last_allocated
+     ----------------
+           314159265
+     (1 row)
 
 Step 6: Start your AtlasDB Clients
 ----------------------------------

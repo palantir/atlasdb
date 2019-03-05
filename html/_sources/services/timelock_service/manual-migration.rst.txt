@@ -93,7 +93,7 @@ The steps for invalidating the old AtlasDB timestamp will vary, depending on you
 
      .. code:: sql
 
-        ALTER TABLE atlasdb_timestamp RENAME last_allocated TO LEGACY_last_allocated;
+        ALTER TABLE timestamp RENAME last_allocated TO LEGACY_last_allocated;
 
 - If using Cassandra, one method of invalidating the table is to overwrite the timestamp bound record with an invalid
   byte array. We recommend using a bogus one-byte array for this; the zero byte array is a deletion sentinel, and
