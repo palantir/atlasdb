@@ -84,6 +84,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
@@ -148,6 +149,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         public CassandraKeyValueServiceImpl delegate() {
             checkInitialized();
             return CassandraKeyValueServiceImpl.this;
+        }
+
+        @Override
+        public Collection<? extends KeyValueService> getDelegates() {
+            return ImmutableList.of(delegate());
         }
 
         @Override
