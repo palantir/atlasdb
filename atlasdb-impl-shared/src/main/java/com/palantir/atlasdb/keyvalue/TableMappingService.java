@@ -28,4 +28,8 @@ public interface TableMappingService {
     <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
             throws TableMappingNotFoundException;
     Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
+
+    default void removeTables(Set<TableReference> tableRefs) {
+        tableRefs.forEach(this::removeTable);
+    }
 }

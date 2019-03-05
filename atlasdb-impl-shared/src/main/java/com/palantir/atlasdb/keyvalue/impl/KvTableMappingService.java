@@ -15,13 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Set;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -110,14 +115,27 @@ public class KvTableMappingService extends AbstractTableMappingService {
 
     @Override
     public void removeTable(TableReference tableRef) {
-        Cell key = Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
+        removeTables(ImmutableSet.of(tableRef));
+    }
+
+    @Override
+    public void removeTables(Set<TableReference> tableRefs) {
         if (kv.getAllTableNames().contains(AtlasDbConstants.NAMESPACE_TABLE)) {
-            kv.delete(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMultimap.of(key, 0L));
+            Multimap<Cell, Long> deletionMap = tableRefs.stream()
+                    .map(tableRef -> Cell.create(getBytesForTableRef(tableRef),
+                            AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES))
+                    .collect(Multimaps.toMultimap(
+                            key -> key,
+                            unused -> AtlasDbConstants.TRANSACTION_TS,
+                            MultimapBuilder.hashKeys().arrayListValues()::build));
+            kv.delete(AtlasDbConstants.NAMESPACE_TABLE, deletionMap);
         }
-        // Need to invalidate the table ref in case we end up re-creating the same table
-        // again. Frequently when we drop one table we end up dropping a bunch of tables,
-        // so just invalidate everything.
-        tableMap.set(HashBiMap.<TableReference, TableReference>create());
+
+        // Need to invalidate the table refs in case we end up re-creating the same table again.
+        tableMap.updateAndGet(bimap -> {
+            tableRefs.forEach(bimap::remove);
+            return bimap;
+        });
     }
 
     @Override
