@@ -40,7 +40,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
-final class LockLeaseService {
+class LockLeaseService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
