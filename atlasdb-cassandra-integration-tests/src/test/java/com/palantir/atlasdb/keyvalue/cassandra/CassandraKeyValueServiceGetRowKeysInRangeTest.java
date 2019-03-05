@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -60,6 +61,12 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     @After
     public void cleanup() {
         kvs.truncateTable(GET_ROW_KEYS_TABLE);
+    }
+
+    @Test
+    public void getRowKeysInRangeReturnsEmptyOnEmptyTable() {
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, new byte[0], new byte[0], 100);
+        assertListsMatch(result, ImmutableList.of());
     }
 
     @Test
