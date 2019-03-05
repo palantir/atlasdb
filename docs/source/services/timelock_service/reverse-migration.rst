@@ -125,9 +125,9 @@ This will vary depending on your choice of key-value service:
 
   .. code:: sql
 
-     multipass_db=# UPDATE _timestamp SET last_allocated = 314159265;
+     a_db=# UPDATE _timestamp SET last_allocated = 314159265;
      UPDATE 1
-     multipass_db=# SELECT * FROM _timestamp;
+     a_db=# SELECT * FROM _timestamp;
       last_allocated
      ----------------
            314159265
