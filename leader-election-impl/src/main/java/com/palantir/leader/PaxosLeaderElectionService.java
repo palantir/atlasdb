@@ -74,7 +74,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     static final int DEFAULT_NO_QUORUM_MAX_DELAY_MS = 2000;
 
     private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
-    private final ReentrantLock lock;
+    private final ReentrantLock lock = new ReentrantLock();
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
     final PaxosProposer proposer;
@@ -95,34 +95,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
-
-    /**
-     * @deprecated Use PaxosLeaderElectionServiceBuilder instead.
-     */
-    @Deprecated
-    public PaxosLeaderElectionService(PaxosProposer proposer,
-                                      PaxosLearner knowledge,
-                                      Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-                                      List<PaxosAcceptor> acceptors,
-                                      List<PaxosLearner> learners,
-                                      Function<String, ExecutorService> executorServiceFactory,
-                                      long updatePollingWaitInMs,
-                                      long randomWaitBeforeProposingLeadership,
-                                      long leaderPingResponseWaitMs,
-                                      Supplier<Boolean> onlyLogOnQuorumFailure) {
-        this(proposer,
-                knowledge,
-                otherPotentialLeadersToHosts,
-                acceptors,
-                learners,
-                executorServiceFactory,
-                updatePollingWaitInMs,
-                randomWaitBeforeProposingLeadership,
-                DEFAULT_NO_QUORUM_MAX_DELAY_MS,
-                leaderPingResponseWaitMs,
-                PaxosLeaderElectionEventRecorder.NO_OP,
-                onlyLogOnQuorumFailure);
-    }
 
     PaxosLeaderElectionService(PaxosProposer proposer,
             PaxosLearner knowledge,
@@ -148,7 +120,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.noQuorumMaxDelay = noQuorumMaxDelay;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
-        lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
         this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
                 new PaxosLatestRoundVerifierImpl(
@@ -541,17 +512,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      */
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
         final long nextToLearnSeq =
-                greatestLearned.map(value -> value.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+                greatestLearned.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
         List<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
                 learners,
-                new Function<PaxosLearner, PaxosUpdate>() {
-                    @Override
-                    @Nullable
-                    public PaxosUpdate apply(@Nullable PaxosLearner learner) {
-                        return new PaxosUpdate(
-                                ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
-                    }
-                },
+                learn -> new PaxosUpdate(ImmutableList.copyOf(learn.getLearnedValuesSince(nextToLearnSeq))),
                 proposer.getQuorumSize(),
                 knowledgeUpdatingExecutors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
