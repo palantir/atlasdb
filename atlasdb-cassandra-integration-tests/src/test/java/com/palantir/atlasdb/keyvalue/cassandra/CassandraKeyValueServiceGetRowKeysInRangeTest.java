@@ -21,19 +21,17 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -65,41 +63,64 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     }
 
     @Test
-    public void getRowKeysInRangeTest() {
-        List<Cell> cells = createCells(50, 3);
-
-        kvs.multiPut(ImmutableMap.of(GET_ROW_KEYS_TABLE,
-                cells.stream().collect(Collectors.toMap(cell -> cell, Cell::getRowName))), 100L);
-
+    public void getRowKeysInRangeRespectsInclusiveLowerBound() {
+        List<Cell> cells = createAndWriteCells(10, 1);
         List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
 
-        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(20), 10);
-        List<byte[]> expected = sortedRows.subList(20, 30);
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(3), new byte[0], 100);
+        assertListsMatch(result, sortedRows.subList(3, 10));
+    }
 
-        assertThat(result.size(), is(expected.size()));
-        for (int i = 0; i < result.size(); i++) {
-            assertArrayEquals(result.get(i), expected.get(i));
-        }
+    @Test
+    public void getRowKeysInRangeRespectsExclusiveUpperBound() {
+        List<Cell> cells = createAndWriteCells(10, 1);
+        List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
+
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, new byte[0], sortedRows.get(7), 100);
+        assertListsMatch(result, sortedRows.subList(0, 8));
+    }
+
+    @Test
+    public void getRowKeysInRangeRespectsMaxSize() {
+        List<Cell> cells = createAndWriteCells(10, 1);
+        List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
+
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(1), sortedRows.get(7), 3);
+        assertListsMatch(result, sortedRows.subList(1, 4));
+    }
+
+    @Test
+    public void getRowKeysInRangeDoesNotReturnDuplicateKeysInPresenceOfMultipleColumns() {
+        List<Cell> cells = createAndWriteCells(30, 5);
+        List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
+
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, new byte[0], new byte[0], 10);
+        assertListsMatch(result, sortedRows.subList(0, 10));
     }
 
     @Test
     public void getRowKeysInRangeReturnsTombstonedRows() {
-        List<Cell> cells = createCells(10, 1);
-
-        kvs.multiPut(ImmutableMap.of(GET_ROW_KEYS_TABLE,
-                cells.stream().collect(Collectors.toMap(cell -> cell, Cell::getRowName))), 100L);
-
-        kvs.delete(GET_ROW_KEYS_TABLE, ImmutableListMultimap.of(cells.get(0), 100L));
-        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE, ImmutableMap.of(cells.get(1), Long.MAX_VALUE), true);
-
+        List<Cell> cells = createAndWriteCells(10, 2);
         List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
 
-        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, sortedRows.get(0), 10);
+        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE, ImmutableMap.of(cells.get(1), Long.MAX_VALUE), true);
+        List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, new byte[0], new byte[0], 10);
+        assertListsMatch(result, sortedRows);
+    }
 
-        assertThat(result.size(), is(sortedRows.size()));
-        for (int i = 0; i < result.size(); i++) {
-            assertArrayEquals(result.get(i), sortedRows.get(i));
-        }
+    private List<Cell> createAndWriteCells(int numRows, int colsPerRow) {
+        List<Cell> cells = createCells(numRows, colsPerRow);
+
+        cells.stream().forEach(cell -> kvs.put(
+                GET_ROW_KEYS_TABLE,
+                ImmutableMap.of(cell, cell.getColumnName()),
+                getTimestamp()));
+
+        return cells;
+    }
+
+    private static long getTimestamp() {
+        return ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
     }
 
     private static List<Cell> createCells(int numRows, int colsPerRow) {
@@ -123,5 +144,12 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
                 .sorted()
                 .map(ByteString::toByteArray)
                 .collect(Collectors.toList());
+    }
+
+    private static void assertListsMatch(List<byte[]> result, List<byte[]> expected) {
+        assertThat(result.size(), is(expected.size()));
+        for (int i = 0; i < result.size(); i++) {
+            assertArrayEquals(result.get(i), expected.get(i));
+        }
     }
 }
