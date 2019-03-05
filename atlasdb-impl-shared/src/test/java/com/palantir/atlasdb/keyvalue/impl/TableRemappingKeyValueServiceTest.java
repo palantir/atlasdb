@@ -76,8 +76,8 @@ public class TableRemappingKeyValueServiceTest {
         kvs.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell testCell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
         byte[] value = PtBytes.toBytes("value");
-        long timestamp = 1L;
-        kvs.put(DATA_TABLE_REF, ImmutableMap.of(testCell, value), timestamp);
+        long testTimestamp = 1L;
+        kvs.put(DATA_TABLE_REF, ImmutableMap.of(testCell, value), testTimestamp);
         for (int i = 0; i < NUM_ITERATIONS; i++) {
             String prefix = generateRandomTablesPrefixed();
             final Set<Future<Void>> futures = new HashSet<>();
@@ -85,7 +85,7 @@ public class TableRemappingKeyValueServiceTest {
             futures.add(executor.submit(() -> {
                 Map<Cell, Value> read = kvs.get(DATA_TABLE_REF, ImmutableMap.of(testCell, 2L));
                 assertThat(read).containsExactly(Maps.immutableEntry(testCell,
-                        Value.create(value, timestamp)));
+                        Value.create(value, testTimestamp)));
                 return null;
             }));
             futures.forEach(Futures::getUnchecked);
@@ -104,6 +104,7 @@ public class TableRemappingKeyValueServiceTest {
         return null;
     }
 
+    @SuppressWarnings("checkstyle:all") // Table definition doesn't follow usual rules.
     private String generateRandomTablesPrefixed() {
         String worldName = UUID.randomUUID().toString().replace("-", "_");
         String tableName = UUID.randomUUID().toString().replace("-", "_");
