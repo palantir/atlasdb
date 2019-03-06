@@ -37,7 +37,7 @@ public final class TimestampRanges {
      *
      * @param residue desired residue class of the timestamp returned
      * @param modulus modulus used to partition numbers into residue classes
-     * @return a timestamp in the given range in the relevant residue class modulo modulus
+     * @return lowest timestamp in the given range in the relevant residue class modulo modulus
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
@@ -62,7 +62,7 @@ public final class TimestampRanges {
      *
      * @param residue desired residue class of the timestamp returned
      * @param modulus modulus used to partition numbers into residue classes
-     * @return a timestamp in the given range in the relevant residue class modulo modulus
+     * @return highest timestamp in the given range in the relevant residue class modulo modulus
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
@@ -81,7 +81,7 @@ public final class TimestampRanges {
 
     private static void checkModulusAndResidue(int residue, int modulus) {
         Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
-        Preconditions.checkArgument(Math.abs(residue) < modulus,
+        Preconditions.checkArgument(Math.abs((long) residue) < modulus,
                 "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
                 residue,
                 modulus);

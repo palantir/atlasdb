@@ -38,10 +38,6 @@ public interface BatchedStartTransactionResponse {
             LockImmutableTimestampResponse immutableTimestamp,
             TimestampRangeAndPartition startTimestamp,
             Lease lease) {
-        return ImmutableBatchedStartTransactionResponse.builder()
-                .immutableTimestamp(immutableTimestamp)
-                .startTimestamps(startTimestamp)
-                .lease(lease)
-                .build();
+        return ImmutableBatchedStartTransactionResponse.of(immutableTimestamp, startTimestamp, lease);
     }
 }
