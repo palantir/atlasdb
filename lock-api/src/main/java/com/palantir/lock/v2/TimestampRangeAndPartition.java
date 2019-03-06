@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.client.SharedConstants;
 import com.palantir.timestamp.TimestampRange;
 
 @Value.Immutable
@@ -38,7 +39,7 @@ public interface TimestampRangeAndPartition {
     @JsonIgnore
     default long[] getStartTimestamps() {
         return LongStream.rangeClosed(range().getLowerBound(), range().getUpperBound())
-                .filter(t -> t % 16 == partition())
+                .filter(timestamp -> timestamp % SharedConstants.TRANSACTION_NUM_PARTITIONS == partition())
                 .toArray();
     }
 

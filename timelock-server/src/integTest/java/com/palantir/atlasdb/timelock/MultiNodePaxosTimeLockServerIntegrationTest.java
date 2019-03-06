@@ -359,6 +359,20 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(allTimestams).isSorted();
     }
 
+    @Test
+    public void temporalOrderingIsPreservedBetweenDifferentRequestorsForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+        List<Long> allTimestams = new ArrayList<>();
+
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor2, 4));
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
+
+        assertThat(allTimestams).isSorted();
+    }
+
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
         BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(
                 requestorUuid,

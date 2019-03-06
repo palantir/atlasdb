@@ -24,6 +24,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.lock.client.SharedConstants;
 
 public class TransactionConstants {
     private TransactionConstants() {/* */}
@@ -40,7 +41,7 @@ public class TransactionConstants {
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
     // DO NOT change without a transactions table migration!
-    public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
+    public static final int V2_TRANSACTION_NUM_PARTITIONS = SharedConstants.TRANSACTION_NUM_PARTITIONS;
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
