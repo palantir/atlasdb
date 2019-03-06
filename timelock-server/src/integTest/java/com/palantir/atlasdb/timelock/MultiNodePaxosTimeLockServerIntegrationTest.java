@@ -19,12 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,6 +44,8 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -340,6 +345,29 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 getStartTimestampFromIdentifiedAtlasDbTransaction(requestor1));
 
         assertThat(temporalSequence).isSorted();
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        List<Long> allTimestams = new ArrayList<>();
+
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 4));
+        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+
+        assertThat(allTimestams).isSorted();
+    }
+
+    private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
+        BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(
+                requestorUuid,
+                numRequestedTimestamps);
+        BatchedStartTransactionResponse response = CLUSTER.timelockRpcClient().batchedStartTransaction(request);
+        return Arrays.stream(response.timestampRange().getStartTimestamps())
+                .boxed()
+                .sorted() // we do not guarantee sorted order for same batch
+                .collect(Collectors.toList());
     }
 
     private StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {

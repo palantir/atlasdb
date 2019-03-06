@@ -16,17 +16,31 @@
 
 package com.palantir.lock.v2;
 
+import java.util.stream.LongStream;
+
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.timestamp.TimestampRange;
 
 @Value.Immutable
+@JsonSerialize(as = ImmutableTimestampRangeAndPartition.class)
+@JsonDeserialize(as = ImmutableTimestampRangeAndPartition.class)
 public interface TimestampRangeAndPartition {
     @Value.Parameter
     TimestampRange range();
 
     @Value.Parameter
     int partition();
+
+    @JsonIgnore
+    default long[] getStartTimestamps() {
+        return LongStream.rangeClosed(range().getLowerBound(), range().getUpperBound())
+                .filter(t -> t % 16 == partition())
+                .toArray();
+    }
 
     static TimestampRangeAndPartition of(TimestampRange range, int partition) {
         return ImmutableTimestampRangeAndPartition.of(range, partition);
