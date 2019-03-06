@@ -16,7 +16,7 @@
 
 package com.palantir.lock.client;
 
-public class SharedConstants {
+public final class SharedConstants {
     private SharedConstants() {/* */}
 
     // DO NOT change without a transactions table migration!
