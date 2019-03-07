@@ -95,6 +95,8 @@ public class MultiplexingCompletionService<K, V> {
 
         @Override
         protected void done() {
+            System.out.println("Done with task");
+            System.out.println(isDone());
             taskQueue.add(runnable);
         }
     }

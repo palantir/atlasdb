@@ -168,6 +168,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         while (true) {
             LeadershipState currentState = determineLeadershipState();
+            System.out.println("BLOCK ON BECOMING LEADER");
 
             switch (currentState.status()) {
                 case LEADING:

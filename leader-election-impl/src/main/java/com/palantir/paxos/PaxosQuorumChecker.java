@@ -46,7 +46,7 @@ import com.palantir.logsafe.SafeArg;
 @SuppressWarnings("MethodTypeParameterName")
 public final class PaxosQuorumChecker {
 
-    public static final int DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS = 5;
+    public static final int DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS = 8;
     private static final Logger log = LoggerFactory.getLogger(PaxosQuorumChecker.class);
     private static final String PAXOS_MESSAGE_ERROR =
             "We encountered an error while trying to request an acknowledgement from another paxos node."
@@ -189,6 +189,10 @@ public final class PaxosQuorumChecker {
             }
         }
 
+        if (quorumSize > remotes.size()) {
+            throw new RuntimeException(remotes.toString());
+        }
+
         List<Throwable> toLog = Lists.newArrayList();
         boolean interrupted = false;
         List<RESPONSE> receivedResponses = new ArrayList<RESPONSE>();
@@ -196,6 +200,7 @@ public final class PaxosQuorumChecker {
         int nacksRecieved = 0;
 
         try {
+            long startTime = System.nanoTime();
             long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(remoteRequestTimeoutInSec);
             // handle responses
             while (acksRecieved < quorumSize) {
@@ -210,7 +215,12 @@ public final class PaxosQuorumChecker {
                             TimeUnit.NANOSECONDS);
                     // check if out of responses (no quorum failure)
                     if (responseFuture == null) {
-                        return receivedResponses;
+                        System.out.println("TIMED OUT WAITING");
+                        remotes.forEach(remote -> System.out.println("RESPONSE :" + ((PaxosLearner) remote).getGreatestLearnedValue()));
+                        System.out.println("RECEIVED RESPONSES " + acksRecieved);
+                        System.out.println(remotes);
+                        throw new RuntimeException();
+//                        return receivedResponses;
                     }
 
                     // reject invalid or repeat promises

@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,6 +48,7 @@ import com.palantir.logsafe.SafeArg;
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipProxy.class);
+    private final UUID uuid = UUID.randomUUID();
 
     private static final long MAX_NO_QUORUM_RETRIES = 10;
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
@@ -198,8 +200,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             return null;
         }
 
+        System.out.println("AM I THE LEADER? " + uuid.toString());
         final LeadershipToken leadershipToken = getLeadershipToken();
-
+        System.out.println("I THINK I AM THE LEADER " + uuid.toString());
         Object delegate = delegateRef.get();
         StillLeadingStatus leading = null;
         for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
@@ -215,6 +218,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
             markAsNotLeading(leadershipToken, null /* cause */);
         }
+        System.out.println("I KNOW I AM THE LEADER " + uuid.toString());
 
         if (isClosed) {
             throw new IllegalStateException("already closed proxy for " + interfaceClass.getName());
@@ -224,6 +228,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
+            System.out.println("I AM INTERRUPTED " + uuid.toString());
             if (e.getTargetException() instanceof ServiceNotAvailableException
                     || e.getTargetException() instanceof NotCurrentLeaderException) {
                 markAsNotLeading(leadershipToken, e.getCause());

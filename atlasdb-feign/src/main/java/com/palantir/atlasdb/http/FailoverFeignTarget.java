@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -106,6 +107,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
         }
 
         checkAndHandleFailure(ex);
+        System.out.println(Instant.now().toString() + " RETRY BEHAVIOUR " + retryBehaviour);
         if (retryBehaviour.shouldBackoffAndTryOtherNodes()) {
             int numFailovers = failoverCount.get();
             if (numFailovers > 0 && numFailovers % servers.size() == 0) {

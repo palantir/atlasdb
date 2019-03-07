@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Timer;
 import java.util.concurrent.ExecutorService;
 
 import javax.annotation.Nullable;
@@ -34,6 +35,8 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosValue;
 
+import feign.RetryableException;
+
 public final class PaxosSynchronizer {
     private static final Logger log = LoggerFactory.getLogger(PaxosSynchronizer.class);
 
@@ -43,7 +46,11 @@ public final class PaxosSynchronizer {
 
     public static void synchronizeLearner(PaxosLearner learnerToSynchronize,
                                           List<PaxosLearner> paxosLearners) {
+        long startTime = System.nanoTime();
+        System.out.println("#####################GET MOST RECENT LEARNED VALUE " + learnerToSynchronize);
         Optional<PaxosValue> mostRecentValue = getMostRecentLearnedValue(paxosLearners);
+        System.out.println("TIME TAKEN: " + Long.toString(System.nanoTime() - startTime));
+        System.out.println("#####################GET MOST RECENT LEARNED VALUE DONE " + learnerToSynchronize);
         if (mostRecentValue.isPresent()) {
             PaxosValue paxosValue = mostRecentValue.get();
             if (paxosValue.equals(learnerToSynchronize.getGreatestLearnedValue())) {
@@ -63,7 +70,15 @@ public final class PaxosSynchronizer {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
         List<PaxosValueResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
                 ImmutableList.copyOf(paxosLearners),
-                learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
+                learner -> {
+                    try {
+                        return ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue());
+                    } catch (RetryableException th) {
+                        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                        System.out.println(th.retryAfter());
+                        throw th;
+                    }
+                },
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
         return responses.stream()

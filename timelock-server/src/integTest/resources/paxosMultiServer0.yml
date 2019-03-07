@@ -1,6 +1,7 @@
 algorithm:
   type: paxos
-  leaderPingResponseWaitMs: 1000
+  leaderPingResponseWaitMs: 10
+  pingRateMs: 50
   paxosDataDir: <TEMP_DATA_DIR>
   sslConfiguration:
     keyStorePath: var/security/keyStore.jks

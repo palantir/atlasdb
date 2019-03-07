@@ -84,6 +84,15 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
+    public void yesLeaderElectionsAreUnstable() {
+        for (TestableTimelockServer server : CLUSTER.servers()) {
+            server.kill();
+            CLUSTER.getFreshTimestamp();
+            server.start();
+        }
+    }
+
+    @Test
     public void blockedLockRequestThrows503OnLeaderElectionForRemoteLock() throws InterruptedException {
         LockRefreshToken lock = CLUSTER.remoteLock(BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
