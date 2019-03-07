@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.performance.benchmarks.table.ConsecutiveNarrowTable;
 import com.palantir.atlasdb.performance.benchmarks.table.RegeneratingTable;
 
@@ -52,8 +53,11 @@ public class KvsDeleteBenchmarks {
 
     private Object doDeleteAllTimestamps(RegeneratingTable<Cell> table) {
         table.getKvs().deleteAllTimestamps(table.getTableRef(),
-                ImmutableMap.of(table.getTableCells(), RegeneratingTable.CELL_VERSIONS),
-                false, false);
+                ImmutableMap.of(table.getTableCells(), new TimestampRangeDelete.Builder()
+                        .timestamp(RegeneratingTable.CELL_VERSIONS)
+                        .endInclusive(false)
+                        .deleteSentinels(false)
+                        .build()));
         return table.getTableCells();
     }
 
