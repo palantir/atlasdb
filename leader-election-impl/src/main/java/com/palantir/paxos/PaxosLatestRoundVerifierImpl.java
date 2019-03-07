@@ -18,7 +18,6 @@ package com.palantir.paxos;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,32 +31,27 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
     private final ImmutableList<PaxosAcceptor> acceptors;
     private final int quorumSize;
     private final Map<PaxosAcceptor, ExecutorService> executors;
-    private final Supplier<Boolean> onlyLogOnQuorumFailure;
 
     public PaxosLatestRoundVerifierImpl(
             List<PaxosAcceptor> acceptors, int quorumSize,
-            Map<PaxosAcceptor, ExecutorService> executors, Supplier<Boolean> onlyLogOnQuorumFailure) {
+            Map<PaxosAcceptor, ExecutorService> executors) {
         this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
-        this.onlyLogOnQuorumFailure = onlyLogOnQuorumFailure;
     }
 
     @Override
     public PaxosQuorumStatus isLatestRound(long round) {
-        List<PaxosResponse> responses = collectResponses(round);
-
-        return determineQuorumStatus(responses);
+        return collectResponses(round).getQuorumResult();
     }
 
-    private List<PaxosResponse> collectResponses(long round) {
+    private PaxosResponses<PaxosResponse> collectResponses(long round) {
         return PaxosQuorumChecker.collectQuorumResponses(
                 acceptors,
                 acceptor -> new PaxosResponseImpl(acceptorAgreesIsLatestRound(acceptor, round)),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                onlyLogOnQuorumFailure.get());
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
     }
 
     private boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
@@ -69,10 +63,6 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
             }
             throw e;
         }
-    }
-
-    private PaxosQuorumStatus determineQuorumStatus(List<PaxosResponse> responses) {
-        return PaxosQuorumChecker.getQuorumResult(responses, quorumSize);
     }
 
     private boolean shouldLog() {

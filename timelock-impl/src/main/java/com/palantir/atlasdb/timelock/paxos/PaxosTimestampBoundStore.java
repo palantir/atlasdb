@@ -43,6 +43,7 @@ import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.paxos.PaxosResponses;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -51,7 +52,6 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static final Logger log = LoggerFactory.getLogger(PaxosTimestampBoundStore.class);
 
     private static final int QUORUM_OF_ONE = 1;
-    private static final boolean ONLY_LOG_ON_QUORUM_FAILURE = true;
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
@@ -106,17 +106,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws ServiceNotAvailableException if we couldn't contact a quorum
      */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
-        List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
+        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(acceptors),
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 proposer.getQuorumSize(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                ONLY_LOG_ON_QUORUM_FAILURE);
-        if (!PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+        if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
-        return responses;
+        return responses.getResponses();
     }
 
     /**
@@ -208,17 +207,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
             return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
         }
-        List<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
+        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(learners),
                 learner -> getLearnedValue(seq, learner),
                 QUORUM_OF_ONE,
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                ONLY_LOG_ON_QUORUM_FAILURE);
-        if (responses.isEmpty()) {
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+        if (!responses.hasQuorum()) {
             return Optional.empty();
         }
-        return Optional.of(ImmutableSequenceAndBound.of(seq, responses.iterator().next().getValue()));
+        return Optional.of(ImmutableSequenceAndBound.of(seq, responses.getResponses().get(0).getValue()));
     }
 
     /**

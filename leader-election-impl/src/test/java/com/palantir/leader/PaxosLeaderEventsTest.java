@@ -45,7 +45,6 @@ public class PaxosLeaderEventsTest {
             .randomWaitBeforeProposingLeadershipMs(0L)
             .leaderPingResponseWaitMs(0L)
             .eventRecorder(recorder)
-            .onlyLogOnQuorumFailure(() -> true)
             .build();
 
     @Test

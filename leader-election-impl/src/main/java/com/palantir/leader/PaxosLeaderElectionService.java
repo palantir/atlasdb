@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -57,6 +56,7 @@ import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
@@ -98,16 +98,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      */
     @Deprecated
     public PaxosLeaderElectionService(PaxosProposer proposer,
-                                      PaxosLearner knowledge,
-                                      Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
-                                      List<PaxosAcceptor> acceptors,
-                                      List<PaxosLearner> learners,
-                                      Function<String, ExecutorService> executorServiceFactory,
-                                      long updatePollingWaitInMs,
-                                      long randomWaitBeforeProposingLeadership,
-                                      long leaderPingResponseWaitMs,
-                                      PaxosLeaderElectionEventRecorder eventRecorder,
-                                      Supplier<Boolean> onlyLogOnQuorumFailure) {
+            PaxosLearner knowledge,
+            Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            Function<String, ExecutorService> executorServiceFactory,
+            long updatePollingWaitInMs,
+            long randomWaitBeforeProposingLeadership,
+            long leaderPingResponseWaitMs,
+            PaxosLeaderElectionEventRecorder eventRecorder) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
@@ -125,8 +124,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 new PaxosLatestRoundVerifierImpl(
                         acceptors,
                         proposer.getQuorumSize(),
-                        createLatestRoundVerifierExecutors(acceptors, executorServiceFactory),
-                        onlyLogOnQuorumFailure));
+                        createLatestRoundVerifierExecutors(acceptors, executorServiceFactory)));
     }
 
     private Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
@@ -507,30 +505,20 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
-        final long nextToLearnSeq =
-                greatestLearned.map(value -> value.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
-        List<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
+        final long nextToLearnSeq = greatestLearned.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+        PaxosResponses<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
                 learners,
-                new Function<PaxosLearner, PaxosUpdate>() {
-                    @Override
-                    @Nullable
-                    public PaxosUpdate apply(@Nullable PaxosLearner learner) {
-                        return new PaxosUpdate(
-                                ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq)));
-                    }
-                },
+                learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq))),
                 proposer.getQuorumSize(),
                 knowledgeUpdatingExecutors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
-                false);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
 
         // learn the state accumulated from peers
         boolean learned = false;
-        for (PaxosUpdate update : updates) {
+        for (PaxosUpdate update : updates.getResponses()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
-                PaxosValue currentLearnedValue = knowledge.getLearnedValue(value.getRound());
-                if (currentLearnedValue == null) {
+                if (knowledge.getLearnedValue(value.getRound()) == null) {
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }
