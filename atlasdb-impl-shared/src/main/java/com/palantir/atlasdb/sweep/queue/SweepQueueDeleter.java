@@ -18,19 +18,21 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.common.streams.KeyedStream;
 
 public class SweepQueueDeleter {
     private static final Logger log = LoggerFactory.getLogger(SweepQueueDeleter.class);
@@ -57,22 +59,20 @@ public class SweepQueueDeleter {
      */
     public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
-        Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
+        sweep(writesPerTable(writes), sweeper);
+        sweep(thoroughTombstoneWritesPerTable(writes, sweeper), sweeper);
+    }
+
+    private static <K, V> Stream<Map<K, V>> partition(Map<K, V> map, int batchSize) {
+        return Streams.stream(Iterables.partition(map.keySet(), batchSize))
+                .map(keys -> KeyedStream.of(keys).map(map::get).collectToMap());
+    }
+
+    private void sweep(Map<TableReference, Map<Cell, Long>> maxTimestampByCell, Sweeper sweeper) {
         for (Map.Entry<TableReference, Map<Cell, Long>> entry : maxTimestampByCell.entrySet()) {
             try {
-                Iterables.partition(entry.getValue().keySet(), SweepQueueUtils.BATCH_SIZE_KVS)
-                        .forEach(cells -> {
-                            Map<Cell, Long> maxTimestampByCellPartition = cells.stream()
-                                    .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
-                            follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
-                            if (sweeper.shouldAddSentinels()) {
-                                kvs.addGarbageCollectionSentinelValues(entry.getKey(),
-                                        maxTimestampByCellPartition.keySet());
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, false);
-                            } else {
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, true);
-                            }
-                        });
+                partition(entry.getValue(), SweepQueueUtils.BATCH_SIZE_KVS)
+                        .forEach(cells -> sweepBatch(entry.getKey(), cells, sweeper));
             } catch (Exception e) {
                 if (tableWasDropped(entry.getKey())) {
                     log.info("The table {} has been deleted.", LoggingArgs.tableRef(entry.getKey()), e);
@@ -83,13 +83,31 @@ public class SweepQueueDeleter {
         }
     }
 
+    private void sweepBatch(TableReference table, Map<Cell, Long> cells, Sweeper sweeper) {
+        follower.run(table, cells.keySet());
+        if (sweeper.shouldAddSentinels()) {
+            kvs.addGarbageCollectionSentinelValues(table, cells.keySet());
+            kvs.deleteAllTimestamps(table, cells, false);
+        } else {
+            kvs.deleteAllTimestamps(table, cells, true);
+        }
+    }
+
     private boolean tableWasDropped(TableReference tableRef) {
         return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
-    private Map<TableReference, Map<Cell, Long>> writesPerTable(Collection<WriteInfo> writes, Sweeper sweeper) {
+    private Map<TableReference, Map<Cell, Long>> writesPerTable(Collection<WriteInfo> writes) {
         return writes.stream().collect(Collectors.groupingBy(
                 WriteInfo::tableRef,
+                Collectors.toMap(WriteInfo::cell, WriteInfo::timestamp)));
+    }
+
+    private Map<TableReference, Map<Cell, Long>> thoroughTombstoneWritesPerTable(
+            Collection<WriteInfo> writes, Sweeper sweeper) {
+        return writes.stream()
+                .filter(write -> write.timestampToDeleteAtExclusive(sweeper) != write.timestamp())
+                .collect(Collectors.groupingBy(WriteInfo::tableRef,
                 Collectors.toMap(WriteInfo::cell, write -> write.timestampToDeleteAtExclusive(sweeper))));
     }
 }
