@@ -337,7 +337,7 @@ public interface KeyValueService extends AutoCloseable {
      * relevant range must have already been consistently deleted.
      *
      * @param tableRef the name of the table to delete the timestamps in.
-     * @param rangesToDelete cells to be deleted, and the ranges of timestamps to delete for each cell
+     * @param deletes cells to be deleted, and the ranges of timestamps to delete for each cell
      */
     @Idempotent
     void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
