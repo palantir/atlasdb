@@ -64,7 +64,6 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         KeyValueService kvs = CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 CASSANDRA.getConfig(),
-                CassandraResource.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(
                         () -> {
                             if (timestampService == null) {
