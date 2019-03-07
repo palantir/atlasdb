@@ -55,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,10 +98,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
@@ -124,8 +128,8 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.GetCandidateCellsForSweepingShim;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.jdbc.impl.MultiTimestampPutBatch;
@@ -691,10 +695,28 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        AbstractKeyValueService
-                .deleteAllTimestampsDefaultImpl(this, tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        if (deletes.isEmpty()) {
+            return;
+        }
+
+        long maxTimestampExclusive = deletes.values().stream()
+                .mapToLong(TimestampRangeDelete::maxTimestampToDelete).max().getAsLong();
+
+        Multimap<Cell, Long> timestampsByCell = getAllTimestamps(tableRef, deletes.keySet(), maxTimestampExclusive);
+
+        Multimap<Cell, Long> timestampsByCellExcludingSentinels = Multimaps.filterEntries(timestampsByCell, entry -> {
+            TimestampRangeDelete delete = deletes.get(entry.getKey());
+            long timestamp = entry.getValue();
+            return timestamp <= delete.maxTimestampToDelete() && timestamp >= delete.minTimestampToDelete();
+        });
+
+        // Sort this to ensure we delete in timestamp ascending order
+        SetMultimap<Cell, Long> inSortedOrder = timestampsByCellExcludingSentinels.entries().stream()
+                .sorted(Comparator.comparing(Entry::getValue))
+                .collect(ImmutableSetMultimap.toImmutableSetMultimap(Entry::getKey, Entry::getValue));
+
+        delete(tableRef, inSortedOrder);
     }
 
     @Override

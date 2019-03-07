@@ -86,6 +86,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
@@ -599,10 +600,9 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> maxTimestampByCell) {
         runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
-            table.deleteAllTimestamps(maxTimestampExclusiveByCell, deleteSentinels);
+            table.deleteAllTimestamps(maxTimestampByCell);
             return null;
         });
 

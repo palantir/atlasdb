@@ -53,7 +53,7 @@ public class KvsDeleteBenchmarks {
     private Object doDeleteAllTimestamps(RegeneratingTable<Cell> table) {
         table.getKvs().deleteAllTimestamps(table.getTableRef(),
                 ImmutableMap.of(table.getTableCells(), RegeneratingTable.CELL_VERSIONS),
-                false);
+                false, false);
         return table.getTableCells();
     }
 

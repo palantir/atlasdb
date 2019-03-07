@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 
@@ -39,11 +40,12 @@ public interface WriteInfo {
         return writeRef().cell();
     }
 
-    default long timestampToDeleteAtExclusive(Sweeper sweeper) {
-        if (sweeper.shouldSweepLastCommitted() && writeRef().isTombstone()) {
-            return timestamp() + 1L;
-        }
-        return timestamp();
+    default TimestampRangeDelete toDelete(Sweeper sweeper) {
+        return new TimestampRangeDelete.Builder()
+                .timestamp(timestamp())
+                .endInclusive(writeRef().isTombstone() && sweeper.shouldSweepLastCommitted())
+                .deleteSentinels(!sweeper.shouldAddSentinels())
+                .build();
     }
 
     default int toShard(int numShards) {

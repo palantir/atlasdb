@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -132,10 +133,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        delegate1.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
-        delegate2.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        delegate1.deleteAllTimestamps(tableRef, deletes);
+        delegate2.deleteAllTimestamps(tableRef, deletes);
     }
 
     @Override

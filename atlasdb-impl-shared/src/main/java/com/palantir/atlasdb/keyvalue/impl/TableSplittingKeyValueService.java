@@ -47,6 +47,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -136,9 +137,10 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        getDelegate(tableRef).deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+    public void deleteAllTimestamps(
+            TableReference tableRef,
+            Map<Cell, TimestampRangeDelete> deletes) {
+        getDelegate(tableRef).deleteAllTimestamps(tableRef, deletes);
     }
 
     @Override

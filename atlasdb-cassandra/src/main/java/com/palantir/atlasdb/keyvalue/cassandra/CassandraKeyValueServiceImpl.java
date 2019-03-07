@@ -90,6 +90,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
@@ -1572,13 +1573,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        new CellRangeDeleter(clientPool,
+    public void deleteAllTimestamps(
+            TableReference tableRef,
+            Map<Cell, TimestampRangeDelete> deletes) {
+        new CellRangeDeleter(
+                clientPool,
                 wrappingQueryRunner,
                 DELETE_CONSISTENCY,
-                mutationTimestampProvider::getRangeTombstoneTimestamp)
-                .deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels);
+                mutationTimestampProvider::getRangeTombstoneTimestamp).deleteAllTimestamps(tableRef, deletes);
     }
 
     /**
