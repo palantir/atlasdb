@@ -178,7 +178,7 @@ public final class PaxosQuorumChecker {
         PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
                 shortcircuitIfQuorumImpossible);
         try {
-            long deadline = System.nanoTime() + remoteRequestTimeout.getNano();
+            long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
             while (receivedResponses.shouldProcessNextRequest()) {
                 try {
                     Future<RESPONSE> responseFuture = responseCompletionService.poll(
