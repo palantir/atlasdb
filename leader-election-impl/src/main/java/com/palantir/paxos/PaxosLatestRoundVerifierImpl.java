@@ -54,7 +54,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
     }
 
-    private boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
+    private static boolean acceptorAgreesIsLatestRound(PaxosAcceptor acceptor, long round) {
         try {
             return round >= acceptor.getLatestSequencePreparedOrAccepted();
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public class PaxosLatestRoundVerifierImpl implements PaxosLatestRoundVerifier {
         }
     }
 
-    private boolean shouldLog() {
+    private static boolean shouldLog() {
         return Math.random() < SAMPLE_RATE;
     }
 }
