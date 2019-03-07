@@ -515,7 +515,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
         // learn the state accumulated from peers
         boolean learned = false;
-        for (PaxosUpdate update : updates.getResponses()) {
+        for (PaxosUpdate update : updates.get()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
                 if (knowledge.getLearnedValue(value.getRound()) == null) {

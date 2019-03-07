@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.concurrent.PTExecutors;
@@ -115,7 +116,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
-        return responses.getResponses();
+        return responses.get();
     }
 
     /**
@@ -213,10 +214,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 QUORUM_OF_ONE,
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
-        if (!responses.hasQuorum()) {
-            return Optional.empty();
-        }
-        return Optional.of(ImmutableSequenceAndBound.of(seq, responses.getResponses().get(0).getValue()));
+        return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
+                .map(PaxosLong::getValue)
+                .map(value -> ImmutableSequenceAndBound.of(seq, value));
     }
 
     /**

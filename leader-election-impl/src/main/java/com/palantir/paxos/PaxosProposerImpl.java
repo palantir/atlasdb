@@ -17,7 +17,6 @@ package com.palantir.paxos;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
@@ -161,7 +160,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
 
         if (!receivedPromises.hasQuorum()) {
             // update proposal number on failure
-            long maxProposal = receivedPromises.getResponses().stream()
+            long maxProposal = receivedPromises.stream()
                     .mapToLong(promise -> promise.promisedId.number)
                     .max()
                     .orElseGet(proposalNumber::get);
@@ -169,7 +168,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase one");
         }
 
-        PaxosPromise greatestPromise = Collections.max(receivedPromises.getResponses());
+        PaxosPromise greatestPromise = Collections.max(receivedPromises.get());
         if (greatestPromise.lastAcceptedValue != null) {
             return greatestPromise.lastAcceptedValue;
         }

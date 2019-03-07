@@ -18,6 +18,7 @@ package com.palantir.paxos;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class PaxosResponses<T extends PaxosResponse> {
     private final int totalRequests;
@@ -50,8 +51,12 @@ public class PaxosResponses<T extends PaxosResponse> {
         failures++;
     }
 
-    public List<T> getResponses() {
+    public List<T> get() {
         return responses;
+    }
+
+    public Stream<T> stream() {
+        return responses.stream();
     }
 
     public boolean hasQuorum() {

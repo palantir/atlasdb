@@ -67,7 +67,7 @@ public final class PaxosSynchronizer {
                 learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
-        return responses.getResponses().stream()
+        return responses.stream()
                 .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)
                 .max(Comparator.comparingLong(PaxosValue::getRound));
