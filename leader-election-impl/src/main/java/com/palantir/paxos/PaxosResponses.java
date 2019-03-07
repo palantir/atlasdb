@@ -64,7 +64,6 @@ public class PaxosResponses<T extends PaxosResponse> {
         } else if (thereWereDisagreements()) {
             return PaxosQuorumStatus.SOME_DISAGREED;
         }
-
         return PaxosQuorumStatus.NO_QUORUM;
     }
 
