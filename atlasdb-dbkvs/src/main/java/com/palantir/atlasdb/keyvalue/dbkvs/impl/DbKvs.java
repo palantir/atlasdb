@@ -600,9 +600,9 @@ public final class DbKvs extends AbstractKeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> maxTimestampByCell) {
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         runWriteForceAutocommit(tableRef, (Function<DbWriteTable, Void>) table -> {
-            table.deleteAllTimestamps(maxTimestampByCell);
+            table.deleteAllTimestamps(deletes);
             return null;
         });
 

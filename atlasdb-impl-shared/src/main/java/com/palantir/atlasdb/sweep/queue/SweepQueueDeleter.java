@@ -69,10 +69,8 @@ public class SweepQueueDeleter {
                             if (sweeper.shouldAddSentinels()) {
                                 kvs.addGarbageCollectionSentinelValues(entry.getKey(),
                                         maxTimestampByCellPartition.keySet());
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
-                            } else {
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                             }
+                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
                 if (tableWasDropped(entry.getKey())) {

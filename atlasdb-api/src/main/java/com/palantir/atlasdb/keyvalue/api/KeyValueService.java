@@ -332,14 +332,15 @@ public interface KeyValueService extends AutoCloseable {
     /**
      * For each cell, deletes all timestamps prior to the associated maximum timestamp. If this
      * operation fails, it's acceptable for this method to leave an inconsistent state, however
-     * implementations of this method <b>must</b> not leave a state where the timestamp listed
-     * has been inconsistently deleted and all the others have not been consistently deleted.
+     * implementations of this method <b>must</b> guarantee that, for each cell, if a value at the
+     * associated timestamp is inconsistently deleted, then all other values of that cell in the
+     * relevant range must have already been consistently deleted.
      *
      * @param tableRef the name of the table to delete the timestamps in.
      * @param rangesToDelete cells to be deleted, and the ranges of timestamps to delete for each cell
      */
     @Idempotent
-    void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> rangesToDelete)
+    void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
             throws InsufficientConsistencyException;
 
     /**

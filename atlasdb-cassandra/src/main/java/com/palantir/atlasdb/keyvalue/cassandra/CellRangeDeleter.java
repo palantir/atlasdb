@@ -122,12 +122,16 @@ class CellRangeDeleter {
                 tableRef, rangeTombstoneCassandraTs, delete -> delete.maxTimestampToDelete() + 1);
     }
 
-    private void insertTombstones(CassandraClient client, Map<Cell, TimestampRangeDelete> deletes,
-            TableReference tableRef, long rangeTombstoneCassandraTs, ToLongFunction<TimestampRangeDelete> maxTimestampToDelete) throws TException {
+    private void insertTombstones(
+            CassandraClient client,
+            Map<Cell, TimestampRangeDelete> deletes,
+            TableReference tableRef,
+            long rangeTombstoneCassandraTs,
+            ToLongFunction<TimestampRangeDelete> exclusiveMaxTimestampToDelete) throws TException {
         MutationMap mutationMap = new MutationMap();
 
         deletes.forEach((cell, delete) -> {
-            Mutation mutation = getMutation(cell, delete, rangeTombstoneCassandraTs, maxTimestampToDelete);
+            Mutation mutation = getMutation(cell, delete, rangeTombstoneCassandraTs, exclusiveMaxTimestampToDelete);
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
@@ -137,15 +141,7 @@ class CellRangeDeleter {
 
     private Mutation getMutation(Cell cell, TimestampRangeDelete delete,
             long rangeTombstoneCassandraTimestamp, ToLongFunction<TimestampRangeDelete> exclusiveTimestampExtractor) {
-        if (delete.deleteSentinels()) {
-            return Mutations.rangeTombstoneIncludingSentinelForColumn(
-                    cell.getColumnName(),
-                    exclusiveTimestampExtractor.applyAsLong(delete),
-                    rangeTombstoneCassandraTimestamp);
-        }
-        return Mutations.rangeTombstoneForColumn(
-                cell.getColumnName(),
-                exclusiveTimestampExtractor.applyAsLong(delete),
-                rangeTombstoneCassandraTimestamp);
+        return Mutations.fromTimestampRangeDelete(
+                cell.getColumnName(), delete, rangeTombstoneCassandraTimestamp, exclusiveTimestampExtractor);
     }
 }

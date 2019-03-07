@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import org.immutables.value.Value.Immutable;
+import org.immutables.value.Value.Lazy;
 
 @Immutable
 public interface TimestampRangeDelete {
@@ -24,10 +25,12 @@ public interface TimestampRangeDelete {
     boolean endInclusive();
     boolean deleteSentinels();
 
+    @Lazy
     default long maxTimestampToDelete() {
         return timestamp() + (endInclusive() ? 0 : -1);
     }
 
+    @Lazy
     default long minTimestampToDelete() {
         return deleteSentinels() ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
     }
