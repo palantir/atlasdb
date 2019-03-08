@@ -52,7 +52,9 @@ public class PaxosTimestampCreator implements TimestampCreator {
     private final Optional<TrustContext> optionalSecurity;
     private final Supplier<PaxosRuntimeConfiguration> paxosRuntime;
 
-    public PaxosTimestampCreator(MetricRegistry metricRegistry, PaxosResource paxosResource,
+    public PaxosTimestampCreator(
+            MetricRegistry metricRegistry,
+            PaxosResource paxosResource,
             Set<String> remoteServers,
             Optional<TrustContext> optionalSecurity,
             Supplier<PaxosRuntimeConfiguration> paxosRuntime) {
@@ -98,7 +100,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                         executor),
                 client);
 
-        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        executor.submit(() -> PaxosSynchronizer.synchronizeLearner(ourLearner, learners));
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }
