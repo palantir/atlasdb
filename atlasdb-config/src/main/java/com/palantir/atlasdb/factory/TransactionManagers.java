@@ -310,8 +310,8 @@ public abstract class TransactionManagers {
             kvs = ProfilingKeyValueService.create(kvs);
             kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
-            // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
-            if (!config().targetedSweep().enableSweepQueueWrites()) {
+            // The sweep stats key value service records information needed for Background Sweep to operate.
+            if (!targetedSweepIsFullyEnabled()) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         Suppliers.compose(SweepConfig::writeThreshold, sweepConfig::get),
@@ -436,6 +436,11 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private boolean targetedSweepIsFullyEnabled() {
+        return config().targetedSweep().enableSweepQueueWrites() &&
+                runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
     }
 
     private TransactionSchemaInstaller initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
