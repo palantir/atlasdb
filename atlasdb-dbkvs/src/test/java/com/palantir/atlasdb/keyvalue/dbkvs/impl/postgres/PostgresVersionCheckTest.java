@@ -32,9 +32,9 @@ public class PostgresVersionCheckTest {
     @SuppressWarnings(value = "Slf4jConstantLogMessage")
     public void shouldLogErrorOn_9_2_24() {
         Logger log = Mockito.mock(Logger.class);
-        PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
         thrown.expect(AssertionError.class);
         thrown.expectMessage("The minimum supported version is ");
+        PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
         Mockito.verify(log).error(contains("The minimum supported version is {}"), Mockito.anyObject(),
                 Mockito.eq(PostgresVersionCheck.MIN_POSTGRES_VERSION));
         Mockito.verifyNoMoreInteractions(log);
