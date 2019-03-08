@@ -701,7 +701,7 @@ public class JdbcKeyValueService implements KeyValueService {
         }
 
         long maxTimestampExclusive = deletes.values().stream()
-                .mapToLong(TimestampRangeDelete::maxTimestampToDelete).max().getAsLong();
+                .mapToLong(TimestampRangeDelete::maxTimestampToDelete).max().getAsLong() + 1;
 
         Multimap<Cell, Long> timestampsByCell = getAllTimestamps(tableRef, deletes.keySet(), maxTimestampExclusive);
 
