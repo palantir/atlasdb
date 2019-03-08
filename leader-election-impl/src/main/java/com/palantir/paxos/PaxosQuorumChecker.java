@@ -179,7 +179,7 @@ public final class PaxosQuorumChecker {
                 shortcircuitIfQuorumImpossible);
         try {
             long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
-            while (receivedResponses.shouldProcessNextRequest()) {
+            while (receivedResponses.hasMoreRequests() && receivedResponses.shouldProcessNextRequest()) {
                 try {
                     Future<RESPONSE> responseFuture = responseCompletionService.poll(
                             deadline - System.nanoTime(),
@@ -203,7 +203,7 @@ public final class PaxosQuorumChecker {
                 Thread.currentThread().interrupt();
             }
 
-            if (receivedResponses.hasQuorum()) {
+            if (!receivedResponses.hasQuorum()) {
                 encounteredErrors.forEach(throwable -> log.warn(PAXOS_MESSAGE_ERROR, throwable));
             }
         }

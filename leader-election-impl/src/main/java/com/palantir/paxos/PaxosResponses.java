@@ -34,8 +34,12 @@ public class PaxosResponses<T extends PaxosResponse> {
         this.shortcut = shortcut;
     }
 
-    public boolean shouldProcessNextRequest() {
-        return !hasQuorum() && !shouldGiveUpOnAchievingQuorum() && !noMoreRequests();
+    public boolean hasMoreRequests() {
+        return successes + failures < totalRequests;
+    }
+
+    boolean shouldProcessNextRequest() {
+        return !hasQuorum() && !shouldGiveUpOnAchievingQuorum();
     }
 
     public void add(T response) {
@@ -47,7 +51,7 @@ public class PaxosResponses<T extends PaxosResponse> {
         responses.add(response);
     }
 
-    public void markFailure() {
+    void markFailure() {
         failures++;
     }
 
@@ -63,7 +67,7 @@ public class PaxosResponses<T extends PaxosResponse> {
         return successes >= quorum;
     }
 
-    public PaxosQuorumStatus getQuorumResult() {
+    PaxosQuorumStatus getQuorumResult() {
         if (hasQuorum()) {
             return PaxosQuorumStatus.QUORUM_AGREED;
         } else if (thereWereDisagreements()) {
@@ -74,10 +78,6 @@ public class PaxosResponses<T extends PaxosResponse> {
 
     private boolean shouldGiveUpOnAchievingQuorum() {
         return shortcut && failures > totalRequests - quorum;
-    }
-
-    private boolean noMoreRequests() {
-        return successes + failures == totalRequests;
     }
 
     private boolean thereWereDisagreements() {
