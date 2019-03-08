@@ -180,7 +180,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                         + " WHERE m.row_name = ? "
                         + "  AND m.col_name = ? "
                         + "  AND m.ts >= ? "
-                        + "  AND m.ts < ?",
+                        + "  AND m.ts <= ?",
                 args);
     }
 }
