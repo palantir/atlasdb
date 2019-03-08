@@ -28,8 +28,8 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.util.TestJaxRsClientFactory;
-import com.palantir.remoting.api.errors.RemoteException;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 
 import io.dropwizard.testing.junit.DropwizardClientRule;
 
@@ -41,7 +41,7 @@ public class KvsBackedPersistentLockServiceClientTest {
     public static final DropwizardClientRule DW = new DropwizardClientRule(
             new KvsBackedPersistentLockService(LOCK_STORE),
             new CheckAndSetExceptionMapper(),
-            HttpRemotingJerseyFeature.INSTANCE);
+            ConjureJerseyFeature.INSTANCE);
 
     private final PersistentLockService lockService =
             TestJaxRsClientFactory.createJaxRsClientForTest(

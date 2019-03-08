@@ -25,7 +25,7 @@ import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.TimestampService;
 
 public final class CoordinationServices {

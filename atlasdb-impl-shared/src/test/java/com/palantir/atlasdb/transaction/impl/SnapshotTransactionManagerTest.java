@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -50,7 +49,6 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LegacyTimelockService;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class SnapshotTransactionManagerTest {
@@ -176,14 +174,5 @@ public class SnapshotTransactionManagerTest {
                 .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.getTimers().get(SETUP_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
         assertThat(registry.getTimers().get(FINISH_TASK_METRIC_NAME).getCount()).isGreaterThanOrEqualTo(1);
-    }
-
-    @Test
-    public void profilingIsSharedAcrossTransactions() {
-        SnapshotTransaction tx1 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        SnapshotTransaction tx2 = snapshotTransactionManager.createTransaction(1, () -> 2L, LockToken.of(
-                UUID.randomUUID()), PreCommitConditions.NO_OP);
-        assertThat(tx1.commitProfileProcessor).isSameAs(tx2.commitProfileProcessor);
     }
 }

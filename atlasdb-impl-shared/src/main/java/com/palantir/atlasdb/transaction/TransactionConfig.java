@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy;
 
 @JsonDeserialize(as = ImmutableTransactionConfig.class)
 @JsonSerialize(as = ImmutableTransactionConfig.class)
@@ -34,5 +35,10 @@ public abstract class TransactionConfig {
     @Value.Default
     public int getThresholdForLoggingLargeNumberOfTransactionLookups() {
         return AtlasDbConstants.THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS;
+    }
+
+    @Value.Default
+    public TransactionRetryStrategy retryStrategy() {
+        return TransactionRetryStrategy.Strategies.LEGACY.get();
     }
 }

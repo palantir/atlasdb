@@ -31,8 +31,10 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.longThat;
 
 import java.sql.Date;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
@@ -65,9 +67,13 @@ public class FailoverFeignTargetTest {
     private static final long LOWER_BACKOFF_BOUND = FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2;
     private static final long UPPER_BACKOFF_BOUND =
             (FailoverFeignTarget.BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2;
+    private static final long FIVE_THOUSAND_SECONDS_IN_MILLIS = Duration.ofSeconds(5_000).toMillis();
+
+    private final AtomicLong clock = new AtomicLong(1);
 
     private FailoverFeignTarget<Object> normalTarget;
     private FailoverFeignTarget<Object> spiedTarget;
+    private FailoverFeignTarget<Object> clockedTarget;
 
     static {
         when(EXCEPTION_WITH_RETRY_AFTER.retryAfter()).thenReturn(Date.valueOf(LocalDate.MAX));
@@ -82,6 +88,7 @@ public class FailoverFeignTargetTest {
     public void setup() {
         normalTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class);
         spiedTarget = spy(new FailoverFeignTarget<>(SERVERS, 100, Object.class));
+        clockedTarget = new FailoverFeignTarget<>(SERVERS, 1, Object.class, clock::get);
     }
 
     @Test
@@ -143,6 +150,35 @@ public class FailoverFeignTargetTest {
             normalTarget.continueOrPropagate(
                     normalTarget.url().equals(initialUrl) ? EXCEPTION_WITHOUT_RETRY_AFTER : EXCEPTION_WITH_RETRY_AFTER);
         }
+    }
+
+
+    @Test
+    public void doesNotFailDueToFastFailoverIfNotAllNodesHaveBeenTalkedTo() {
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequest(clockedTarget);
+        assertThatThrownBy(() -> clockedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER))
+                .isEqualTo(EXCEPTION_WITH_RETRY_AFTER);
+    }
+
+    @Test
+    public void doesNotFailDueToFastFailoverIfNotAllNodesHaveBeenTalkedToOnThisFastFailoverCycle() {
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRepeatedNonRetryableExceptionsOnClockedTarget();
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequest(clockedTarget);
+        assertThatThrownBy(() -> clockedTarget.continueOrPropagate(EXCEPTION_WITH_RETRY_AFTER))
+                .isEqualTo(EXCEPTION_WITH_RETRY_AFTER);
+    }
+
+    @Test
+    public void failsDueToFastFailoverIfAllNodesHaveBeenTalkedTo() {
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER);
+        assertThatThrownBy(() -> simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITH_RETRY_AFTER))
+                .isEqualTo(EXCEPTION_WITH_RETRY_AFTER);
     }
 
     @Test
@@ -215,6 +251,18 @@ public class FailoverFeignTargetTest {
             verify(spiedTarget, times(expectedNumOfCalls))
                     .pauseForBackoff(any(), longThat(isWithinBounds(0L, cap)));
         }
+    }
+
+    private void simulateRepeatedNonRetryableExceptionsOnClockedTarget() {
+        for (int i = 0; i < clockedTarget.failuresBeforeSwitching; i++) {
+            simulateRequestOnClockedTargetAndAdvanceClock(EXCEPTION_WITHOUT_RETRY_AFTER);
+        }
+    }
+
+    private void simulateRequestOnClockedTargetAndAdvanceClock(RetryableException exception) {
+        simulateRequest(clockedTarget);
+        clockedTarget.continueOrPropagate(exception);
+        clock.addAndGet(FIVE_THOUSAND_SECONDS_IN_MILLIS);
     }
 
     private void simulateRequest(FailoverFeignTarget target) {

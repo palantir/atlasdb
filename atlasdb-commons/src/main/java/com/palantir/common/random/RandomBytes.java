@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl.logging;
+package com.palantir.common.random;
 
-import java.util.function.Supplier;
+import java.security.SecureRandom;
 
-public interface LogConsumerProcessor {
-    LogConsumerProcessor NO_OP = unused -> {
-        // no op
-    };
+public final class RandomBytes {
 
-    void maybeLog(Supplier<LogTemplate> logTemplateSupplier);
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private RandomBytes() { }
+
+    public static byte[] ofLength(int dataSize) {
+        byte[] result = new byte[dataSize];
+        RANDOM.nextBytes(result);
+        return result;
+    }
+
 }

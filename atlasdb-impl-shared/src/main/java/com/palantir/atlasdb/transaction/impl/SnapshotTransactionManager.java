@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.impl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -51,13 +50,11 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampManagementService;
@@ -88,9 +85,6 @@ import com.palantir.timestamp.TimestampService;
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
 
-    final CommitProfileProcessor commitProfileProcessor;
-    final UUID clientId = UUID.randomUUID();
-
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -110,7 +104,7 @@ import com.palantir.timestamp.TimestampService;
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
-        super(metricsManager, timestampCache);
+        super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
         this.keyValueService = keyValueService;
@@ -129,7 +123,6 @@ import com.palantir.timestamp.TimestampService;
         this.defaultGetRangesConcurrency = defaultGetRangesConcurrency;
         this.sweepQueueWriter = sweepQueueWriter;
         this.deleteExecutor = deleteExecutor;
-        this.commitProfileProcessor = CommitProfileProcessor.createDefault(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
     }
@@ -157,8 +150,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TransactionAndImmutableTsLock setupRunTaskWithConditionThrowOnConflict(PreCommitCondition condition) {
         StartIdentifiedAtlasDbTransactionResponse transactionResponse
-                = timelockService.startIdentifiedAtlasDbTransaction(
-                        StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
+                = timelockService.startIdentifiedAtlasDbTransaction();
         try {
             LockToken immutableTsLock = transactionResponse.immutableTimestamp().getLock();
             long immutableTs = transactionResponse.immutableTimestamp().getImmutableTimestamp();
@@ -247,7 +239,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
     }
@@ -278,7 +269,6 @@ import com.palantir.timestamp.TimestampService;
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 deleteExecutor,
-                commitProfileProcessor,
                 validateLocksOnReads,
                 transactionConfig);
         try {

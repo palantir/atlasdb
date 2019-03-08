@@ -213,7 +213,7 @@ public interface KeyValueService extends AutoCloseable {
      * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param tableRef the name of the table to put values into.
+     * @param tableRef the name of the table to put values into.
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */

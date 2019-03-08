@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,20 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.benchmarks;
 
-import java.security.SecureRandom;
+package com.palantir.atlasdb.timelock.lock;
 
-public final class RandomBytes {
+import com.palantir.lock.v2.Lease;
 
-    private static final SecureRandom RANDOM = new SecureRandom();
+public class Leased<T> {
+    private final T value;
+    private final Lease lease;
 
-    private RandomBytes() { }
-
-    public static byte[] ofLength(int dataSize) {
-        byte[] result = new byte[dataSize];
-        RANDOM.nextBytes(result);
-        return result;
+    private Leased (T value, Lease lease) {
+        this.value = value;
+        this.lease = lease;
     }
 
+    public static <T> Leased<T> of(T value, Lease lease) {
+        return new Leased<>(value, lease);
+    }
+
+    public T value() {
+        return value;
+    }
+
+    public Lease lease() {
+        return lease;
+    }
 }

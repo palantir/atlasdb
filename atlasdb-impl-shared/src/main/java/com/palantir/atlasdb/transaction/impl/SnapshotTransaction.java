@@ -112,9 +112,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.logging.CommitProfileProcessor;
-import com.palantir.atlasdb.transaction.impl.logging.ImmutableTransactionCommitProfile;
-import com.palantir.atlasdb.transaction.impl.logging.TransactionCommitProfile;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -127,7 +124,6 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.ForwardingClosableIterator;
-import com.palantir.common.collect.IterableUtils;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
 import com.palantir.common.streams.MoreStreams;
@@ -142,6 +138,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -214,7 +211,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private final Set<TableReference> involvedTables = Sets.newConcurrentHashSet();
     protected final ExecutorService deleteExecutor;
     private final Timer.Context transactionTimerContext;
-    protected final CommitProfileProcessor commitProfileProcessor;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
@@ -247,7 +243,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
-            CommitProfileProcessor commitProfileProcessor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
         this.metricsManager = metricsManager;
@@ -272,7 +267,6 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         this.sweepQueue = sweepQueue;
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
-        this.commitProfileProcessor = commitProfileProcessor;
         this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
@@ -1371,104 +1365,75 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             return;
         }
 
-        Optional<TransactionCommitProfile> optionalProfile = Optional.empty();
-        Timer.Context commitStageTimer = getTimer("commitStage").time();
+        timedAndTraced("commitStage", () -> {
+            // Acquire row locks and a lock on the start timestamp row in the transactions table.
+            // This must happen before conflict checking, otherwise we could complete the checks and then have someone
+            // else write underneath us before we proceed (thus missing a write/write conflict).
+            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            try {
+                // Conflict checking. We can actually do this later without compromising correctness, but there is no
+                // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
+                timedAndTraced("commitCheckingForConflicts",
+                        () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
 
-        // Acquire row locks and a lock on the start timestamp row in the transactions table.
-        // This must happen before conflict checking, otherwise we could complete the checks and then have someone
-        // else write underneath us before we proceed (thus missing a write/write conflict).
-        Timer.Context acquireLocksTimer = getTimer("commitAcquireLocks").time();
-        LockToken commitLocksToken = acquireLocksForCommit();
-        long microsForRowLocks = TimeUnit.NANOSECONDS.toMicros(acquireLocksTimer.stop());
-        try {
-            // Conflict checking. We can actually do this later without compromising correctness, but there is
-            // no reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
-            long microsCheckingForConflicts = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfConflictOnCommit(commitLocksToken, transactionService),
-                    "commitCheckingForConflicts");
+                // Write to the targeted sweep queue. We must do this before writing to the key value service -
+                // otherwise we may have hanging values that targeted sweep won't know about.
+                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
 
-            // Write to the targeted sweep queue. We must do this before writing to the key value service -
-            // otherwise we may have hanging values that targeted sweep won't know about.
-            long microsWritingToTargetedSweepQueue =
-                    runAndReportTimeAndGetDurationMicros(() -> sweepQueue.enqueue(writesByTable, getStartTimestamp()),
-                            "writingToSweepQueue");
+                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
+                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
 
-            // Write to the key value service. We must do this before getting the commit timestamp - otherwise
-            // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-            long microsForWrites = runAndReportTimeAndGetDurationMicros(
-                    () -> keyValueService.multiPut(writesByTable, getStartTimestamp()), "commitWrite");
+                // Now that all writes are done, get the commit timestamp
+                // We must do this before we check that our locks are still valid to ensure that other transactions that
+                // will hold these locks are sure to have start timestamps after our commit timestamp.
+                long commitTimestamp = timedAndTraced("getCommitTimestamp", timelockService::getFreshTimestamp);
+                commitTsForScrubbing = commitTimestamp;
 
-            // Now that all writes are done, get the commit timestamp
-            // We must do this before we check that our locks are still valid to ensure that other transactions that
-            // will hold these locks are sure to have start timestamps after our commit timestamp.
-            Timer.Context commitTimestampTimer = getTimer("getCommitTimestamp").time();
-            long commitTimestamp = timelockService.getFreshTimestamp();
-            commitTsForScrubbing = commitTimestamp;
-            long microsForGetCommitTs = TimeUnit.NANOSECONDS.toMillis(commitTimestampTimer.stop());
+                // Punch on commit so that if hard delete is the only thing happening on a system,
+                // we won't block forever waiting for the unreadable timestamp to advance past the
+                // scrub timestamp (same as the hard delete transaction's start timestamp).
+                // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
+                // might well cost more.
+                timedAndTraced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
-            // Punch on commit so that if hard delete is the only thing happening on a system,
-            // we won't block forever waiting for the unreadable timestamp to advance past the
-            // scrub timestamp (same as the hard delete transaction's start timestamp).
-            // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
-            // might well cost more.
-            long microsForPunch = runAndReportTimeAndGetDurationMicros(
-                    () -> cleaner.punch(commitTimestamp),
-                    "microsForPunch");
+                // Serializable transactions need to check their reads haven't changed, by reading again at
+                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
+                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+                // from underneath us.
+                timedAndTraced("readWriteConflictCheck",
+                        () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
 
-            // Serializable transactions need to check their reads haven't changed, by reading again at commitTs + 1.
-            // This must happen before the lock check for thorough tables, because the lock check verifies the
-            // immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out from underneath us.
-            long microsForReadWriteConflictCheck = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfReadWriteConflictForSerializable(commitTimestamp),
-                    "readWriteConflictCheck");
+                // Verify that our locks and pre-commit conditions are still valid before we actually commit;
+                // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
+                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
 
-            // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-            long microsForPreCommitLockCheck = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken), "preCommitLockCheck");
-            long microsForUserPreCommitCondition = runAndReportTimeAndGetDurationMicros(
-                    () -> throwIfPreCommitConditionInvalid(commitTimestamp), "userPreCommitCondition");
+                timedAndTraced("commitPutCommitTs",
+                        () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
 
-            long microsForPutCommitTs = runAndReportTimeAndGetDurationMicros(
-                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService),
-                    "commitPutCommitTs");
+                long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+                getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
+                getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
+            } finally {
+                timedAndTraced("postCommitUnlock",
+                        () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+            }
+        });
+    }
 
-            long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
-            getTimer("commitTotalTimeSinceTxCreation").update(microsSinceCreation, TimeUnit.MICROSECONDS);
-            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN).update(byteCount.get());
-            optionalProfile = Optional.of(ImmutableTransactionCommitProfile.builder()
-                    .startTimestamp(getTimestamp())
-                    .acquireRowLocksMicros(microsForRowLocks)
-                    .conflictCheckMicros(microsCheckingForConflicts)
-                    .writingToSweepQueueMicros(microsWritingToTargetedSweepQueue)
-                    .keyValueServiceWriteMicros(microsForWrites)
-                    .commitTimestampMicros(microsForGetCommitTs)
-                    .punchMicros(microsForPunch)
-                    .readWriteConflictCheckMicros(microsForReadWriteConflictCheck)
-                    .verifyPreCommitLockCheckMicros(microsForPreCommitLockCheck)
-                    .verifyUserPreCommitConditionMicros(microsForUserPreCommitCondition)
-                    .putCommitTimestampMicros(microsForPutCommitTs)
-                    .commitTimestamp(commitTimestamp)
-                    .totalCommitStageMicros(TimeUnit.NANOSECONDS.toMicros(commitStageTimer.stop()))
-                    .totalTimeSinceTransactionCreationMicros(microsSinceCreation)
-                    .build());
-        } finally {
-            long microsForPostCommitUnlock = runAndReportTimeAndGetDurationMicros(
-                    () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)), "postCommitUnlock");
-
-            // We only care about detailed profiling for successful transactions
-            optionalProfile.ifPresent(profile -> commitProfileProcessor.consumeProfilingData(
-                    profile,
-                    writesByTable.keySet(),
-                    byteCount.get(),
-                    microsForPostCommitUnlock));
+    private void timedAndTraced(String timerName, Runnable runnable) {
+        try (Timer.Context timer = getTimer(timerName).time();
+                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+            runnable.run();
         }
     }
 
-    private long runAndReportTimeAndGetDurationMicros(Runnable runnable, String timerName) {
-        Timer.Context timer = getTimer(timerName).time();
-        runnable.run();
-        return TimeUnit.NANOSECONDS.toMicros(timer.stop());
+    private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
+        try (Timer.Context timer = getTimer(timerName).time();
+                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+            return supplier.get();
+        }
     }
 
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
@@ -1791,9 +1756,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         LockRequest request = LockRequest.of(lockDescriptors, transactionConfig.get().getLockAcquireTimeoutMillis());
         LockResponse lockResponse = timelockService.lock(request);
         if (!lockResponse.wasSuccessful()) {
-            log.error("Timed out waiting while acquiring commit locks. Request id was {}. Timeout was {} ms. "
+            log.error("Timed out waiting while acquiring commit locks. Timeout was {} ms. "
                             + "First ten required locks were {}.",
-                    SafeArg.of("requestId", request.getRequestId()),
                     SafeArg.of("acquireTimeoutMs", transactionConfig.get().getLockAcquireTimeoutMillis()),
                     UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
             throw new TransactionLockAcquisitionTimeoutException("Timed out while acquiring commit locks.");
@@ -1803,17 +1767,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
     protected Set<LockDescriptor> getLocksForWrites() {
         Set<LockDescriptor> result = Sets.newHashSet();
-        Iterable<TableReference> allTables = IterableUtils.append(
-                writesByTable.keySet(),
-                TransactionConstants.TRANSACTION_TABLE);
-        for (TableReference tableRef : allTables) {
-            if (tableRef.equals(TransactionConstants.TRANSACTION_TABLE)) {
-                result.add(
-                        AtlasRowLockDescriptor.of(
-                                TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
-                                TransactionConstants.getValueForTimestamp(getStartTimestamp())));
-                continue;
-            }
+        for (TableReference tableRef : writesByTable.keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
                 for (Cell cell : getLocalWrites(tableRef).keySet()) {
@@ -1836,6 +1790,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 }
             }
         }
+        result.add(
+                AtlasRowLockDescriptor.of(
+                        TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                        TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         return result;
     }
 
@@ -1845,21 +1803,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
      * it back.
      */
     private void waitForCommitToComplete(Iterable<Long> startTimestamps) {
-        boolean isEmpty = true;
         Set<LockDescriptor> lockDescriptors = Sets.newHashSet();
         for (long start : startTimestamps) {
             if (start < immutableTimestamp) {
                 // We don't need to block in this case because this transaction is already complete
                 continue;
             }
-            isEmpty = false;
             lockDescriptors.add(
                     AtlasRowLockDescriptor.of(
                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                             TransactionConstants.getValueForTimestamp(start)));
         }
 
-        if (isEmpty) {
+        if (lockDescriptors.isEmpty()) {
             return;
         }
 

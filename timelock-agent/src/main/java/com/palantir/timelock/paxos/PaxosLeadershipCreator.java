@@ -111,8 +111,8 @@ public class PaxosLeadershipCreator {
                         PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile())
                 .pingRateMs(paxosRuntimeConfiguration.pingRateMs())
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(PaxosRemotingUtils.getClusterAddresses(install)))
-                .leaderPingResponseWaitMs(paxosRuntimeConfiguration.pingRateMs())
-                .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.pingRateMs())
+                .leaderPingResponseWaitMs(paxosRuntimeConfiguration.leaderPingResponseWaitMs())
+                .randomWaitBeforeProposingLeadershipMs(paxosRuntimeConfiguration.maximumWaitBeforeProposalMs())
                 .build();
     }
 

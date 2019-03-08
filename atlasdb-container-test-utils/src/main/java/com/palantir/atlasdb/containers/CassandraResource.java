@@ -24,7 +24,6 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -34,8 +33,6 @@ import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 
 public class CassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public static final Optional<LeaderConfig> LEADER_CONFIG = CassandraContainer.LEADER_CONFIG;
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;
     private Containers containers;
@@ -43,7 +40,7 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
 
     public CassandraResource() {
         this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
-                containerInstance.getConfig(), CassandraContainer.LEADER_CONFIG);
+                containerInstance.getConfig());
     }
 
     public CassandraResource(Supplier<KeyValueService> supplier) {

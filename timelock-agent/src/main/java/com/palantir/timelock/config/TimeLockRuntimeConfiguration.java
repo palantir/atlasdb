@@ -58,8 +58,8 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Check
     public void check() {
         Preconditions.checkState(maxNumberOfClients() >= 0,
-                "Maximum number of clients must be nonnegative, but found %s", maxNumberOfClients());
+                "Maximum number of clients must be non-negative, but found %s", maxNumberOfClients());
         Preconditions.checkState(slowLockLogTriggerMillis() >= 0,
-                "Slow lock log trigger threshold must be nonnegative, but found %s", slowLockLogTriggerMillis());
+                "Slow lock log trigger threshold must be non-negative, but found %s", slowLockLogTriggerMillis());
     }
 }

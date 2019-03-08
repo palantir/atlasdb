@@ -43,6 +43,7 @@ import com.palantir.atlasdb.coordination.SimpleCoordinationResource;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.PersistentLockManager;
@@ -61,7 +62,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.remoting3.servers.jersey.HttpRemotingJerseyFeature;
+import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
@@ -107,9 +108,10 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 sweeperSupplier)));
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
-        environment.jersey().register(HttpRemotingJerseyFeature.INSTANCE);
+        environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
+        environment.jersey().register(new SimpleLockResource(txManager));
     }
 
     private TransactionManager tryToCreateTransactionManager(AtlasDbEteConfiguration config,

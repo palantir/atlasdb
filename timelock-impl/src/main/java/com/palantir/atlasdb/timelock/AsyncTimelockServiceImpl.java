@@ -21,18 +21,20 @@ import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
+import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.ImmutableIdentifiedTimeLockRequest;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
@@ -74,10 +76,10 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         // this will always return synchronously
-        LockToken token = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
+        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.getRequestId(), timestamp).get();
         long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
 
-        return LockImmutableTimestampResponse.of(immutableTs, token);
+        return LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
     }
 
     @Override
@@ -87,7 +89,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public AsyncResult<LockToken> lock(LockRequest request) {
+    public AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request) {
         return lockService.lock(
                 request.getRequestId(),
                 request.getLockDescriptors(),
@@ -103,7 +105,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
         return lockService.refresh(tokens);
     }
 
@@ -120,11 +122,28 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    public StartAtlasDbTransactionResponseV3 startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return StartIdentifiedAtlasDbTransactionResponse.of(
-                lockImmutableTimestamp(ImmutableIdentifiedTimeLockRequest.of(request.requestId())),
-                getFreshTimestampForClient(request.requestorId()));
+        long timestamp = timestampService.getFreshTimestamp();
+
+        Leased<LockToken> leasedLock = lockService.lockImmutableTimestamp(request.requestId(), timestamp).get();
+        long immutableTs = lockService.getImmutableTimestamp().orElse(timestamp);
+
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
+
+        TimestampAndPartition timestampAndPartition = getFreshTimestampForClient(request.requestorId());
+
+        return StartAtlasDbTransactionResponseV3.of(
+                lockImmutableTimestampResponse,
+                timestampAndPartition,
+                leasedLock.lease());
+
+    }
+
+    @Override
+    public LeaderTime leaderTime() {
+        return lockService.leaderTime();
     }
 
     @Override

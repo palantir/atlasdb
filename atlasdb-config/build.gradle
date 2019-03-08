@@ -1,6 +1,5 @@
 apply from: "../gradle/publish-jars.gradle"
 apply plugin: 'org.inferred.processors'
-apply plugin: 'com.palantir.sls-recommended-dependencies'
 
 apply from: "../gradle/shared.gradle"
 
@@ -14,12 +13,9 @@ dependencies {
 
     compile group: 'javax.validation', name: 'validation-api'
     compile group: 'com.palantir.config.crypto', name: 'encrypted-config-value-module'
-    compile group: 'com.palantir.remoting-api', name: 'service-config'
     compile group: 'com.palantir.remoting2', name: 'error-handling' // needed for backwards compatibility
-    compile group: 'com.palantir.remoting3', name: 'keystores'
     compile group: 'com.palantir.safe-logging', name: 'safe-logging'
     compile (group: 'com.palantir.tritium', name: 'tritium-lib') {
-        exclude (group: 'com.palantir.remoting3', module: 'tracing')
         exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
         exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
     }
@@ -46,13 +42,4 @@ dependencies {
     testCompile group: 'org.awaitility', name: 'awaitility'
     // Needed for Jersey Response-based tests
     testCompile group: 'org.glassfish.jersey.core', name: 'jersey-common'
-}
-
-recommendedProductDependencies {
-    productDependency {
-        productGroup = 'com.palantir.timelock'
-        productName = 'timelock-server'
-        minimumVersion = '0.51.0'
-        maximumVersion = '0.x.x'
-    }
 }

@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -148,9 +149,8 @@ public final class CassandraKeyValueServices {
 
     private static boolean uniqueSchemaOnAllNodesAllowingForOneUnreachable(
             Map<String, List<String>> versions) {
-        return getDistinctReachableSchemas(versions).size() <= 1
-                && (!versions.keySet().contains(VERSION_UNREACHABLE) || versions.get(VERSION_UNREACHABLE).size() == 1);
-
+        return getDistinctReachableSchemas(versions).size() == 1
+                && (versions.getOrDefault(VERSION_UNREACHABLE, ImmutableList.of()).size() <= 1);
     }
 
     private static List<String> getDistinctReachableSchemas(Map<String, List<String>> versions) {

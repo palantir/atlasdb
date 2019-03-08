@@ -7,8 +7,8 @@ All products deploying against the AtlasDB Timelock service should adhere to the
 
 1. Ensure that the AtlasDB client config contains the ``timelock`` :ref:`config block <timelock-client-configuration>`.
 2. The `Jetty ALPN agent <https://github.com/jetty-project/jetty-alpn-agent#usage>`__ is added as a javaagent JVM argument.
-   All AtlasDB clients will already have ``jetty-alpn-agent-2.0.6.jar`` in the classpath. This is required to establish
-   HTTP/2 connections, and failure to include this will result in falling back to HTTP/1.1 connections and significant performance degradation.
+   All AtlasDB clients will already have some version of ``jetty-alpn-agent.jar`` in the classpath. This is required to establish
+   HTTP/2 connections, and failure to include this will result in falling back to HTTP/1.1 connections and significant performance degradation. For example,
 
     .. code-block:: yaml
 

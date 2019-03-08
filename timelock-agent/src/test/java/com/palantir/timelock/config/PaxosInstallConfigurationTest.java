@@ -18,6 +18,7 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,7 +29,7 @@ import org.junit.Test;
 public class PaxosInstallConfigurationTest {
 
     @Test
-    public void canCreateDirectoryForPaxosDirectoryIfNewService() {
+    public void doesNotCreateDirectoryForPaxosDirectoryIfNewService() {
         File mockFile = getMockFileWith(false, true);
 
         ImmutablePaxosInstallConfiguration.builder()
@@ -36,7 +37,7 @@ public class PaxosInstallConfigurationTest {
                 .isNewService(true)
                 .build();
 
-        verify(mockFile).mkdirs();
+        verify(mockFile, times(0)).mkdirs();
     }
 
     @Test
@@ -49,15 +50,6 @@ public class PaxosInstallConfigurationTest {
                 .build();
 
         verify(mockFile, atLeastOnce()).isDirectory();
-    }
-
-    @Test
-    public void throwsIfCannotCreatePaxosDirectory() {
-        File mockFile = getMockFileWith(false, false);
-
-        assertFailsToBuildConfiguration(ImmutablePaxosInstallConfiguration.builder()
-                .dataDirectory(mockFile)
-                .isNewService(true));
     }
 
     @Test

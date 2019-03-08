@@ -41,7 +41,6 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
-            CLIENT,
             "paxosThreeServers.yml");
 
     private static final TestableTimelockServer SERVER = CLUSTER.servers().get(0);

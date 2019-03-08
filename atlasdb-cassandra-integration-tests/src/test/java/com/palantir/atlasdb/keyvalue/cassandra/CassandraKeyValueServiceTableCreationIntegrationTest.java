@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -25,6 +26,9 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import org.apache.cassandra.thrift.CfDef;
+import org.apache.cassandra.thrift.KsDef;
+import org.apache.thrift.TException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,16 +37,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.MoreCollectors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -166,12 +173,33 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         kvs.dropTable(caseSensitiveTable);
     }
 
+    @Test
+    public void testCreateTransactions2TableProducesCorrectMetadata() throws TException {
+        kvs.createTable(
+                TransactionConstants.TRANSACTIONS2_TABLE,
+                TransactionConstants.TRANSACTIONS2_TABLE_METADATA.persistToBytes());
+
+        KsDef ksDef = kvs.getClientPool()
+                .run(client -> client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()));
+        CfDef transactions2CfDef = ksDef.cf_defs.stream()
+                .filter(cfDef -> cfDef.name.equals(
+                        AbstractKeyValueService.internalTableName(TransactionConstants.TRANSACTIONS2_TABLE)))
+                .collect(MoreCollectors.onlyElement());
+        assertThat(transactions2CfDef.bloom_filter_fp_chance, equalTo(
+                CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_BLOOM_FILTER_FP_CHANCE));
+        assertThat(transactions2CfDef.min_index_interval,
+                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
+        assertThat(transactions2CfDef.max_index_interval,
+                equalTo(CassandraConstants.DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL));
+        assertThat(transactions2CfDef.compression_options.get(CassandraConstants.CFDEF_COMPRESSION_CHUNK_LENGTH_KEY),
+                equalTo(String.valueOf(
+                        TransactionConstants.TRANSACTIONS2_TABLE_METADATA.getExplicitCompressionBlockSizeKB())));
+    }
+
     private static CassandraKeyValueService kvsWithSchemaMutationTimeout(int millis) {
         ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig
                 .copyOf(CASSANDRA.getConfig())
                 .withSchemaMutationTimeoutMillis(millis);
-        return CassandraKeyValueServiceImpl.createForTesting(
-                config,
-                CassandraResource.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(config);
     }
 }

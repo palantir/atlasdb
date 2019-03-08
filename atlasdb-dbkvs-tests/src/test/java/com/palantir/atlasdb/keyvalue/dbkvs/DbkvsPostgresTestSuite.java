@@ -28,6 +28,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresGetCandidateCellsForSweepingTest;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
@@ -36,7 +37,6 @@ import com.palantir.docker.compose.logging.LogDirectory;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
-import com.palantir.remoting.api.config.service.HumanReadableDuration;
 
 @RunWith(Suite.class)
 @SuiteClasses({

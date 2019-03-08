@@ -80,15 +80,15 @@ class CassandraTableCreator {
                 .addClusteringColumn(TIMESTAMP, DataType.bigint())
                 .addColumn(VALUE, DataType.blob())
                 .withOptions()
-                .bloomFilterFPChance(falsePositive(tableMetadata.hasNegativeLookups(), appendHeavyReadLight))
+                .bloomFilterFPChance(CassandraTableOptions.bloomFilterFpChance(tableMetadata))
                 .caching(SchemaBuilder.Caching.KEYS_ONLY)
                 .compactionOptions(getCompaction(appendHeavyReadLight))
                 .compactStorage()
                 .compressionOptions(getCompression(tableMetadata.getExplicitCompressionBlockSizeKB()))
                 .dcLocalReadRepairChance(0.1)
                 .gcGraceSeconds(config.gcGraceSeconds())
-                .minIndexInterval(128)
-                .maxIndexInterval(2048)
+                .minIndexInterval(CassandraTableOptions.minIndexInterval(tableMetadata))
+                .maxIndexInterval(CassandraTableOptions.maxIndexInterval(tableMetadata))
                 .populateIOCacheOnFlush(tableMetadata.getCachePriority() == CachePriority.HOTTEST)
                 .speculativeRetry(SchemaBuilder.noSpeculativeRetry())
                 .clusteringOrder(COLUMN, SchemaBuilder.Direction.ASC)
@@ -103,15 +103,6 @@ class CassandraTableCreator {
 
     private String wrapInQuotes(String string) {
         return "\"" + string + "\"";
-    }
-
-    private double falsePositive(boolean negativeLookups, boolean appendHeavyAndReadLight) {
-        if (appendHeavyAndReadLight) {
-            return negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE
-                    : CassandraConstants.DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
-        }
-        return negativeLookups ? CassandraConstants.NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE
-                : CassandraConstants.DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE;
     }
 
     private CompactionOptions<?> getCompaction(boolean appendHeavyReadLight) {
