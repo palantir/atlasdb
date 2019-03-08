@@ -43,7 +43,6 @@ public class PaxosLeaderElectionServiceTest {
                 .randomWaitBeforeProposingLeadershipMs(0L)
                 .leaderPingResponseWaitMs(0L)
                 .eventRecorder(mock(PaxosLeadershipEventRecorder.class))
-                .onlyLogOnQuorumFailure(() -> true)
                 .build();
 
         assertThat(service.getPotentialLeaders()).containsExactlyInAnyOrder(other, service);
