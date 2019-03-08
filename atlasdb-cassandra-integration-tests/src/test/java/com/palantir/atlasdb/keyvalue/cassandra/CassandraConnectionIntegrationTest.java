@@ -39,8 +39,6 @@ public class CassandraConnectionIntegrationTest {
 
     @Test
     public void testAuthMissing() {
-        CassandraKeyValueServiceImpl.createForTesting(
-                NO_CREDS_CKVS_CONFIG,
-                CassandraResource.LEADER_CONFIG).close();
+        CassandraKeyValueServiceImpl.createForTesting(NO_CREDS_CKVS_CONFIG).close();
     }
 }

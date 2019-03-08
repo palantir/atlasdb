@@ -52,7 +52,6 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
-                CassandraResource.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000));
     }
 
@@ -63,7 +62,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
         }
     }
 
-    private String makeLongRandomString() {
+    private static String makeLongRandomString() {
         return RandomStringUtils.random(1_000_000);
     }
 }

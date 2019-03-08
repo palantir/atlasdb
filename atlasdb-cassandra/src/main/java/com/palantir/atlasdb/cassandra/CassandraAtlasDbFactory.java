@@ -54,7 +54,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
+            Optional<LeaderConfig> unused,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync) {
@@ -66,7 +66,6 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
                 metricsManager,
                 preprocessedConfig,
                 cassandraRuntimeConfig,
-                leaderConfig,
                 CassandraMutationTimestampProviders.singleLongSupplierBacked(freshTimestampSource),
                 initializeAsync);
     }

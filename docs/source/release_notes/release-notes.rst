@@ -60,6 +60,10 @@ develop
            Please contact the AtlasDB team if you think this affects your workflows.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3807>`__)
 
+    *    - |fixed|
+         - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3811>`__)
+    
     *    - |improved|
          - ``CassandraKeyValueService`` now exposes a lightweight method for obtaining row keys.
            If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.

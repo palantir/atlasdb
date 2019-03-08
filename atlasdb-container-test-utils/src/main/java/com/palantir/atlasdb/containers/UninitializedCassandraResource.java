@@ -72,7 +72,6 @@ public class UninitializedCassandraResource extends ExternalResource {
                 MetricsManagers.createForTests(),
                 containerInstance.getConfig(),
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
-                CassandraContainer.LEADER_CONFIG,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 true);
     }

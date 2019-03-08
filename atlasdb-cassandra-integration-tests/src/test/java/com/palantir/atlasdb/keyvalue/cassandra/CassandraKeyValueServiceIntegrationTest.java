@@ -92,7 +92,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-            CassandraResource.LEADER_CONFIG,
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
             logger));
 
@@ -150,7 +149,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         kvs3.close();
     }
 
-    private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
+    private static void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
                 client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
@@ -192,7 +191,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
-    private String getInternalTestTableName() {
+    private static String getInternalTestTableName() {
         return NEVER_SEEN.getQualifiedName().replaceFirst("\\.", "__");
     }
 
@@ -365,12 +364,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         verify(logger, never()).error(anyString(), any(Object.class));
     }
 
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+    private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraResource.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
                 testLogger);
     }
@@ -399,7 +397,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         });
     }
 
-    private String convertBytesToHexString(byte[] bytes) {
+    private static String convertBytesToHexString(byte[] bytes) {
         return "0x" + BaseEncoding.base16().lowerCase().encode(bytes);
     }
 

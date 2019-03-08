@@ -49,9 +49,13 @@ public final class AtlasDbConstants {
             "_schema_metadata");
 
     // Deprecated tables
+    public static final TableReference SWEEP_PROGRESS_V1 = TableReference.createFromFullyQualifiedName("sweep.progress");
     public static final TableReference SWEEP_PROGRESS_V1_5 = TableReference.createWithEmptyNamespace("_sweep_progress1_5");
     public static final TableReference SWEEP_PROGRESS_V2 = TableReference.createWithEmptyNamespace("_sweep_progress2");
     public static final String LOCK_TABLE_PREFIX = "_locks";
+
+    public static final ImmutableSet<TableReference> DEPRECATED_SWEEP_TABLES_WITH_NO_METADATA =
+            ImmutableSet.of(SWEEP_PROGRESS_V1, SWEEP_PROGRESS_V1_5, SWEEP_PROGRESS_V2);
 
     public static final String PRIMARY_KEY_CONSTRAINT_PREFIX = "pk_";
 

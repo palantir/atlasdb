@@ -17,16 +17,12 @@ package com.palantir.atlasdb.containers;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -54,13 +50,6 @@ public class ThreeNodeCassandraCluster extends Container {
             .autoRefreshNodes(false)
             .build();
 
-    public static final Optional<LeaderConfig> LEADER_CONFIG = Optional.of(ImmutableLeaderConfig
-            .builder()
-            .quorumSize(1)
-            .localServer("localhost")
-            .leaders(ImmutableSet.of("localhost"))
-            .build());
-
     @Override
     public String getDockerComposeFile() {
         return "/docker-compose-cassandra-three-node.yml";
@@ -86,9 +75,7 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     private static boolean canCreateCassandraKeyValueService() {
-        return CassandraKeyValueServiceImpl.createForTesting(
-                KVS_CONFIG,
-                LEADER_CONFIG)
+        return CassandraKeyValueServiceImpl.createForTesting(KVS_CONFIG)
                 .isInitialized();
     }
 }

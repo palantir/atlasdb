@@ -91,7 +91,6 @@ public final class PaxosConsensusTestUtils {
                     .pingRateMs(0L)
                     .randomWaitBeforeProposingLeadershipMs(0L)
                     .leaderPingResponseWaitMs(0L)
-                    .onlyLogOnQuorumFailure(() -> true)
                     .build();
             leaders.add(SimulatingFailingServerProxy.newProxyInstance(
                     LeaderElectionService.class,

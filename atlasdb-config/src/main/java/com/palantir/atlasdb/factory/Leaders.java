@@ -33,7 +33,6 @@ import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -182,7 +181,6 @@ public final class Leaders {
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
-                .onlyLogOnQuorumFailure(Suppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime::get))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
