@@ -95,6 +95,10 @@ public class SweepableCells extends SweepQueueTable {
     Map<Cell, byte[]> populateCells(PartitionInfo partitionInfo, List<WriteInfo> writes) {
         Map<Cell, byte[]> cells = new HashMap<>();
         boolean dedicate = writes.size() > SweepQueueUtils.MAX_CELLS_GENERIC;
+        if (dedicate) {
+            log.info("Attempting to write to dedicated rows {} writes.",
+                    SafeArg.of("writeInfoSize", writes.size()));
+        }
 
         long index = 0;
         for (WriteInfo write : writes) {
