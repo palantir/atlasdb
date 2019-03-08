@@ -38,7 +38,6 @@ public class TimestampRangesTest {
     @DataPoints
     public static SearchOption[] searchOptions = SearchOption.values();
 
-    //these tests should hold for both highest value and lowest value search
     @Theory
     public void canGetTimestampFromRangeIfItIsTheLowerBound(SearchOption searchOption) {
         assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))

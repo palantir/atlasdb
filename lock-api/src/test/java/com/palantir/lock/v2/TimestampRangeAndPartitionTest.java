@@ -27,25 +27,23 @@ public class TimestampRangeAndPartitionTest {
     private static final int PARTITION = 2;
 
     @Test
-    public void getTimestampsShouldYieldCorrectResult_singleTimestamp() {
+    public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
         long timestamp = PARTITION + SharedConstants.TRANSACTION_NUM_PARTITIONS;
         TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
                 TimestampRange.createInclusiveRange(timestamp, timestamp),
-                PARTITION
-        );
+                PARTITION);
 
         assertThat(timestampRange.getStartTimestamps()).containsOnly(timestamp);
     }
 
     @Test
-    public void getTimestampsShouldYieldCorrectResult_multipleTimestamps() {
+    public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_multipleTimestamps() {
         long lowerTimestamp = PARTITION + SharedConstants.TRANSACTION_NUM_PARTITIONS;
         long middleTimestamp = PARTITION + 2 * SharedConstants.TRANSACTION_NUM_PARTITIONS;
         long upperTimestamp = PARTITION + 3 * SharedConstants.TRANSACTION_NUM_PARTITIONS;
         TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
                 TimestampRange.createInclusiveRange(lowerTimestamp, upperTimestamp),
-                PARTITION
-        );
+                PARTITION);
 
         assertThat(timestampRange.getStartTimestamps()).containsOnly(lowerTimestamp, middleTimestamp, upperTimestamp);
     }

@@ -350,27 +350,27 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void temporalOrderingIsPreservedForBatchedStartTransactionRequests() {
         UUID requestor = UUID.randomUUID();
-        List<Long> allTimestams = new ArrayList<>();
+        List<Long> allTimestamps = new ArrayList<>();
 
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 1));
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 4));
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
 
-        assertThat(allTimestams).isSorted();
+        assertThat(allTimestamps).isSorted();
     }
 
     @Test
     public void temporalOrderingIsPreservedBetweenDifferentRequestorsForBatchedStartTransactionRequests() {
         UUID requestor = UUID.randomUUID();
         UUID requestor2 = UUID.randomUUID();
-        List<Long> allTimestams = new ArrayList<>();
+        List<Long> allTimestamps = new ArrayList<>();
 
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 1));
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor2, 4));
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor, 20));
-        allTimestams.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
 
-        assertThat(allTimestams).isSorted();
+        assertThat(allTimestamps).isSorted();
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
