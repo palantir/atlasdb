@@ -19,16 +19,15 @@ package com.palantir.lock.client;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.v2.TimestampRangeAndPartition;
-import com.palantir.timestamp.TimestampRange;
 
 final class CoalescingTransactionService {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
@@ -42,21 +41,13 @@ final class CoalescingTransactionService {
         return new CoalescingTransactionService(DisruptorAutobatcher.create(batch -> {
             int numTransactions = batch.size();
 
-            BatchedStartTransactionResponse response = lockLeaseService.batchedStartTransaction(numTransactions);
-            LockToken immutableTsLock = response.immutableTimestamp().getLock();
+            List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
+                    startTransactions(lockLeaseService, numTransactions);
 
-            List<LockToken> lockTokenShares = LockTokenShare.share(immutableTsLock, numTransactions);
-            List<Long> startTimestamps = getStartTimestamps(response.startTimestamps());
-
-            for (int i = 0; i < batch.size(); i++) {
-                batch.get(i).result().set(
-                        StartIdentifiedAtlasDbTransactionResponse.of(
-                                LockImmutableTimestampResponse.of(
-                                        response.immutableTimestamp().getImmutableTimestamp(),
-                                        lockTokenShares.get(i)),
-                                TimestampAndPartition.of(startTimestamps.get(i), response.startTimestamps().partition()))
-                );
-            }}));
+            for (int i = 0; i < numTransactions; i++) {
+                batch.get(i).result().set(startTransactionResponses.get(i));
+            }
+        }));
     }
 
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
@@ -69,16 +60,31 @@ final class CoalescingTransactionService {
         }
     }
 
-    private static List<Long> getStartTimestamps(TimestampRangeAndPartition timestampRangeAndPartition) {
-        TimestampRange timestampRange = timestampRangeAndPartition.range();
-        int partition = timestampRangeAndPartition.partition();
-        List<Long> result = new ArrayList<>();
-
-        for (long timestamp = timestampRange.getLowerBound(); timestamp <= timestampRange.getUpperBound(); timestamp += partition) {
-            result.add(timestamp);
+    private static List<StartIdentifiedAtlasDbTransactionResponse> startTransactions(
+            LockLeaseService lockLeaseService, int numberOfTransactions) {
+        List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
+        while (result.size() < numberOfTransactions) {
+            result.addAll(split(lockLeaseService.batchedStartTransaction(numberOfTransactions - result.size())));
         }
-
-        return result;
+        return result.subList(0, numberOfTransactions);
     }
 
+    private static List<StartIdentifiedAtlasDbTransactionResponse> split(BatchedStartTransactionResponse batchedResponse) {
+        LockImmutableTimestampResponse immutableTsAndLock = batchedResponse.immutableTimestamp();
+        long[] startTimestamps = batchedResponse.timestampRange().getStartTimestamps();
+        int partition = batchedResponse.timestampRange().partition();
+
+        List<LockImmutableTimestampResponse> immutableTsAndLocks =
+                LockTokenShare.share(immutableTsAndLock.getLock(), startTimestamps.length).stream()
+                        .map(token ->
+                                LockImmutableTimestampResponse.of(immutableTsAndLock.getImmutableTimestamp(), token))
+                        .collect(Collectors.toList());
+
+        return IntStream.range(0, startTimestamps.length)
+                .mapToObj(i -> StartIdentifiedAtlasDbTransactionResponse.of(
+                        immutableTsAndLocks.get(i),
+                        TimestampAndPartition.of(startTimestamps[i], partition)
+                ))
+                .collect(Collectors.toList());
+    }
 }

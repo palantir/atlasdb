@@ -88,7 +88,7 @@ class LockLeaseService {
 
         return BatchedStartTransactionResponse.of(
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                response.startTimestamps(),
+                response.timestampRange(),
                 lease);
     }
 
