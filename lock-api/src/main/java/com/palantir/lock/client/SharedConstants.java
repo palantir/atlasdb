@@ -20,5 +20,5 @@ public final class SharedConstants {
     private SharedConstants() {/* */}
 
     // DO NOT change without a transactions table migration!
-    public static final int TRANSACTION_NUM_PARTITIONS = 16;
+    public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 }

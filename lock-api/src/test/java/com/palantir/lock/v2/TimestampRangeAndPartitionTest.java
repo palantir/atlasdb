@@ -28,7 +28,7 @@ public class TimestampRangeAndPartitionTest {
 
     @Test
     public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
-        long timestamp = PARTITION + SharedConstants.TRANSACTION_NUM_PARTITIONS;
+        long timestamp = PARTITION + SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
         TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
                 TimestampRange.createInclusiveRange(timestamp, timestamp),
                 PARTITION);
@@ -38,9 +38,9 @@ public class TimestampRangeAndPartitionTest {
 
     @Test
     public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_multipleTimestamps() {
-        long lowerTimestamp = PARTITION + SharedConstants.TRANSACTION_NUM_PARTITIONS;
-        long middleTimestamp = PARTITION + 2 * SharedConstants.TRANSACTION_NUM_PARTITIONS;
-        long upperTimestamp = PARTITION + 3 * SharedConstants.TRANSACTION_NUM_PARTITIONS;
+        long lowerTimestamp = PARTITION + SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
+        long middleTimestamp = PARTITION + 2 * SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
+        long upperTimestamp = PARTITION + 3 * SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
         TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
                 TimestampRange.createInclusiveRange(lowerTimestamp, upperTimestamp),
                 PARTITION);

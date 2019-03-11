@@ -40,9 +40,6 @@ public class TransactionConstants {
 
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
-    // DO NOT change without a transactions table migration!
-    public static final int V2_TRANSACTION_NUM_PARTITIONS = SharedConstants.TRANSACTION_NUM_PARTITIONS;
-
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;
     public static final int TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 2;
     public static final Set<Integer> SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS = ImmutableSet.of(

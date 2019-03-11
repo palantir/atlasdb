@@ -39,7 +39,7 @@ public interface TimestampRangeAndPartition {
     @JsonIgnore
     default long[] getStartTimestamps() {
         return LongStream.rangeClosed(range().getLowerBound(), range().getUpperBound())
-                .filter(timestamp -> timestamp % SharedConstants.TRANSACTION_NUM_PARTITIONS == partition())
+                .filter(timestamp -> timestamp % SharedConstants.V2_TRANSACTION_NUM_PARTITIONS == partition())
                 .toArray();
     }
 
