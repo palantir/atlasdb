@@ -13,9 +13,6 @@ if (enableErrorProne.toBoolean()) {
     compileJava {
         options.compilerArgs += ['-Xep:PreconditionsConstantMessage:OFF']
         options.compilerArgs += ['-Xep:ValidateConstantMessage:OFF']
-
-        // I'd like to change this, but preserving log message format for now
-        options.compilerArgs += ['-Xep:CatchBlockLogException:OFF']
     }
 
     compileTestJava {
