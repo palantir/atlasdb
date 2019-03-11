@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,18 +25,15 @@ import java.util.concurrent.Callable;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.TreeMultimap;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -145,7 +141,7 @@ class CellLoader {
                                         loadAllTs ? SlicePredicates.Limit.NO_LIMIT : SlicePredicates.Limit.ONE;
                                 SlicePredicate predicate = SlicePredicates.create(range, limit);
 
-                                query.add(new KeyPredicate().setPredicate(predicate));
+                                query.add(new KeyPredicate().setKey(cell.getRowName()).setPredicate(predicate));
                             }
 
                             if (log.isTraceEnabled()) {
@@ -157,15 +153,10 @@ class CellLoader {
                                         SafeArg.of("host", CassandraLogHelper.host(host)));
                             }
 
-                            Map<KeyPredicate, List<ColumnOrSuperColumn>> results = queryRunner.multiget_multislice(
+                            Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
-                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.newHashMap();
-                            results.forEach((keyPredicate, columns) -> {
-                                aggregatedResults.merge(keyPredicate.key, columns, (existingColumns, newColumns) -> {
-                                    existingColumns.addAll(newColumns);
-                                    return existingColumns;
-                                });
-                            });
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
+                                    lists -> Lists.newArrayList(Iterables.concat(lists)));
                             visitor.visit(aggregatedResults);
                             return null;
                         }

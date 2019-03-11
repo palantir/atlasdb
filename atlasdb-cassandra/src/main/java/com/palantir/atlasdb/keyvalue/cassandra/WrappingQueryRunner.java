@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
@@ -74,7 +75,7 @@ class WrappingQueryRunner {
         }
     }
 
-    Map<KeyPredicate, List<ColumnOrSuperColumn>> multiget_multislice(
+    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
             String kvsMethodName,
             CassandraClient client,
             TableReference tableRef,

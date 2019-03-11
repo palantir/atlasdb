@@ -28,6 +28,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
@@ -61,7 +62,7 @@ public interface CassandraClient {
             SlicePredicate predicate, ConsistencyLevel consistency_level)
             throws InvalidRequestException, UnavailableException, TimedOutException, org.apache.thrift.TException;
 
-    Map<KeyPredicate, List<ColumnOrSuperColumn>> multiget_multislice(
+    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
             String kvsMethodName,
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
