@@ -24,7 +24,6 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.TimeLimit;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.atlasdb.timelock.transaction.timestamp.BatchingTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
@@ -46,7 +45,7 @@ import com.palantir.timestamp.TimestampRange;
 public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private final AsyncLockService lockService;
-    private final BatchingTimestampService timestampService;
+    private final ClientAwareManagedTimestampService timestampService;
 
     public AsyncTimelockServiceImpl(
             AsyncLockService lockService,
@@ -68,11 +67,6 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         return timestampService.getFreshTimestamps(numTimestampsRequested);
-    }
-
-    @Override
-    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
-        return timestampService.getFreshTimestampForClient(clientIdentifier);
     }
 
     @Override

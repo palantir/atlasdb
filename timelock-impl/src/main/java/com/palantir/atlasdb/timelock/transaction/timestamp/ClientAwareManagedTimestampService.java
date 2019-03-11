@@ -39,4 +39,6 @@ public interface ClientAwareManagedTimestampService extends ManagedTimestampServ
      * @return a suitable timestamp
      */
     TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier);
+
+    TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested);
 }

@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
-import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.BatchedStartTransactionRequest;
@@ -34,7 +34,7 @@ import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
-public interface AsyncTimelockService extends ClientAwareManagedTimestampService, Closeable {
+public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
 
     long currentTimeMillis();
 

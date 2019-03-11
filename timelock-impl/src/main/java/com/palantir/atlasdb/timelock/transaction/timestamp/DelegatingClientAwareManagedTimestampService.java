@@ -36,7 +36,7 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
 
 public class DelegatingClientAwareManagedTimestampService
-        implements AutoDelegate_ManagedTimestampService, BatchingTimestampService {
+        implements AutoDelegate_ManagedTimestampService, ClientAwareManagedTimestampService {
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     @VisibleForTesting
@@ -53,7 +53,7 @@ public class DelegatingClientAwareManagedTimestampService
         this.delegate = delegate;
     }
 
-    public static BatchingTimestampService createDefault(ManagedTimestampService delegate) {
+    public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
         NumericPartitionAllocator<UUID> allocator = CachingPartitionAllocator.createDefault(NUM_PARTITIONS);
         return new DelegatingClientAwareManagedTimestampService(allocator, delegate);
     }
