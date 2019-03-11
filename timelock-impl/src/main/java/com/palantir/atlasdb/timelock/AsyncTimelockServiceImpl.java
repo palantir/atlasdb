@@ -137,7 +137,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
                 lockImmutableTimestampWithLease(request.requestId());
 
         TimestampRangeAndPartition timestampRangeAndPartition =
-                timestampService.getFreshTimestampsForClient(request.requestorId(), request.batchSize());
+                timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions());
 
         return BatchedStartTransactionResponse.of(
                 leasedLockImmutableTimestampResponse.value(),

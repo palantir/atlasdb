@@ -34,13 +34,13 @@ public interface BatchedStartTransactionRequest {
     UUID requestorId();
 
     @Value.Parameter
-    int batchSize();
+    int numTransactions();
 
     static BatchedStartTransactionRequest createForRequestor(UUID requestorUuid, int batchSize) {
         return ImmutableBatchedStartTransactionRequest.builder()
                 .requestId(UUID.randomUUID())
                 .requestorId(requestorUuid)
-                .batchSize(batchSize)
+                .numTransactions(batchSize)
                 .build();
     }
 }
