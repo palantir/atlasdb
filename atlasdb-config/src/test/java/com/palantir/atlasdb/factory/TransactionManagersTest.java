@@ -516,15 +516,30 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void kvsHasSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
+    public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
+    public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+    }
+
+    private KeyValueService initializeKeyValueServiceWithSweepSettings(
+            boolean enableSweepQueueWrites, boolean enableTargetedSweep) {
         AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
-                        .enableSweepQueueWrites(true)
+                        .enableSweepQueueWrites(enableSweepQueueWrites)
                         .build())
                 .build();
         AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
-                .targetedSweep(ImmutableTargetedSweepRuntimeConfig.disabled())
+                .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
+                        .enabled(enableTargetedSweep)
+                        .shards(7)
+                        .build())
                 .build();
 
         TransactionManager manager = TransactionManagers.builder()
@@ -537,9 +552,7 @@ public class TransactionManagersTest {
                 .runtimeConfigSupplier(() -> Optional.of(atlasDbRuntimeConfig))
                 .build()
                 .serializable();
-        KeyValueService keyValueService = manager.getKeyValueService();
-
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+        return manager.getKeyValueService();
     }
 
     private static boolean isSweepStatsKvsPresentInDelegatingChain(KeyValueService keyValueService) {
