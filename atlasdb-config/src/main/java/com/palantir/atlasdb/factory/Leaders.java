@@ -204,16 +204,6 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
-            Class<T> clazz) {
-        return createProxyAndLocalList(metrics, localObject, remoteUris, trustContext,
-                clazz, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static <T> List<T> createProxyAndLocalList(
-            MetricRegistry metrics,
-            T localObject,
-            Set<String> remoteUris,
-            Optional<TrustContext> trustContext,
             Class<T> clazz,
             String userAgent) {
         return ImmutableList.copyOf(Iterables.concat(
