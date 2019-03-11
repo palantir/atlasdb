@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ToLongFunction;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Mutation;
@@ -26,9 +27,11 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.Mutations;
 import com.palantir.common.base.FunctionCheckedException;
@@ -50,26 +53,24 @@ class CellRangeDeleter {
         this.rangeTombstoneTimestampProvider = rangeTombstoneTimestampProvider;
     }
 
-    void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        if (maxTimestampExclusiveByCell.isEmpty()) {
+    void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        if (deletes.isEmpty()) {
             return;
         }
 
-        Map<InetSocketAddress, Map<Cell, Long>> keysByHost = HostPartitioner.partitionMapByHost(
-                clientPool, maxTimestampExclusiveByCell.entrySet());
+        Map<InetSocketAddress, Map<Cell, TimestampRangeDelete>> keysByHost = HostPartitioner.partitionMapByHost(
+                clientPool, deletes.entrySet());
 
         // this is required by the interface of the CassandraMutationTimestampProvider, although it exists for tests
-        long maxTimestampForAllCells = maxTimestampExclusiveByCell.values().stream()
-                .mapToLong(x -> x).max().getAsLong();
+        long maxTimestampForAllCells = deletes.values().stream()
+                .mapToLong(TimestampRangeDelete::timestamp).max().getAsLong();
         long rangeTombstoneCassandraTimestamp =
                 rangeTombstoneTimestampProvider.applyAsLong(maxTimestampForAllCells);
-        for (Map.Entry<InetSocketAddress, Map<Cell, Long>> entry : keysByHost.entrySet()) {
+        for (Map.Entry<InetSocketAddress, Map<Cell, TimestampRangeDelete>> entry : keysByHost.entrySet()) {
             deleteAllTimestampsOnSingleHost(
                     tableRef,
                     entry.getKey(),
                     entry.getValue(),
-                    deleteSentinels,
                     rangeTombstoneCassandraTimestamp);
         }
     }
@@ -77,10 +78,9 @@ class CellRangeDeleter {
     private void deleteAllTimestampsOnSingleHost(
             TableReference tableRef,
             InetSocketAddress host,
-            Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels,
+            Map<Cell, TimestampRangeDelete> deletes,
             long rangeTombstoneCassandraTs) {
-        if (maxTimestampExclusiveByCell.isEmpty()) {
+        if (deletes.isEmpty()) {
             return;
         }
 
@@ -89,15 +89,14 @@ class CellRangeDeleter {
 
                 @Override
                 public Void apply(CassandraClient client) throws Exception {
-                    insertRangeTombstones(client, maxTimestampExclusiveByCell, tableRef,
-                            deleteSentinels, rangeTombstoneCassandraTs);
+                    insertRangeTombstones(client, deletes, tableRef, rangeTombstoneCassandraTs);
                     return null;
                 }
 
                 @Override
                 public String toString() {
                     return "delete_timestamp_ranges_batch_mutate(" + host + ", " + tableRef.getQualifiedName() + ", "
-                            + maxTimestampExclusiveByCell.size() + " column timestamp ranges)";
+                            + deletes.size() + " column timestamp ranges)";
                 }
             });
         } catch (UnavailableException e) {
@@ -108,13 +107,31 @@ class CellRangeDeleter {
         }
     }
 
-    private void insertRangeTombstones(CassandraClient client, Map<Cell, Long> maxTimestampExclusiveByCell,
-            TableReference tableRef, boolean deleteSentinel, long rangeTombstoneCassandraTs) throws TException {
+    /**
+     * If we are deleting inclusive, we must first delete exclusive. This is because although we delete at consistency
+     * all, this doesn't mean that the write fails if there are nodes down; it means that the write partially applies
+     * if there are nodes down. This leads to a scenario where data can come back from the dead in some situations.
+     * This can only affect us if there is no covering tombstone, so we make sure that we've deleted all historical
+     * versions before deleting the latest cell (which is an Atlas level tombstone).
+     */
+    private void insertRangeTombstones(
+            CassandraClient client, Map<Cell, TimestampRangeDelete> deletes,
+            TableReference tableRef, long rangeTombstoneCassandraTs) throws TException {
+        insertTombstones(client, deletes, tableRef, rangeTombstoneCassandraTs, TimestampRangeDelete::timestamp);
+        insertTombstones(client, Maps.filterValues(deletes, TimestampRangeDelete::endInclusive),
+                tableRef, rangeTombstoneCassandraTs, delete -> delete.maxTimestampToDelete() + 1);
+    }
+
+    private void insertTombstones(
+            CassandraClient client,
+            Map<Cell, TimestampRangeDelete> deletes,
+            TableReference tableRef,
+            long rangeTombstoneCassandraTs,
+            ToLongFunction<TimestampRangeDelete> exclusiveMaxTimestampToDelete) throws TException {
         MutationMap mutationMap = new MutationMap();
 
-        maxTimestampExclusiveByCell.forEach((cell, maxTimestampExclusive) -> {
-            Mutation mutation = getMutation(cell, maxTimestampExclusive, deleteSentinel, rangeTombstoneCassandraTs);
-
+        deletes.forEach((cell, delete) -> {
+            Mutation mutation = getMutation(cell, delete, rangeTombstoneCassandraTs, exclusiveMaxTimestampToDelete);
             mutationMap.addMutationForCell(cell, tableRef, mutation);
         });
 
@@ -122,15 +139,9 @@ class CellRangeDeleter {
                 deleteConsistency);
     }
 
-    private Mutation getMutation(Cell cell, long maxTimestampExclusive,
-            boolean deleteSentinel, long rangeTombstoneCassandraTimestamp) {
-        if (deleteSentinel) {
-            return Mutations.rangeTombstoneIncludingSentinelForColumn(cell.getColumnName(), maxTimestampExclusive,
-                    rangeTombstoneCassandraTimestamp);
-        }
-        return Mutations.rangeTombstoneForColumn(
-                cell.getColumnName(),
-                maxTimestampExclusive,
-                rangeTombstoneCassandraTimestamp);
+    private Mutation getMutation(Cell cell, TimestampRangeDelete delete,
+            long rangeTombstoneCassandraTimestamp, ToLongFunction<TimestampRangeDelete> exclusiveTimestampExtractor) {
+        return Mutations.fromTimestampRangeDelete(
+                cell.getColumnName(), delete, rangeTombstoneCassandraTimestamp, exclusiveTimestampExtractor);
     }
 }
