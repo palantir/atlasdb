@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.BatchedStartTransactionResponse;
@@ -69,7 +70,8 @@ final class CoalescingTransactionService {
         return result.subList(0, numberOfTransactions);
     }
 
-    private static List<StartIdentifiedAtlasDbTransactionResponse> split(BatchedStartTransactionResponse batchedResponse) {
+    @VisibleForTesting
+    static List<StartIdentifiedAtlasDbTransactionResponse> split(BatchedStartTransactionResponse batchedResponse) {
         LockImmutableTimestampResponse immutableTsAndLock = batchedResponse.immutableTimestamp();
         long[] startTimestamps = batchedResponse.timestampRange().getStartTimestamps();
         int partition = batchedResponse.timestampRange().partition();
