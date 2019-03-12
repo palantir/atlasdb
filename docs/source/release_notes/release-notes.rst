@@ -53,7 +53,7 @@ develop
     *    - |fixed| |userbreak|
          - Background Sweep will now continue to prioritise tables accordingly, if writes to the sweep queue are enabled but targeted sweep is disabled.
            Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3xxx>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3824>`__)
 
     *    - |fixed|
          - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
