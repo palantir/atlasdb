@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Improved the startup check that verifies the correctness of the timestamp source to impose tighter constraints. Now uses a recent value from the puncher store
+           rather than the unreadable timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3825>`__)
+
     *    - |fixed|
          - ``KeyValueService`` and ``CassandraKeyValueService`` in particular now has tighter consistency guarantees in the presence of failures.
            Previously, inconsistent deletes to thoroughly swept tables could result in readers serving stale versions of cells.

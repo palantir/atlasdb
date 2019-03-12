@@ -188,26 +188,31 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Improved the startup check that verifies the correctness of the timestamp source to impose tighter constraints. Now uses a recent value from the puncher store
+rather than the unreadable timestamp.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3825">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">KeyValueService</span></code> and <code class="docutils literal notranslate"><span class="pre">CassandraKeyValueService</span></code> in particular now has tighter consistency guarantees in the presence of failures.
 Previously, inconsistent deletes to thoroughly swept tables could result in readers serving stale versions of cells.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3807">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>The contract of <code class="docutils literal notranslate"><span class="pre">deleteAllTimestamps</span></code> has been strengthened, and the default implementation has been removed.
 Please contact the AtlasDB team if you think this affects your workflows.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3807">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug in <code class="docutils literal notranslate"><span class="pre">PaxosQuorumChecker</span></code> causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3811">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">CassandraKeyValueService</span></code> now exposes a lightweight method for obtaining row keys.
 If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3757">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The minimum Postgres version is now 9.5.2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3786">Pull Request</a>)</td>
 </tr>
