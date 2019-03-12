@@ -550,7 +550,6 @@ public class TransactionManagersTest {
         AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
                 .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
                         .enabled(enableTargetedSweep)
-                        .shards(7)
                         .build())
                 .build();
 

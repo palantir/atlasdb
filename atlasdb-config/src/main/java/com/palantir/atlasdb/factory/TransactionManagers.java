@@ -311,7 +311,7 @@ public abstract class TransactionManagers {
             kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
             // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want to
-            // at least retain the option to perform background sweep, which require updating the priority table.
+            // at least retain the option to perform background sweep, which requires updating the priority table.
             if (!targetedSweepIsFullyEnabled()) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
