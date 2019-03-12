@@ -440,8 +440,8 @@ public abstract class TransactionManagers {
     }
 
     private boolean targetedSweepIsFullyEnabled() {
-        return config().targetedSweep().enableSweepQueueWrites() &&
-                runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
+        return config().targetedSweep().enableSweepQueueWrites()
+                && runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
     }
 
     private TransactionSchemaInstaller initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
