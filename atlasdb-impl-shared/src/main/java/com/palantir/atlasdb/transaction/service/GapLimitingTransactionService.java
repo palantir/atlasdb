@@ -50,7 +50,7 @@ public class GapLimitingTransactionService implements TransactionService {
      * _transactions2 table (e.g. as part of a restore).
      *
      * @param delegate underlying transaction service
-     * @return a {@link TransactionService} that routes calls to the delegates and enforces a gap equal to a quantum.
+     * @return a {@link TransactionService} that routes calls to the delegates and enforces a gap equal to a quantum
      */
     public static TransactionService createDefaultForV2(TransactionService delegate) {
         return new GapLimitingTransactionService(delegate, () -> TransactionConstants.V2_PARTITIONING_QUANTUM);
