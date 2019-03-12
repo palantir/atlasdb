@@ -310,7 +310,8 @@ public abstract class TransactionManagers {
             kvs = ProfilingKeyValueService.create(kvs);
             kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
-            // The sweep stats key value service records information needed for Background Sweep to operate.
+            // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want to
+            // at least retain the option to perform background sweep, which require updating the priority table.
             if (!targetedSweepIsFullyEnabled()) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),

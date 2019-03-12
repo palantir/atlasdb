@@ -516,6 +516,18 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
+    public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
     public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
