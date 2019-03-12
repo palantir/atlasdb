@@ -40,6 +40,7 @@ public class TransactionConstants {
     public static final long APPROX_IN_MEM_CELL_OVERHEAD_BYTES = 16;
 
     // DO NOT change without a transactions table migration!
+    public static final long V2_PARTITIONING_QUANTUM = 25_000_000;
     public static final int V2_TRANSACTION_NUM_PARTITIONS = 16;
 
     public static final int DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION = 1;

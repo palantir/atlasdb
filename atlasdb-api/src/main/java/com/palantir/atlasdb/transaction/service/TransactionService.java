@@ -48,6 +48,18 @@ public interface TransactionService extends AutoCloseable {
     @CheckForNull
     Long get(long startTimestamp);
 
+    /**
+     * Gets the commit timestamps associated with given start timestamps.
+     * For each individual timestamp, non-null responses may be cached on the client-side. Null responses must not be
+     * cached, as they could subsequently be updated.
+     *
+     * Timestamps provided may not be present as a key in the map - if so, this means that the transaction with
+     * that start timestamp has not been committed at some point between the request being made and it returning.
+     *
+     * @param startTimestamps start timestamps of transactions being looked up
+     * @return mapping of start timestamps to commit timestamps; transactions that have not committed yet are not
+     * included in the mapping.
+     */
     Map<Long, Long> get(Iterable<Long> startTimestamps);
 
     /**

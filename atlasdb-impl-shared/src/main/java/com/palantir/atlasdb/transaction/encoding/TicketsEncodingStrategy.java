@@ -48,7 +48,7 @@ public enum TicketsEncodingStrategy implements TimestampEncodingStrategy {
     private static final byte[] ABORTED_TRANSACTION_VALUE = PtBytes.EMPTY_BYTE_ARRAY;
 
     // DO NOT change the following without a transactions table migration!
-    public static final long PARTITIONING_QUANTUM = 25_000_000;
+    public static final long PARTITIONING_QUANTUM = TransactionConstants.V2_PARTITIONING_QUANTUM;
     public static final int ROWS_PER_QUANTUM = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
 
 
