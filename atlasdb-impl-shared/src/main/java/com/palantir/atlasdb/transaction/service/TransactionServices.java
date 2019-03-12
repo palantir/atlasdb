@@ -59,8 +59,10 @@ public final class TransactionServices {
     }
 
     private static TransactionService createV2TransactionService(KeyValueService keyValueService) {
-        return new PreStartHandlingTransactionService(WriteBatchingTransactionService.create(
-                        SimpleTransactionService.createV2(keyValueService)));
+        return GapLimitingTransactionService.createDefaultForV2(
+                new PreStartHandlingTransactionService(
+                        WriteBatchingTransactionService.create(
+                                SimpleTransactionService.createV2(keyValueService))));
     }
 
     /**

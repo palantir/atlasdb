@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Transactions running under _transactions2 will now fail if the gap between the commit and start timestamps exceeds 25 million.
+           This is a very large value, and we do not expect normal usage to be affected.
+           Note that this is not a break as _transactions2 does not currently have production users.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3nnn>`__)
+
     *    - |fixed|
          - ``KeyValueService`` and ``CassandraKeyValueService`` in particular now has tighter consistency guarantees in the presence of failures.
            Previously, inconsistent deletes to thoroughly swept tables could result in readers serving stale versions of cells.
