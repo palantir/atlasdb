@@ -174,8 +174,8 @@
 <h1>Benefits<a class="headerlink" href="#benefits" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="deadlock-free">
 <h2>Deadlock Free<a class="headerlink" href="#deadlock-free" title="Permalink to this headline">¶</a></h2>
-<p>AtlasDB support Snapshot Isolation (SI) as well as full Serializable
-(SSI). SI is naturally deadlock free however a transaction may need to
+<p>AtlasDB supports Snapshot Isolation (SI) as well as full Serializable
+Snapshot Isolation (SSI). SI is naturally deadlock free however a transaction may need to
 be retried due to a write/write (w/w) conflict.</p>
 <p>SSI may have a cycle of transactions that block on each other, but one
 of them will be restarted because of a read/write conflict (which is
