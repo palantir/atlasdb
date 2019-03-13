@@ -24,7 +24,7 @@ public class PartitionedTimestampsTest {
     private static final int NUM_PARTITIONS = 16;
 
     @Test
-    public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
+    public void streamShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
         long timestamp = 123L;
         PartitionedTimestamps timestamps = ImmutablePartitionedTimestamps.builder()
                 .start(timestamp)
@@ -36,7 +36,7 @@ public class PartitionedTimestampsTest {
     }
 
     @Test
-    public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_multipleTimestamps() {
+    public void streamShouldReturnAllTimestampsWithCorrectModulus_multipleTimestamps() {
         long lowerTimestamp = 123L;
         long middleTimestamp = lowerTimestamp + NUM_PARTITIONS;
         long upperTimestamp = middleTimestamp + NUM_PARTITIONS;
@@ -48,5 +48,17 @@ public class PartitionedTimestampsTest {
                 .build();
 
         assertThat(timestamps.stream()).containsOnly(lowerTimestamp, middleTimestamp, upperTimestamp);
+    }
+
+    @Test
+    public void streamShouldReturnEmptyIfCountIsZero() {
+        long timestamp = 123L;
+        PartitionedTimestamps timestamps = ImmutablePartitionedTimestamps.builder()
+                .start(timestamp)
+                .interval(NUM_PARTITIONS)
+                .count(0)
+                .build();
+
+        assertThat(timestamps.stream()).isEmpty();
     }
 }
