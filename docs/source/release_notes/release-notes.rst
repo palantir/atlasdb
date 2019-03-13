@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |changed| |userbreak|
+         - Removed functionality for marking tables as deprecated as part of the schema definition and automatically dropping deprecated tables on startup.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3829>`__)
+
     *    - |improved|
          - Improved the startup check that verifies the correctness of the timestamp source to impose tighter constraints. Now uses a recent value from the puncher store
            rather than the unreadable timestamp.
