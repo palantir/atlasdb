@@ -122,7 +122,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
         when(timestamps.getFreshTimestamps(anyInt()))
                 .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampsForClient(UUID_ONE, 2).getStartTimestamps())
+        assertThat(service.getFreshTimestampsForClient(UUID_ONE, 2).stream())
                 .hasSize(1)
                 .first()
                 .isEqualTo(RESIDUE_ONE_TIMESTAMP_IN_RANGE.timestamp());
@@ -139,7 +139,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
                 .thenReturn(TIMESTAMP_SEVEN)
                 .thenReturn(TIMESTAMP_RANGE);
 
-        assertThat(service.getFreshTimestampsForClient(UUID_TWO, 1).getStartTimestamps())
+        assertThat(service.getFreshTimestampsForClient(UUID_TWO, 1).stream())
                 .hasSize(1)
                 .first()
                 .isEqualTo(RESIDUE_TWO_TIMESTAMP_IN_RANGE.timestamp());

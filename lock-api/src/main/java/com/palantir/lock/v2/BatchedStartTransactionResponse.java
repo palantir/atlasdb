@@ -29,7 +29,7 @@ public interface BatchedStartTransactionResponse {
     LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    PartitionedTimestamps timestampRange();
+    PartitionedTimestamps timestamps();
 
     @Value.Parameter
     Lease lease();

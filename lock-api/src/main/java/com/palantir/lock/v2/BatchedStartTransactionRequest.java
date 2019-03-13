@@ -27,13 +27,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(as = ImmutableBatchedStartTransactionRequest.class)
 @JsonDeserialize(as = ImmutableBatchedStartTransactionRequest.class)
 public interface BatchedStartTransactionRequest {
-    @Value.Parameter
     UUID requestId();
 
-    @Value.Parameter
     UUID requestorId();
 
-    @Value.Parameter
     int numTransactions();
 
     static BatchedStartTransactionRequest createForRequestor(UUID requestorUuid, int batchSize) {

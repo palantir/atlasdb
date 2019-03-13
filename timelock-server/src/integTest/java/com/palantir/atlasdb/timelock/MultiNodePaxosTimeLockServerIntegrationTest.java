@@ -392,7 +392,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 requestorUuid,
                 numRequestedTimestamps);
         BatchedStartTransactionResponse response = CLUSTER.timelockRpcClient().batchedStartTransaction(request);
-        return response.timestampRange().getStartTimestamps()
+        return response.timestamps().stream()
                 .boxed()
                 .sorted() // we do not guarantee sorted order for same batch
                 .collect(Collectors.toList());

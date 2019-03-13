@@ -33,7 +33,7 @@ public interface PartitionedTimestamps {
     long count();
 
     @JsonIgnore
-    default LongStream getStartTimestamps() {
+    default LongStream stream() {
         return LongStream.range(0, count()).map(i -> start() + i * interval());
     }
 }

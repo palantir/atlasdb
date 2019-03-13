@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
-import java.util.OptionalLong;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -28,7 +27,6 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.logsafe.SafeArg;

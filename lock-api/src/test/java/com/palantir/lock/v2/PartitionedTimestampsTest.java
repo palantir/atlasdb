@@ -26,13 +26,13 @@ public class PartitionedTimestampsTest {
     @Test
     public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
         long timestamp = 123L;
-        PartitionedTimestamps timestampRange = ImmutablePartitionedTimestamps.builder()
+        PartitionedTimestamps timestamps = ImmutablePartitionedTimestamps.builder()
                 .start(timestamp)
                 .interval(NUM_PARTITIONS)
                 .count(1)
                 .build();
 
-        assertThat(timestampRange.getStartTimestamps()).containsOnly(timestamp);
+        assertThat(timestamps.stream()).containsOnly(timestamp);
     }
 
     @Test
@@ -41,12 +41,12 @@ public class PartitionedTimestampsTest {
         long middleTimestamp = lowerTimestamp + NUM_PARTITIONS;
         long upperTimestamp = middleTimestamp + NUM_PARTITIONS;
 
-        PartitionedTimestamps timestampRange = ImmutablePartitionedTimestamps.builder()
+        PartitionedTimestamps timestamps = ImmutablePartitionedTimestamps.builder()
                 .start(123L)
                 .interval(NUM_PARTITIONS)
                 .count(3)
                 .build();
 
-        assertThat(timestampRange.getStartTimestamps()).containsOnly(lowerTimestamp, middleTimestamp, upperTimestamp);
+        assertThat(timestamps.stream()).containsOnly(lowerTimestamp, middleTimestamp, upperTimestamp);
     }
 }
