@@ -65,7 +65,7 @@ public class DelegatingClientAwareManagedTimestampService
                 partitionedTimestamp,
                 calculatePartition(partitionedTimestamp));
     }
-    
+
     @Override
     public PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
         while (true) {

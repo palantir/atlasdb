@@ -16,8 +16,6 @@
 
 package com.palantir.timestamp;
 
-import java.util.OptionalLong;
-
 import com.google.common.base.Preconditions;
 import com.google.common.math.LongMath;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
@@ -31,13 +29,22 @@ public final class TimestampRanges {
         // utility
     }
 
+    /**
+     * Returns all timestamps in given residue class for given modulus in provided timestamp range. Timestamps are
+     * represented by {@link PartitionedTimestamps}.
+     *
+     * @param residue desired residue class of the timestamps returned
+     * @param modulus modulus used to partition numbers into residue classes
+     * @return {@link PartitionedTimestamps} satisfying the residue class condition
+     */
     public static PartitionedTimestamps getPartitionedTimestamps(TimestampRange range, int residue, int modulus) {
-        OptionalLong startTimestamp = TimestampRanges.getLowestTimestampMatchingModulus(
-                range,
-                residue,
-                modulus);
+        checkModulusAndResidue(residue, modulus);
 
-        if (!startTimestamp.isPresent()) {
+        long startTimestamp = getLowestTimestampMatchingModulus(range.getLowerBound(), residue, modulus);
+        long endTimestamp = range.getUpperBound() % modulus == residue ? range.getUpperBound() :
+                getLowestTimestampMatchingModulus(range.getUpperBound(), residue, modulus) - modulus;
+
+        if (startTimestamp > endTimestamp) {
             return ImmutablePartitionedTimestamps.builder()
                     .start(range.getLowerBound())
                     .interval(modulus)
@@ -45,68 +52,20 @@ public final class TimestampRanges {
                     .build();
         }
 
-        OptionalLong endTimestamp = TimestampRanges.getHighestTimestampMatchingModulus(
-                range,
-                residue,
-                modulus);
-
-        long count = ((endTimestamp.getAsLong() - startTimestamp.getAsLong()) / modulus) + 1;
+        long count = ((endTimestamp - startTimestamp) / modulus) + 1;
 
         return ImmutablePartitionedTimestamps.builder()
-                .start(startTimestamp.getAsLong())
+                .start(startTimestamp)
                 .interval(modulus)
                 .count(count)
                 .build();
     }
 
-    /**
-     * Returns the lowest timestamp in the provided timestamp range that has the provided residue class modulo the
-     * provided modulus.
-     *
-     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
-     *
-     * @param residue desired residue class of the timestamp returned
-     * @param modulus modulus used to partition numbers into residue classes
-     * @return lowest timestamp in the given range in the relevant residue class modulo modulus
-     * @throws IllegalArgumentException if modulus <= 0
-     * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
-     */
-    static OptionalLong getLowestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
-        checkModulusAndResidue(residue, modulus);
-
-        long lowerBoundResidue = LongMath.mod(range.getLowerBound(), modulus);
+    private static long getLowestTimestampMatchingModulus(long lowerBound, int residue, int modulus) {
+        long lowerBoundResidue = LongMath.mod(lowerBound, modulus);
         long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
                 residue - lowerBoundResidue;
-        long candidate = range.getLowerBound() + shift;
-
-        return range.getUpperBound() >= candidate
-                ? OptionalLong.of(candidate)
-                : OptionalLong.empty();
-    }
-
-    /**
-     * Returns the highest timestamp in the provided timestamp range that has the provided residue class modulo the
-     * provided modulus.
-     *
-     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
-     *
-     * @param residue desired residue class of the timestamp returned
-     * @param modulus modulus used to partition numbers into residue classes
-     * @return highest timestamp in the given range in the relevant residue class modulo modulus
-     * @throws IllegalArgumentException if modulus <= 0
-     * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
-     */
-    static OptionalLong getHighestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
-        checkModulusAndResidue(residue, modulus);
-
-        long upperBoundResidue = LongMath.mod(range.getUpperBound(), modulus);
-        long shift = residue > upperBoundResidue ? modulus + upperBoundResidue - residue :
-                upperBoundResidue - residue;
-        long candidate = range.getUpperBound() - shift;
-
-        return range.getLowerBound() <= candidate
-                ? OptionalLong.of(candidate)
-                : OptionalLong.empty();
+        return lowerBound + shift;
     }
 
     private static void checkModulusAndResidue(int residue, int modulus) {

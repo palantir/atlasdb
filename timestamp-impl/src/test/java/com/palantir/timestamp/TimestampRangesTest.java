@@ -19,15 +19,11 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.OptionalLong;
+import java.util.Arrays;
+import java.util.stream.LongStream;
 
 import org.junit.Test;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
 
-@RunWith(Theories.class)
 public class TimestampRangesTest {
     private static final long SEVENTY_THREE = 73L;
     private static final long EIGHTY_TWO = 82L;
@@ -35,119 +31,83 @@ public class TimestampRangesTest {
     private static final TimestampRange SEVENTY_THREE_TO_EIGHTY_TWO
             = TimestampRange.createInclusiveRange(SEVENTY_THREE, EIGHTY_TWO);
 
-    @DataPoints
-    public static SearchOption[] searchOptions = SearchOption.values();
-
-    @Theory
-    public void canGetTimestampFromRangeIfItIsTheLowerBound(SearchOption searchOption) {
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
-                .isPresent()
-                .hasValue(SEVENTY_THREE);
+    @Test
+    public void canGetTimestampFromRangeIfItIsTheLowerBound() {
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
+                .hasSize(1)
+                .startsWith(SEVENTY_THREE);
     }
 
-    @Theory
-    public void canGetTimestampFromRangeIfItIsTheUpperBound(SearchOption searchOption) {
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
-                .isPresent()
-                .hasValue(EIGHTY_TWO);
+    @Test
+    public void canGetTimestampFromRangeIfItIsTheUpperBound() {
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
+                .hasSize(1)
+                .startsWith(EIGHTY_TWO);
     }
 
-    @Theory
-    public void canGetTimestampsFromRangeInTheMiddle(SearchOption searchOption) {
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
-                .isPresent()
-                .hasValue(77L);
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
-                .isPresent()
-                .hasValue(78L);
+    @Test
+    public void canGetTimestampsFromRangeInTheMiddle() {
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
+                .hasSize(1)
+                .startsWith(77L);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
+                .hasSize(1)
+                .startsWith(78L);
     }
 
-    @Theory
-    public void canHandleMultipleValidMatches(SearchOption searchOption) {
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
-                .isPresent()
-                .satisfies(optionalLong -> {
-                    long value = optionalLong.getAsLong();
-                    assertThat(value).isIn(73L, 75L, 77L, 79L, 81L);
-                });
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .isPresent()
-                .satisfies(optionalLong -> {
-                    long value = optionalLong.getAsLong();
-                    assertThat(value).isIn(74L, 76L, 78L, 80L, 82L);
-                });
+    @Test
+    public void canHandleMultipleValidMatches() {
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
+                .hasSameElementsAs(Arrays.asList(73L, 75L, 77L, 79L, 81L));
+
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
+                .hasSameElementsAs(Arrays.asList(74L, 75L, 77L, 79L, 81L));
     }
 
-    @Theory
-    public void canHandleNegativeResidues(SearchOption searchOption) {
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10))
-                .isPresent()
-                .hasValue(SEVENTY_THREE);
-        assertThat(searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10))
-                .isPresent()
-                .hasValue(75);
+    @Test
+    public void canHandleNegativeResidues() {
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10))
+                .hasSize(1)
+                .startsWith(SEVENTY_THREE);
+        assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10))
+                .hasSize(1)
+                .startsWith(75L);
     }
 
-    @Theory
-    public void throwsIfModulusIsNegative(SearchOption searchOption) {
-        assertThatThrownBy(() -> searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8))
+    @Test
+    public void throwsIfModulusIsNegative() {
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, -8))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -8.");
-        assertThatThrownBy(() -> searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 4, -2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found -2.");
     }
 
-    @Theory
-    public void throwsIfModulusIsZero(SearchOption searchOption) {
-        assertThatThrownBy(() -> searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0))
+    @Test
+    public void throwsIfModulusIsZero() {
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Modulus should be positive, but found 0.");
     }
 
-    @Theory
-    public void throwsIfResidueEqualsOrExceedsModulus(SearchOption searchOption) {
-        assertThatThrownBy(() -> searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2))
+    @Test
+    public void throwsIfResidueEqualsOrExceedsModulus() {
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Absolute value of residue 2 equals or exceeds modulus 2 - no solutions");
-        assertThatThrownBy(() -> searchOption.timestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2))
+        assertThatThrownBy(() -> getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -3, 2))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Absolute value of residue -3 equals or exceeds modulus 2 - no solutions");
     }
 
-    @Theory
-    public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus(SearchOption searchOption) {
+    @Test
+    public void returnsAbsentIfTimestampRangeDoesNotContainAnyValuesMatchingModulus() {
         TimestampRange oneTimestamp = TimestampRange.createInclusiveRange(77, 77);
-        assertThat(searchOption.timestampMatchingModulus(oneTimestamp, 6, 10)).isNotPresent();
+        assertThat(getPartitionedTimestamps(oneTimestamp, 6, 10)).isEmpty();
     }
 
-    @Test
-    public void lowestSearchShouldReturnLowest() {
-        assertThat(TimestampRanges.getLowestTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
-                .isPresent()
-                .hasValue(SEVENTY_THREE);
-    }
-
-    @Test
-    public void highestSearchShouldReturnHighest() {
-        assertThat(TimestampRanges.getHighestTimestampMatchingModulus(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .isPresent()
-                .hasValue(EIGHTY_TWO);
-    }
-
-    private enum SearchOption {
-        LOWEST {
-            @Override
-            OptionalLong timestampMatchingModulus(TimestampRange range, int residue, int modulus) {
-                return TimestampRanges.getLowestTimestampMatchingModulus(range, residue, modulus);
-            }
-        }, HIGHEST {
-            @Override
-            OptionalLong timestampMatchingModulus(TimestampRange range, int residue, int modulus) {
-                return TimestampRanges.getHighestTimestampMatchingModulus(range, residue, modulus);
-            }
-        };
-
-        abstract OptionalLong timestampMatchingModulus(TimestampRange range, int residue, int modulus);
+    private static LongStream getPartitionedTimestamps(TimestampRange timestampRange, int residue, int modulus) {
+        return TimestampRanges.getPartitionedTimestamps(timestampRange, residue, modulus).getStartTimestamps();
     }
 }
