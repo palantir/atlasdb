@@ -61,7 +61,7 @@ public class TimestampRangesTest {
                 .hasSameElementsAs(Arrays.asList(73L, 75L, 77L, 79L, 81L));
 
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .hasSameElementsAs(Arrays.asList(74L, 75L, 77L, 79L, 81L));
+                .hasSameElementsAs(Arrays.asList(74L, 76L, 78L, 80L, 82L));
     }
 
     @Test
