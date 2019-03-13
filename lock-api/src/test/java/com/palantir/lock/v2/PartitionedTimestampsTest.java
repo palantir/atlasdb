@@ -20,30 +20,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-import com.palantir.lock.client.SharedConstants;
-import com.palantir.timestamp.TimestampRange;
-
-public class TimestampRangeAndPartitionTest {
-    private static final int PARTITION = 2;
+public class PartitionedTimestampsTest {
+    private static final int NUM_PARTITIONS = 16;
 
     @Test
     public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_singleTimestamp() {
-        long timestamp = PARTITION + SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
-        TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
-                TimestampRange.createInclusiveRange(timestamp, timestamp),
-                PARTITION);
+        long timestamp = 123L;
+        PartitionedTimestamps timestampRange = ImmutablePartitionedTimestamps.builder()
+                .start(timestamp)
+                .interval(NUM_PARTITIONS)
+                .count(1)
+                .build();
 
         assertThat(timestampRange.getStartTimestamps()).containsOnly(timestamp);
     }
 
     @Test
     public void getTimestampsShouldReturnAllTimestampsWithCorrectModulus_multipleTimestamps() {
-        long lowerTimestamp = PARTITION + SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
-        long middleTimestamp = PARTITION + 2 * SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
-        long upperTimestamp = PARTITION + 3 * SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
-        TimestampRangeAndPartition timestampRange = TimestampRangeAndPartition.of(
-                TimestampRange.createInclusiveRange(lowerTimestamp, upperTimestamp),
-                PARTITION);
+        long lowerTimestamp = 123L;
+        long middleTimestamp = lowerTimestamp + NUM_PARTITIONS;
+        long upperTimestamp = middleTimestamp + NUM_PARTITIONS;
+
+        PartitionedTimestamps timestampRange = ImmutablePartitionedTimestamps.builder()
+                .start(123L)
+                .interval(NUM_PARTITIONS)
+                .count(3)
+                .build();
 
         assertThat(timestampRange.getStartTimestamps()).containsOnly(lowerTimestamp, middleTimestamp, upperTimestamp);
     }

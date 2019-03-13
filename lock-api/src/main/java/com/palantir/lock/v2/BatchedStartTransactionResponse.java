@@ -29,14 +29,14 @@ public interface BatchedStartTransactionResponse {
     LockImmutableTimestampResponse immutableTimestamp();
 
     @Value.Parameter
-    TimestampRangeAndPartition timestampRange();
+    PartitionedTimestamps timestampRange();
 
     @Value.Parameter
     Lease lease();
 
     static BatchedStartTransactionResponse of(
             LockImmutableTimestampResponse immutableTimestamp,
-            TimestampRangeAndPartition startTimestamp,
+            PartitionedTimestamps startTimestamp,
             Lease lease) {
         return ImmutableBatchedStartTransactionResponse.of(immutableTimestamp, startTimestamp, lease);
     }

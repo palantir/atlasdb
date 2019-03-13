@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.v2.TimestampRangeAndPartition;
+import com.palantir.lock.v2.PartitionedTimestamps;
 
 /**
  * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client
@@ -40,5 +40,5 @@ public interface ClientAwareManagedTimestampService extends ManagedTimestampServ
      */
     TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier);
 
-    TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested);
+    PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested);
 }

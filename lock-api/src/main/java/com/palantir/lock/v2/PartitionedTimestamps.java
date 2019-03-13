@@ -23,27 +23,17 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.client.SharedConstants;
-import com.palantir.timestamp.TimestampRange;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableTimestampRangeAndPartition.class)
-@JsonDeserialize(as = ImmutableTimestampRangeAndPartition.class)
-public interface TimestampRangeAndPartition {
-    @Value.Parameter
-    TimestampRange range();
-
-    @Value.Parameter
-    int partition();
+@JsonSerialize(as = ImmutablePartitionedTimestamps.class)
+@JsonDeserialize(as = ImmutablePartitionedTimestamps.class)
+public interface PartitionedTimestamps {
+    long start();
+    int interval();
+    long count();
 
     @JsonIgnore
-    default long[] getStartTimestamps() {
-        return LongStream.rangeClosed(range().getLowerBound(), range().getUpperBound())
-                .filter(timestamp -> timestamp % SharedConstants.V2_TRANSACTION_NUM_PARTITIONS == partition())
-                .toArray();
-    }
-
-    static TimestampRangeAndPartition of(TimestampRange range, int partition) {
-        return ImmutableTimestampRangeAndPartition.of(range, partition);
+    default LongStream getStartTimestamps() {
+        return LongStream.range(0, count()).map(i -> start() + i * interval());
     }
 }

@@ -38,7 +38,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.v2.TimestampRangeAndPartition;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.timestamp.TimestampRange;
 
@@ -136,12 +136,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
-        TimestampRangeAndPartition timestampRangeAndPartition =
+        PartitionedTimestamps partitionedTimestamps =
                 timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions());
 
         return BatchedStartTransactionResponse.of(
                 leasedLockImmutableTimestampResponse.value(),
-                timestampRangeAndPartition,
+                partitionedTimestamps,
                 leasedLockImmutableTimestampResponse.lease());
     }
 

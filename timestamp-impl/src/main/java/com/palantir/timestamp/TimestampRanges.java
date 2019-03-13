@@ -20,6 +20,8 @@ import java.util.OptionalLong;
 
 import com.google.common.base.Preconditions;
 import com.google.common.math.LongMath;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
+import com.palantir.lock.v2.PartitionedTimestamps;
 
 /**
  * Utilities for manipulating {@link TimestampRange} objects.
@@ -27,6 +29,34 @@ import com.google.common.math.LongMath;
 public final class TimestampRanges {
     private TimestampRanges() {
         // utility
+    }
+
+    public static PartitionedTimestamps getPartitionedTimestamps(TimestampRange range, int residue, int modulus) {
+        OptionalLong startTimestamp = TimestampRanges.getLowestTimestampMatchingModulus(
+                range,
+                residue,
+                modulus);
+
+        if (!startTimestamp.isPresent()) {
+            return ImmutablePartitionedTimestamps.builder()
+                    .start(range.getLowerBound())
+                    .interval(modulus)
+                    .count(0)
+                    .build();
+        }
+
+        OptionalLong endTimestamp = TimestampRanges.getHighestTimestampMatchingModulus(
+                range,
+                residue,
+                modulus);
+
+        long count = ((endTimestamp.getAsLong() - startTimestamp.getAsLong()) / modulus) + 1;
+
+        return ImmutablePartitionedTimestamps.builder()
+                .start(startTimestamp.getAsLong())
+                .interval(modulus)
+                .count(count)
+                .build();
     }
 
     /**
@@ -41,7 +71,7 @@ public final class TimestampRanges {
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
-    public static OptionalLong getLowestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+    static OptionalLong getLowestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
         checkModulusAndResidue(residue, modulus);
 
         long lowerBoundResidue = LongMath.mod(range.getLowerBound(), modulus);
@@ -66,7 +96,7 @@ public final class TimestampRanges {
      * @throws IllegalArgumentException if modulus <= 0
      * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
      */
-    public static OptionalLong getHighestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+    static OptionalLong getHighestTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
         checkModulusAndResidue(residue, modulus);
 
         long upperBoundResidue = LongMath.mod(range.getUpperBound(), modulus);

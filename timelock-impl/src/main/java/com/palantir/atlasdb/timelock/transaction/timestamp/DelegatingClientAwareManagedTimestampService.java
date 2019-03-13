@@ -28,9 +28,9 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.lock.client.SharedConstants;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.TimestampAndPartition;
-import com.palantir.lock.v2.TimestampRangeAndPartition;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
@@ -40,7 +40,7 @@ public class DelegatingClientAwareManagedTimestampService
     private static final Logger log = LoggerFactory.getLogger(DelegatingClientAwareManagedTimestampService.class);
 
     @VisibleForTesting
-    static final int NUM_PARTITIONS = SharedConstants.V2_TRANSACTION_NUM_PARTITIONS;
+    static final int NUM_PARTITIONS = TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS;
 
     private NumericPartitionAllocator<UUID> allocator;
     private ManagedTimestampService delegate;
@@ -60,29 +60,24 @@ public class DelegatingClientAwareManagedTimestampService
 
     @Override
     public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
-        TimestampRangeAndPartition timestampRangeAndPartition = getFreshTimestampsForClient(clientIdentifier, 1);
+        long partitionedTimestamp = getFreshTimestampsForClient(clientIdentifier, 1).start();
         return TimestampAndPartition.of(
-                timestampRangeAndPartition.range().getLowerBound(),
-                timestampRangeAndPartition.partition());
+                partitionedTimestamp,
+                calculatePartition(partitionedTimestamp));
     }
-
+    
     @Override
-    public TimestampRangeAndPartition getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
+    public PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
         while (true) {
             TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTransactionsRequested);
             int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
-            OptionalLong startTimestamp = TimestampRanges.getLowestTimestampMatchingModulus(
+            PartitionedTimestamps partitionedTimestamps = TimestampRanges.getPartitionedTimestamps(
                     timestampRange,
                     targetResidue,
                     NUM_PARTITIONS);
-            if (startTimestamp.isPresent()) {
-                OptionalLong endTimestamp = TimestampRanges.getHighestTimestampMatchingModulus(
-                        timestampRange,
-                        targetResidue,
-                        NUM_PARTITIONS);
-                return TimestampRangeAndPartition.of(
-                        TimestampRange.createInclusiveRange(startTimestamp.getAsLong(), endTimestamp.getAsLong()),
-                        targetResidue);
+
+            if (partitionedTimestamps.count() > 0) {
+                return partitionedTimestamps;
             }
 
             // Not a bug - getFreshTimestamps is permitted to return less than the number of timestamps asked for,
@@ -99,5 +94,9 @@ public class DelegatingClientAwareManagedTimestampService
     @Override
     public ManagedTimestampService delegate() {
         return delegate;
+    }
+
+    private static int calculatePartition(long timestamp) {
+        return (int) timestamp % NUM_PARTITIONS;
     }
 }

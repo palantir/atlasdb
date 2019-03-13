@@ -114,6 +114,37 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
 
         verify(allocator, times(3)).getRelevantModuli(UUID_TWO);
         verify(timestamps, times(3)).getFreshTimestamps(anyInt());
+    }
 
+    @Test
+    public void batchedTimestampCallShouldReturnAtLeastOneUsableTimestamp() {
+        when(allocator.getRelevantModuli(UUID_ONE)).thenReturn(RESIDUE_ONE);
+        when(timestamps.getFreshTimestamps(anyInt()))
+                .thenReturn(TIMESTAMP_RANGE);
+
+        assertThat(service.getFreshTimestampsForClient(UUID_ONE, 2).getStartTimestamps())
+                .hasSize(1)
+                .first()
+                .isEqualTo(RESIDUE_ONE_TIMESTAMP_IN_RANGE.timestamp());
+
+        verify(allocator).getRelevantModuli(UUID_ONE);
+        verify(timestamps).getFreshTimestamps(anyInt());
+    }
+
+    @Test
+    public void batchedTimestampCallMakesRequestsAgainIfTimestampRangeDoesNotIncludeCorrectModuli() {
+        when(allocator.getRelevantModuli(UUID_TWO)).thenReturn(RESIDUE_TWO);
+        when(timestamps.getFreshTimestamps(anyInt()))
+                .thenReturn(TIMESTAMP_SEVEN)
+                .thenReturn(TIMESTAMP_SEVEN)
+                .thenReturn(TIMESTAMP_RANGE);
+
+        assertThat(service.getFreshTimestampsForClient(UUID_TWO, 1).getStartTimestamps())
+                .hasSize(1)
+                .first()
+                .isEqualTo(RESIDUE_TWO_TIMESTAMP_IN_RANGE.timestamp());
+
+        verify(allocator, times(3)).getRelevantModuli(UUID_TWO);
+        verify(timestamps, times(3)).getFreshTimestamps(anyInt());
     }
 }
