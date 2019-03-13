@@ -49,7 +49,31 @@ develop
 
     *    - Type
          - Change
+
+    *    - |improved|
+         - Improved the startup check that verifies the correctness of the timestamp source to impose tighter constraints. Now uses a recent value from the puncher store
+           rather than the unreadable timestamp.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3825>`__)
+
+    *    - |fixed|
+         - ``KeyValueService`` and ``CassandraKeyValueService`` in particular now has tighter consistency guarantees in the presence of failures.
+           Previously, inconsistent deletes to thoroughly swept tables could result in readers serving stale versions of cells.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3807>`__)
+
+    *    - |devbreak|
+         - The contract of ``deleteAllTimestamps`` has been strengthened, and the default implementation has been removed.
+           Please contact the AtlasDB team if you think this affects your workflows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3807>`__)
+
+    *    - |fixed|
+         - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3811>`__)
     
+    *    - |improved|
+         - ``CassandraKeyValueService`` now exposes a lightweight method for obtaining row keys.
+           If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3757>`__)
+
     *    - |changed| |userbreak|
          - The minimum Postgres version is now 9.5.2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)

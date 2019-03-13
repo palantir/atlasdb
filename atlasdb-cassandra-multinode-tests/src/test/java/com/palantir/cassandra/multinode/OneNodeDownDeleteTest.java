@@ -20,6 +20,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 
 public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
@@ -38,6 +39,12 @@ public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
     @Test
     public void deleteAllTimestampsThrows() {
         assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
-                getTestKvs().deleteAllTimestamps(TEST_TABLE, ImmutableMap.of(CELL_1_1, TIMESTAMP), false));
+                getTestKvs().deleteAllTimestamps(
+                        TEST_TABLE,
+                        ImmutableMap.of(CELL_1_1, new TimestampRangeDelete.Builder()
+                                .timestamp(TIMESTAMP)
+                                .endInclusive(false)
+                                .deleteSentinels(false)
+                                .build())));
     }
 }

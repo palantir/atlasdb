@@ -34,6 +34,7 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
@@ -53,7 +54,8 @@ public class LeadersTest {
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
-                PaxosLearner.class);
+                PaxosLearner.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
         paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
@@ -72,7 +74,8 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
-                PaxosAcceptor.class);
+                PaxosAcceptor.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
         paxosAcceptors.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
@@ -92,7 +95,8 @@ public class LeadersTest {
                 localAcceptor,
                 ImmutableSet.of(),
                 Optional.empty(),
-                PaxosAcceptor.class);
+                PaxosAcceptor.class,
+                UserAgents.DEFAULT_USER_AGENT);
 
         MatcherAssert.assertThat(paxosAcceptors.size(), is(1));
 
@@ -110,7 +114,8 @@ public class LeadersTest {
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
-                BigInteger.class);
+                BigInteger.class,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 
     @Test(expected = NullPointerException.class)
@@ -122,6 +127,7 @@ public class LeadersTest {
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
                 Optional.empty(),
-                null);
+                null,
+                UserAgents.DEFAULT_USER_AGENT);
     }
 }

@@ -55,8 +55,7 @@ public abstract class NodesDownTestSetup {
     }
 
     private static CassandraKeyValueService createKvs(Class<?> testClass) {
-        return CassandraKeyValueServiceImpl
-                .createForTesting(getConfig(testClass), ThreeNodeCassandraCluster.LEADER_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass));
     }
 
     static CassandraKeyValueServiceConfig getConfig(Class<?> testClass) {

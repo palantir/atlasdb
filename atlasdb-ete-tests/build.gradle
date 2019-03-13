@@ -22,7 +22,6 @@ dependencies {
     compile group: 'io.dropwizard', name: 'dropwizard-core'
 
     runtime project(':atlasdb-dbkvs')
-
     runtime project(':atlasdb-cassandra')
 
     compile group: 'org.apache.thrift', name: 'libthrift'

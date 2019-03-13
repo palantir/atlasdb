@@ -114,7 +114,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() throws InterruptedException {
+    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() {
         CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();
@@ -135,7 +135,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void nonLeadersReturn503() {
         CLUSTER.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.getFreshTimestamp())
+            assertThatThrownBy(server::getFreshTimestamp)
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
             assertThatThrownBy(() -> server.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
@@ -143,7 +143,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderRespondsToRequests() throws InterruptedException {
+    public void leaderRespondsToRequests() {
         CLUSTER.currentLeader().getFreshTimestamp();
 
         LockToken token = CLUSTER.currentLeader().lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -162,7 +162,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         TestableTimelockServer leader = CLUSTER.currentLeader();
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
-        assertThatThrownBy(() -> leader.getFreshTimestamp())
+        assertThatThrownBy(leader::getFreshTimestamp)
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
@@ -214,7 +214,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
+    public void locksAreInvalidatedAcrossFailures() {
         LockToken token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         for (int i = 0; i < 3; i++) {
@@ -398,12 +398,12 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .collect(Collectors.toList());
     }
 
-    private StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+    private static StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return CLUSTER.startIdentifiedAtlasDbTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(requestorUuid));
     }
 
-    private long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+    private static long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return startIdentifiedAtlasDbTransaction(requestorUuid).startTimestampAndPartition().timestamp();
     }
 }

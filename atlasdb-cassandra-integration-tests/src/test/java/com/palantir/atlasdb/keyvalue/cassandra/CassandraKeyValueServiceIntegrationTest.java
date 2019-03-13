@@ -64,6 +64,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
@@ -91,7 +92,6 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> CassandraKeyValueServiceImpl.create(
             MetricsManagers.createForTests(),
             getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS),
-            CassandraResource.LEADER_CONFIG,
             CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
             logger));
 
@@ -149,7 +149,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         kvs3.close();
     }
 
-    private void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
+    private static void assertThatGcGraceSecondsIs(CassandraKeyValueService kvs, int gcGraceSeconds) throws TException {
         List<CfDef> knownCfs = kvs.getClientPool().runWithRetry(client ->
                 client.describe_keyspace(CASSANDRA.getConfig().getKeyspaceOrThrow()).getCf_defs());
         CfDef clusterSideCf = Iterables.getOnlyElement(knownCfs.stream()
@@ -191,7 +191,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .withGcGraceSeconds(gcGraceSeconds);
     }
 
-    private String getInternalTestTableName() {
+    private static String getInternalTestTableName() {
         return NEVER_SEEN.getQualifiedName().replaceFirst("\\.", "__");
     }
 
@@ -259,8 +259,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, 1_234_567L),
-                true);
+                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
+                        .deleteSentinels(true)
+                        .endInclusive(false)
+                        .timestamp(1_234_567L)
+                        .build()));
 
         putDummyValueAtCellAndTimestamp(tableReference, CELL, 1337L, STARTING_ATLAS_TIMESTAMP - 1);
         Map<Cell, Value> resultExpectedCoveredByRangeTombstone =
@@ -276,8 +279,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
 
         keyValueService.deleteAllTimestamps(
                 tableReference,
-                ImmutableMap.of(CELL, 1_234_567L),
-                true);
+                ImmutableMap.of(CELL, new TimestampRangeDelete.Builder()
+                        .deleteSentinels(true)
+                        .endInclusive(false)
+                        .timestamp(1_234_567L)
+                        .build()));
 
         // A value written outside of the range tombstone should not be covered by the range tombstone, even if
         // the Cassandra timestamp of the value is much lower than that of the range tombstone.
@@ -358,12 +364,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         verify(logger, never()).error(anyString(), any(Object.class));
     }
 
-    private CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
+    private static CassandraKeyValueService createKvs(CassandraKeyValueServiceConfig config, Logger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
                 config,
-                CassandraResource.LEADER_CONFIG,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP),
                 testLogger);
     }
@@ -392,7 +397,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         });
     }
 
-    private String convertBytesToHexString(byte[] bytes) {
+    private static String convertBytesToHexString(byte[] bytes) {
         return "0x" + BaseEncoding.base16().lowerCase().encode(bytes);
     }
 

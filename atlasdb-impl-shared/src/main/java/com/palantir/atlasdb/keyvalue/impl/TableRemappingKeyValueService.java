@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -115,11 +116,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         try {
-            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), maxTimestampExclusiveByCell,
-                    deleteSentinels);
+            delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), deletes);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

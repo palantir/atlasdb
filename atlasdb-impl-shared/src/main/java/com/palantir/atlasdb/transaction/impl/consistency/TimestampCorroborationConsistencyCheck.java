@@ -30,7 +30,7 @@ import com.palantir.logsafe.SafeArg;
  * Compares a source of fresh timestamps against a conservative lower bound that should always be strictly lower than
  * a fresh timestamp, reporting inconsistency if a fresh timestamp is actually lower than this lower bound.
  *
- * In typical usage, the unreadable timestamp is used as a conservative bound, and the source of fresh
+ * In typical usage, a recent timestamp from the puncher store is used as a conservative bound, and the source of fresh
  * timestamps could be a TimeLock server or other timestamp service.
  */
 @Value.Immutable

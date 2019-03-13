@@ -33,7 +33,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
@@ -64,22 +63,22 @@ public class TestableTimelockCluster {
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    public TestableTimelockCluster(String baseUri, String... configFileTemplates) {
+    TestableTimelockCluster(String baseUri, String... configFileTemplates) {
         this.configs = Arrays.stream(configFileTemplates)
                 .map(this::getConfigHolder)
                 .collect(Collectors.toList());
         this.servers = configs.stream()
-                .map(this::getServerHolder)
+                .map(TestableTimelockCluster::getServerHolder)
                 .map(holder -> new TestableTimelockServer(baseUri, client, holder))
                 .collect(Collectors.toList());
         this.proxies = new TestProxies(baseUri, servers);
     }
 
-    public void waitUntilLeaderIsElected() {
+    void waitUntilLeaderIsElected() {
         waitUntilLeaderIsElected(ImmutableList.of());
     }
 
-    public void waitUntilLeaderIsElected(List<String> additionalClients) {
+    void waitUntilLeaderIsElected(List<String> additionalClients) {
         List<String> clients = new ArrayList<>(additionalClients);
         clients.add(client);
         waitUntilReadyToServeClients(clients);
@@ -99,12 +98,12 @@ public class TestableTimelockCluster {
                 });
     }
 
-    public void waitUntilAllServersOnlineAndReadyToServeClients(List<String> additionalClients) {
+    void waitUntilAllServersOnlineAndReadyToServeClients(List<String> additionalClients) {
         servers.forEach(TestableTimelockServer::start);
         waitUntilReadyToServeClients(additionalClients);
     }
 
-    public TestableTimelockServer currentLeader() {
+    TestableTimelockServer currentLeader() {
         for (TestableTimelockServer server : servers) {
             try {
                 if (server.leaderPing()) {
@@ -117,20 +116,14 @@ public class TestableTimelockCluster {
         throw new IllegalStateException("no nodes are currently the leader");
     }
 
-    public List<TestableTimelockServer> nonLeaders() {
+    List<TestableTimelockServer> nonLeaders() {
         TestableTimelockServer leader = currentLeader();
         return servers.stream()
                 .filter(server -> server != leader)
                 .collect(Collectors.toList());
     }
 
-    public void failoverToNewLeader() {
-        if (servers.size() == 1) {
-            // if there is only one server, it's going to become the leader again
-            tryFailoverToNewLeader();
-            return;
-        }
-
+    void failoverToNewLeader() {
         int maxTries = 5;
         for (int i = 0; i < maxTries; i++) {
             if (tryFailoverToNewLeader()) {
@@ -144,27 +137,25 @@ public class TestableTimelockCluster {
     private boolean tryFailoverToNewLeader() {
         TestableTimelockServer leader = currentLeader();
         leader.kill();
-        Uninterruptibles.sleepUninterruptibly(1_000, TimeUnit.MILLISECONDS);
-        leader.start();
-
         waitUntilLeaderIsElected();
+        leader.start();
 
         return !currentLeader().equals(leader);
     }
 
-    public List<TestableTimelockServer> servers() {
+    List<TestableTimelockServer> servers() {
         return servers;
     }
 
-    public long getFreshTimestamp() {
+    long getFreshTimestamp() {
         return timestampService().getFreshTimestamp();
     }
 
-    public TimestampRange getFreshTimestamps(int number) {
+    TimestampRange getFreshTimestamps(int number) {
         return timestampService().getFreshTimestamps(number);
     }
 
-    public LockRefreshToken remoteLock(com.palantir.lock.LockRequest lockRequest)
+    LockRefreshToken remoteLock(com.palantir.lock.LockRequest lockRequest)
             throws InterruptedException {
         return lockService().lock(client, lockRequest);
     }
@@ -177,7 +168,7 @@ public class TestableTimelockCluster {
         return timelockService().lock(requestV2);
     }
 
-    public CompletableFuture<LockResponse> lockAsync(LockRequest requestV2) {
+    CompletableFuture<LockResponse> lockAsync(LockRequest requestV2) {
         return CompletableFuture.supplyAsync(() -> lock(requestV2), executor);
     }
 
@@ -185,48 +176,48 @@ public class TestableTimelockCluster {
         return timelockService().unlock(ImmutableSet.of(token)).contains(token);
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    private Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         return timelockService().refreshLockLeases(tokens);
     }
 
-    public boolean refreshLockLease(LockToken token) {
+    boolean refreshLockLease(LockToken token) {
         return refreshLockLeases(ImmutableSet.of(token)).contains(token);
     }
 
-    public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
+    WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         return timelockService().waitForLocks(request);
     }
 
-    public CompletableFuture<WaitForLocksResponse> waitForLocksAsync(WaitForLocksRequest request) {
+    CompletableFuture<WaitForLocksResponse> waitForLocksAsync(WaitForLocksRequest request) {
         return CompletableFuture.supplyAsync(() -> waitForLocks(request), executor);
     }
 
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
         return timelockRpcClient(client).startAtlasDbTransaction(request).toStartTransactionResponse();
     }
 
-    public TimestampService timestampService() {
+    private TimestampService timestampService() {
         return proxies.failoverForClient(client, TimestampService.class);
     }
 
-    public LockService lockService() {
+    LockService lockService() {
         return proxies.failoverForClient(client, LockService.class);
     }
 
-    public TimelockService timelockService() {
+    TimelockService timelockService() {
         return timelockServiceForClient(client);
     }
 
-    public TimelockService timelockServiceForClient(String name) {
+    TimelockService timelockServiceForClient(String name) {
         return RemoteTimelockServiceAdapter.create(proxies.failoverForClient(name, TimelockRpcClient.class));
     }
 
-    public <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
+    <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {
         return CompletableFuture.supplyAsync(() -> function.apply(timelockRpcClient()));
     }
 
-    public TimelockRpcClient timelockRpcClient() {
+    TimelockRpcClient timelockRpcClient() {
         return timelockRpcClient(client);
     }
 
@@ -234,7 +225,7 @@ public class TestableTimelockCluster {
         return proxies.failoverForClient(name, TimelockRpcClient.class);
     }
 
-    public RuleChain getRuleChain() {
+    RuleChain getRuleChain() {
         RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
 
         for (TemporaryConfigurationHolder config : configs) {
@@ -248,7 +239,7 @@ public class TestableTimelockCluster {
         return ruleChain;
     }
 
-    private TimeLockServerHolder getServerHolder(TemporaryConfigurationHolder configHolder) {
+    private static TimeLockServerHolder getServerHolder(TemporaryConfigurationHolder configHolder) {
         return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation);
     }
 
