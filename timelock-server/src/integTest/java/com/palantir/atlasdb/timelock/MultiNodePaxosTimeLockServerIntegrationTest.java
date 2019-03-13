@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
@@ -371,6 +372,19 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
 
         assertThat(allTimestamps).isSorted();
+    }
+
+    @Test
+    public void batchedTimestampsShouldBeSeparatedByModulus() {
+        UUID requestor = UUID.randomUUID();
+
+        List<Long> sortedTimestamps = getSortedBatchedStartTimestamps(requestor, 10);
+
+        Set<Long> differences = IntStream.range(0, sortedTimestamps.size() - 1)
+                .mapToObj(i -> sortedTimestamps.get(i + 1) - sortedTimestamps.get(i))
+                .collect(Collectors.toSet());
+
+        assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
