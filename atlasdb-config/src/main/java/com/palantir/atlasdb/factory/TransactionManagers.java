@@ -373,7 +373,6 @@ public abstract class TransactionManagers {
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
-                new DeprecatedTablesCleaner(schemas()),
                 asyncInitializationCallback());
 
         TransactionManager transactionManager = initializeCloseable(
