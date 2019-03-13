@@ -30,7 +30,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface PartitionedTimestamps {
     long start();
     int interval();
-    long count();
+    int count();
 
     @JsonIgnore
     default LongStream stream() {

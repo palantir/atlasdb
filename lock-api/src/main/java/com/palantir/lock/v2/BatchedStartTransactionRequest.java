@@ -33,11 +33,11 @@ public interface BatchedStartTransactionRequest {
 
     int numTransactions();
 
-    static BatchedStartTransactionRequest createForRequestor(UUID requestorUuid, int batchSize) {
+    static BatchedStartTransactionRequest createForRequestor(UUID requestorUuid, int numTransactions) {
         return ImmutableBatchedStartTransactionRequest.builder()
                 .requestId(UUID.randomUUID())
                 .requestorId(requestorUuid)
-                .numTransactions(batchSize)
+                .numTransactions(numTransactions)
                 .build();
     }
 }

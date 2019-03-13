@@ -52,7 +52,7 @@ public final class TimestampRanges {
                     .build();
         }
 
-        long count = ((endTimestamp - startTimestamp) / modulus) + 1;
+        int count = (int) ((endTimestamp - startTimestamp) / modulus) + 1;
 
         return ImmutablePartitionedTimestamps.builder()
                 .start(startTimestamp)
