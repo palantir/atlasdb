@@ -108,8 +108,7 @@ public class AsyncTimelockResource {
      */
     @POST
     @Path("start-atlasdb-transaction-v4")
-    public StartTransactionResponseV4 startTransactions(
-            StartTransactionRequestV4 request) {
+    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         return timelock.startTransactions(request);
     }
     

@@ -79,7 +79,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
 
     *    - |new|
-         - Timelock Server now exposes a ``batchedStartAtlasDbTransaction`` endpoint that enables coalescing multiple start transaction requests into a single rpc.
+         - Timelock Server now exposes a ``startTransactions`` endpoint that enables coalescing multiple start transaction requests into a single rpc.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3797>`__)
 
 ========

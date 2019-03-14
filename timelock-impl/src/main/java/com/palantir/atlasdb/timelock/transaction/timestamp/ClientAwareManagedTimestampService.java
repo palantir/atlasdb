@@ -37,7 +37,7 @@ public interface ClientAwareManagedTimestampService extends ManagedTimestampServ
      *
      * @param clientIdentifier UUID identifying the client; should be consistent across the client's lifetime
      * @param numTimestampsRequested number of requested timestamps. Note that there is no guarantee on number of
-     * returned timestamps other than that being at least one.
+     * returned timestamps other than being at least one.
      * @return suitable timestamps, represented by {@link PartitionedTimestamps}
      */
     PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTimestampsRequested);
