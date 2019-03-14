@@ -55,15 +55,6 @@ public interface TimelockRpcClient {
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     @POST
-    @Path("start-atlasdb-transaction")
-    StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request);
-
-    @POST
-    @Path("start-identified-atlasdb-transaction")
-    StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request);
-
-    @POST
     @Path("start-atlasdb-transaction-v3")
     StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
@@ -88,10 +79,6 @@ public interface TimelockRpcClient {
     @POST
     @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
-
-    @POST
-    @Path("refresh-locks")
-    Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens);
 
     @POST
     @Path("refresh-locks-v2")
