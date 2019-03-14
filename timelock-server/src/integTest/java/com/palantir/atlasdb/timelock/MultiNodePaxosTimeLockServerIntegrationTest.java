@@ -45,7 +45,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
@@ -388,7 +388,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
-        BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
                 requestorUuid,
                 numRequestedTimestamps);
         StartAtlasDbTransactionResponseV4 response = CLUSTER.timelockRpcClient().startTransaction(request);

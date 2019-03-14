@@ -51,7 +51,7 @@ import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -114,7 +114,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void batchedStartTransactionCallShouldLockImmutableTimestamp() {
-        BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
                 UUID.randomUUID(),
                 123);
 

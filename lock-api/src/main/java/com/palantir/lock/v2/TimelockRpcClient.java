@@ -28,7 +28,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -72,7 +71,7 @@ public interface TimelockRpcClient {
     @POST
     @Path("start-atlasdb-transaction-v4")
     StartAtlasDbTransactionResponseV4 startTransaction(
-            BatchedStartTransactionRequest request);
+            StartTransactionRequestV4 request);
 
     @POST
     @Path("immutable-timestamp")

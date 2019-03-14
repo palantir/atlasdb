@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTim
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
-import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.RefreshLockResponseV2;
@@ -132,7 +132,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponseV4 batchedStartTransaction(BatchedStartTransactionRequest request) {
+    public StartAtlasDbTransactionResponseV4 batchedStartTransaction(StartTransactionRequestV4 request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 

@@ -24,17 +24,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableBatchedStartTransactionRequest.class)
-@JsonDeserialize(as = ImmutableBatchedStartTransactionRequest.class)
-public interface BatchedStartTransactionRequest {
+@JsonSerialize(as = ImmutableStartTransactionRequestV4.class)
+@JsonDeserialize(as = ImmutableStartTransactionRequestV4.class)
+public interface StartTransactionRequestV4 {
     UUID requestId();
 
     UUID requestorId();
 
     int numTransactions();
 
-    static BatchedStartTransactionRequest createForRequestor(UUID requestorUuid, int numTransactions) {
-        return ImmutableBatchedStartTransactionRequest.builder()
+    static StartTransactionRequestV4 createForRequestor(UUID requestorUuid, int numTransactions) {
+        return ImmutableStartTransactionRequestV4.builder()
                 .requestId(UUID.randomUUID())
                 .requestorId(requestorUuid)
                 .numTransactions(numTransactions)

@@ -32,7 +32,7 @@ import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
-import com.palantir.lock.v2.BatchedStartTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockResponseV2;
@@ -109,7 +109,7 @@ public class AsyncTimelockResource {
     @POST
     @Path("start-atlasdb-transaction-v4")
     public StartAtlasDbTransactionResponseV4 batchedStartTransaction(
-            BatchedStartTransactionRequest request) {
+            StartTransactionRequestV4 request) {
         return timelock.batchedStartTransaction(request);
     }
     
