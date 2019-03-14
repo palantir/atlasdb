@@ -190,7 +190,7 @@ public final class PaxosQuorumChecker {
         } finally {
             // cancel pending futures (during failures)
             for (Future<RESPONSE> future : allFutures) {
-                future.cancel(false);
+                future.cancel(true);
             }
 
             // reset interrupted flag
