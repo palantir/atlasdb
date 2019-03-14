@@ -107,7 +107,7 @@ public class AsyncTimelockResource {
      * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
      */
     @POST
-    @Path("batched-start-atlasdb-transaction")
+    @Path("start-atlasdb-transaction-v4")
     public StartAtlasDbTransactionResponseV4 batchedStartTransaction(
             BatchedStartTransactionRequest request) {
         return timelock.batchedStartTransaction(request);
