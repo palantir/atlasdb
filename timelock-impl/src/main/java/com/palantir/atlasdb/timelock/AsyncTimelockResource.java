@@ -31,7 +31,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.BatchedStartTransactionResponse;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
 import com.palantir.lock.v2.BatchedStartTransactionRequest;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -100,7 +100,7 @@ public class AsyncTimelockResource {
     }
 
     /**
-     * Returns a {@link BatchedStartTransactionResponse} which has a single immutable ts, and a range of timestamps to
+     * Returns a {@link StartAtlasDbTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
      * be used as start timestamps.
      *
      * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
@@ -108,7 +108,7 @@ public class AsyncTimelockResource {
      */
     @POST
     @Path("batched-start-atlasdb-transaction")
-    public BatchedStartTransactionResponse batchedStartTransaction(
+    public StartAtlasDbTransactionResponseV4 batchedStartTransaction(
             BatchedStartTransactionRequest request) {
         return timelock.batchedStartTransaction(request);
     }
