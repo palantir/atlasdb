@@ -189,8 +189,15 @@ public final class PaxosQuorumChecker {
 
         } finally {
             // cancel pending futures (during failures)
+            boolean canceled = false;
             for (Future<RESPONSE> future : allFutures) {
-                future.cancel(true);
+                if (!future.isDone()) {
+                    future.cancel(true);
+                    canceled = true;
+                }
+            }
+            if (canceled) {
+                log.warn("We had to cancel futures due to failure. Stacktrace provided for debugging.", new RuntimeException());
             }
 
             // reset interrupted flag
