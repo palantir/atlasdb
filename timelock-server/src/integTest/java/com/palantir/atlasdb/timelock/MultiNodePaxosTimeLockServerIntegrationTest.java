@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -46,7 +47,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -391,10 +392,9 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
                 requestorUuid,
                 numRequestedTimestamps);
-        StartAtlasDbTransactionResponseV4 response = CLUSTER.timelockRpcClient().startTransaction(request);
+        StartTransactionResponseV4 response = CLUSTER.timelockRpcClient().startTransactions(request);
         return response.timestamps().stream()
                 .boxed()
-                .sorted() // we do not guarantee sorted order for same batch
                 .collect(Collectors.toList());
     }
 

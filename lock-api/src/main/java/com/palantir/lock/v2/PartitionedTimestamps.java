@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.primitives.Ints;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutablePartitionedTimestamps.class)
@@ -35,5 +36,10 @@ public interface PartitionedTimestamps {
     @JsonIgnore
     default LongStream stream() {
         return LongStream.range(0, count()).map(i -> start() + i * interval());
+    }
+
+    @JsonIgnore
+    default int partition() {
+        return Ints.checkedCast(start() % interval());
     }
 }

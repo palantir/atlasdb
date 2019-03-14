@@ -27,7 +27,6 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
@@ -54,14 +53,6 @@ public class DelegatingClientAwareManagedTimestampService
     public static ClientAwareManagedTimestampService createDefault(ManagedTimestampService delegate) {
         NumericPartitionAllocator<UUID> allocator = CachingPartitionAllocator.createDefault(NUM_PARTITIONS);
         return new DelegatingClientAwareManagedTimestampService(allocator, delegate);
-    }
-
-    @Override
-    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
-        long partitionedTimestamp = getFreshTimestampsForClient(clientIdentifier, 1).start();
-        return TimestampAndPartition.of(
-                partitionedTimestamp,
-                calculatePartition(partitionedTimestamp));
     }
 
     @Override
@@ -92,9 +83,5 @@ public class DelegatingClientAwareManagedTimestampService
     @Override
     public ManagedTimestampService delegate() {
         return delegate;
-    }
-
-    private static int calculatePartition(long timestamp) {
-        return (int) timestamp % NUM_PARTITIONS;
     }
 }

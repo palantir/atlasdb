@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -110,36 +110,38 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
+    public StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request) {
         return StartAtlasDbTransactionResponse.of(
                 lockImmutableTimestamp(request),
                 getFreshTimestamp());
     }
 
     @Override
-    public StartAtlasDbTransactionResponseV3 startIdentifiedAtlasDbTransaction(
+    public StartAtlasDbTransactionResponseV3 startTransaction(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
-                lockImmutableTimestampWithLease(request.requestId());
-
-        TimestampAndPartition timestampAndPartition =
-                timestampService.getFreshTimestampForClient(request.requestorId());
+        StartTransactionResponseV4 startTransactionResponseV4 =
+                startTransactions(StartTransactionRequestV4.createForRequestor(request.requestorId(), 1));
 
         return StartAtlasDbTransactionResponseV3.of(
-                leasedLockImmutableTimestampResponse.value(),
-                timestampAndPartition,
-                leasedLockImmutableTimestampResponse.lease());
+                startTransactionResponseV4.immutableTimestamp(),
+                getTimestampAndPartition(startTransactionResponseV4.timestamps()),
+                startTransactionResponseV4.lease()
+        );
+    }
+
+    private static TimestampAndPartition getTimestampAndPartition(PartitionedTimestamps partitionedTimestamps) {
+        return TimestampAndPartition.of(partitionedTimestamps.start(), partitionedTimestamps.partition());
     }
 
     @Override
-    public StartAtlasDbTransactionResponseV4 batchedStartTransaction(StartTransactionRequestV4 request) {
+    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
         Leased<LockImmutableTimestampResponse> leasedLockImmutableTimestampResponse =
                 lockImmutableTimestampWithLease(request.requestId());
 
         PartitionedTimestamps partitionedTimestamps =
                 timestampService.getFreshTimestampsForClient(request.requestorId(), request.numTransactions());
 
-        return StartAtlasDbTransactionResponseV4.of(
+        return StartTransactionResponseV4.of(
                 leasedLockImmutableTimestampResponse.value(),
                 partitionedTimestamps,
                 leasedLockImmutableTimestampResponse.lease());

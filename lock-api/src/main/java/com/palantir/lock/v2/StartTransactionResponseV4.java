@@ -22,9 +22,9 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableStartAtlasDbTransactionResponseV4.class)
-@JsonDeserialize(as = ImmutableStartAtlasDbTransactionResponseV4.class)
-public interface StartAtlasDbTransactionResponseV4 {
+@JsonSerialize(as = ImmutableStartTransactionResponseV4.class)
+@JsonDeserialize(as = ImmutableStartTransactionResponseV4.class)
+public interface StartTransactionResponseV4 {
     @Value.Parameter
     LockImmutableTimestampResponse immutableTimestamp();
 
@@ -34,10 +34,10 @@ public interface StartAtlasDbTransactionResponseV4 {
     @Value.Parameter
     Lease lease();
 
-    static StartAtlasDbTransactionResponseV4 of(
+    static StartTransactionResponseV4 of(
             LockImmutableTimestampResponse immutableTimestamp,
             PartitionedTimestamps startTimestamp,
             Lease lease) {
-        return ImmutableStartAtlasDbTransactionResponseV4.of(immutableTimestamp, startTimestamp, lease);
+        return ImmutableStartTransactionResponseV4.of(immutableTimestamp, startTimestamp, lease);
     }
 }

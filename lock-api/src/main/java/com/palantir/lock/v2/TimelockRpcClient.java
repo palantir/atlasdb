@@ -61,16 +61,12 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("start-atlasdb-transaction-v4")
-    StartAtlasDbTransactionResponseV4 startTransaction(
+    StartTransactionResponseV4 startTransactions(
             StartTransactionRequestV4 request);
 
     @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp();
-
-    @POST
-    @Path("lock")
-    LockResponse deprecatedLock(IdentifiedLockRequest request);
 
     @POST
     @Path("lock-v2")
