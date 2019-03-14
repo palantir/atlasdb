@@ -119,11 +119,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
                 123);
 
         LockImmutableTimestampResponse response1 = cluster.timelockRpcClient()
-                .batchedStartTransaction(request)
+                .startTransaction(request)
                 .immutableTimestamp();
 
         LockImmutableTimestampResponse response2 = cluster.timelockRpcClient()
-                .batchedStartTransaction(request)
+                .startTransaction(request)
                 .immutableTimestamp();
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();

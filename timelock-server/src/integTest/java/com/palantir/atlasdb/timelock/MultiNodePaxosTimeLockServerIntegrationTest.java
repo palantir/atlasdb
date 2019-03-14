@@ -391,7 +391,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(
                 requestorUuid,
                 numRequestedTimestamps);
-        StartAtlasDbTransactionResponseV4 response = CLUSTER.timelockRpcClient().batchedStartTransaction(request);
+        StartAtlasDbTransactionResponseV4 response = CLUSTER.timelockRpcClient().startTransaction(request);
         return response.timestamps().stream()
                 .boxed()
                 .sorted() // we do not guarantee sorted order for same batch

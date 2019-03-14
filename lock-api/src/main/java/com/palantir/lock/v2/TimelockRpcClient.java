@@ -66,12 +66,12 @@ public interface TimelockRpcClient {
 
     @POST
     @Path("start-atlasdb-transaction-v3")
-    StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
+    StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
     @POST
     @Path("start-atlasdb-transaction-v4")
-    StartAtlasDbTransactionResponseV4 batchedStartTransaction(
+    StartAtlasDbTransactionResponseV4 startTransaction(
             BatchedStartTransactionRequest request);
 
     @POST
