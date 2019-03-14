@@ -191,8 +191,7 @@ public final class PaxosQuorumChecker {
             // cancel pending futures (during failures)
             boolean canceled = false;
             for (Future<RESPONSE> future : allFutures) {
-                if (!future.isDone()) {
-                    future.cancel(true);
+                if (future.cancel(true)) {
                     canceled = true;
                 }
             }
