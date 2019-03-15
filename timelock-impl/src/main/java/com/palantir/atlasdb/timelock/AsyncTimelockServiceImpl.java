@@ -125,8 +125,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return StartAtlasDbTransactionResponseV3.of(
                 startTransactionResponseV4.immutableTimestamp(),
                 getTimestampAndPartition(startTransactionResponseV4.timestamps()),
-                startTransactionResponseV4.lease()
-        );
+                startTransactionResponseV4.lease());
     }
 
     private static TimestampAndPartition getTimestampAndPartition(PartitionedTimestamps partitionedTimestamps) {
