@@ -19,7 +19,6 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Arrays;
 import java.util.stream.LongStream;
 
 import org.junit.Test;
@@ -34,44 +33,38 @@ public class TimestampRangesTest {
     @Test
     public void canGetTimestampFromRangeIfItIsTheLowerBound() {
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 3, 10))
-                .hasSize(1)
-                .startsWith(SEVENTY_THREE);
+                .containsExactly(SEVENTY_THREE);
     }
 
     @Test
     public void canGetTimestampFromRangeIfItIsTheUpperBound() {
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 2, 10))
-                .hasSize(1)
-                .startsWith(EIGHTY_TWO);
+                .containsExactly(EIGHTY_TWO);
     }
 
     @Test
     public void canGetTimestampsFromRangeInTheMiddle() {
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 7, 10))
-                .hasSize(1)
-                .startsWith(77L);
+                .containsExactly(77L);
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 8, 10))
-                .hasSize(1)
-                .startsWith(78L);
+                .containsExactly(78L);
     }
 
     @Test
     public void canHandleMultipleValidMatches() {
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 1, 2))
-                .hasSameElementsAs(Arrays.asList(73L, 75L, 77L, 79L, 81L));
+                .containsExactly(73L, 75L, 77L, 79L, 81L);
 
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, 0, 2))
-                .hasSameElementsAs(Arrays.asList(74L, 76L, 78L, 80L, 82L));
+                .containsExactly(74L, 76L, 78L, 80L, 82L);
     }
 
     @Test
     public void canHandleNegativeResidues() {
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -7, 10))
-                .hasSize(1)
-                .startsWith(SEVENTY_THREE);
+                .containsExactly(SEVENTY_THREE);
         assertThat(getPartitionedTimestamps(SEVENTY_THREE_TO_EIGHTY_TWO, -5, 10))
-                .hasSize(1)
-                .startsWith(75L);
+                .containsExactly(75L);
     }
 
     @Test
