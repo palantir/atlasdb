@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.leader.proxy.AwaitingLeadershipService;
 import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;

@@ -36,6 +36,8 @@ import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
+import com.palantir.leader.proxy.AwaitingLeadershipProxy2;
+import com.palantir.leader.proxy.AwaitingLeadershipService;
 import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
@@ -49,6 +51,7 @@ public class PaxosLeadershipCreator {
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
     private LeadershipObserver leadershipObserver;
+    private AwaitingLeadershipService awaitingLeadershipService;
 
     public PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -86,6 +89,7 @@ public class PaxosLeadershipCreator {
         registrar.accept(new LeadershipResource(
                 localPaxosServices.ourAcceptor(),
                 localPaxosServices.ourLearner()));
+        awaitingLeadershipService = AwaitingLeadershipService.create(leaderElectionService);
     }
 
     public <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz) {
@@ -93,6 +97,13 @@ public class PaxosLeadershipCreator {
                 clazz,
                 delegateSupplier::get,
                 leaderElectionService);
+    }
+
+    public <T> T wrapInV2LeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz) {
+        return AwaitingLeadershipProxy2.newProxyInstance(
+                clazz,
+                delegateSupplier::get,
+                awaitingLeadershipService);
     }
 
     private LeaderConfig getLeaderConfig() {

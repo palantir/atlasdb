@@ -65,14 +65,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
-        AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
+        AsyncTimelockService asyncTimelockService = instrumentInV2LeadershipProxy(
                 metricsManager.getTaggedRegistry(),
                 AsyncTimelockService.class,
                 () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
                 client);
         AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
 
-        LockService lockService = instrumentInLeadershipProxy(
+        LockService lockService = instrumentInV2LeadershipProxy(
                 metricsManager.getTaggedRegistry(),
                 LockService.class,
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get),
@@ -120,6 +120,14 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<T> serviceSupplier, String client) {
         return instrument(taggedMetrics, serviceClass,
                 leadershipCreator.wrapInLeadershipProxy(serviceSupplier, serviceClass), client);
+    }
+
+    private <T> T instrumentInV2LeadershipProxy(TaggedMetricRegistry taggedMetrics,
+            Class<T> serviceClass,
+            Supplier<T> serviceSupplier,
+            String client) {
+        return instrument(taggedMetrics, serviceClass,
+                leadershipCreator.wrapInV2LeadershipProxy(serviceSupplier, serviceClass), client);
     }
 
     private <T> T instrument(TaggedMetricRegistry metricRegistry, Class<T> serviceClass, T service, String client) {

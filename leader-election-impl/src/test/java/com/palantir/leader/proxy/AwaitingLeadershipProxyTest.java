@@ -77,12 +77,13 @@ public class AwaitingLeadershipProxyTest {
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        AwaitingLeadershipService service = AwaitingLeadershipService.create(mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy2.newProxyInstance(Runnable.class, delegateSupplier, service);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
         assertThat(proxy.equals(null)).isFalse();
-        assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
+        assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy2@");
     }
 
     @Test
@@ -95,7 +96,8 @@ public class AwaitingLeadershipProxyTest {
         when(mockLeader.isStillLeading(any(LeaderElectionService.LeadershipToken.class)))
                 .thenReturn(LeaderElectionService.StillLeadingStatus.NOT_LEADING);
 
-        Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(Runnable.class, delegateSupplier, mockLeader);
+        AwaitingLeadershipService service = AwaitingLeadershipService.create(mockLeader);
+        Runnable proxy = AwaitingLeadershipProxy2.newProxyInstance(Runnable.class, delegateSupplier, service);
 
         assertThat(proxy.hashCode()).isNotNull();
         assertThat(proxy.equals(proxy)).isTrue();
@@ -129,13 +131,13 @@ public class AwaitingLeadershipProxyTest {
         HostAndPort otherHost = HostAndPort.fromHost("otherhost");
         AtomicReference<LeaderElectionService.LeadershipToken> reference = new AtomicReference<>();
         when(mockLeader.getSuspectedLeaderInMemory()).thenReturn(Optional.of(otherHost));
+        AwaitingLeadershipService service = AwaitingLeadershipService.create(mockLeader);
+        java.util.function.Supplier<Runnable> argh = delegateSupplier::get;
+        AwaitingLeadershipProxy2<Runnable> proxy = AwaitingLeadershipProxy2.proxyForTest(
+                delegateSupplier,
+                service,                Runnable.class);
 
-        AwaitingLeadershipProxy<Runnable> proxy = AwaitingLeadershipProxy.proxyForTest(delegateSupplier,
-                mockLeader,
-                Runnable.class,
-                reference);
-
-        assertThatThrownBy(proxy::getLeadershipToken).isInstanceOf(NotCurrentLeaderException.class)
+        assertThatThrownBy(service::getLeadershipToken).isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessageContaining("hinting suspected leader host otherhost");
     }
 
