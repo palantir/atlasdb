@@ -28,7 +28,6 @@ import javax.ws.rs.core.MediaType;
 
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.logsafe.Safe;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -41,7 +40,6 @@ import com.palantir.timestamp.TimestampRange;
 @Path("/timelock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@AutoDelegate
 public interface TimelockRpcClient {
 
     @POST
@@ -57,26 +55,18 @@ public interface TimelockRpcClient {
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
     @POST
-    @Path("start-atlasdb-transaction")
-    StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request);
-
-    @POST
-    @Path("start-identified-atlasdb-transaction")
-    StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request);
-
-    @POST
     @Path("start-atlasdb-transaction-v3")
-    StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
+    StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
+
+    @POST
+    @Path("start-atlasdb-transaction-v4")
+    StartTransactionResponseV4 startTransactions(
+            StartTransactionRequestV4 request);
 
     @POST
     @Path("immutable-timestamp")
     long getImmutableTimestamp();
-
-    @POST
-    @Path("lock")
-    LockResponse deprecatedLock(IdentifiedLockRequest request);
 
     @POST
     @Path("lock-v2")
@@ -85,10 +75,6 @@ public interface TimelockRpcClient {
     @POST
     @Path("await-locks")
     WaitForLocksResponse waitForLocks(WaitForLocksRequest request);
-
-    @POST
-    @Path("refresh-locks")
-    Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens);
 
     @POST
     @Path("refresh-locks-v2")

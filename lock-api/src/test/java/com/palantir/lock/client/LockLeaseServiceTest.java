@@ -100,13 +100,13 @@ public class LockLeaseServiceTest {
     @Test
     public void startAtlasdbTransactionResponseHasCorrectLeasedLock() {
         Lease lease = getLease();
-        when(timelockRpcClient.startAtlasDbTransaction(any())).thenReturn(
+        when(timelockRpcClient.deprecatedStartTransaction(any())).thenReturn(
                 startTransactionResponseWith(LOCK_TOKEN, lease));
 
         StartIdentifiedAtlasDbTransactionResponse clientResponse =
                 lockLeaseService.startIdentifiedAtlasDbTransaction();
 
-        verify(timelockRpcClient).startAtlasDbTransaction(any());
+        verify(timelockRpcClient).deprecatedStartTransaction(any());
 
         LeasedLockToken leasedLock = (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
         assertThat(leasedLock.serverToken()).isEqualTo(LOCK_TOKEN);
