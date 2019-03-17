@@ -98,16 +98,25 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
         Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
 
-        Set<LockToken> result = lockLeaseService.unlock(reduceForUnlock(immutableTsTokens, lockTokens));
+        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
+
+        Set<LockToken> referencedTokens = immutableTsTokens.stream()
+                .map(LockTokenShare::sharedLockToken)
+                .collect(Collectors.toSet());
+
+        Set<LockToken> toUnlock = reduceForUnlock(immutableTsTokens);
+        Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
+
+        Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
+        Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
         return Sets.union(
                 immutableTsTokens.stream()
-                        .filter(t -> result.contains(t.sharedLockToken()))
+                        .filter(t -> unlocked.contains(t.sharedLockToken()) || refreshed.contains(t.sharedLockToken()))
                         .collect(Collectors.toSet()),
-                lockTokens.stream().filter(result::contains).collect(Collectors.toSet()));
+                lockTokens.stream().filter(unlocked::contains).collect(Collectors.toSet()));
     }
 
     @Override
@@ -123,14 +132,12 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         return Sets.union(lockTokens, reducedImmutableTsTokens);
     }
 
-    private static Set<LockToken> reduceForUnlock(Set<LockTokenShare> immutableTsTokens, Set<LockToken> lockTokens) {
-        Set<LockToken> toUnlock = immutableTsTokens.stream()
+    private static Set<LockToken> reduceForUnlock(Set<LockTokenShare> immutableTsTokens) {
+        return immutableTsTokens.stream()
                 .map(LockTokenShare::unlock)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toSet());
-
-        return Sets.union(lockTokens, toUnlock);
     }
 
     private static Set<LockTokenShare> filterImmutableTsTokens(Set<LockToken> tokens) {

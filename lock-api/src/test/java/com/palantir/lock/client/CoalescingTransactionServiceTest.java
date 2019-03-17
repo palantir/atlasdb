@@ -21,13 +21,13 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -67,14 +67,34 @@ public class CoalescingTransactionServiceTest {
     }
 
     @Test
+    public void splitShouldYieldCorrectStartTransactionResponses_singleTransaction() {
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
+
+        assertThat(CoalescingTransactionService.split(batchedResponse))
+                .hasSize(1)
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
+    }
+
+    @Test
+    public void splitShouldYieldCorrectStartTransactionResponses_multipleTransactions() {
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
+
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = CoalescingTransactionService.split(batchedResponse);
+
+        assertThatStartTransactionResponsesAreUnique(responses);
+        assertThat(CoalescingTransactionService.split(batchedResponse))
+                .hasSize(5)
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
+    }
+
+    @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
-        StartTransactionResponseV4 startTransactionResponse =
-                getStartTransactionResponse(12, 1);
+        StartTransactionResponseV4 startTransactionResponse = getStartTransactionResponse(12, 1);
 
         when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response = transactionService.startIdentifiedAtlasDbTransaction();
 
-        assertStartTransactionResponseIsDerivableFromBatchedResponse(response, startTransactionResponse);
+        assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
 
     @Test
@@ -103,12 +123,17 @@ public class CoalescingTransactionServiceTest {
         blockingBatchedResponse.unblock();
 
         assertThatStartTransactionResponsesAreUnique(response_1.get(), response_2.get());
-        assertStartTransactionResponseIsDerivableFromBatchedResponse(response_1.get(), batchedStartTransactionResponse);
-        assertStartTransactionResponseIsDerivableFromBatchedResponse(response_2.get(), batchedStartTransactionResponse);
+        assertDerivableFromBatchedResponse(response_1.get(), batchedStartTransactionResponse);
+        assertDerivableFromBatchedResponse(response_2.get(), batchedStartTransactionResponse);
 
     }
 
     private void assertThatStartTransactionResponsesAreUnique(StartIdentifiedAtlasDbTransactionResponse... responses) {
+        assertThatStartTransactionResponsesAreUnique(Arrays.asList(responses));
+    }
+
+    private void assertThatStartTransactionResponsesAreUnique(
+            List<StartIdentifiedAtlasDbTransactionResponse> responses) {
         assertThat(responses)
                 .as("Each response should have a different immutable ts lock token")
                 .extracting(response -> response.immutableTimestamp().getLock().getRequestId())
@@ -120,7 +145,7 @@ public class CoalescingTransactionServiceTest {
                 .doesNotHaveDuplicates();
     }
 
-    private void assertStartTransactionResponseIsDerivableFromBatchedResponse(
+    private void assertDerivableFromBatchedResponse(
             StartIdentifiedAtlasDbTransactionResponse startTransactionResponse,
             StartTransactionResponseV4 batchedStartTransactionResponse) {
 
@@ -143,71 +168,6 @@ public class CoalescingTransactionServiceTest {
                 .contains(startTransactionResponse.startTimestampAndPartition().timestamp());
     }
 
-    @Test
-    public void splitShouldYieldCorrectNumberOfStartTransactionResponses_singleTransaction() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
-
-        assertThat(CoalescingTransactionService.split(batchedResponse))
-                .hasSize(1);
-    }
-
-    @Test
-    public void splitShouldYieldCorrectNumberOfStartTransactionResponses_multipleTransactions() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
-
-        assertThat(CoalescingTransactionService.split(batchedResponse))
-                .hasSize(5);
-    }
-
-    @Test
-    public void splitResultShouldHaveCorrectLockTokenShare_singleTransaction() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
-
-        LockToken immutableTsLockToken =
-                CoalescingTransactionService.split(batchedResponse).get(0).immutableTimestamp().getLock();
-
-        assertThat(immutableTsLockToken)
-                .isInstanceOf(LockTokenShare.class)
-                .extracting(t -> ((LockTokenShare) t).sharedLockToken())
-                .isEqualTo(IMMUTABLE_TS_RESPONSE.getLock());
-    }
-
-    @Test
-    public void splitResultShouldHaveCorrectLockTokenShare_multipleTransactions() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 3);
-
-        List<LockToken> immutableTsLockTokens = CoalescingTransactionService.split(batchedResponse).stream()
-                .map(startTransactionResponse -> startTransactionResponse.immutableTimestamp().getLock())
-                .collect(Collectors.toList());
-
-        assertThat(immutableTsLockTokens)
-                .doesNotHaveDuplicates()
-                .allMatch(t -> ((LockTokenShare) t).sharedLockToken().equals(IMMUTABLE_TS_RESPONSE.getLock()));
-    }
-
-    @Test
-    public void splitResultShouldHaveCorrectImmutableTs_singleTransaction() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
-
-        long immutableTs = CoalescingTransactionService.split(batchedResponse).get(0)
-                .immutableTimestamp().getImmutableTimestamp();
-
-        assertThat(immutableTs)
-                .isEqualTo(IMMUTABLE_TS_RESPONSE.getImmutableTimestamp());
-    }
-
-    @Test
-    public void splitResultShouldHaveCorrectImmutableTs_multipleTransactions() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 3);
-
-        List<Long> immutableTimestamps = CoalescingTransactionService.split(batchedResponse).stream()
-                .map(startTransactionResponse -> startTransactionResponse.immutableTimestamp().getImmutableTimestamp())
-                .collect(Collectors.toList());
-
-
-        assertThat(immutableTimestamps)
-                .allMatch(immutableTimestamp -> immutableTimestamp == IMMUTABLE_TS_RESPONSE.getImmutableTimestamp());
-    }
 
     private static StartTransactionResponseV4 getStartTransactionResponse(
             long lowestStartTs, int count) {
