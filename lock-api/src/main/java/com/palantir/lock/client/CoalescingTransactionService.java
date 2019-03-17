@@ -25,9 +25,9 @@ import java.util.stream.IntStream;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
-import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimestampAndPartition;
 
 final class CoalescingTransactionService {
@@ -65,16 +65,16 @@ final class CoalescingTransactionService {
             LockLeaseService lockLeaseService, int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            result.addAll(split(lockLeaseService.batchedStartTransaction(numberOfTransactions - result.size())));
+            result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
         }
         return result.subList(0, numberOfTransactions);
     }
 
     @VisibleForTesting
-    static List<StartIdentifiedAtlasDbTransactionResponse> split(BatchedStartTransactionResponse batchedResponse) {
+    static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV4 batchedResponse) {
         LockImmutableTimestampResponse immutableTsAndLock = batchedResponse.immutableTimestamp();
-        long[] startTimestamps = batchedResponse.timestampRange().getStartTimestamps();
-        int partition = batchedResponse.timestampRange().partition();
+        long[] startTimestamps = batchedResponse.timestamps().stream().toArray();
+        int partition = batchedResponse.timestamps().partition();
 
         List<LockImmutableTimestampResponse> immutableTsAndLocks =
                 LockTokenShare.share(immutableTsAndLock.getLock(), startTimestamps.length).stream()

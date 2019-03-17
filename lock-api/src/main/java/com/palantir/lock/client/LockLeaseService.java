@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.CoalescingSupplier;
-import com.palantir.lock.v2.BatchedStartTransactionRequest;
-import com.palantir.lock.v2.BatchedStartTransactionResponse;
 import com.palantir.lock.v2.ImmutableLockImmutableTimestampResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
@@ -37,6 +35,8 @@ import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
@@ -78,17 +78,17 @@ class LockLeaseService {
                 response.startTimestampAndPartition());
     }
 
-    public BatchedStartTransactionResponse batchedStartTransaction(int batchSize) {
-        BatchedStartTransactionRequest request = BatchedStartTransactionRequest.createForRequestor(clientId, batchSize);
-        BatchedStartTransactionResponse response = delegate.batchedStartTransaction(request);
+    public StartTransactionResponseV4 startTransactions(int batchSize) {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
+        StartTransactionResponseV4 response = delegate.startTransactions(request);
 
         Lease lease = response.lease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
         long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
 
-        return BatchedStartTransactionResponse.of(
+        return StartTransactionResponseV4.of(
                 LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                response.timestampRange(),
+                response.timestamps(),
                 lease);
     }
 

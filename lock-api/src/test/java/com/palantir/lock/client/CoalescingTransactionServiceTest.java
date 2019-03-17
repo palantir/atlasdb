@@ -18,7 +18,6 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -39,21 +38,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import com.palantir.common.time.NanoTime;
-import com.palantir.lock.v2.BatchedStartTransactionResponse;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
+import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
-import com.palantir.lock.v2.TimestampRangeAndPartition;
-import com.palantir.timestamp.TimestampRange;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingTransactionServiceTest {
     @Mock private LockLeaseService lockLeaseService;
     private CoalescingTransactionService transactionService;
 
+    private static final int NUM_PARTITIONS = 16;
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
             LockImmutableTimestampResponse.of(1L, LockToken.of(UUID.randomUUID()));
 
@@ -68,13 +68,13 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
-        BatchedStartTransactionResponse batchedStartTransactionResponse =
-                getBatchedStartTransactionResponse(12, 1);
+        StartTransactionResponseV4 startTransactionResponse =
+                getStartTransactionResponse(12, 1);
 
-        when(lockLeaseService.batchedStartTransaction(1)).thenReturn(batchedStartTransactionResponse);
+        when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response = transactionService.startIdentifiedAtlasDbTransaction();
 
-        assertStartTransactionResponseIsDerivableFromBatchedResponse(response, batchedStartTransactionResponse);
+        assertStartTransactionResponseIsDerivableFromBatchedResponse(response, startTransactionResponse);
     }
 
     @Test
@@ -82,13 +82,13 @@ public class CoalescingTransactionServiceTest {
         ExecutorService executorService = Executors.newCachedThreadPool();
 
         BlockingBatchedResponse blockingBatchedResponse =
-                new BlockingBatchedResponse(getBatchedStartTransactionResponse(12, 1));
+                new BlockingBatchedResponse(getStartTransactionResponse(12, 1));
 
-        BatchedStartTransactionResponse batchedStartTransactionResponse = getBatchedStartTransactionResponse(40, 2);
+        StartTransactionResponseV4 batchedStartTransactionResponse = getStartTransactionResponse(40, 2);
 
-        when(lockLeaseService.batchedStartTransaction(anyInt()))
+        when(lockLeaseService.startTransactions(anyInt()))
                 .thenAnswer(blockingBatchedResponse)
-                .thenReturn(getBatchedStartTransactionResponse(40, 2));
+                .thenReturn(getStartTransactionResponse(40, 2));
 
         CompletableFuture.runAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
 
@@ -122,7 +122,7 @@ public class CoalescingTransactionServiceTest {
 
     private void assertStartTransactionResponseIsDerivableFromBatchedResponse(
             StartIdentifiedAtlasDbTransactionResponse startTransactionResponse,
-            BatchedStartTransactionResponse batchedStartTransactionResponse) {
+            StartTransactionResponseV4 batchedStartTransactionResponse) {
 
         assertThat(startTransactionResponse.immutableTimestamp().getLock())
                 .as("Should have a lock token share referencing to immutable ts lock token")
@@ -136,16 +136,16 @@ public class CoalescingTransactionServiceTest {
 
         assertThat(startTransactionResponse.startTimestampAndPartition().partition())
                 .as("Should have same partition value")
-                .isEqualTo(batchedStartTransactionResponse.timestampRange().partition());
+                .isEqualTo(batchedStartTransactionResponse.timestamps().partition());
 
-        assertThat(batchedStartTransactionResponse.timestampRange().getStartTimestamps())
+        assertThat(batchedStartTransactionResponse.timestamps().stream())
                 .as("Start timestamp should be contained by batched response")
                 .contains(startTransactionResponse.startTimestampAndPartition().timestamp());
     }
 
     @Test
     public void splitShouldYieldCorrectNumberOfStartTransactionResponses_singleTransaction() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 1);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
 
         assertThat(CoalescingTransactionService.split(batchedResponse))
                 .hasSize(1);
@@ -153,7 +153,7 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void splitShouldYieldCorrectNumberOfStartTransactionResponses_multipleTransactions() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 5);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
 
         assertThat(CoalescingTransactionService.split(batchedResponse))
                 .hasSize(5);
@@ -161,7 +161,7 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void splitResultShouldHaveCorrectLockTokenShare_singleTransaction() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 1);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
 
         LockToken immutableTsLockToken =
                 CoalescingTransactionService.split(batchedResponse).get(0).immutableTimestamp().getLock();
@@ -174,7 +174,7 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void splitResultShouldHaveCorrectLockTokenShare_multipleTransactions() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 3);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 3);
 
         List<LockToken> immutableTsLockTokens = CoalescingTransactionService.split(batchedResponse).stream()
                 .map(startTransactionResponse -> startTransactionResponse.immutableTimestamp().getLock())
@@ -187,7 +187,7 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void splitResultShouldHaveCorrectImmutableTs_singleTransaction() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 1);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
 
         long immutableTs = CoalescingTransactionService.split(batchedResponse).get(0)
                 .immutableTimestamp().getImmutableTimestamp();
@@ -198,7 +198,7 @@ public class CoalescingTransactionServiceTest {
 
     @Test
     public void splitResultShouldHaveCorrectImmutableTs_multipleTransactions() {
-        BatchedStartTransactionResponse batchedResponse = getBatchedStartTransactionResponse(10, 3);
+        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 3);
 
         List<Long> immutableTimestamps = CoalescingTransactionService.split(batchedResponse).stream()
                 .map(startTransactionResponse -> startTransactionResponse.immutableTimestamp().getImmutableTimestamp())
@@ -209,34 +209,33 @@ public class CoalescingTransactionServiceTest {
                 .allMatch(immutableTimestamp -> immutableTimestamp == IMMUTABLE_TS_RESPONSE.getImmutableTimestamp());
     }
 
-    private static BatchedStartTransactionResponse getBatchedStartTransactionResponse(
-            long lowestStartTs, long batchSize) {
-        return BatchedStartTransactionResponse.of(
+    private static StartTransactionResponseV4 getStartTransactionResponse(
+            long lowestStartTs, int count) {
+        return StartTransactionResponseV4.of(
                 IMMUTABLE_TS_RESPONSE,
-                timestampRangeAndPartition(
-                        lowestStartTs,
-                        lowestStartTs + SharedConstants.TRANSACTION_NUM_PARTITIONS * batchSize - 1,
-                        (int) lowestStartTs % SharedConstants.TRANSACTION_NUM_PARTITIONS),
+                getPartitionedTimestamps(lowestStartTs, count),
                 LEASE);
     }
 
-    private static TimestampRangeAndPartition timestampRangeAndPartition(
-            long lowerBound, long upperBound, int partition) {
-        return TimestampRangeAndPartition.of(
-                TimestampRange.createInclusiveRange(lowerBound, upperBound), partition);
+    private static PartitionedTimestamps getPartitionedTimestamps(long startTs, int count) {
+        return ImmutablePartitionedTimestamps.builder()
+                .start(startTs)
+                .count(count)
+                .interval(NUM_PARTITIONS)
+                .build();
     }
 
-    private static final class BlockingBatchedResponse implements Answer<BatchedStartTransactionResponse> {
+    private static final class BlockingBatchedResponse implements Answer<StartTransactionResponseV4> {
         private final CountDownLatch returnBatchedResponseLatch = new CountDownLatch(1);
         private final CountDownLatch blockingLatch = new CountDownLatch(1);
-        private final BatchedStartTransactionResponse batchedStartTransactionResponse;
+        private final StartTransactionResponseV4 batchedStartTransactionResponse;
 
-        private BlockingBatchedResponse(BatchedStartTransactionResponse batchedStartTransactionResponse) {
+        private BlockingBatchedResponse(StartTransactionResponseV4 batchedStartTransactionResponse) {
             this.batchedStartTransactionResponse = batchedStartTransactionResponse;
         }
 
         @Override
-        public BatchedStartTransactionResponse answer(InvocationOnMock invocation) throws Throwable {
+        public StartTransactionResponseV4 answer(InvocationOnMock invocation) throws Throwable {
             blockingLatch.countDown();
             returnBatchedResponseLatch.await();
             return batchedStartTransactionResponse;
