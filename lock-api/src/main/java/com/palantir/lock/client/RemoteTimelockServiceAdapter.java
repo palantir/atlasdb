@@ -87,7 +87,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
         Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
 
-
         Set<LockToken> result = lockLeaseService.refreshLockLeases(reduceForRefresh(immutableTsTokens, lockTokens));
 
         return Sets.union(
@@ -102,8 +101,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
         Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
 
-
-        Set<LockToken> result = lockLeaseService.refreshLockLeases(reduceForUnlock(immutableTsTokens, lockTokens));
+        Set<LockToken> result = lockLeaseService.unlock(reduceForUnlock(immutableTsTokens, lockTokens));
 
         return Sets.union(
                 immutableTsTokens.stream()
