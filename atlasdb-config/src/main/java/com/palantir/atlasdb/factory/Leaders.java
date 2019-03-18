@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -209,10 +210,9 @@ public final class Leaders {
             Class<T> clazz,
             String userAgent) {
 
-        List<T> remotes = Lists.newArrayListWithCapacity(remoteUris.size());
-        for (String uri : remoteUris) {
-            remotes.add(createProxy(metrics, trustContext, uri, clazz, userAgent, false));
-        }
+        List<T> remotes = remoteUris.stream()
+                .map(uri -> createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .collect(Collectors.toList());
 
         return ImmutableList.copyOf(Iterables.concat(
                 remotes,
