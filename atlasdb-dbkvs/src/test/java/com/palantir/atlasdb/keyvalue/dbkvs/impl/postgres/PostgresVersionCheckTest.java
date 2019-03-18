@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,11 +33,11 @@ public class PostgresVersionCheckTest {
     @SuppressWarnings(value = "Slf4jConstantLogMessage")
     public void shouldLogErrorOn_9_2_24() {
         Logger log = Mockito.mock(Logger.class);
-        thrown.expect(AssertionError.class);
-        thrown.expectMessage("The minimum supported version is ");
         PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
-        Mockito.verify(log).error(contains("The minimum supported version is {}"), Mockito.anyObject(),
-                Mockito.eq(PostgresVersionCheck.MIN_POSTGRES_VERSION));
+        Mockito.verify(log).error(
+                eq("Assertion {} with exception "),
+                contains("The minimum supported version is " + PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                Mockito.any(Exception.class));
         Mockito.verifyNoMoreInteractions(log);
     }
 
