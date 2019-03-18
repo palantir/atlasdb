@@ -62,7 +62,6 @@ public class TestProxies {
                 new MetricRegistry(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
-                false,
                 serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
                 false));
@@ -77,9 +76,9 @@ public class TestProxies {
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 Optional.of(TRUST_CONTEXT),
+                Optional.empty(),
                 uris,
-                serviceInterface,
-                getClass().toString()));
+                serviceInterface));
     }
 
     public List<String> getServerUris() {

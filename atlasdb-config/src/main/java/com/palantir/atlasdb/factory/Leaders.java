@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -205,8 +206,13 @@ public final class Leaders {
             Optional<TrustContext> trustContext,
             Class<T> clazz,
             String userAgent) {
+
+        List<T> remotes = remoteUris.stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .collect(Collectors.toList());
+
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(metrics, trustContext, remoteUris, true, clazz, userAgent),
+                remotes,
                 ImmutableList.of(localObject)));
     }
 
@@ -221,7 +227,7 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
-                            endpoint, true, PingableLeader.class, userAgent, false);
+                            endpoint, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }
