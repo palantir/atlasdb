@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
@@ -28,6 +30,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -126,6 +130,35 @@ public class CoalescingTransactionServiceTest {
         assertDerivableFromBatchedResponse(response_1.get(), batchedStartTransactionResponse);
         assertDerivableFromBatchedResponse(response_2.get(), batchedStartTransactionResponse);
 
+    }
+
+    @Test
+    public void shouldCallTimelockMultipleTimesUntilCollectingAllRequiredTimestamps() throws Exception {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+
+        BlockingBatchedResponse blockingBatchedResponse =
+                new BlockingBatchedResponse(getStartTransactionResponse(12, 1));
+        getStartTransactionResponse(40, 2);
+
+        when(lockLeaseService.startTransactions(anyInt()))
+                .thenAnswer(blockingBatchedResponse)
+                .thenReturn(getStartTransactionResponse(40, 2))
+                .thenReturn(getStartTransactionResponse(100, 1));
+
+        CompletableFuture.runAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
+
+        blockingBatchedResponse.waitForFirstCallToBlock();
+
+        List<CompletableFuture> responses = IntStream.range(0, 3)
+                .mapToObj(unused -> CompletableFuture
+                        .supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService))
+                .collect(Collectors.toList());
+
+        blockingBatchedResponse.unblock();
+        responses.forEach(CompletableFuture::join);
+
+        verify(lockLeaseService, times(2)).startTransactions(1);
+        verify(lockLeaseService).startTransactions(3);
     }
 
     private void assertThatStartTransactionResponsesAreUnique(StartIdentifiedAtlasDbTransactionResponse... responses) {
