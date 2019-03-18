@@ -31,9 +31,16 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
+import feign.Request;
+
 public final class AtlasDbHttpClients {
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
+
+    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
+    // and we don't want it to exactly align with the feign timeout
+    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options(
+            10_000, 65_000);
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -83,7 +90,15 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        trustContext, proxySelector, endpointUris, type, UserAgents.DEFAULT_USER_AGENT),
+                        trustContext,
+                        proxySelector,
+                        endpointUris,
+                        DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
+                        DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                        FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
+                        type,
+                        UserAgents.DEFAULT_USER_AGENT,
+                        false),
                 MetricRegistry.name(type));
     }
 
@@ -98,8 +113,16 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(serverListConfigSupplier,
-                        trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload),
+                AtlasDbFeignTargetFactory.createLiveReloadingProxyWithFailover(
+                        serverListConfigSupplier,
+                        trustContextCreator,
+                        proxySelectorCreator,
+                        DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
+                        DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                        FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
+                        type,
+                        userAgent,
+                        limitPayload),
                 MetricRegistry.name(type));
     }
 
