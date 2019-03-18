@@ -188,6 +188,27 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>We’ve rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3836">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-126-0">
+<h2>v0.126.0<a class="headerlink" href="#v0-126-0" title="Permalink to this headline">¶</a></h2>
+<p>18 Mar 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>Removed functionality for marking tables as deprecated as part of the schema definition and automatically dropping deprecated tables on startup.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3829">Pull Request</a>)</td>
@@ -211,22 +232,31 @@ Please contact the AtlasDB team if you think this affects your workflows.
 <td>Fixed a bug in <code class="docutils literal notranslate"><span class="pre">PaxosQuorumChecker</span></code> causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3811">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-125-0">
+<h2>v0.125.0<a class="headerlink" href="#v0-125-0" title="Permalink to this headline">¶</a></h2>
+<p>07 Mar 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">CassandraKeyValueService</span></code> now exposes a lightweight method for obtaining row keys.
 If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3757">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>The minimum Postgres version is now 9.5.2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3786">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Timelock Server now exposes a <code class="docutils literal notranslate"><span class="pre">startTransactions</span></code> endpoint that enables coalescing multiple start transaction requests into a single rpc.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3797">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>We’ve rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3836">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

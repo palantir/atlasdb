@@ -50,6 +50,23 @@ develop
     *    - Type
          - Change
 
+    *    - |changed|
+         - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
+
+========
+v0.126.0
+========
+
+18 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |changed| |userbreak|
          - Removed functionality for marking tables as deprecated as part of the schema definition and automatically dropping deprecated tables on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3829>`__)
@@ -73,6 +90,19 @@ develop
          - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3811>`__)
 
+========
+v0.125.0
+========
+
+07 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - ``CassandraKeyValueService`` now exposes a lightweight method for obtaining row keys.
            If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
@@ -81,14 +111,6 @@ develop
     *    - |changed| |userbreak|
          - The minimum Postgres version is now 9.5.2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
-
-    *    - |new|
-         - Timelock Server now exposes a ``startTransactions`` endpoint that enables coalescing multiple start transaction requests into a single rpc.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3797>`__)
-
-    *    - |changed|
-         - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
 
 ========
 v0.122.0
