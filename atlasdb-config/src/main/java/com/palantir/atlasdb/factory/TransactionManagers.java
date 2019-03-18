@@ -147,6 +147,8 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+import com.palantir.util.executor.DefaultExecutorFactory;
+import com.palantir.util.executor.ExecutorFactory;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -183,6 +185,11 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean validateLocksOnReads() {
         return true;
+    }
+
+    @Value.Default
+    ExecutorFactory executorFactory() {
+        return new DefaultExecutorFactory();
     }
 
     abstract String userAgent();
@@ -273,6 +280,7 @@ public abstract class TransactionManagers {
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
         MetricsManager metricsManager = MetricsManagers.of(globalMetricsRegistry(), globalTaggedMetricRegistry());
+        ExecutorFactory executorFactory = executorFactory();
 
         AtlasDbRuntimeConfig defaultRuntime = AtlasDbRuntimeConfig.defaultRuntimeConfig();
         Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier =
@@ -366,7 +374,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         MultiTableSweepQueueWriter targetedSweep = initializeCloseable(
-                () -> uninitializedTargetedSweeper(metricsManager, config().targetedSweep(), follower,
+                () -> uninitializedTargetedSweeper(metricsManager, executorFactory, config().targetedSweep(), follower,
                         Suppliers.compose(AtlasDbRuntimeConfig::targetedSweep, runtimeConfigSupplier::get)),
                 closeables);
 
@@ -975,6 +983,7 @@ public abstract class TransactionManagers {
 
     private MultiTableSweepQueueWriter uninitializedTargetedSweeper(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             TargetedSweepInstallConfig config,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
@@ -983,6 +992,7 @@ public abstract class TransactionManagers {
         }
         return TargetedSweeper.createUninitialized(
                 metricsManager,
+                executorFactory,
                 Suppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime::get),
                 Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
                 config.conservativeThreads(),

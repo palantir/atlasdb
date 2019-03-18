@@ -39,7 +39,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -48,25 +47,18 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.executor.ExecutorFactory;
 
 /**
- * Feature breakdown:
- *   - Pooling
- *   - Token Aware Mapping / Query Routing / Data partitioning
- *   - Retriable Queries
- *   - Pool member error tracking / blacklisting*
- *   - Pool refreshing
- *   - Pool node autodiscovery
- *   - Pool member health checking*
- *
- *   *entirely new features
- *
- *   By our old system, this would be a
- *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
- *   ... this is one of the reasons why there is a new system.
+ * Feature breakdown: - Pooling - Token Aware Mapping / Query Routing / Data partitioning - Retriable Queries - Pool
+ * member error tracking / blacklisting* - Pool refreshing - Pool node autodiscovery - Pool member health checking*
+ * <p>
+ * *entirely new features
+ * <p>
+ * By our old system, this would be a RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ * ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
@@ -115,12 +107,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             Blacklist blacklist) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
+                executorFactory,
                 config,
                 startupChecks,
                 exceptionHandler,
@@ -150,7 +144,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandraClientPool;
     }
 
-    public static CassandraClientPool create(MetricsManager metricsManager,
+    public static CassandraClientPool create(
+            MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             boolean initializeAsync) {
@@ -162,6 +158,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
                 metricsManager,
+                executorFactory,
                 config,
                 StartupChecks.RUN,
                 exceptionHandler,
@@ -172,6 +169,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private CassandraClientPoolImpl(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             StartupChecks startupChecks,
             CassandraRequestExceptionHandler exceptionHandler,
@@ -179,10 +177,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         this(metricsManager,
                 config,
                 startupChecks,
-                PTExecutors.newScheduledThreadPool(1, new ThreadFactoryBuilder()
-                        .setDaemon(true)
-                        .setNameFormat("CassandraClientPoolRefresh-%d")
-                        .build()),
+                executorFactory.newScheduledExecutorService("CassandraClientPoolRefresh-%d")
+                        .numThreads(1)
+                        .daemon(true)
+                        .build(),
                 exceptionHandler,
                 blacklist,
                 new CassandraService(metricsManager, config, blacklist));

@@ -41,11 +41,11 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.util.executor.ExecutorFactories;
+import com.palantir.util.executor.ExecutorFactory;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
@@ -54,6 +54,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final Supplier<Integer> shardsConfig;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
+    private final ExecutorFactory executorFactory;
 
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -64,9 +65,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     private volatile boolean isInitialized = false;
 
-    private TargetedSweeper(MetricsManager metricsManager, Supplier<Boolean> runSweep, Supplier<Integer> shardsConfig,
-            int conservativeThreads, int thoroughThreads, List<Follower> followers) {
+    private TargetedSweeper(
+            MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
+            Supplier<Boolean> runSweep,
+            Supplier<Integer> shardsConfig,
+            int conservativeThreads,
+            int thoroughThreads,
+            List<Follower> followers) {
         this.metricsManager = metricsManager;
+        this.executorFactory = executorFactory;
         this.runSweep = runSweep;
         this.shardsConfig = shardsConfig;
         this.conservativeScheduler = new BackgroundSweepScheduler(conservativeThreads,
@@ -77,10 +85,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     }
 
     /**
-     * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the
-     * {@link #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService,
-     * TransactionService, TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before
-     * the background sweep job can run.
+     * Creates a targeted sweeper, without initializing any of the necessary resources. You must call the {@link
+     * #initializeWithoutRunning(SpecialTimestampsSupplier, TimelockService, KeyValueService, TransactionService,
+     * TargetedSweepFollower)} method before any writes can be made to the sweep queue, or before the background sweep
+     * job can run.
      *
      * @param enabled live reloadable config controlling whether background threads should perform targeted sweep.
      * @param shardsConfig live reloadable config specifying the desired number of shards. Since the number of shards
@@ -90,19 +98,22 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * @param followers follower used for sweeps, as defined by your schema.
      * @return returns an uninitialized targeted sweeper
      */
-    public static TargetedSweeper createUninitialized(MetricsManager metrics, Supplier<Boolean> enabled,
-            Supplier<Integer> shardsConfig, int conservativeThreads, int thoroughThreads, List<Follower> followers) {
-        return new TargetedSweeper(metrics, enabled, shardsConfig, conservativeThreads, thoroughThreads, followers);
+    public static TargetedSweeper createUninitialized(MetricsManager metrics, ExecutorFactory executorFactory,
+            Supplier<Boolean> enabled, Supplier<Integer> shardsConfig, int conservativeThreads, int thoroughThreads,
+            List<Follower> followers) {
+        return new TargetedSweeper(metrics, executorFactory, enabled, shardsConfig, conservativeThreads,
+                thoroughThreads, followers);
     }
 
     @VisibleForTesting
-    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, Supplier<Boolean> enabled,
-            Supplier<Integer> shards) {
-        return createUninitialized(metricsManager, enabled, shards, 0, 0, ImmutableList.of());
+    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager, ExecutorFactory executorFactory,
+            Supplier<Boolean> enabled, Supplier<Integer> shards) {
+        return createUninitialized(metricsManager, executorFactory, enabled, shards, 0, 0, ImmutableList.of());
     }
 
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
-        return createUninitializedForTest(MetricsManagers.createForTests(), () -> true, shards);
+        return createUninitializedForTest(MetricsManagers.createForTests(), ExecutorFactories.createForTests(),
+                () -> true, shards);
     }
 
     @Override
@@ -208,8 +219,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void scheduleBackgroundThreads() {
             if (numThreads > 0 && executorService == null) {
-                executorService = PTExecutors
-                        .newScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory("Targeted Sweep", true));
+                executorService = executorFactory.newScheduledExecutorService("Targeted Sweep")
+                        .numThreads(numThreads)
+                        .daemon(true)
+                        .build();
                 for (int i = 0; i < numThreads; i++) {
                     executorService.scheduleWithFixedDelay(this::runOneIteration, 1, 5, TimeUnit.SECONDS);
                 }

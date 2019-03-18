@@ -123,6 +123,8 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.util.executor.ExecutorFactories;
+import com.palantir.util.executor.ExecutorFactory;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -224,11 +226,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService createForTesting(CassandraKeyValueServiceConfig config) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(metricsManager,
+        ExecutorFactory executorFactory = ExecutorFactories.createForTests();
+        CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
+                metricsManager,
+                executorFactory,
                 config,
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 new Blacklist(config));
-        return createOrShutdownClientPool(metricsManager, config, clientPool,
+        return createOrShutdownClientPool(metricsManager, executorFactory, config, clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -236,10 +241,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         return create(
                 metricsManager,
+                executorFactory,
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
@@ -248,10 +255,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             CassandraClientPool clientPool) {
-        return createOrShutdownClientPool(metricsManager,
+        return createOrShutdownClientPool(
+                metricsManager,
+                executorFactory,
                 config,
                 clientPool,
                 mutationTimestampProvider,
@@ -261,11 +271,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             boolean initializeAsync) {
         return create(metricsManager,
+                executorFactory,
                 config,
                 runtimeConfig,
                 mutationTimestampProvider,
@@ -276,10 +288,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @VisibleForTesting
     static CassandraKeyValueService create(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log) {
         return create(metricsManager,
+                executorFactory,
                 config,
                 CassandraKeyValueServiceRuntimeConfig::getDefault,
                 mutationTimestampProvider,
@@ -289,28 +303,32 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static CassandraKeyValueService create(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
-        CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
+        CassandraClientPool clientPool = CassandraClientPoolImpl.create(
+                metricsManager,
+                executorFactory,
                 config,
                 runtimeConfig,
                 initializeAsync);
-        return createOrShutdownClientPool(metricsManager, config, clientPool, mutationTimestampProvider,
+        return createOrShutdownClientPool(metricsManager, executorFactory, config, clientPool, mutationTimestampProvider,
                 log, initializeAsync);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
         try {
-            return createAndInitialize(metricsManager, config, clientPool,
+            return createAndInitialize(metricsManager, executorFactory, config, clientPool,
                     mutationTimestampProvider, log, initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
@@ -327,6 +345,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private static CassandraKeyValueService createAndInitialize(
             MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
             CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
@@ -335,6 +354,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServiceImpl keyValueService = new CassandraKeyValueServiceImpl(
                 log,
                 metricsManager,
+                executorFactory,
                 config,
                 clientPool,
                 mutationTimestampProvider);
@@ -343,10 +363,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private CassandraKeyValueServiceImpl(Logger log,
-            MetricsManager metricsManager, CassandraKeyValueServiceConfig config,
+            MetricsManager metricsManager,
+            ExecutorFactory executorFactory,
+            CassandraKeyValueServiceConfig config,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
-        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
+        super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()), executorFactory);
         this.log = log;
         this.metricsManager = metricsManager;
         this.config = config;

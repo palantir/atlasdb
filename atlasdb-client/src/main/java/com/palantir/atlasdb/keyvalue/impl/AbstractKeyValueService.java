@@ -45,8 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.util.executor.ExecutorFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -58,14 +57,16 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     private final ScheduledExecutorService scheduledExecutor;
 
     /**
-     * Note: This takes ownership of the given executor. It will be shutdown when the key
-     * value service is closed.
+     * Note: This takes ownership of the given executor. It will be shutdown when the key value service is closed.
      */
-    public AbstractKeyValueService(ExecutorService executor) {
+    public AbstractKeyValueService(ExecutorService executor, ExecutorFactory executorFactory) {
         this.executor = executor;
         this.tracingPrefs = new TracingPrefsConfig();
-        this.scheduledExecutor = PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(getClass().getSimpleName() + "-tracing-prefs", true));
+        this.scheduledExecutor = executorFactory.newScheduledExecutorService(
+                getClass().getSimpleName() + "-tracing-prefs")
+                .numThreads(1)
+                .daemon(true)
+                .build();
         this.scheduledExecutor.scheduleWithFixedDelay(this.tracingPrefs, 0, 1, TimeUnit.MINUTES); // reload every minute
     }
 
@@ -76,9 +77,9 @@ public abstract class AbstractKeyValueService implements KeyValueService {
      * @param poolSize fixed thread pool size
      * @return a new fixed size thread pool with a keep alive time of 1 minute
      */
-    protected static ExecutorService createFixedThreadPool(String threadNamePrefix, int poolSize) {
-        ThreadPoolExecutor executor = PTExecutors.newFixedThreadPool(poolSize,
-                new NamedThreadFactory(threadNamePrefix, false));
+    protected static ExecutorService createFixedThreadPool(ExecutorFactory executorFactory, String threadNamePrefix,
+            int poolSize) {
+        ThreadPoolExecutor executor = executorFactory.newFixedThreadPoolExecutorService(poolSize, threadNamePrefix);
         executor.setKeepAliveTime(1, TimeUnit.MINUTES);
         return executor;
     }
@@ -185,23 +186,23 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef,
-                                                                  Iterable<byte[]> rows,
-                                                                  BatchColumnRangeSelection batchColumnRangeSelection,
-                                                                  long timestamp) {
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection batchColumnRangeSelection,
+            long timestamp) {
         return KeyValueServices.filterGetRowsToColumnRange(this, tableRef, rows, batchColumnRangeSelection, timestamp);
     }
 
     @Override
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef,
-                                                     Iterable<byte[]> rows,
-                                                     ColumnRangeSelection columnRangeSelection,
-                                                     int cellBatchHint,
-                                                     long timestamp) {
+            Iterable<byte[]> rows,
+            ColumnRangeSelection columnRangeSelection,
+            int cellBatchHint,
+            long timestamp) {
         return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(this,
-                                                                          tableRef,
-                                                                          rows,
-                                                                          columnRangeSelection,
-                                                                          cellBatchHint,
-                                                                          timestamp);
+                tableRef,
+                rows,
+                columnRangeSelection,
+                cellBatchHint,
+                timestamp);
     }
 }

@@ -16,7 +16,6 @@
 package com.palantir.async.initializer;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -24,8 +23,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 
@@ -37,7 +34,7 @@ import com.palantir.logsafe.SafeArg;
 public abstract class AsyncInitializer {
     private static final Logger log = LoggerFactory.getLogger(AsyncInitializer.class);
 
-    private final ScheduledExecutorService singleThreadedExecutor = createExecutorService();
+//    private final ScheduledExecutorService singleThreadedExecutor;
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
     private AsyncInitializationState state = new AsyncInitializationState();
     private int numberOfInitializationAttempts = 1;
@@ -88,20 +85,21 @@ public abstract class AsyncInitializer {
 
     // Not final for tests.
     void scheduleInitialization() {
-        singleThreadedExecutor.schedule(() -> {
-            if (state.isCancelled()) {
-                singleThreadedExecutor.shutdown();
-                return;
-            }
-
-            tryInitializationLoop();
-        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
+//        singleThreadedExecutor.schedule(() -> {
+//            if (state.isCancelled()) {
+//                singleThreadedExecutor.shutdown();
+//                return;
+//            }
+//
+//            tryInitializationLoop();
+//        }, sleepIntervalInMillis(), TimeUnit.MILLISECONDS);
     }
 
     // Not final for tests
     ScheduledExecutorService createExecutorService() {
-        return PTExecutors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
+//        return PTExecutors.newSingleThreadScheduledExecutor(
+//                new NamedThreadFactory("AsyncInitializer-" + getInitializingClassName(), true));
+        return null;
     }
 
     // Not final for tests.
@@ -141,7 +139,7 @@ public abstract class AsyncInitializer {
         if (state.initToDone() == AsyncInitializationState.State.CANCELLED) {
             state.performCleanupTask();
         }
-        singleThreadedExecutor.shutdown();
+//        singleThreadedExecutor.shutdown();
     }
 
     // Not final for tests.

@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRefreshToken;
@@ -36,6 +35,7 @@ import com.palantir.lock.LockResponse;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimplifyingLockService;
+import com.palantir.util.executor.ExecutorFactory;
 
 @SuppressWarnings("checkstyle:FinalClass") // Avoid breaking API in case someone extended this
 public class LockRefreshingLockService extends SimplifyingLockService {
@@ -48,8 +48,8 @@ public class LockRefreshingLockService extends SimplifyingLockService {
     final long refreshFrequencyMillis = 5000;
     volatile boolean isClosed = false;
 
-    public static LockRefreshingLockService create(LockService delegate) {
-        final LockRefreshingLockService ret = new LockRefreshingLockService(delegate);
+    public static LockRefreshingLockService create(ExecutorFactory executorFactory, LockService delegate) {
+        final LockRefreshingLockService ret = new LockRefreshingLockService(executorFactory, delegate);
         ret.exec.scheduleWithFixedDelay(() -> {
             long startTime = System.currentTimeMillis();
             try {
@@ -71,10 +71,13 @@ public class LockRefreshingLockService extends SimplifyingLockService {
         return ret;
     }
 
-    private LockRefreshingLockService(LockService delegate) {
+    private LockRefreshingLockService(ExecutorFactory executorFactory, LockService delegate) {
         this.delegate = delegate;
         toRefresh = Sets.newConcurrentHashSet();
-        exec = PTExecutors.newScheduledThreadPool(1, PTExecutors.newNamedThreadFactory(true));
+        exec = executorFactory.newScheduledExecutorService(this.getClass())
+                .numThreads(1)
+                .daemon(true)
+                .build();
     }
 
     @Override
