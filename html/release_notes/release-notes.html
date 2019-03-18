@@ -224,6 +224,10 @@ If you believe you need to use this method, you should reach out to the AtlasDB 
 <td>Timelock Server now exposes a <code class="docutils literal notranslate"><span class="pre">startTransactions</span></code> endpoint that enables coalescing multiple start transaction requests into a single rpc.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3797">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>We’ve rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3836">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

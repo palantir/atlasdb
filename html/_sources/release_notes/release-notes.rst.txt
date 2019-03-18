@@ -72,7 +72,7 @@ develop
     *    - |fixed|
          - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3811>`__)
-    
+
     *    - |improved|
          - ``CassandraKeyValueService`` now exposes a lightweight method for obtaining row keys.
            If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
@@ -85,6 +85,10 @@ develop
     *    - |new|
          - Timelock Server now exposes a ``startTransactions`` endpoint that enables coalescing multiple start transaction requests into a single rpc.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3797>`__)
+
+    *    - |changed|
+         - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
 
 ========
 v0.122.0
@@ -148,7 +152,7 @@ v0.120.0
          - Change
 
     *    - |devbreak|
-         - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
+         - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
 
     *    - |devbreak|
@@ -599,7 +603,7 @@ v0.108.0
          - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
            Previously, puts would instead fail at runtime when the column did not exist.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
- 
+
     *    - |improved|
          - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
            Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
