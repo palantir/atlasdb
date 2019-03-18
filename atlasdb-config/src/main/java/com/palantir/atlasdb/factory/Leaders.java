@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static com.palantir.atlasdb.http.AtlasDbHttpClients.createProxy;
+
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -35,12 +37,12 @@ import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -206,8 +208,14 @@ public final class Leaders {
             Optional<TrustContext> trustContext,
             Class<T> clazz,
             String userAgent) {
+
+        List<T> remotes = Lists.newArrayListWithCapacity(remoteUris.size());
+        for (String uri : remoteUris) {
+            remotes.add(createProxy(metrics, trustContext, uri, clazz, userAgent, false));
+        }
+
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(metrics, trustContext, remoteUris, clazz, userAgent),
+                remotes,
                 ImmutableList.of(localObject)));
     }
 
@@ -221,7 +229,7 @@ public final class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
+            PingableLeader remoteInterface = createProxy(metricsManager.getRegistry(), trustContext,
                             endpoint, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);

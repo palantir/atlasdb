@@ -78,8 +78,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 Optional.empty(),
                 uris,
-                serviceInterface,
-                getClass().toString()));
+                serviceInterface));
     }
 
     public List<String> getServerUris() {

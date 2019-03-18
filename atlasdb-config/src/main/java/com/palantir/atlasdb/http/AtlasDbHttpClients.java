@@ -66,19 +66,6 @@ public final class AtlasDbHttpClients {
                 MetricRegistry.name(type));
     }
 
-    public static <T> List<T> createProxies(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent) {
-        List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
-        for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, trustContext, uri, type, userAgent, false));
-        }
-        return ret;
-    }
-
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
@@ -92,27 +79,11 @@ public final class AtlasDbHttpClients {
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
             Class<T> type) {
-        return createProxyWithFailover(
-                metricRegistry,
-                trustContext,
-                proxySelector,
-                endpointUris,
-                type,
-                UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static <T> T createProxyWithFailover(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory.createProxyWithFailover(
-                        trustContext, proxySelector, endpointUris, type, userAgent),
+                        trustContext, proxySelector, endpointUris, type, UserAgents.DEFAULT_USER_AGENT),
                 MetricRegistry.name(type));
     }
 
