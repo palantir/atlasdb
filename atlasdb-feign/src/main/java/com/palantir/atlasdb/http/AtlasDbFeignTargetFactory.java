@@ -67,7 +67,6 @@ public final class AtlasDbFeignTargetFactory {
     public static <T> T createProxy(
             Optional<TrustContext> trustContext,
             String uri,
-            boolean refreshingHttpClient,
             Class<T> type,
             String userAgent,
             boolean limitPayloadSize) {
@@ -77,18 +76,14 @@ public final class AtlasDbFeignTargetFactory {
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(createClient(trustContext, refreshingHttpClient, userAgent, limitPayloadSize))
+                .client(createClient(trustContext, userAgent, limitPayloadSize))
                 .target(type, uri);
     }
 
     private static Client createClient(
             Optional<TrustContext> trustContext,
-            boolean refreshingHttpClient,
             String userAgent,
             boolean limitPayload) {
-        if (!refreshingHttpClient) {
-            return FeignOkHttpClients.newOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
-        }
         return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
     }
 

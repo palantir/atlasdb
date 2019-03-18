@@ -62,7 +62,6 @@ public class TestProxies {
                 new MetricRegistry(),
                 Optional.of(TRUST_CONTEXT),
                 uri,
-                false,
                 serviceInterface,
                 MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
                 false));

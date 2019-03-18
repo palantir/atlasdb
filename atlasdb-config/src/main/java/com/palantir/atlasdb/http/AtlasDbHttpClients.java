@@ -57,7 +57,7 @@ public final class AtlasDbHttpClients {
             String uri,
             Class<T> type,
             boolean limitPayloadSize) {
-        return createProxy(metricRegistry, trustContext, uri, false, type, UserAgents.DEFAULT_USER_AGENT,
+        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT,
                 limitPayloadSize);
     }
 
@@ -65,7 +65,6 @@ public final class AtlasDbHttpClients {
             MetricRegistry metricRegistry,
             Optional<TrustContext> trustContext,
             String uri,
-            boolean refreshingHttpClient,
             Class<T> type,
             String userAgent,
             boolean limitPayloadSize) {
@@ -73,7 +72,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory
-                        .createProxy(trustContext, uri, refreshingHttpClient, type, userAgent, limitPayloadSize),
+                        .createProxy(trustContext, uri, type, userAgent, limitPayloadSize),
                 MetricRegistry.name(type));
     }
 
@@ -81,12 +80,11 @@ public final class AtlasDbHttpClients {
             MetricRegistry metricRegistry,
             Optional<TrustContext> trustContext,
             Collection<String> endpointUris,
-            boolean refreshingHttpClient,
             Class<T> type,
             String userAgent) {
         List<T> ret = Lists.newArrayListWithCapacity(endpointUris.size());
         for (String uri : endpointUris) {
-            ret.add(createProxy(metricRegistry, trustContext, uri, refreshingHttpClient, type, userAgent, false));
+            ret.add(createProxy(metricRegistry, trustContext, uri, type, userAgent, false));
         }
         return ret;
     }
