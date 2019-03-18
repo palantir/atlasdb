@@ -76,6 +76,7 @@ public class TestProxies {
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 Optional.of(TRUST_CONTEXT),
+                Optional.empty(),
                 uris,
                 serviceInterface,
                 getClass().toString()));

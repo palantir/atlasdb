@@ -90,45 +90,6 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class)}, which requires
-     * you to specify the ProxySelector parameter.
-     */
-    @Deprecated
-    public static <T> T createProxyWithFailover(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Collection<String> endpointUris,
-            Class<T> type) {
-        return createProxyWithFailover(
-                metricRegistry,
-                trustContext,
-                Optional.empty(),
-                endpointUris,
-                type,
-                UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    /**
-     * @deprecated please use {@link #createProxyWithFailover(Optional, Optional, Collection, Class, String)}, which
-     * requires you to specify the ProxySelector parameter.
-     */
-    @Deprecated
-    public static <T> T createProxyWithFailover(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent) {
-        return createProxyWithFailover(
-                metricRegistry,
-                trustContext,
-                Optional.empty(),
-                endpointUris,
-                type,
-                userAgent);
-    }
-
-    /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
      * present. Also use the supplied the proxy selector to set the proxy on the clients if present.

@@ -80,13 +80,6 @@ public final class AtlasDbFeignTargetFactory {
                 .target(type, uri);
     }
 
-    private static Client createClient(
-            Optional<TrustContext> trustContext,
-            String userAgent,
-            boolean limitPayload) {
-        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
-    }
-
     public static <T> T createRsProxy(
             Optional<TrustContext> trustContext,
             String uri,
@@ -97,8 +90,15 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, false))
+                .client(createClient(trustContext, userAgent, false))
                 .target(type, uri);
+    }
+
+    private static Client createClient(
+            Optional<TrustContext> trustContext,
+            String userAgent,
+            boolean limitPayload) {
+        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
     }
 
     public static <T> T createProxyWithFailover(
