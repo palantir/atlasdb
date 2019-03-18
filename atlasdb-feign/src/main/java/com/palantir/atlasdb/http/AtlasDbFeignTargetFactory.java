@@ -111,6 +111,29 @@ public final class AtlasDbFeignTargetFactory {
                 limitPayloadSize);
     }
 
+    private static <T> T createProxyWithFailover(
+            Optional<TrustContext> trustContext,
+            Optional<ProxySelector> proxySelector,
+            Collection<String> endpointUris,
+            Request.Options feignOptions,
+            int maxBackoffMillis,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
+        Client client = failoverFeignTarget.wrapClient(
+                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(errorDecoder)
+                .client(client)
+                .retryer(failoverFeignTarget)
+                .options(feignOptions)
+                .target(failoverFeignTarget);
+    }
+
     static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
@@ -149,29 +172,6 @@ public final class AtlasDbFeignTargetFactory {
             String userAgent,
             boolean limitPayload) {
         return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
-    }
-
-    private static <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Request.Options feignOptions,
-            int maxBackoffMillis,
-            Class<T> type,
-            String userAgent,
-            boolean limitPayloadSize) {
-        FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
-        Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
-        return Feign.builder()
-                .contract(contract)
-                .encoder(encoder)
-                .decoder(decoder)
-                .errorDecoder(errorDecoder)
-                .client(client)
-                .retryer(failoverFeignTarget)
-                .options(feignOptions)
-                .target(failoverFeignTarget);
     }
 
     private static <T> T createProxyForZeroNodes(Class<T> type) {

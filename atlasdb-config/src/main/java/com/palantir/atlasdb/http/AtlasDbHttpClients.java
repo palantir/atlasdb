@@ -17,30 +17,26 @@ package com.palantir.atlasdb.http;
 
 import java.net.ProxySelector;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
-import feign.Request;
-
 public final class AtlasDbHttpClients {
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
-
     // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
     // and we don't want it to exactly align with the feign timeout
-    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options(
-            10_000, 65_000);
+    private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 10_000;
+    private static final int DEFAULT_READ_TIMEOUT_MILLIS = 65_000;
+
+    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
+    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
     private AtlasDbHttpClients() {
         // Utility class
@@ -93,8 +89,8 @@ public final class AtlasDbHttpClients {
                         trustContext,
                         proxySelector,
                         endpointUris,
-                        DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
-                        DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                        DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                        DEFAULT_READ_TIMEOUT_MILLIS,
                         FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
                         type,
                         UserAgents.DEFAULT_USER_AGENT,
@@ -117,8 +113,8 @@ public final class AtlasDbHttpClients {
                         serverListConfigSupplier,
                         trustContextCreator,
                         proxySelectorCreator,
-                        DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
-                        DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
+                        DEFAULT_CONNECT_TIMEOUT_MILLIS,
+                        DEFAULT_READ_TIMEOUT_MILLIS,
                         FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
                         type,
                         userAgent,
