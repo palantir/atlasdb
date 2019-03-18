@@ -48,17 +48,7 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, false);
-    }
-
-    public static <T> T createProxy(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type,
-            boolean limitPayloadSize) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT,
-                limitPayloadSize);
+        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT, false);
     }
 
     public static <T> T createProxy(
