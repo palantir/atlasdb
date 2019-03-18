@@ -283,6 +283,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         log.warn("Lost leadership", cause);
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
+            // this is fine in the case that this node has been elected leader again (i.e. with a different leadership
+            // token). `onGainedLeadership` guarantees that the delegate will be refreshed *before* we get a new
+            // leadershipToken. We're closing here instead of relying on the close in `onGainedLeadership` to reclaim
+            // resources and does not affect correctness.
+
+            // if we were to move this above or below the CAS, we could race with `onGainedLeadership` and end up
+            // clearing `delegateRef`.
             try {
                 clearDelegate();
             } catch (Throwable t) {
