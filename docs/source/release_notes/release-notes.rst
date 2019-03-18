@@ -54,6 +54,10 @@ develop
          - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
 
+    *    - |improved| |devbreak|
+         - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
+
 ========
 v0.126.0
 ========
