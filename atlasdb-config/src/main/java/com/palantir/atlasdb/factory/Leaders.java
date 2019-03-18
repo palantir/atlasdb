@@ -54,7 +54,6 @@ import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.lease.LeasingLeaderElectionService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -185,7 +184,7 @@ public final class Leaders {
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 LeaderElectionService.class,
-                LeasingLeaderElectionService.wrap(paxosLeaderElectionService));
+                paxosLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
                 paxosLeaderElectionService);
