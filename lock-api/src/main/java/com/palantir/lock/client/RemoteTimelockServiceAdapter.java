@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -87,13 +88,15 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
         Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
 
-        Set<LockToken> result = lockLeaseService.refreshLockLeases(reduceForRefresh(immutableTsTokens, lockTokens));
+        Set<LockToken> refreshedTokens = lockLeaseService.refreshLockLeases(Sets.union(
+                reduceForRefresh(immutableTsTokens),
+                lockTokens));
 
         return Sets.union(
                 immutableTsTokens.stream()
-                        .filter(t -> result.contains(t.sharedLockToken()))
+                        .filter(t -> refreshedTokens.contains(t.sharedLockToken()))
                         .collect(Collectors.toSet()),
-                lockTokens.stream().filter(result::contains).collect(Collectors.toSet()));
+                lockTokens.stream().filter(refreshedTokens::contains).collect(Collectors.toSet()));
     }
 
     @Override
@@ -101,7 +104,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
 
         Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
-
         Set<LockToken> referencedTokens = immutableTsTokens.stream()
                 .map(LockTokenShare::sharedLockToken)
                 .collect(Collectors.toSet());
@@ -109,7 +111,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         Set<LockToken> toUnlock = reduceForUnlock(immutableTsTokens);
         Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
 
-        Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
+        Set<LockToken> refreshed = refreshLockLeasesInternal(toRefresh);
         Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
         return Sets.union(
@@ -119,17 +121,23 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
                 lockTokens.stream().filter(unlocked::contains).collect(Collectors.toSet()));
     }
 
+    private Set<LockToken> refreshLockLeasesInternal(Set<LockToken> toRefresh) {
+        Set<LockToken> refreshed = new HashSet<>();
+        if (!toRefresh.isEmpty()) {
+            refreshed = lockLeaseService.refreshLockLeases(toRefresh);
+        }
+        return refreshed;
+    }
+
     @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
     }
 
-    private static Set<LockToken> reduceForRefresh(Set<LockTokenShare> immutableTsTokens, Set<LockToken> lockTokens) {
-        Set<LockToken> reducedImmutableTsTokens = immutableTsTokens.stream()
+    private static Set<LockToken> reduceForRefresh(Set<LockTokenShare> immutableTsTokens) {
+        return immutableTsTokens.stream()
                 .map(LockTokenShare::sharedLockToken)
                 .collect(Collectors.toSet());
-
-        return Sets.union(lockTokens, reducedImmutableTsTokens);
     }
 
     private static Set<LockToken> reduceForUnlock(Set<LockTokenShare> immutableTsTokens) {
@@ -141,14 +149,18 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     }
 
     private static Set<LockTokenShare> filterImmutableTsTokens(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> t instanceof LockTokenShare)
+        return tokens.stream().filter(t -> isLockTokenShare(t))
                 .map(t -> (LockTokenShare) t)
                 .collect(Collectors.toSet());
     }
 
     private static Set<LockToken> filterOutImmutableTsTokens(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> !(t instanceof LockTokenShare))
+        return tokens.stream().filter(t -> !isLockTokenShare(t))
                 .collect(Collectors.toSet());
+    }
+
+    private static boolean isLockTokenShare(LockToken lockToken) {
+        return lockToken instanceof LockTokenShare;
     }
 
 }
