@@ -43,14 +43,14 @@ import org.mockito.stubbing.Answer;
 
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
-import com.palantir.lock.v2.PartitionedTimestamps;
-import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingTransactionServiceTest {
@@ -118,17 +118,17 @@ public class CoalescingTransactionServiceTest {
 
         blockingBatchedResponse.waitForFirstCallToBlock();
 
-        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response_1 =
+        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response1 =
                 CompletableFuture.supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
 
-        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response_2 =
+        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response2 =
                 CompletableFuture.supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
 
         blockingBatchedResponse.unblock();
 
-        assertThatStartTransactionResponsesAreUnique(response_1.get(), response_2.get());
-        assertDerivableFromBatchedResponse(response_1.get(), batchedStartTransactionResponse);
-        assertDerivableFromBatchedResponse(response_2.get(), batchedStartTransactionResponse);
+        assertThatStartTransactionResponsesAreUnique(response1.get(), response2.get());
+        assertDerivableFromBatchedResponse(response1.get(), batchedStartTransactionResponse);
+        assertDerivableFromBatchedResponse(response2.get(), batchedStartTransactionResponse);
 
     }
 
