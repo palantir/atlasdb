@@ -162,7 +162,7 @@ public final class AtlasDbFeignTargetFactory {
                 .target(failoverFeignTarget);
     }
 
-    public static <T> T createLiveReloadingProxyWithFailover(
+    static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
@@ -181,7 +181,7 @@ public final class AtlasDbFeignTargetFactory {
                 limitPayload);
     }
 
-    public static <T> T createLiveReloadingProxyWithFailover(
+    static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
