@@ -120,6 +120,14 @@ public class KvTableMappingService implements TableMappingService {
         return Bytes.concat(nameSpace, table);
     }
 
+    private TableReference getAlreadyExistingMappedTableName(TableReference tableRef) {
+        try {
+            return getMappedTableName(tableRef);
+        } catch (TableMappingNotFoundException ex) {
+            throw new IllegalArgumentException(ex);
+        }
+    }
+
     @Override
     public void removeTable(TableReference tableRef) {
         removeTables(ImmutableSet.of(tableRef));
@@ -159,7 +167,7 @@ public class KvTableMappingService implements TableMappingService {
     }
 
     private TableReference getMappedTableRef(TableReference tableRef)
-            throws TableMappingNotFoundException{
+            throws TableMappingNotFoundException {
         TableReference candidate = tableMap.get().get(tableRef);
         if (candidate == null) {
             updateTableMap();
@@ -254,13 +262,4 @@ public class KvTableMappingService implements TableMappingService {
         String tableName = PtBytes.toString(encodedTableRef, offset, encodedTableRef.length - offset);
         return TableReference.create(Namespace.create(nameSpace), tableName);
     }
-
-    private TableReference getAlreadyExistingMappedTableName(TableReference tableRef) {
-        try {
-            return getMappedTableName(tableRef);
-        } catch (TableMappingNotFoundException ex) {
-            throw new IllegalArgumentException(ex);
-        }
-    }
-
 }
