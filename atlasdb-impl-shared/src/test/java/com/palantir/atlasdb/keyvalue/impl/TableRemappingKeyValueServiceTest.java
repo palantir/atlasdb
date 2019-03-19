@@ -26,12 +26,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -58,7 +58,7 @@ public class TableRemappingKeyValueServiceTest {
     private final KeyValueService kvs = TableRemappingKeyValueService.create(rawKvs, tableMapper);
 
     @Test
-    public void canConcurrentlyDropAndCreateDisjointSetsOfTables() {
+    public void canConcurrentlyDropDisjointSetsOfTables() {
         ExecutorService executor = Executors.newFixedThreadPool(NUM_THREADS);
         for (int i = 0; i < NUM_ITERATIONS; i++) {
             String firstWorld = generateRandomTablesPrefixed();
@@ -94,12 +94,9 @@ public class TableRemappingKeyValueServiceTest {
 
     private Void dropTablesWithPrefix(String prefix) {
         String namespacedPrefix = NAMESPACE.getName() + "." + prefix + "__";
-        Set<TableReference> tablesToDrop = Sets.newHashSet();
-        for (TableReference tableRef : kvs.getAllTableNames()) {
-            if (tableRef.getQualifiedName().startsWith(namespacedPrefix)) {
-                tablesToDrop.add(tableRef);
-            }
-        }
+        Set<TableReference> tablesToDrop = kvs.getAllTableNames().stream()
+                .filter(tableRef -> tableRef.getQualifiedName().startsWith(namespacedPrefix))
+                .collect(Collectors.toSet());
         kvs.dropTables(tablesToDrop);
         return null;
     }
