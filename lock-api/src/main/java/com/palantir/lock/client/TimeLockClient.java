@@ -160,6 +160,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         lockRefresher.close();
         unlocker.close();
         timestampService.close();
+        delegate.close();
     }
 
     private static LockRefresher createLockRefresher(TimelockService timelockService) {

@@ -91,4 +91,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
     }
+
+    @Override
+    public void close() {}
 }
