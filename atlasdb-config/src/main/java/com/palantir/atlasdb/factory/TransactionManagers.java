@@ -798,8 +798,7 @@ public abstract class TransactionManagers {
                 config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
 
-        return ImmutableLockAndTimestampServices.copyOf(
-                lockAndTimestampServices)
+        return ImmutableLockAndTimestampServices.copyOf(lockAndTimestampServices)
                 .withMigrator(migrator);
     }
 
