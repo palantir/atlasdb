@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 import org.apache.commons.lang3.Validate;
 
@@ -66,7 +66,7 @@ public class KvTableMappingService implements TableMappingService {
     protected final AtomicReference<BiMap<TableReference, TableReference>> tableMap = new AtomicReference<>();
     private final KeyValueService kvs;
     private final LongSupplier uniqueLongSupplier;
-    private final ConcurrentHashMap<TableReference, Boolean> unmappedTables = new ConcurrentHashMap<>();
+    private final Set<TableReference> unmappedTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     protected KvTableMappingService(KeyValueService kvs, LongSupplier uniqueLongSupplier) {
         this.kvs = Preconditions.checkNotNull(kvs, "kvs must not be null");
@@ -85,7 +85,7 @@ public class KvTableMappingService implements TableMappingService {
     }
 
     protected void updateTableMap() {
-        updateTableMapWith(this::readTableMap);
+        tableMap.updateAndGet(toBeReplaced -> readTableMap());
     }
 
     @Override
@@ -110,7 +110,7 @@ public class KvTableMappingService implements TableMappingService {
         return TableReference.createWithEmptyNamespace(shortName);
     }
 
-    private Cell getKeyCellForTable(TableReference tableRef) {
+    private static Cell getKeyCellForTable(TableReference tableRef) {
         return Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
     }
 
@@ -137,7 +137,7 @@ public class KvTableMappingService implements TableMappingService {
     public void removeTables(Set<TableReference> tableRefs) {
         if (kvs.getAllTableNames().contains(AtlasDbConstants.NAMESPACE_TABLE)) {
             Multimap<Cell, Long> deletionMap = tableRefs.stream()
-                    .map(this::getKeyCellForTable)
+                    .map(KvTableMappingService::getKeyCellForTable)
                     .collect(Multimaps.toMultimap(
                             key -> key,
                             unused -> AtlasDbConstants.TRANSACTION_TS,
@@ -145,12 +145,12 @@ public class KvTableMappingService implements TableMappingService {
             kvs.delete(AtlasDbConstants.NAMESPACE_TABLE, deletionMap);
         }
 
-        // Need to invalidate the table refs in case we end up re-creating the same table again.
-        updateTableMapWith(() -> tableMapWithInvalidatedTableRefs(tableRefs));
+        tableMap.updateAndGet(oldTableMap -> invalidateTables(oldTableMap, tableRefs));
     }
 
-    private BiMap<TableReference, TableReference> tableMapWithInvalidatedTableRefs(Set<TableReference> tableRefs) {
-        BiMap<TableReference, TableReference> newMap = HashBiMap.create(tableMap.get());
+    private static BiMap<TableReference, TableReference> invalidateTables(Map<TableReference, TableReference> oldMap,
+            Set<TableReference> tableRefs) {
+        BiMap<TableReference, TableReference> newMap = HashBiMap.create(oldMap);
         tableRefs.forEach(newMap::remove);
         return newMap;
     }
@@ -184,7 +184,6 @@ public class KvTableMappingService implements TableMappingService {
                 "Table mapper has an invalid table name for table reference %s: %s", tableRef, shortName);
     }
 
-
     @Override
     public <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> toMap)
             throws TableMappingNotFoundException {
@@ -197,45 +196,36 @@ public class KvTableMappingService implements TableMappingService {
 
     @Override
     public Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableRefs) {
-        Map<TableReference, TableReference> shortNameToFullTableName = Maps.newHashMapWithExpectedSize(
-                tableRefs.size());
+        Map<TableReference, TableReference> shortToFullTableName = Maps.newHashMapWithExpectedSize(tableRefs.size());
         Set<TableReference> tablesToReload = Sets.newHashSet();
+        Map<TableReference, TableReference> reverseTableMapSnapshot = ImmutableMap.copyOf(tableMap.get().inverse());
+
         for (TableReference inputName : tableRefs) {
             if (inputName.isFullyQualifiedName()) {
-                shortNameToFullTableName.put(inputName, inputName);
+                shortToFullTableName.put(inputName, inputName);
+            } else if (reverseTableMapSnapshot.containsKey(inputName)) {
+                shortToFullTableName.put(inputName, reverseTableMapSnapshot.get(inputName));
+            } else if (unmappedTables.contains(inputName)) {
+                shortToFullTableName.put(inputName, inputName);
             } else {
-                TableReference candidate = tableMap.get().inverse().get(inputName);
-                if (candidate != null) {
-                    shortNameToFullTableName.put(inputName, candidate);
-                } else if (unmappedTables.containsKey(inputName)) {
-                    shortNameToFullTableName.put(inputName, inputName);
-                } else {
-                    tablesToReload.add(inputName);
-                }
+                tablesToReload.add(inputName);
             }
         }
+
         if (!tablesToReload.isEmpty()) {
             updateTableMap();
             Map<TableReference, TableReference> unmodifiableTableMap = ImmutableMap.copyOf(tableMap.get().inverse());
             for (TableReference tableRef : tablesToReload) {
                 if (unmodifiableTableMap.containsKey(tableRef)) {
-                    shortNameToFullTableName.put(tableRef, unmodifiableTableMap.get(tableRef));
+                    shortToFullTableName.put(tableRef, unmodifiableTableMap.get(tableRef));
                 } else {
-                    unmappedTables.put(tableRef, true);
-                    shortNameToFullTableName.put(tableRef, tableRef);
+                    unmappedTables.add(tableRef);
+                    shortToFullTableName.put(tableRef, tableRef);
                 }
             }
         }
-        return shortNameToFullTableName;
-    }
 
-    private void updateTableMapWith(Supplier<BiMap<TableReference, TableReference>> tableMapSupplier) {
-        while (true) {
-            BiMap<TableReference, TableReference> oldMap = tableMap.get();
-            if (tableMap.compareAndSet(oldMap, tableMapSupplier.get())) {
-                return;
-            }
-        }
+        return shortToFullTableName;
     }
 
     protected BiMap<TableReference, TableReference> readTableMap() {
