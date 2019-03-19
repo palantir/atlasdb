@@ -73,6 +73,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private final RateLimiter logRateLimiter = RateLimiter.create(LOG_RATE);
     private final ReentrantLock lock;
+    private final ReentrantLock lock2 = new ReentrantLock();
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
     final PaxosProposer proposer;
@@ -142,7 +143,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return executors;
     }
 
-    private Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
+    private static Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
             List<PaxosLearner> paxosLearners,
             Function<String, ExecutorService> executorServiceFactory) {
         return IntStream.range(0, paxosLearners.size())
@@ -152,7 +153,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         index -> executorServiceFactory.apply("knowledge-update-" + index)));
     }
 
-    private Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
+    private static Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
             List<PaxosAcceptor> paxosAcceptors,
             Function<String, ExecutorService> executorServiceFactory) {
         Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
@@ -164,22 +165,27 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        while (true) {
-            LeadershipState currentState = determineLeadershipState();
+        try {
+            lock2.lockInterruptibly();
+            while (true) {
+                LeadershipState currentState = determineLeadershipState();
 
-            switch (currentState.status()) {
-                case LEADING:
-                    log.info("Successfully became leader!");
-                    return currentState.confirmedToken().get();
-                case NO_QUORUM:
-                    // If we don't have quorum we should just retry our calls.
-                    continue;
-                case NOT_LEADING:
-                    proposeLeadershipOrWaitForBackoff(currentState);
-                    continue;
-                default:
-                    throw new IllegalStateException("unknown status: " + currentState.status());
+                switch (currentState.status()) {
+                    case LEADING:
+                        log.info("Successfully became leader!");
+                        return currentState.confirmedToken().get();
+                    case NO_QUORUM:
+                        // If we don't have quorum we should just retry our calls.
+                        continue;
+                    case NOT_LEADING:
+                        proposeLeadershipOrWaitForBackoff(currentState);
+                        continue;
+                    default:
+                        throw new IllegalStateException("unknown status: " + currentState.status());
+                }
             }
+        } finally {
+            lock2.unlock();
         }
     }
 
