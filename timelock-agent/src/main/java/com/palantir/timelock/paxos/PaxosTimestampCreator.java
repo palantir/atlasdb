@@ -98,7 +98,8 @@ public class PaxosTimestampCreator implements TimestampCreator {
                         executor),
                 client);
 
-        PaxosSynchronizer.synchronizeLearner(ourLearner, learners);
+        // make this async, remove later
+        executor.submit(() -> PaxosSynchronizer.synchronizeLearner(ourLearner, learners));
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }
