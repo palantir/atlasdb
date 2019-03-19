@@ -44,6 +44,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
 
@@ -101,7 +102,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 "Unable to create an AwaitingLeadershipProxy with no supplier");
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
-        this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
+
+        this.executor = Tracers.wrapWithNewTrace(
+                PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
         this.leadershipTokenRef = leadershipTokenRef;
         this.delegateRef = new AtomicReference<>();
         this.interfaceClass = interfaceClass;
