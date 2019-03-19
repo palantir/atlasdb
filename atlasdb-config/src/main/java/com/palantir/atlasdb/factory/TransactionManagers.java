@@ -788,12 +788,18 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(metricsManager,
-                        serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+
+        LockAndTimestampServices lockAndTimestampServices =
+                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent);
+
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                lockAndTimestampServices.timestampManagement(),
+                invalidator,
+                config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
+
         return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent))
+                lockAndTimestampServices)
                 .withMigrator(migrator);
     }
 

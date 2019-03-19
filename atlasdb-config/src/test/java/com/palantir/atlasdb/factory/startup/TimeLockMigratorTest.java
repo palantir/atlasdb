@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.factory.startup;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -24,9 +25,7 @@ import static org.mockito.Mockito.when;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 
 import java.util.concurrent.TimeUnit;
@@ -47,7 +46,6 @@ import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
-import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -66,6 +64,8 @@ public class TimeLockMigratorTest {
     private TimeLockClientConfig timelockConfig;
 
     private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
+
+    private TimestampManagementService timestampManagementService = mock(TimestampManagementService.class);
 
     @Rule
     public WireMockRule wireMockRule = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -93,27 +93,20 @@ public class TimeLockMigratorTest {
 
     @Test
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
-        wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
-
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
         migrator.migrate();
 
-        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
+        verify(timestampManagementService).ping();
         verify(invalidator, times(1)).backupAndInvalidate();
-        wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+        verify(timestampManagementService).fastForwardTimestamp(BACKUP_TIMESTAMP);
     }
 
     @Test
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
-        wireMockRule.stubFor(PING_MAPPING.willReturn(aResponse().withStatus(500)));
+        when(timestampManagementService.ping()).thenThrow(new RuntimeException("bad"));
 
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+                TimeLockMigrator.create(timestampManagementService, invalidator);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -122,16 +115,13 @@ public class TimeLockMigratorTest {
     public void migrationDoesNotProceedIfInvalidationFails() {
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT);
+        TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
-        wireMockRule.verify(0, postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+        verify(timestampManagementService, times(0)).fastForwardTimestamp(anyLong());
     }
 
     @Test
-    public void asyncMigrationProceedsIfTimeLockInitiallyUnavailable() throws InterruptedException {
+    public void asyncMigrationProceedsIfTimeLockInitiallyUnavailable() {
         String nowSucceeding = "nowSucceeding";
 
         wireMockRule.stubFor(PING_MAPPING.inScenario(SCENARIO)
@@ -139,16 +129,11 @@ public class TimeLockMigratorTest {
                 .willReturn(aResponse().withStatus(500))
                 .willSetStateTo(nowSucceeding));
 
-        wireMockRule.stubFor(PING_MAPPING.inScenario(SCENARIO)
-                .whenScenarioStateIs(nowSucceeding)
-                .willReturn(aResponse().withStatus(204)));
+        when(timestampManagementService.ping())
+                .thenThrow(new RuntimeException("bad"))
+                .thenReturn("pong");
 
-        wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
-
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+        TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -156,13 +141,13 @@ public class TimeLockMigratorTest {
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(migrator::isInitialized);
 
-        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
+        verify(timestampManagementService, times(2)).ping();
         verify(invalidator, times(1)).backupAndInvalidate();
-        wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+        verify(timestampManagementService).fastForwardTimestamp(BACKUP_TIMESTAMP);
     }
 
     @Test
-    public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() throws InterruptedException {
+    public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() {
         when(invalidator.backupAndInvalidate())
                 .thenAnswer(new Answer<Long>() {
                     private AtomicBoolean shouldFail = new AtomicBoolean(true);
@@ -176,10 +161,9 @@ public class TimeLockMigratorTest {
                 });
 
         wireMockRule.stubFor(TEST_MAPPING.willReturn(aResponse().withStatus(204)));
+
         TimeLockMigrator migrator =
-                TimeLockMigrator.create(
-                        MetricsManagers.createForTests(),
-                        () -> timelockConfig.toNamespacedServerList(), invalidator, USER_AGENT, true);
+                TimeLockMigrator.create(timestampManagementService, invalidator, true);
         migrator.migrate();
 
         Awaitility.await()
@@ -187,8 +171,8 @@ public class TimeLockMigratorTest {
                 .pollInterval(1, TimeUnit.SECONDS)
                 .until(migrator::isInitialized);
 
-        wireMockRule.verify(getRequestedFor(urlEqualTo(PING_ENDPOINT)));
+        verify(timestampManagementService).ping();
         verify(invalidator, times(2)).backupAndInvalidate();
-        wireMockRule.verify(postRequestedFor(urlEqualTo(TEST_ENDPOINT)));
+        verify(timestampManagementService).fastForwardTimestamp(BACKUP_TIMESTAMP);
     }
 }
