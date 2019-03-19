@@ -106,6 +106,11 @@ public class InstrumentedTimelockService implements TimelockService {
         return executeWithRecord(timelockService::currentTimeMillis);
     }
 
+    @Override
+    public void close() {
+        timelockService.close();
+    }
+
     private <T> T executeWithRecord(Supplier<T> method) {
         try {
             T result = method.get();

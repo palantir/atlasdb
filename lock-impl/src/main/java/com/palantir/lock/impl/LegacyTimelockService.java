@@ -176,6 +176,9 @@ public class LegacyTimelockService implements TimelockService {
         return lockService.currentTimeMillis();
     }
 
+    @Override
+    public void close() {}
+
     private long getImmutableTimestampInternal(long ts) {
         Long minLocked = lockService.getMinLockedInVersionId(immutableTsLockClient.getClientId());
         return minLocked == null ? ts : minLocked;

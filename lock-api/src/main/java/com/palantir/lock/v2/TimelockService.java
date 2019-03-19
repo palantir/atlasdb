@@ -80,6 +80,6 @@ public interface TimelockService extends Closeable {
     long currentTimeMillis();
 
     @Override
-    default void close() {}
+    void close();
 
 }

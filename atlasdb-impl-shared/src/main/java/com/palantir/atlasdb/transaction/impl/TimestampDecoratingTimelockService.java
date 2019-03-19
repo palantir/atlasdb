@@ -45,6 +45,11 @@ public class TimestampDecoratingTimelockService implements AutoDelegate_Timelock
     }
 
     @Override
+    public void close() {
+        delegate.close();
+    }
+
+    @Override
     public TimelockService delegate() {
         return delegate;
     }

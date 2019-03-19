@@ -67,6 +67,11 @@ public final class TimestampCorroboratingTimelockService implements AutoDelegate
                 r -> r.startTimestampAndPartition().timestamp());
     }
 
+    @Override
+    public void close() {
+        delegate.close();
+    }
+
     private <T> T checkAndUpdateLowerBound(Supplier<T> timestampContainerSupplier,
             ToLongFunction<T> lowerBoundExtractor,
             ToLongFunction<T> upperBoundExtractor) {
