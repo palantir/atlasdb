@@ -85,10 +85,7 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator, true);
         migrator.migrate();
 
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
-                .until(migrator::isInitialized);
+        waitUntilInitialized(migrator);
 
         verify(timestampManagementService, times(2)).ping();
         verify(invalidator, times(1)).backupAndInvalidate();
@@ -104,13 +101,17 @@ public class TimeLockMigratorTest {
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator, true);
         migrator.migrate();
 
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .pollInterval(1, TimeUnit.SECONDS)
-                .until(migrator::isInitialized);
+        waitUntilInitialized(migrator);
 
         verify(timestampManagementService, times(2)).ping();
         verify(invalidator, times(2)).backupAndInvalidate();
         verify(timestampManagementService).fastForwardTimestamp(BACKUP_TIMESTAMP);
+    }
+
+    private static void waitUntilInitialized(TimeLockMigrator migrator) {
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.SECONDS)
+                .until(migrator::isInitialized);
     }
 }
