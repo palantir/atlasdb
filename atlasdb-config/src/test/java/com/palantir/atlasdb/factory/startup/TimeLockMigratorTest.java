@@ -17,33 +17,34 @@ package com.palantir.atlasdb.factory.startup;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TimeLockMigratorTest {
     private static final long BACKUP_TIMESTAMP = 42;
     private static final Exception EXCEPTION = new RuntimeException();
-    private final TimestampStoreInvalidator invalidator = mock(TimestampStoreInvalidator.class);
-    private TimestampManagementService timestampManagementService = mock(TimestampManagementService.class);
+
+    @Mock private TimestampStoreInvalidator invalidator;
+    @Mock private TimestampManagementService timestampManagementService;
 
     @Before
-    public void setUp() {
+    public void before() {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
     }
 
@@ -61,8 +62,7 @@ public class TimeLockMigratorTest {
     public void invalidationDoesNotProceedIfTimelockPingUnsuccessful() {
         when(timestampManagementService.ping()).thenThrow(EXCEPTION);
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(timestampManagementService, invalidator);
+        TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
         assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
         verify(invalidator, never()).backupAndInvalidate();
     }
@@ -98,19 +98,10 @@ public class TimeLockMigratorTest {
     @Test
     public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() {
         when(invalidator.backupAndInvalidate())
-                .thenAnswer(new Answer<Long>() {
-                    private AtomicBoolean shouldFail = new AtomicBoolean(true);
-                    @Override
-                    public Long answer(InvocationOnMock invocation) throws Throwable {
-                        if (shouldFail.getAndSet(false)) {
-                            throw new IllegalStateException("not ready yet");
-                        }
-                        return BACKUP_TIMESTAMP;
-                    }
-                });
+                .thenThrow(new IllegalStateException("not ready yet"))
+                .thenReturn(BACKUP_TIMESTAMP);
 
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(timestampManagementService, invalidator, true);
+        TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator, true);
         migrator.migrate();
 
         Awaitility.await()
