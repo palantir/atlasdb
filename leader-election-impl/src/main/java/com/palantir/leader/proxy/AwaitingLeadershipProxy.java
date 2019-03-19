@@ -103,7 +103,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         this.delegateSupplier = delegateSupplier;
         this.leaderElectionService = leaderElectionService;
 
-        this.executor = Tracers.wrapWithNewTrace(
+        this.executor = Tracers.wrapWithNewTrace("AwaitingLeadershipProxy.executor",
                 PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true)));
         this.leadershipTokenRef = leadershipTokenRef;
         this.delegateRef = new AtomicReference<>();
