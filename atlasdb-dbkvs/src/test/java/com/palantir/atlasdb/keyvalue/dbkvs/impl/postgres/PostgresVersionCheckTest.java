@@ -16,7 +16,9 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,9 +34,18 @@ public class PostgresVersionCheckTest {
     @SuppressWarnings(value = "Slf4jConstantLogMessage")
     public void shouldLogErrorOn_9_2_24() {
         Logger log = Mockito.mock(Logger.class);
-        PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
-        Mockito.verify(log).error(contains("The minimum supported version is {}"), Mockito.anyObject(),
-                Mockito.eq(PostgresVersionCheck.MIN_POSTGRES_VERSION));
+        String expectedMessage = "The minimum supported version is " + PostgresVersionCheck.MIN_POSTGRES_VERSION;
+        try {
+            PostgresVersionCheck.checkDatabaseVersion("9.2.24", log);
+            Assert.fail("Expected an AssertionError");
+        } catch (AssertionError error) {
+            Assert.assertTrue("Error did not contain expected message. Actual error: " + error,
+                    error.getMessage().contains(expectedMessage));
+        }
+        Mockito.verify(log).error(
+                eq("Assertion {} with exception "),
+                contains(expectedMessage),
+                Mockito.any(Exception.class));
         Mockito.verifyNoMoreInteractions(log);
     }
 
