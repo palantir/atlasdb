@@ -69,7 +69,7 @@ final class CoalescingTransactionService {
         while (result.size() < numberOfTransactions) {
             result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
         }
-        return result.subList(0, numberOfTransactions);
+        return result;
     }
 
     @VisibleForTesting
