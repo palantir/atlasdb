@@ -24,12 +24,11 @@ import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
 public interface TableMappingService {
     TableReference addTable(TableReference tableRef);
     void removeTable(TableReference tableRef);
+    default void removeTables(Set<TableReference> tableRefs) {
+        tableRefs.forEach(this::removeTable);
+    }
     TableReference getMappedTableName(TableReference tableRef) throws TableMappingNotFoundException;
     <T> Map<TableReference, T> mapToShortTableNames(Map<TableReference, T> tableMap)
             throws TableMappingNotFoundException;
     Map<TableReference, TableReference> generateMapToFullTableNames(Set<TableReference> tableNames);
-
-    default void removeTables(Set<TableReference> tableRefs) {
-        tableRefs.forEach(this::removeTable);
-    }
 }
