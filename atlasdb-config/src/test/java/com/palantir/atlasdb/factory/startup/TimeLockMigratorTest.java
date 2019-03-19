@@ -20,11 +20,13 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +50,12 @@ public class TimeLockMigratorTest {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
     }
 
+    @After
+    public void after() {
+        verifyNoMoreInteractions(timestampManagementService);
+        verifyNoMoreInteractions(invalidator);
+    }
+
     @Test
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
@@ -63,7 +71,10 @@ public class TimeLockMigratorTest {
         when(timestampManagementService.ping()).thenThrow(EXCEPTION);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
-        assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class);
+        assertThatThrownBy(migrator::migrate).isInstanceOf(AtlasDbDependencyException.class)
+                .hasCause(EXCEPTION);
+
+        verify(timestampManagementService).ping();
         verify(invalidator, never()).backupAndInvalidate();
     }
 
@@ -73,7 +84,10 @@ public class TimeLockMigratorTest {
 
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
         assertThatThrownBy(migrator::migrate).isInstanceOf(IllegalStateException.class);
-        verify(timestampManagementService, times(0)).fastForwardTimestamp(anyLong());
+
+        verify(timestampManagementService).ping();
+        verify(invalidator).backupAndInvalidate();
+        verify(timestampManagementService, never()).fastForwardTimestamp(anyLong());
     }
 
     @Test
