@@ -30,7 +30,6 @@ import com.palantir.atlasdb.factory.Leaders;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
-import com.palantir.atlasdb.timelock.paxos.PaxosSynchronizer;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -44,6 +43,7 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timestamp.PersistentTimestampService;
 import com.palantir.timestamp.PersistentTimestampServiceImpl;
 import com.palantir.timestamp.TimestampBoundStore;
+import com.palantir.tracing.Tracers;
 
 public class PaxosTimestampCreator implements TimestampCreator {
     private final MetricRegistry metricRegistry;
@@ -65,10 +65,10 @@ public class PaxosTimestampCreator implements TimestampCreator {
 
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig unused) {
-        ExecutorService executor = PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+        ExecutorService executor = Tracers.wrap(PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
                 .setNameFormat("atlas-consensus-" + client + "-%d")
                 .setDaemon(true)
-                .build());
+                .build()));
 
         Set<String> namespacedUris = PaxosTimeLockUriUtils.getClientPaxosUris(remoteServers, client);
         List<PaxosAcceptor> acceptors = Leaders.createProxyAndLocalList(
@@ -99,7 +99,7 @@ public class PaxosTimestampCreator implements TimestampCreator {
                 client);
 
         // make this async, remove later
-        executor.submit(() -> PaxosSynchronizer.synchronizeLearner(ourLearner, learners));
+//        executor.submit(() -> PaxosSynchronizer.synchronizeLearner(ourLearner, learners));
 
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }

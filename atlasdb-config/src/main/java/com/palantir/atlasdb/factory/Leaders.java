@@ -61,6 +61,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
+import com.palantir.tracing.Tracers;
 
 public final class Leaders {
     private Leaders() {
@@ -169,6 +170,8 @@ public final class Leaders {
                         .build()),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
+
+        leaderElectionExecutor = leaderElectionExecutor.andThen(Tracers::wrap);
 
         PaxosLeaderElectionService paxosLeaderElectionService = new PaxosLeaderElectionServiceBuilder()
                 .proposer(proposer)

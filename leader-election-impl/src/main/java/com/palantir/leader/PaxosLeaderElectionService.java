@@ -47,6 +47,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.logsafe.SafeArg;
@@ -163,25 +164,31 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         return executors;
     }
 
+    private static CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("AtlasDB:PaxosLeaderElectionService", operation);
+    }
+
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         try {
             lock2.lockInterruptibly();
-            while (true) {
-                LeadershipState currentState = determineLeadershipState();
+            try (CloseableTrace unused = startLocalTrace("blocking on becoming leader")) {
+                while (true) {
+                    LeadershipState currentState = determineLeadershipState();
 
-                switch (currentState.status()) {
-                    case LEADING:
-                        log.info("Successfully became leader!");
-                        return currentState.confirmedToken().get();
-                    case NO_QUORUM:
-                        // If we don't have quorum we should just retry our calls.
-                        continue;
-                    case NOT_LEADING:
-                        proposeLeadershipOrWaitForBackoff(currentState);
-                        continue;
-                    default:
-                        throw new IllegalStateException("unknown status: " + currentState.status());
+                    switch (currentState.status()) {
+                        case LEADING:
+                            log.info("Successfully became leader!");
+                            return currentState.confirmedToken().get();
+                        case NO_QUORUM:
+                            // If we don't have quorum we should just retry our calls.
+                            continue;
+                        case NOT_LEADING:
+                            proposeLeadershipOrWaitForBackoff(currentState);
+                            continue;
+                        default:
+                            throw new IllegalStateException("unknown status: " + currentState.status());
+                    }
                 }
             }
         } finally {

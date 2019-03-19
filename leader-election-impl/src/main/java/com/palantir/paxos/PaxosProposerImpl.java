@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -103,38 +104,57 @@ public final class PaxosProposerImpl implements PaxosProposer {
         this.executor = executor;
     }
 
+    private static CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("Atlasdb:PaxosProposerImpl", operation);
+    }
+
     @Override
     public byte[] propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
+        try (CloseableTrace ignored = startLocalTrace("propose")) {
+            return proposeUntraced(seq, bytes);
+        }
+    }
+
+    private byte[] proposeUntraced(long seq, @Nullable byte[] bytes)
+            throws PaxosRoundFailureException {
         final PaxosProposalId proposalId = new PaxosProposalId(proposalNumber.incrementAndGet(), uuid);
         PaxosValue toPropose = new PaxosValue(uuid, seq, bytes);
 
-        // paxos phase one (prepare and promise)
-        final PaxosValue finalValue = phaseOne(seq, proposalId, toPropose);
-
-        // paxos phase two (accept request and accepted)
-        phaseTwo(seq, proposalId, finalValue);
-
-        // broadcast learned value
-        for (final PaxosLearner learner : allLearners) {
-            // local learner is forced to update later
-            if (localLearner == learner) {
-                continue;
-            }
-
-            executor.execute(() -> {
-                try {
-                    learner.learn(seq, finalValue);
-                } catch (Throwable e) {
-                    log.warn("Failed to teach learner the value {} at sequence {}",
-                            UnsafeArg.of("value", bytes),
-                            SafeArg.of("sequence", seq),
-                            e);
-                }
-            });
+        final PaxosValue finalValue;
+        try (CloseableTrace ignored = startLocalTrace("phase one")) {
+            // paxos phase one (prepare and promise)
+            finalValue = phaseOne(seq, proposalId, toPropose);
         }
 
-        // force local learner to update
-        localLearner.learn(seq, finalValue);
+        try (CloseableTrace ignored = startLocalTrace("phase two")) {
+            // paxos phase two (accept request and accepted)
+            phaseTwo(seq, proposalId, finalValue);
+        }
+
+        try (CloseableTrace ignored = startLocalTrace("broadcast learned value")) {
+            // broadcast learned value
+            for (final PaxosLearner learner : allLearners) {
+                // local learner is forced to update later
+                if (localLearner == learner) {
+                    continue;
+                }
+
+                executor.execute(() -> {
+                    try {
+                        learner.learn(seq, finalValue);
+                    } catch (Throwable e) {
+                        log.warn("Failed to teach learner the value {} at sequence {}",
+                                UnsafeArg.of("value", bytes),
+                                SafeArg.of("sequence", seq),
+                                e);
+                    }
+                });
+            }
+
+            // force local learner to update
+            localLearner.learn(seq, finalValue);
+        }
+
 
         return finalValue.getData();
     }

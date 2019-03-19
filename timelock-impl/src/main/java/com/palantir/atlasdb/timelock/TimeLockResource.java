@@ -29,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Safe;
@@ -84,9 +85,18 @@ public class TimeLockResource {
         return getOrCreateServices(namespace).getTimestampManagementService();
     }
 
+    private static CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("AtlasDB:TimelockResource", operation);
+    }
+
     @VisibleForTesting
     TimeLockServices getOrCreateServices(String namespace) {
-        return servicesByNamespace.computeIfAbsent(namespace, this::createNewClient);
+        return servicesByNamespace.computeIfAbsent(namespace, client -> {
+            try (CloseableTrace tracer = startLocalTrace("create service for namespace")){
+                tracer.addMetadata("namespace", client);
+                return createNewClient(client);
+            }
+        });
     }
 
     public int getNumberOfActiveClients() {

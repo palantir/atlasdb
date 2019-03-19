@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,13 @@
  */
 package com.palantir.atlasdb.tracing;
 
+import java.util.Map;
+
 import javax.annotation.Nullable;
 
 import org.slf4j.helpers.MessageFormatter;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.ObjectArrays;
 import com.palantir.tracing.Tracer;
 import com.palantir.tracing.api.OpenSpan;
@@ -29,6 +32,7 @@ public final class CloseableTrace implements AutoCloseable {
     private static final CloseableTrace NO_OP = new CloseableTrace(null);
 
     private final OpenSpan trace;
+    private Map<String, String> extraMetadata = null;
 
     private CloseableTrace(@Nullable OpenSpan trace) {
         this.trace = trace;
@@ -37,8 +41,20 @@ public final class CloseableTrace implements AutoCloseable {
     @Override
     public void close() {
         if (trace != null) {
-            Tracer.completeSpan();
+            if (extraMetadata == null) {
+                Tracer.completeSpan();
+            } else {
+                Tracer.completeSpan(extraMetadata);
+            }
         }
+    }
+
+    public void addMetadata(String key, String value) {
+        if (extraMetadata == null) {
+            extraMetadata = Maps.newHashMap();
+        }
+
+        extraMetadata.put(key, value);
     }
 
     public static CloseableTrace noOp() {

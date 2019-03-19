@@ -15,8 +15,12 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.lang.reflect.Method;
 import java.net.ProxySelector;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -32,10 +36,12 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
+import com.palantir.tracing.okhttp3.OkhttpTraceInterceptor;
 
 import feign.Client;
 import feign.Contract;
 import feign.Feign;
+import feign.MethodMetadata;
 import feign.Request;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
@@ -50,7 +56,7 @@ public final class AtlasDbFeignTargetFactory {
             .registerModule(new Jdk8Module())
             .registerModule(new JavaTimeModule())
             .registerModule(new GuavaModule());
-    private static final Contract contract = new JAXRSContract();
+    private static final Contract contract = new PathTemplateHeaderEnrichmentContract(new JAXRSContract());
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(
             new OptionalAwareDecoder(new JacksonDecoder(mapper)));
@@ -58,6 +64,47 @@ public final class AtlasDbFeignTargetFactory {
 
     private AtlasDbFeignTargetFactory() {
         // factory
+    }
+
+    // copied from remoting
+    private static final class PathTemplateHeaderEnrichmentContract implements Contract {
+
+        private final Contract delegate;
+
+        public PathTemplateHeaderEnrichmentContract(Contract delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public final List<MethodMetadata> parseAndValidatateMetadata(Class<?> targetType) {
+            List<MethodMetadata> mdList = delegate.parseAndValidatateMetadata(targetType);
+
+            Map<String, MethodMetadata> methodMetadataByConfigKey = new LinkedHashMap<String, MethodMetadata>();
+            for (MethodMetadata md : mdList) {
+                methodMetadataByConfigKey.put(md.configKey(), md);
+            }
+
+            for (Method method : targetType.getMethods()) {
+                if (method.getDeclaringClass() == Object.class) {
+                    continue;
+                }
+                String configKey = Feign.configKey(targetType, method);
+                MethodMetadata metadata = methodMetadataByConfigKey.get(configKey);
+                if (metadata != null) {
+                    processMetadata(metadata);
+                }
+            }
+
+            return mdList;
+        }
+
+        private static void processMetadata(MethodMetadata metadata) {
+            metadata.template().header(OkhttpTraceInterceptor.PATH_TEMPLATE_HEADER,
+                    metadata.template().method() + " " + metadata.template().url()
+                            // escape from feign string interpolation
+                            // See RequestTemplate.expand
+                            .replace("{", "{{"));
+        }
     }
 
     public static <T> T createProxy(
