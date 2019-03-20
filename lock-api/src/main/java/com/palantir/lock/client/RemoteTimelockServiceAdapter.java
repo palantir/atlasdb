@@ -16,12 +16,8 @@
 
 package com.palantir.lock.client;
 
-import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -34,14 +30,13 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService {
-    private final LockLeaseService lockLeaseService;
     private final TimelockRpcClient timelockRpcClient;
-    private final CoalescingTransactionService transactionService;
+    private final LockDecoratorService lockDecoratorService;
 
     private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
         this.timelockRpcClient = timelockRpcClient;
-        this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
-        this.transactionService = CoalescingTransactionService.create(lockLeaseService);
+        this.lockDecoratorService = TransactionCoalescingLockDecoratorService.create(
+                LockLeaseService.create(timelockRpcClient));
     }
 
     public static TimelockService create(TimelockRpcClient timelockRpcClient) {
@@ -59,23 +54,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return lockLeaseService.lockImmutableTimestamp();
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return transactionService.startIdentifiedAtlasDbTransaction();
-    }
-
-    @Override
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp();
-    }
-
-    @Override
-    public LockResponse lock(LockRequest request) {
-        return lockLeaseService.lock(request);
     }
 
     @Override
@@ -84,83 +64,33 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     }
 
     @Override
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        return lockDecoratorService.lockImmutableTimestamp();
+    }
+
+    @Override
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return lockDecoratorService.startIdentifiedAtlasDbTransaction();
+    }
+
+    @Override
+    public LockResponse lock(LockRequest request) {
+        return lockDecoratorService.lock(request);
+    }
+
+    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
-        Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
-
-        Set<LockToken> refreshedTokens = lockLeaseService.refreshLockLeases(Sets.union(
-                reduceForRefresh(immutableTsTokens),
-                lockTokens));
-
-        return Sets.union(
-                immutableTsTokens.stream()
-                        .filter(t -> refreshedTokens.contains(t.sharedLockToken()))
-                        .collect(Collectors.toSet()),
-                lockTokens.stream().filter(refreshedTokens::contains).collect(Collectors.toSet()));
+        return lockDecoratorService.refreshLockLeases(tokens);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        Set<LockToken> lockTokens = filterOutImmutableTsTokens(tokens);
-
-        Set<LockTokenShare> immutableTsTokens = filterImmutableTsTokens(tokens);
-        Set<LockToken> referencedTokens = immutableTsTokens.stream()
-                .map(LockTokenShare::sharedLockToken)
-                .collect(Collectors.toSet());
-
-        Set<LockToken> toUnlock = reduceForUnlock(immutableTsTokens);
-        Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
-
-        Set<LockToken> refreshed = refreshLockLeasesInternal(toRefresh);
-        Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
-
-        return Sets.union(
-                immutableTsTokens.stream()
-                        .filter(t -> unlocked.contains(t.sharedLockToken()) || refreshed.contains(t.sharedLockToken()))
-                        .collect(Collectors.toSet()),
-                lockTokens.stream().filter(unlocked::contains).collect(Collectors.toSet()));
-    }
-
-    private Set<LockToken> refreshLockLeasesInternal(Set<LockToken> toRefresh) {
-        Set<LockToken> refreshed = new HashSet<>();
-        if (!toRefresh.isEmpty()) {
-            refreshed = lockLeaseService.refreshLockLeases(toRefresh);
-        }
-        return refreshed;
+        return lockDecoratorService.unlock(tokens);
     }
 
     @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
-    }
-
-    private static Set<LockToken> reduceForRefresh(Set<LockTokenShare> immutableTsTokens) {
-        return immutableTsTokens.stream()
-                .map(LockTokenShare::sharedLockToken)
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<LockToken> reduceForUnlock(Set<LockTokenShare> immutableTsTokens) {
-        return immutableTsTokens.stream()
-                .map(LockTokenShare::unlock)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<LockTokenShare> filterImmutableTsTokens(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> isLockTokenShare(t))
-                .map(t -> (LockTokenShare) t)
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<LockToken> filterOutImmutableTsTokens(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> !isLockTokenShare(t))
-                .collect(Collectors.toSet());
-    }
-
-    private static boolean isLockTokenShare(LockToken lockToken) {
-        return lockToken instanceof LockTokenShare;
     }
 
 }

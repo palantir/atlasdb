@@ -40,7 +40,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
-class LockLeaseService {
+class LockLeaseService implements LockDecoratorService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
@@ -56,6 +56,7 @@ class LockLeaseService {
         return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
     }
 
+    @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
@@ -65,6 +66,7 @@ class LockLeaseService {
                 LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
+    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
@@ -78,6 +80,7 @@ class LockLeaseService {
                 response.startTimestampAndPartition());
     }
 
+    @Override
     public StartTransactionResponseV4 startTransactions(int batchSize) {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
         StartTransactionResponseV4 response = delegate.startTransactions(request);
@@ -92,6 +95,7 @@ class LockLeaseService {
                 lease);
     }
 
+    @Override
     public LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
@@ -101,6 +105,7 @@ class LockLeaseService {
                 unsuccessful -> LockResponse.timedOut()));
     }
 
+    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
@@ -115,6 +120,7 @@ class LockLeaseService {
         return Sets.union(refreshedTokens, validByLease);
     }
 
+    @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);

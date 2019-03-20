@@ -53,9 +53,9 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CoalescingTransactionServiceTest {
+public class TransactionCoalescingLockDecoratorServiceTest {
     @Mock private LockLeaseService lockLeaseService;
-    private CoalescingTransactionService transactionService;
+    private TransactionCoalescingLockDecoratorService transactionService;
 
     private static final int NUM_PARTITIONS = 16;
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
@@ -67,14 +67,14 @@ public class CoalescingTransactionServiceTest {
 
     @Before
     public void before() {
-        transactionService = CoalescingTransactionService.create(lockLeaseService);
+        transactionService = TransactionCoalescingLockDecoratorService.create(lockLeaseService);
     }
 
     @Test
     public void splitShouldYieldCorrectStartTransactionResponses_singleTransaction() {
         StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
 
-        assertThat(CoalescingTransactionService.split(batchedResponse))
+        assertThat(TransactionCoalescingLockDecoratorService.split(batchedResponse))
                 .hasSize(1)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
     }
@@ -83,10 +83,11 @@ public class CoalescingTransactionServiceTest {
     public void splitShouldYieldCorrectStartTransactionResponses_multipleTransactions() {
         StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
 
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = CoalescingTransactionService.split(batchedResponse);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses =
+                TransactionCoalescingLockDecoratorService.split(batchedResponse);
 
         assertThatStartTransactionResponsesAreUnique(responses);
-        assertThat(CoalescingTransactionService.split(batchedResponse))
+        assertThat(TransactionCoalescingLockDecoratorService.split(batchedResponse))
                 .hasSize(5)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
     }
