@@ -110,7 +110,7 @@ public class KvTableMappingService implements TableMappingService {
         return TableReference.createWithEmptyNamespace(shortName);
     }
 
-    private static Cell getKeyCellForTable(TableReference tableRef) {
+    static Cell getKeyCellForTable(TableReference tableRef) {
         return Cell.create(getBytesForTableRef(tableRef), AtlasDbConstants.NAMESPACE_SHORT_COLUMN_BYTES);
     }
 
