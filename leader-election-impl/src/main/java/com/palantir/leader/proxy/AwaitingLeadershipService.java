@@ -15,20 +15,11 @@
  */
 package com.palantir.leader.proxy;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -39,12 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
-import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
@@ -54,12 +41,10 @@ import com.palantir.logsafe.SafeArg;
 public final class AwaitingLeadershipService {
 
     private static final Logger log = LoggerFactory.getLogger(AwaitingLeadershipService.class);
-
-    private static final long MAX_NO_QUORUM_RETRIES = 10;
     private static final Duration GAIN_LEADERSHIP_BACKOFF = Duration.ofMillis(500);
 
-    private List<Consumer<LeadershipToken>> onGained = Collections.synchronizedList(new ArrayList<>());
-    private List<BiConsumer<LeadershipToken, Throwable>> onLost = Collections.synchronizedList(new ArrayList<>());
+    private List<Consumer<LeadershipToken>> onGained = new ArrayList<>();
+    private List<BiConsumer<LeadershipToken, Throwable>> onLost = new ArrayList<>();
 
     final LeaderElectionService leaderElectionService;
     final ExecutorService executor;
@@ -76,7 +61,7 @@ public final class AwaitingLeadershipService {
         return instance;
     }
 
-    public AwaitingLeadershipService(LeaderElectionService leaderElectionService) {
+    private AwaitingLeadershipService(LeaderElectionService leaderElectionService) {
         this.leaderElectionService = leaderElectionService;
         this.executor = PTExecutors.newSingleThreadExecutor(PTExecutors.newNamedThreadFactory(true));
     }
@@ -88,6 +73,14 @@ public final class AwaitingLeadershipService {
         } else {
             tryToGainLeadershipAsync();
         }
+    }
+
+    private synchronized void onGainedLeadership(LeadershipToken leadershipToken)  {
+        log.debug("Gained leadership, getting delegates to start serving calls");
+        // We are now the leader, creating delegates; the ordering is important to maintain correctness
+        onGained.forEach(action -> action.accept(leadershipToken));
+        leadershipTokenRef.set(leadershipToken);
+        log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
     }
 
     private void tryToGainLeadershipAsync() {
@@ -118,14 +111,6 @@ public final class AwaitingLeadershipService {
         return false;
     }
 
-    private synchronized void onGainedLeadership(LeadershipToken leadershipToken)  {
-        log.debug("Gained leadership, getting delegates to start serving calls");
-        // We are now the leader, we should create a delegate so we can service calls
-        onGained.forEach(action -> action.accept(leadershipToken));
-        leadershipTokenRef.set(leadershipToken);
-        log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
-    }
-
     @VisibleForTesting
     LeadershipToken getLeadershipToken() {
         LeadershipToken leadershipToken = leadershipTokenRef.get();
@@ -147,10 +132,6 @@ public final class AwaitingLeadershipService {
         }
 
         return leadershipToken;
-    }
-
-    public boolean isStillCurrentToken(LeadershipToken leadershipToken) {
-        return leadershipTokenRef.get() == leadershipToken;
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
@@ -177,16 +158,18 @@ public final class AwaitingLeadershipService {
         throw notCurrentLeaderException("method invoked on a non-leader (leadership lost)", cause);
     }
 
-    public synchronized void registerGainLeadershipTask(Consumer<LeadershipToken> onGainedLeadership) {
+    public synchronized void registerLeadershipTasks(Consumer<LeadershipToken> onGainedLeadership,
+            BiConsumer<LeadershipToken, Throwable> markAsNotLeading) {
         LeadershipToken currentToken = leadershipTokenRef.get();
         if (currentToken != null) {
             onGainedLeadership.accept(currentToken);
         }
         onGained.add(onGainedLeadership);
+        onLost.add(markAsNotLeading);
     }
 
-    public synchronized void registerLosingLeadershipTask(BiConsumer<LeadershipToken, Throwable> markAsNotLeading) {
-        onLost.add(markAsNotLeading);
+    public boolean isStillCurrentToken(LeadershipToken leadershipToken) {
+        return leadershipTokenRef.get() == leadershipToken;
     }
 
     public StillLeadingStatus isStillLeading(LeadershipToken leadershipToken) {
