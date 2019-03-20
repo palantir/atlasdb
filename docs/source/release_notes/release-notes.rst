@@ -53,6 +53,12 @@ develop
     *    -
          -
 
+    *    - |fixed|
+         - Some race conditions in ``TableRemappingKeyValueService`` and ``KvTableMappingService`` have been fixed.
+           Previously, it was possible to run into unexpected instances of ``NullPointerException`` and ``IllegalStateException`` when reading from tables, even when other (completely disjoint) sets of tables were created or dropped.
+           It is likely that there remain more bugs here, though we have fixed several more egregious ones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3803>`__)
+
 ========
 v0.122.0
 ========
