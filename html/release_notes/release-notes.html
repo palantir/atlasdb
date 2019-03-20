@@ -262,6 +262,12 @@ If you believe you need to use this method, you should reach out to the AtlasDB 
 <td>The minimum Postgres version is now 9.5.2
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3786">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Some race conditions in <code class="docutils literal notranslate"><span class="pre">TableRemappingKeyValueService</span></code> and <code class="docutils literal notranslate"><span class="pre">KvTableMappingService</span></code> have been fixed.
+Previously, it was possible to run into unexpected instances of <code class="docutils literal notranslate"><span class="pre">NullPointerException</span></code> and <code class="docutils literal notranslate"><span class="pre">IllegalStateException</span></code> when reading from tables, even when other (completely disjoint) sets of tables were created or dropped.
+It is likely that there remain more bugs here, though we have fixed several more egregious ones.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3803">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
