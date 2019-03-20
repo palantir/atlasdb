@@ -109,7 +109,7 @@ public final class FeignOkHttpClients {
      * Returns a feign {@link Client} wrapping a {@link okhttp3.OkHttpClient} client with optionally
      * specified {@link SSLSocketFactory}.
      */
-    public static Client newOkHttpClient(
+    private static Client newOkHttpClient(
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             String userAgent,

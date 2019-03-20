@@ -55,8 +55,8 @@ final class LockLeaseService {
     }
 
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
+        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
         return ImmutableLockImmutableTimestampResponse.of(
                 response.immutableTimestamp().getImmutableTimestamp(),
@@ -64,8 +64,8 @@ final class LockLeaseService {
     }
 
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        StartAtlasDbTransactionResponseV3 response =
-                delegate.startAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
+        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
+                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
         Lease lease = response.getLease();
         LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);

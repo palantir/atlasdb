@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,7 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
@@ -108,6 +110,31 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
         cluster.unlock(response2.getLock());
+    }
+
+    @Test
+    public void batchedStartTransactionCallShouldLockImmutableTimestamp() {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
+                UUID.randomUUID(),
+                123);
+
+        LockImmutableTimestampResponse response1 = cluster.timelockRpcClient()
+                .startTransactions(request)
+                .immutableTimestamp();
+
+        LockImmutableTimestampResponse response2 = cluster.timelockRpcClient()
+                .startTransactions(request)
+                .immutableTimestamp();
+
+        long immutableTs = cluster.timelockService().getImmutableTimestamp();
+        assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(response1.getLock()));
+
+        assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(response2.getLock()));
+
     }
 
     @Test

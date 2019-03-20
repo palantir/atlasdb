@@ -31,6 +31,8 @@ import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import com.palantir.lock.v2.LockResponseV2;
@@ -79,22 +81,35 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse deprecatedStartAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return timelock.startAtlasDbTransaction(request);
+    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(IdentifiedTimeLockRequest request) {
+        return timelock.deprecatedStartTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    public StartIdentifiedAtlasDbTransactionResponse deprecatedStartIdentifiedAtlasDbTransaction(
+    public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request).toStartTransactionResponse();
+        return timelock.startTransaction(request).toStartTransactionResponse();
     }
 
     @POST
     @Path("start-atlasdb-transaction-v3")
-    public StartAtlasDbTransactionResponseV3 startAtlasDbTransaction(
+    public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request);
+        return timelock.startTransaction(request);
+    }
+
+    /**
+     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
+     * be used as start timestamps.
+     *
+     * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
+     * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
+     */
+    @POST
+    @Path("start-atlasdb-transaction-v4")
+    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
+        return timelock.startTransactions(request);
     }
     
     @POST
