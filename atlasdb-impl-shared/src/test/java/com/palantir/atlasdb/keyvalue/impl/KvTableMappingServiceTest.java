@@ -135,6 +135,15 @@ public class KvTableMappingServiceTest {
     }
 
     @Test
+    public void removeTableIsIdempotent() throws TableMappingNotFoundException {
+        tableMapping.removeTable(FQ_TABLE);
+        tableMapping.removeTable(FQ_TABLE);
+
+        assertThatThrownBy(() -> tableMapping.getMappedTableName(FQ_TABLE))
+                .as("Removed table")
+                .isInstanceOf(TableMappingNotFoundException.class);    }
+
+    @Test
     public void generateMapToFullTableNamesReturnsKnownMappingsAndIdentityForOthers() {
         assertThat(tableMapping.addTable(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
         tableMapping.removeTable(FQ_TABLE2);
