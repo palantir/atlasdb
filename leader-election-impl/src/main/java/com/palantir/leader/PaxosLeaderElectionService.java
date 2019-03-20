@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -39,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -165,11 +167,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
         while (true) {
-            LeadershipState currentState = determineLeadershipState();
+            LeadershipState currentState = withTiming("getCurrentLeadershipState",
+                    () -> determineLeadershipState());
 
             switch (currentState.status()) {
                 case LEADING:
-                    log.info("Successfully became leader!");
+                    log.info("Successfully became leader!", SafeArg.of("thread", Thread.currentThread().getId()));
                     return currentState.confirmedToken().get();
                 case NO_QUORUM:
                     // If we don't have quorum we should just retry our calls.
@@ -183,23 +186,51 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
+    private static <T> T withTiming(String description, Supplier<T> function) {
+        Stopwatch timer = Stopwatch.createStarted();
+        T value;
+        try {
+            value = function.get();
+        } catch (Exception e) {
+            timer.stop();
+            log.info("Finished timed operation",
+                    SafeArg.of("operation", description),
+                    SafeArg.of("thread", Thread.currentThread().getId()),
+                    SafeArg.of("durationMillis", timer.elapsed(TimeUnit.MILLISECONDS)));
+            throw e;
+        }
+        timer.stop();
+        log.info("Finished timed operation",
+                SafeArg.of("operation", description),
+                SafeArg.of("thread", Thread.currentThread().getId()),
+                SafeArg.of("durationMillis", timer.elapsed(TimeUnit.MILLISECONDS)));
+        return value;
+    }
+
     private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState)
             throws InterruptedException {
-        if (pingLeader()) {
+        if (withTiming("pingLeader", () -> pingLeader())) {
+            log.info("Pinged leader successfully, sleeping",
+                    SafeArg.of("thread", Thread.currentThread().getId()),
+                    SafeArg.of("duration", updatePollingRateInMs));
             Thread.sleep(updatePollingRateInMs);
             return;
         }
 
-        boolean learnedNewState = updateLearnedStateFromPeers(currentState.greatestLearnedValue());
+        boolean learnedNewState = withTiming("updateLearnedStateFromPeers",
+                () -> updateLearnedStateFromPeers(currentState.greatestLearnedValue()));
         if (learnedNewState) {
             return;
         }
 
         long backoffTime = (long) (randomWaitBeforeProposingLeadership * Math.random());
-        log.debug("Waiting for [{}] ms before proposing leadership", SafeArg.of("waitTimeMs", backoffTime));
+        log.info("Waiting for [{}] ms before proposing leadership",
+                SafeArg.of("thread", Thread.currentThread().getId()),
+                SafeArg.of("waitTimeMs", backoffTime));
         Thread.sleep(backoffTime);
 
-        proposeLeadershipAfter(currentState.greatestLearnedValue());
+        withTiming("proposeLeadershipAfter",
+                () -> { proposeLeadershipAfter(currentState.greatestLearnedValue()); return null; });
     }
 
     @Override
@@ -408,10 +439,12 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private void proposeLeadershipAfter(Optional<PaxosValue> value) {
-        lock.lock();
+        withTiming("acquireLock", () -> { lock.lock(); return null; });
         try {
-            log.debug("Proposing leadership with value [{}]", SafeArg.of("paxosValue", value));
-            if (!isLatestRound(value)) {
+            log.info("Proposing leadership with value [{}]",
+                    SafeArg.of("thread", Thread.currentThread().getId()),
+                    SafeArg.of("paxosValue", value));
+            if (!withTiming("isLatestRound", () -> isLatestRound(value))) {
                 // This means that new data has come in so we shouldn't propose leadership.
                 // We do this check in a lock to ensure concurrent callers to blockOnBecomingLeader behaves correctly.
                 return;
@@ -420,7 +453,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             long seq = value.map(val -> val.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
 
             eventRecorder.recordProposalAttempt(seq);
-            proposer.propose(seq, null);
+            withTiming("proposeSequence", () -> proposer.propose(seq, null));
         } catch (PaxosRoundFailureException e) {
             // We have failed trying to become the leader.
             eventRecorder.recordProposalFailure(e);

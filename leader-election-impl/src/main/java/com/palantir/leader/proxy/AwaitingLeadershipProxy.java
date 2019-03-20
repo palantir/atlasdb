@@ -129,6 +129,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private void gainLeadershipWithRetry() {
         while (!gainLeadershipBlocking()) {
             try {
+                log.info("Failed to gain leadership, sleeping",
+                        SafeArg.of("thread", Thread.currentThread().getId()),
+                        SafeArg.of("duration", GAIN_LEADERSHIP_BACKOFF.toMillis()))
                 Thread.sleep(GAIN_LEADERSHIP_BACKOFF.toMillis());
             } catch (InterruptedException e) {
                 log.warn("gain leadership backoff interrupted");
@@ -137,7 +140,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private boolean gainLeadershipBlocking() {
-        log.debug("Block until gained leadership");
+        log.info("Block until gained leadership", SafeArg.of("thread", Thread.currentThread().getId()));
         try {
             LeadershipToken leadershipToken = leaderElectionService.blockOnBecomingLeader();
             onGainedLeadership(leadershipToken);
@@ -151,7 +154,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
-        log.debug("Gained leadership, getting delegate to start serving calls");
+        log.info("Gained leadership, getting delegate to start serving calls",
+                SafeArg.of("thread", Thread.currentThread().getId()));
         // We are now the leader, we should create a delegate so we can service calls
         T delegate = null;
         while (delegate == null) {
@@ -172,7 +176,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             clearDelegate();
         } else {
             leadershipTokenRef.set(leadershipToken);
-            log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken));
+            log.info("Gained leadership for {}", SafeArg.of("leadershipToken", leadershipToken),
+                    SafeArg.of("thread", Thread.currentThread().getId()));
         }
     }
 
