@@ -38,7 +38,7 @@ import com.palantir.timestamp.CloseableTimestampService;
 import com.palantir.timestamp.RequestBatchingTimestampService;
 import com.palantir.timestamp.TimestampRange;
 
-public class TimeLockClient implements AutoCloseable, TimelockService {
+public class TimeLockClient implements TimelockService {
 
     private static final long REFRESH_INTERVAL_MILLIS = 5_000;
 

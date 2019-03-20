@@ -15,7 +15,6 @@
  */
 package com.palantir.lock.v2;
 
-import java.io.Closeable;
 import java.util.Set;
 
 import javax.ws.rs.QueryParam;
@@ -25,7 +24,7 @@ import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampRange;
 
 @AutoDelegate
-public interface TimelockService extends Closeable {
+public interface TimelockService extends AutoCloseable {
     /**
      * Used for TimelockServices that can be initialized asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TimelockServices can keep the default
