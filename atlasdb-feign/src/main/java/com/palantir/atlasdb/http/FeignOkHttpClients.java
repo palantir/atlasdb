@@ -26,6 +26,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.tracing.okhttp3.OkhttpTraceInterceptor;
 
 import feign.Client;
 import feign.okhttp.OkHttpClient;
@@ -136,7 +137,7 @@ public final class FeignOkHttpClients {
             builder.interceptors().add(AtlasDbInterceptors.REQUEST_PAYLOAD_LIMITER);
         }
         builder.interceptors().add(new AtlasDbInterceptors.UserAgentAddingInterceptor(userAgent));
-
+        builder.interceptors().add(OkhttpTraceInterceptor.INSTANCE);
         globalClientSettings.accept(builder);
         return builder.build();
     }
