@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.table.api.ColumnValue;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class SweepQueueUtils {
     public static final long REFRESH_TIME = TimeUnit.MINUTES.toMillis(5L);
@@ -35,6 +39,7 @@ public final class SweepQueueUtils {
     public static final long TS_FINE_GRANULARITY = 50_000L;
     public static final int MAX_CELLS_GENERIC = 50;
     public static final int MAX_CELLS_DEDICATED = 100_000;
+    public static final int MAX_CELLS_PER_SHARD = MAX_CELLS_DEDICATED * TargetedSweepMetadata.MAX_DEDICATED_ROWS;
     public static final int SWEEP_BATCH_SIZE = MAX_CELLS_DEDICATED;
     public static final int BATCH_SIZE_KVS = 1000;
     public static final long READ_TS = Long.MAX_VALUE;
@@ -74,6 +79,20 @@ public final class SweepQueueUtils {
         Cell cell = write.getKey();
         boolean isTombstone = Arrays.equals(write.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
         return WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), timestamp);
+    }
+
+    public static void validateNumberOfCellsWritten(Collection<List<WriteInfo>> writes) {
+        writes.forEach(writesForShard -> {
+            int cellsWritten = writesForShard.size();
+            if (cellsWritten > MAX_CELLS_PER_SHARD) {
+                throw new SafeIllegalArgumentException("Attempted to persist targeted sweep information for {} cells "
+                        + "in the same shard. This exceeds the maximum number of cells {} per shard per transaction. "
+                        + "The transaction will be aborted. Consider changing your workflow to break up the operation "
+                        + "into several smaller transactions.",
+                        SafeArg.of("cellsWritten", cellsWritten),
+                        SafeArg.of("maxCells", MAX_CELLS_PER_SHARD));
+            }
+        });
     }
 
     private static ColumnRangeSelection allPossibleColumns() {
