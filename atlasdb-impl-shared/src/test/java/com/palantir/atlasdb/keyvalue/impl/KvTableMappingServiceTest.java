@@ -92,6 +92,17 @@ public class KvTableMappingServiceTest {
     }
 
     @Test
+    public void addingTablesIsIdempotent() throws TableMappingNotFoundException {
+        assertThat(tableMapping.addTable(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
+        assertThat(tableMapping.addTable(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
+        assertThat(tableMapping.addTable(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
+        assertThat(tableMapping.getMappedTableName(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
+
+        // implementation detail: the first time we reattempt, we will try to CAS, fail, and reload the mapping
+        verify(kvs, times(3)).putUnlessExists(eq(AtlasDbConstants.NAMESPACE_TABLE), anyMap());
+    }
+
+    @Test
     public void addingTableWithoutNamespaceIsNoop() throws TableMappingNotFoundException {
         assertThat(tableMapping.addTable(TABLE_EMPTY_NAMESPACE)).isEqualTo(TABLE_EMPTY_NAMESPACE);
 
