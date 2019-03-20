@@ -135,7 +135,7 @@ public class KvTableMappingService implements TableMappingService {
 
     /**
      * This method guarantees atomicity, in that the table mapping service will atomically be updated to reflect the
-     * removal of all the tables in tableRefs
+     * removal of all the tables in tableRefs.
      */
     @Override
     public void removeTables(Set<TableReference> tableRefs) {

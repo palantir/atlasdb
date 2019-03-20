@@ -141,7 +141,8 @@ public class KvTableMappingServiceTest {
 
         assertThatThrownBy(() -> tableMapping.getMappedTableName(FQ_TABLE))
                 .as("Removed table")
-                .isInstanceOf(TableMappingNotFoundException.class);    }
+                .isInstanceOf(TableMappingNotFoundException.class);
+    }
 
     @Test
     public void generateMapToFullTableNamesReturnsKnownMappingsAndIdentityForOthers() {
