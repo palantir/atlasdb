@@ -38,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -158,6 +159,8 @@ public class TransactionManagersTest {
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
+    private List<AutoCloseable> closeables;
+
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -210,11 +213,20 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
+
+        closeables = new ArrayList<>();
     }
 
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
+        closeables.forEach(closeable -> {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                throw new RuntimeException("exception thrown while closing resources", e);
+            }
+        });
     }
 
     @Test
@@ -593,7 +605,8 @@ public class TransactionManagersTest {
                 () -> ts,
                 () -> ts,
                 invalidator,
-                USER_AGENT);
+                USER_AGENT,
+                closeables);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -621,7 +634,8 @@ public class TransactionManagersTest {
                         () -> ts,
                         () -> ts,
                         invalidator,
-                        USER_AGENT);
+                        USER_AGENT,
+                        closeables);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
@@ -663,6 +677,7 @@ public class TransactionManagersTest {
                 () -> ts,
                 () -> ts,
                 invalidator,
-                USER_AGENT);
+                USER_AGENT,
+                closeables);
     }
 }

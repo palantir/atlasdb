@@ -29,7 +29,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public final class RemoteTimelockServiceAdapter implements TimelockService {
+public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final LockLeaseService lockLeaseService;
     private final TimelockRpcClient timelockRpcClient;
 
@@ -38,7 +38,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
     }
 
-    public static TimelockService create(TimelockRpcClient timelockRpcClient) {
+    public static RemoteTimelockServiceAdapter create(TimelockRpcClient timelockRpcClient) {
         return new RemoteTimelockServiceAdapter(timelockRpcClient);
     }
 
@@ -91,4 +91,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
     }
+
+    @Override
+    public void close() {}
 }

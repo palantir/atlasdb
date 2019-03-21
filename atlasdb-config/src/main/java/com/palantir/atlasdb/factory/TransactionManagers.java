@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -302,7 +303,8 @@ public abstract class TransactionManagers {
                 timestampSupplier,
                 managementSupplier,
                 atlasFactory.getTimestampStoreInvalidator(),
-                userAgent());
+                userAgent(),
+                closeables);
         adapter.setTimestampService(lockAndTimestampServices.timestamp());
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
@@ -405,7 +407,6 @@ public abstract class TransactionManagers {
         TransactionManager instrumentedTransactionManager =
                 AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
 
-        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
         instrumentedTransactionManager.registerClosingCallback(transactionService::close);
         instrumentedTransactionManager.registerClosingCallback(schemaInstaller::close);
         instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
@@ -663,13 +664,13 @@ public abstract class TransactionManagers {
                         time,
                         timeManagement,
                         invalidator,
-                        userAgent);
+                        userAgent,
+                        new ArrayList<>());
         TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
                 .build();
     }
 
@@ -683,7 +684,8 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            String userAgent,
+            List<AutoCloseable> closeables) {
         LockAndTimestampServices lockAndTimestampServices = createRawInstrumentedServices(
                 metricsManager,
                 config,
@@ -693,10 +695,11 @@ public abstract class TransactionManagers {
                 time,
                 timeManagement,
                 invalidator,
-                userAgent);
+                userAgent,
+                closeables);
         return withMetrics(metricsManager,
                 withCorroboratingTimestampService(
-                        withRefreshingLockService(lockAndTimestampServices)));
+                        withRefreshingLockService(lockAndTimestampServices, closeables)));
     }
 
     private static LockAndTimestampServices withCorroboratingTimestampService(
@@ -713,14 +716,14 @@ public abstract class TransactionManagers {
     }
 
     private static LockAndTimestampServices withRefreshingLockService(
-            LockAndTimestampServices lockAndTimestampServices) {
+            LockAndTimestampServices lockAndTimestampServices, List<AutoCloseable> closeables) {
         TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
+        closeables.add(timeLockClient::close);
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
                 .build();
     }
 
@@ -748,7 +751,8 @@ public abstract class TransactionManagers {
             com.google.common.base.Supplier<TimestampService> time,
             com.google.common.base.Supplier<TimestampManagementService> timeManagement,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            String userAgent,
+            List<AutoCloseable> closeables) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfigSupplier.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
         if (config.leader().isPresent()) {
@@ -757,7 +761,8 @@ public abstract class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
-            return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
+            return createRawServicesFromTimeLock(
+                    metricsManager, config, runtimeConfigSupplier, invalidator, userAgent, closeables);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time, timeManagement);
         }
@@ -785,12 +790,13 @@ public abstract class TransactionManagers {
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
             TimestampStoreInvalidator invalidator,
-            String userAgent) {
+            String userAgent,
+            List<AutoCloseable> closeables) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
 
         LockAndTimestampServices lockAndTimestampServices =
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent);
+                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent, closeables);
 
         TimeLockMigrator migrator = TimeLockMigrator.create(
                 lockAndTimestampServices.timestampManagement(),
@@ -818,13 +824,15 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices getLockAndTimestampServices(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> timelockServerListConfig,
-            String userAgent) {
+            String userAgent,
+            List<AutoCloseable> closeables) {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
         LockService lockService = creator.createService(LockService.class);
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        TimelockService timelockService = RemoteTimelockServiceAdapter.create(timelockClient);
+        RemoteTimelockServiceAdapter timelockService = RemoteTimelockServiceAdapter.create(timelockClient);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
+        closeables.add(timelockService::close);
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
                 .timestamp(new TimelockTimestampServiceAdapter(timelockService))
@@ -1003,11 +1011,5 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagement();
         TimelockService timelock();
         Optional<TimeLockMigrator> migrator();
-
-        @SuppressWarnings("checkstyle:WhitespaceAround")
-        @Value.Default
-        default Runnable close() {
-            return () -> {};
-        }
     }
 }
