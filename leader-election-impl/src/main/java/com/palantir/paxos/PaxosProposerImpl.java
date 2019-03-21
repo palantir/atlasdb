@@ -105,7 +105,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
     }
 
     private static CloseableTrace startLocalTrace(String operation) {
-        return CloseableTrace.startLocalTrace("Atlasdb:PaxosProposerImpl", operation);
+        return CloseableTrace.startLocalTrace("AtlasDB:PaxosProposerImpl", operation);
     }
 
     @Override
