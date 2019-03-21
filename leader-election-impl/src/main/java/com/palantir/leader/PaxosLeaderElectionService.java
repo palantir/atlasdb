@@ -219,7 +219,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             value = function.get();
         } catch (Exception e) {
             timer.stop();
-            log.info("Finished timed operation",
+            log.info("Finished timed operation exceptionally",
                     SafeArg.of("operation", description),
                     SafeArg.of("thread", Thread.currentThread().getId()),
                     SafeArg.of("durationMillis", timer.elapsed(TimeUnit.MILLISECONDS)));

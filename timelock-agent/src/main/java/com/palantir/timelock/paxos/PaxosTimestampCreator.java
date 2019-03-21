@@ -32,6 +32,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockUriUtils;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimestampBoundStore;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.TrustContext;
@@ -104,6 +105,10 @@ public class PaxosTimestampCreator implements TimestampCreator {
         return () -> createManagedPaxosTimestampService(proposer, client, acceptors, learners);
     }
 
+    private static CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("AtlasDB:PaxosTimestampCreator", operation);
+    }
+
     private ManagedTimestampService createManagedPaxosTimestampService(
             PaxosProposer proposer,
             String client,
@@ -118,8 +123,11 @@ public class PaxosTimestampCreator implements TimestampCreator {
                         ImmutableList.copyOf(learners),
                         paxosRuntime.get().maximumWaitBeforeProposalMs()),
                 client);
-        PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
-        return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
+
+        try (CloseableTrace ignored = startLocalTrace("createManagedPaxosTimestampService")) {
+            PersistentTimestampService persistentTimestampService = PersistentTimestampServiceImpl.create(boundStore);
+            return new DelegatingManagedTimestampService(persistentTimestampService, persistentTimestampService);
+        }
     }
 
     private <T> T instrument(Class<T> serviceClass, T service, String client) {

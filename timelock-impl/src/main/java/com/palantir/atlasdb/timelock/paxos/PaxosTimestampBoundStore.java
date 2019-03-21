@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -84,6 +85,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
     }
 
+    private static CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("AtlasDB:PaxosTimestampBoundStore", operation);
+    }
+
     /**
      * Contacts a quorum of nodes to find the latest sequence number prepared or accepted from acceptors,
      * and the bound associated with this sequence number. This method MUST be called at least once before
@@ -94,10 +99,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @Override
     public synchronized long getUpperLimit() {
-        List<PaxosLong> responses = getLatestSequenceNumbersFromAcceptors();
-        PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
-        agreedState = getAgreedState(max.getValue());
-        return agreedState.getBound();
+        try(CloseableTrace ignored = startLocalTrace("getUpperLimit")) {
+            List<PaxosLong> responses = getLatestSequenceNumbersFromAcceptors();
+            PaxosLong max = Ordering.natural().onResultOf(PaxosLong::getValue).max(responses);
+            agreedState = getAgreedState(max.getValue());
+            return agreedState.getBound();
+        }
     }
 
     /**
@@ -108,16 +115,18 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws ServiceNotAvailableException if we couldn't contact a quorum
      */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
-        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
-                ImmutableList.copyOf(acceptors),
-                acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
-                proposer.getQuorumSize(),
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
-        if (!responses.hasQuorum()) {
-            throw new ServiceNotAvailableException("could not get a quorum");
+        try (CloseableTrace ignored = startLocalTrace("getLatestSequenceNumbersFromAcceptors")) {
+            PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
+                    ImmutableList.copyOf(acceptors),
+                    acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
+                    proposer.getQuorumSize(),
+                    executor,
+                    PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+            if (!responses.hasQuorum()) {
+                throw new ServiceNotAvailableException("could not get a quorum");
+            }
+            return responses.get();
         }
-        return responses.get();
     }
 
     /**
@@ -139,20 +148,22 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @VisibleForTesting
     SequenceAndBound getAgreedState(long seq) {
-        final Optional<SequenceAndBound> state = getLearnedState(seq);
-        if (state.isPresent()) {
-            return state.get();
-        }
+        try (CloseableTrace ignored = startLocalTrace("getAgreedState")) {
+            final Optional<SequenceAndBound> state = getLearnedState(seq);
+            if (state.isPresent()) {
+                return state.get();
+            }
 
-        // In the common case seq - 1 will be agreed upon before seq is prepared.
-        Optional<SequenceAndBound> lastState = getLearnedState(seq - 1);
-        if (!lastState.isPresent()) {
-            // We know that even in the case of a truncate, seq - 2 will always be agreed upon.
-            SequenceAndBound forced = forceAgreedState(seq - 2, null);
-            lastState = Optional.of(forceAgreedState(seq - 1, forced.getBound()));
-        }
+            // In the common case seq - 1 will be agreed upon before seq is prepared.
+            Optional<SequenceAndBound> lastState = getLearnedState(seq - 1);
+            if (!lastState.isPresent()) {
+                // We know that even in the case of a truncate, seq - 2 will always be agreed upon.
+                SequenceAndBound forced = forceAgreedState(seq - 2, null);
+                lastState = Optional.of(forceAgreedState(seq - 1, forced.getBound()));
+            }
 
-        return forceAgreedState(seq, lastState.get().getBound());
+            return forceAgreedState(seq, lastState.get().getBound());
+        }
     }
 
     /**
@@ -175,23 +186,25 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @VisibleForTesting
     SequenceAndBound forceAgreedState(long seq, @Nullable Long oldState) {
-        if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
-            return ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L);
-        }
+        try (CloseableTrace ignored = startLocalTrace("forceAgreedState")) {
+            if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
+                return ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L);
+            }
 
-        Optional<SequenceAndBound> state = getLearnedState(seq);
-        if (state.isPresent()) {
-            return state.get();
-        }
+            Optional<SequenceAndBound> state = getLearnedState(seq);
+            if (state.isPresent()) {
+                return state.get();
+            }
 
-        while (true) {
-            try {
-                byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
-                // propose must never return null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
-                return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
-            } catch (PaxosRoundFailureException e) {
-                waitForRandomBackoff(e, Thread::sleep);
+            while (true) {
+                try (CloseableTrace ignored2 = startLocalTrace("tryPropose loop")) {
+                    byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
+                    // propose must never return null.  We only pass in null for things we know are agreed upon already.
+                    Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
+                    return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
+                } catch (PaxosRoundFailureException e) {
+                    waitForRandomBackoff(e, Thread::sleep);
+                }
             }
         }
     }
@@ -206,18 +219,20 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * to any learner which knows a value for this sequence number
      */
     private Optional<SequenceAndBound> getLearnedState(long seq) {
-        if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
-            return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
+        try (CloseableTrace ignored = startLocalTrace("getLearnedState")) {
+            if (seq <= PaxosAcceptor.NO_LOG_ENTRY) {
+                return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
+            }
+            PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
+                    ImmutableList.copyOf(learners),
+                    learner -> getLearnedValue(seq, learner),
+                    QUORUM_OF_ONE,
+                    executor,
+                    PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+            return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
+                    .map(PaxosLong::getValue)
+                    .map(value -> ImmutableSequenceAndBound.of(seq, value));
         }
-        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
-                ImmutableList.copyOf(learners),
-                learner -> getLearnedValue(seq, learner),
-                QUORUM_OF_ONE,
-                executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
-        return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
-                .map(PaxosLong::getValue)
-                .map(value -> ImmutableSequenceAndBound.of(seq, value));
     }
 
     /**
@@ -229,12 +244,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws NoSuchElementException if the learner has not learned any value for seq
      */
     private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
-        PaxosValue value = learner.getLearnedValue(seq);
-        if (value == null) {
-            throw new NoSuchElementException(
-                    String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq));
+        try (CloseableTrace ignored = startLocalTrace("getLearnedValue")) {
+            PaxosValue value = learner.getLearnedValue(seq);
+            if (value == null) {
+                throw new NoSuchElementException(
+                        String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq));
+            }
+            return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
         }
-        return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
     }
 
     /**
@@ -247,37 +264,39 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
-        if (agreedState != null) {
-            Preconditions.checkArgument(limit >= agreedState.getBound(),
-                    "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
-            newSeq = agreedState.getSeqId() + 1;
-        }
-        while (true) {
-            try {
-                proposer.propose(newSeq, PtBytes.toBytes(limit));
-                PaxosValue value = knowledge.getLearnedValue(newSeq);
-                checkAgreedBoundIsOurs(limit, newSeq, value);
-                long newLimit = PtBytes.toLong(value.getData());
-                agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
-                if (newLimit < limit) {
-                    // The bound is ours, but is not high enough.
-                    // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
-                    // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
-                    // TODO (jkong): Devise a method that better preserves availability of the cluster.
-                    log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
-                            + " This suggests we have another timestamp service running; possibly because we"
-                            + " lost and regained leadership. For safety, we are now stopping this service.",
-                            SafeArg.of("newLimit", newLimit),
-                            SafeArg.of("target", limit));
-                    throw new NotCurrentLeaderException(String.format(
-                            "We updated the timestamp limit to %s, which was less than our target %s.",
-                            newLimit,
-                            limit));
+        try (CloseableTrace ignored = startLocalTrace("storeUpperLimit")) {
+            long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
+            if (agreedState != null) {
+                Preconditions.checkArgument(limit >= agreedState.getBound(),
+                        "Tried to store an upper limit %s less than the current limit %s", limit, agreedState.getBound());
+                newSeq = agreedState.getSeqId() + 1;
+            }
+            while (true) {
+                try {
+                    proposer.propose(newSeq, PtBytes.toBytes(limit));
+                    PaxosValue value = knowledge.getLearnedValue(newSeq);
+                    checkAgreedBoundIsOurs(limit, newSeq, value);
+                    long newLimit = PtBytes.toLong(value.getData());
+                    agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
+                    if (newLimit < limit) {
+                        // The bound is ours, but is not high enough.
+                        // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
+                        // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
+                        // TODO (jkong): Devise a method that better preserves availability of the cluster.
+                        log.warn("It appears we updated the timestamp limit to {}, which was less than our target {}."
+                                + " This suggests we have another timestamp service running; possibly because we"
+                                + " lost and regained leadership. For safety, we are now stopping this service.",
+                                SafeArg.of("newLimit", newLimit),
+                                SafeArg.of("target", limit));
+                        throw new NotCurrentLeaderException(String.format(
+                                "We updated the timestamp limit to %s, which was less than our target %s.",
+                                newLimit,
+                                limit));
+                    }
+                    return;
+                } catch (PaxosRoundFailureException e) {
+                    waitForRandomBackoff(e, this::wait);
                 }
-                return;
-            } catch (PaxosRoundFailureException e) {
-                waitForRandomBackoff(e, this::wait);
             }
         }
     }
@@ -292,25 +311,27 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value)
             throws NotCurrentLeaderException {
-        if (!value.getLeaderUUID().equals(proposer.getUuid())) {
-            String errorMsg = String.format(
-                    "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
-                            + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
-                            + " server has gained leadership and updated the timestamp bound."
-                            + " The offending bound was '%s'; we tried to propose"
-                            + " a bound of '%s'. (The offending Paxos value was '%s'.)",
-                    newSeq,
-                    value.getLeaderUUID(),
-                    proposer.getUuid(),
-                    PtBytes.toLong(value.getData()),
-                    limit,
-                    value);
-            throw new NotCurrentLeaderException(errorMsg);
+        try (CloseableTrace ignored = startLocalTrace("checkAgreedBoundIsOurs")) {
+            if (!value.getLeaderUUID().equals(proposer.getUuid())) {
+                String errorMsg = String.format(
+                        "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
+                                + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
+                                + " server has gained leadership and updated the timestamp bound."
+                                + " The offending bound was '%s'; we tried to propose"
+                                + " a bound of '%s'. (The offending Paxos value was '%s'.)",
+                        newSeq,
+                        value.getLeaderUUID(),
+                        proposer.getUuid(),
+                        PtBytes.toLong(value.getData()),
+                        limit,
+                        value);
+                throw new NotCurrentLeaderException(errorMsg);
+            }
+            DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
+                    SafeArg.of("limit", limit),
+                    SafeArg.of("paxosSequenceNumber", newSeq),
+                    SafeArg.of("paxosValue", value));
         }
-        DebugLogger.logger.info("Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
-                SafeArg.of("limit", limit),
-                SafeArg.of("paxosSequenceNumber", newSeq),
-                SafeArg.of("paxosValue", value));
     }
 
     /**
@@ -322,15 +343,17 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @param backoffAction the action to take (which consumes the time, in milliseconds, to wait for)
      */
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
-        long backoffTime = getRandomBackoffTime();
-        log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
-                + " will retry in {} ms.",
-                SafeArg.of("backoffTime", backoffTime),
-                paxosException);
-        try {
-            backoffAction.backoff(backoffTime);
-        } catch (InterruptedException interruptedException) {
-            Thread.currentThread().interrupt();
+        try (CloseableTrace ignored = startLocalTrace("waitForRandomBackoff")) {
+            long backoffTime = getRandomBackoffTime();
+            log.info("Paxos proposal couldn't complete, because we could not connect to a quorum of nodes. We"
+                    + " will retry in {} ms.",
+                    SafeArg.of("backoffTime", backoffTime),
+                    paxosException);
+            try {
+                backoffAction.backoff(backoffTime);
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
