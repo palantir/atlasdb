@@ -151,6 +151,11 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                         getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
     }
 
+    /**
+     * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
+     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
+     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
@@ -268,10 +273,14 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             kvs.checkAndSet(request);
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
-            return ImmutableCheckAndSetResult.of(false, e.getActualValues()
-                    .stream()
-                    .map(this::deserializeSequenceAndBound)
-                    .collect(Collectors.toList()));
+            if (e.getActualValues() != null) {
+                return ImmutableCheckAndSetResult.of(false, e.getActualValues()
+                        .stream()
+                        .map(this::deserializeSequenceAndBound)
+                        .collect(Collectors.toList()));
+            } else {
+                return getMostRecentValueAndBound(oldValue, newValue);
+            }
         }
     }
 
@@ -294,7 +303,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
+    byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
         return serializeData(sequenceAndBound, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
     }
 
@@ -313,7 +322,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
-    private Cell getCoordinationValueCell() {
+    Cell getCoordinationValueCell() {
         return getCellForSequence(0);
     }
 
@@ -324,5 +333,16 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private Optional<Value> readFromCoordinationTable(Cell cell) {
         return Optional.ofNullable(kvs.get(AtlasDbConstants.COORDINATION_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE))
                 .get(cell));
+    }
+
+    private CheckAndSetResult<SequenceAndBound> getMostRecentValueAndBound(Optional<SequenceAndBound> oldValue,
+            SequenceAndBound newValue) {
+        Optional<SequenceAndBound> actualValue = getCoordinationValue();
+        if (!actualValue.isPresent()) {
+            throw new SafeIllegalStateException("Failed to check and set coordination value from {} to {}, but "
+                    + "there is no value present in the coordination table",
+                    SafeArg.of("oldValue", oldValue), SafeArg.of("newValue", newValue));
+        }
+        return ImmutableCheckAndSetResult.of(false, ImmutableList.of(actualValue.get()));
     }
 }

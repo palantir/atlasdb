@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3848>`__)
+
     *    - |changed|
          - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
