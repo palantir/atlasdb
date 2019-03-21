@@ -115,8 +115,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     private void tryToGainLeadership() {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
         if (currentToken.isPresent()) {
+            log.info("we've already been elected leader, calling on gained leadership directly, coming from mark as not leading",
+                    SafeArg.of("thread", Thread.currentThread().getId()));
             onGainedLeadership(currentToken.get());
         } else {
+            log.info("we've not been elected leader, we will try to get in the background",
+                    SafeArg.of("thread", Thread.currentThread().getId()));
             tryToGainLeadershipAsync();
         }
     }
@@ -180,7 +184,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 }
             }
         }
-
+        log.info("Finished creating delegate",
+                SafeArg.of("thread", Thread.currentThread().getId()));
         // Do not modify, hide, or remove this line without considering impact on correctness.
         delegateRef.set(delegate);
 
@@ -194,6 +199,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void clearDelegate() {
+        log.info("closing delegate", SafeArg.of("thread", Thread.currentThread().getId()));
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
             try {
@@ -203,9 +209,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 log.warn("problem closing delegate", ex);
             }
         }
+        log.info("closed delegate", SafeArg.of("thread", Thread.currentThread().getId()));
     }
 
     private static CloseableTrace startLocalTrace(String operation) {
+        log.info("tracing operation " + operation, SafeArg.of("thread", Thread.currentThread().getId()));
         return CloseableTrace.startLocalTrace("AtlasDB:AwaitingLeadershipProxy", operation);
     }
 
@@ -228,6 +236,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
                 leading = leaderElectionService.isStillLeading(leadershipToken);
                 if (leading != StillLeadingStatus.NO_QUORUM) {
+                    log.info("established quorum after number of iterations",
+                            SafeArg.of("i", i),
+                            SafeArg.of("thread", Thread.currentThread().getId()));
                     break;
                 }
             }
@@ -266,27 +277,25 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     @VisibleForTesting
     LeadershipToken getLeadershipToken() {
-        try (CloseableTrace ignored = startLocalTrace("getLeadershipToken")) {
-            LeadershipToken leadershipToken = leadershipTokenRef.get();
+        LeadershipToken leadershipToken = leadershipTokenRef.get();
 
-            if (leadershipToken == null) {
-                NotCurrentLeaderException notCurrentLeaderException = notCurrentLeaderException(
-                        "method invoked on a non-leader");
+        if (leadershipToken == null) {
+            NotCurrentLeaderException notCurrentLeaderException = notCurrentLeaderException(
+                    "method invoked on a non-leader");
 
-                if (notCurrentLeaderException.getServiceHint().isPresent()) {
-                    // There's a chance that we can gain leadership while generating this exception.
-                    // In this case, we should be able to get a leadership token after all
-                    leadershipToken = leadershipTokenRef.get();
-                    // If leadershipToken is still null, then someone's the leader, but it isn't us.
-                }
-
-                if (leadershipToken == null) {
-                    throw notCurrentLeaderException;
-                }
+            if (notCurrentLeaderException.getServiceHint().isPresent()) {
+                // There's a chance that we can gain leadership while generating this exception.
+                // In this case, we should be able to get a leadership token after all
+                leadershipToken = leadershipTokenRef.get();
+                // If leadershipToken is still null, then someone's the leader, but it isn't us.
             }
 
-            return leadershipToken;
+            if (leadershipToken == null) {
+                throw notCurrentLeaderException;
+            }
         }
+
+        return leadershipToken;
     }
 
     private boolean isStillCurrentToken(LeadershipToken leadershipToken) {
