@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.random.RandomBytes;
@@ -110,7 +111,13 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
         List<Cell> cells = createAndWriteCells(10, 2);
         List<byte[]> sortedRows = sortedUniqueRowKeys(cells);
 
-        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE, ImmutableMap.of(cells.get(1), Long.MAX_VALUE), true);
+        kvs.deleteAllTimestamps(GET_ROW_KEYS_TABLE,
+                ImmutableMap.of(cells.get(1),
+                        new TimestampRangeDelete.Builder()
+                                .timestamp(Long.MAX_VALUE)
+                                .endInclusive(false)
+                                .deleteSentinels(true)
+                                .build()));
         List<byte[]> result = kvs.getRowKeysInRange(GET_ROW_KEYS_TABLE, new byte[0], new byte[0], 10);
         assertListsMatch(result, sortedRows);
     }

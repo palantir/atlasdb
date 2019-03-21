@@ -55,6 +55,8 @@ public abstract class SweepQueueTable {
         Map<Cell, byte[]> cellsToWrite = new HashMap<>();
         Map<PartitionInfo, List<WriteInfo>> partitionedWrites = partitioner.filterAndPartition(allWrites);
 
+        SweepQueueUtils.validateNumberOfCellsWritten(partitionedWrites.values());
+
         partitionedWrites.forEach((partitionInfo, writes) -> {
             referencesToDedicatedCells.putAll(populateReferences(partitionInfo, writes));
             cellsToWrite.putAll(populateCells(partitionInfo, writes));

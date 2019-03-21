@@ -43,6 +43,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.LoggingFunction;
@@ -180,9 +181,8 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels) {
-        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, maxTimestampExclusiveByCell, deleteSentinels),
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        maybeLog(() -> delegate.deleteAllTimestamps(tableRef, deletes),
                 logTimeAndTable("deleteAllTimestamps", tableRef));
     }
 

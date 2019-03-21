@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.ClientErrorException;
@@ -47,6 +48,8 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.GlobalClock;
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
@@ -121,6 +124,7 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.time.Clock;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
@@ -370,7 +374,6 @@ public abstract class TransactionManagers {
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
-                new DeprecatedTablesCleaner(schemas()),
                 asyncInitializationCallback());
 
         TransactionManager transactionManager = initializeCloseable(
@@ -616,15 +619,19 @@ public abstract class TransactionManagers {
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
             LockAndTimestampServices lockAndTimestampServices) {
+        // Only do the consistency check if we're using TimeLock.
+        // This avoids a bootstrapping problem with leader-block services without async initialisation,
+        // where you need a working timestamp service to check consistency, you need to check consistency
+        // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
+        // ports in order to get a working timestamp service.
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
-            // Only do the consistency check if we're using TimeLock.
-            // This avoids a bootstrapping problem with leader-block services without async initialisation,
-            // where you need a working timestamp service to check consistency, you need to check consistency
-            // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
-            // ports in order to get a working timestamp service.
+            ToLongFunction<TransactionManager> conservativeBoundSupplier = txnManager -> {
+                Clock clock = GlobalClock.create(txnManager.getTimelockService());
+                return KeyValueServicePuncherStore.get(txnManager.getKeyValueService(), clock.getTimeMillis());
+            };
             return ConsistencyCheckRunner.create(
                     ImmutableTimestampCorroborationConsistencyCheck.builder()
-                            .conservativeBound(TransactionManager::getUnreadableTimestamp)
+                            .conservativeBound(conservativeBoundSupplier)
                             .freshTimestampSource(unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
                             .build());
         }
@@ -787,12 +794,17 @@ public abstract class TransactionManagers {
             String userAgent) {
         Supplier<ServerListConfig> serverListConfigSupplier =
                 getServerListConfigSupplierForTimeLock(config, runtimeConfigSupplier);
-        TimeLockMigrator migrator =
-                TimeLockMigrator.create(metricsManager,
-                        serverListConfigSupplier, invalidator, userAgent, config.initializeAsync());
+
+        LockAndTimestampServices lockAndTimestampServices =
+                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent);
+
+        TimeLockMigrator migrator = TimeLockMigrator.create(
+                lockAndTimestampServices.timestampManagement(),
+                invalidator,
+                config.initializeAsync());
         migrator.migrate(); // This can proceed async if config.initializeAsync() was set
-        return ImmutableLockAndTimestampServices.copyOf(
-                getLockAndTimestampServices(metricsManager, serverListConfigSupplier, userAgent))
+
+        return ImmutableLockAndTimestampServices.copyOf(lockAndTimestampServices)
                 .withMigrator(migrator);
     }
 

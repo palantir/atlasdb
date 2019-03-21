@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
@@ -54,7 +55,6 @@ import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.lease.LeasingLeaderElectionService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -185,7 +185,7 @@ public final class Leaders {
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 LeaderElectionService.class,
-                LeasingLeaderElectionService.wrap(paxosLeaderElectionService));
+                paxosLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
                 paxosLeaderElectionService);
@@ -204,20 +204,15 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
-            Class<T> clazz) {
-        return createProxyAndLocalList(metrics, localObject, remoteUris, trustContext,
-                clazz, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static <T> List<T> createProxyAndLocalList(
-            MetricRegistry metrics,
-            T localObject,
-            Set<String> remoteUris,
-            Optional<TrustContext> trustContext,
             Class<T> clazz,
             String userAgent) {
+
+        List<T> remotes = remoteUris.stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .collect(Collectors.toList());
+
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(metrics, trustContext, remoteUris, true, clazz, userAgent),
+                remotes,
                 ImmutableList.of(localObject)));
     }
 
@@ -232,7 +227,7 @@ public final class Leaders {
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
             PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
-                            endpoint, true, PingableLeader.class, userAgent, false);
+                            endpoint, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

@@ -34,6 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
@@ -282,11 +283,11 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void deleteAllTimestamps(Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(maxTimestampExclusiveByCell.size());
-        long minTsToDelete = getLowerBound(deleteSentinels);
-        maxTimestampExclusiveByCell.forEach((cell, ts) ->
-                args.add(new Object[] {cell.getRowName(), cell.getColumnName(), minTsToDelete, ts}));
+    public void deleteAllTimestamps(Map<Cell, TimestampRangeDelete> deletes) {
+        List<Object[]> args = Lists.newArrayListWithCapacity(deletes.size());
+        deletes.forEach((cell, ts) ->
+                args.add(new Object[] {cell.getRowName(), cell.getColumnName(),
+                                       ts.minTimestampToDelete(), ts.maxTimestampToDelete()}));
 
         switch (config.overflowMigrationState()) {
             case UNSTARTED:
@@ -322,10 +323,6 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         + "  AND m.ts >= ? "
                         + "  AND m.ts < ?",
                 args);
-    }
-
-    private long getLowerBound(boolean includeSentinels) {
-        return includeSentinels ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
     }
 
     private void deleteOverflow(String overflowTable, List<Object[]> args) {

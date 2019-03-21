@@ -330,17 +330,18 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
-     * For each cell, deletes all timestamps prior to the associated maximum timestamp. Depending on the
-     * implementation, this may result in a range tombstone in the underlying KVS.
+     * For each cell, deletes all timestamps prior to the associated maximum timestamp. If this
+     * operation fails, it's acceptable for this method to leave an inconsistent state, however
+     * implementations of this method <b>must</b> guarantee that, for each cell, if a value at the
+     * associated timestamp is inconsistently deleted, then all other values of that cell in the
+     * relevant range must have already been consistently deleted.
      *
      * @param tableRef the name of the table to delete the timestamps in.
-     * @param maxTimestampExclusiveByCell exclusive maximum timestamp to delete for each cell.
-     * @param deleteSentinels if true, this method will also delete garbage collection sentinels.
+     * @param deletes cells to be deleted, and the ranges of timestamps to delete for each cell
      */
     @Idempotent
-    void deleteAllTimestamps(TableReference tableRef,
-            Map<Cell, Long> maxTimestampExclusiveByCell,
-            boolean deleteSentinels);
+    void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
+            throws InsufficientConsistencyException;
 
     /**
      * Truncate a table in the key-value store.

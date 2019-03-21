@@ -14,8 +14,26 @@
  * limitations under the License.
  */
 
-package com.palantir.leader.lease;
+package com.palantir.atlasdb.keyvalue.api;
 
-public interface LeasingRequirements {
-    boolean canUseLeadershipLeases();
+import org.immutables.value.Value.Immutable;
+import org.immutables.value.Value.Lazy;
+
+@Immutable
+public interface TimestampRangeDelete {
+    long timestamp();
+    boolean endInclusive();
+    boolean deleteSentinels();
+
+    @Lazy
+    default long maxTimestampToDelete() {
+        return timestamp() + (endInclusive() ? 0 : -1);
+    }
+
+    @Lazy
+    default long minTimestampToDelete() {
+        return deleteSentinels() ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
+    }
+
+    class Builder extends ImmutableTimestampRangeDelete.Builder {}
 }

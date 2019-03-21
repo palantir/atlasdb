@@ -16,10 +16,10 @@
 
 package com.palantir.timestamp;
 
-import java.util.OptionalLong;
-
 import com.google.common.base.Preconditions;
 import com.google.common.math.LongMath;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
+import com.palantir.lock.v2.PartitionedTimestamps;
 
 /**
  * Utilities for manipulating {@link TimestampRange} objects.
@@ -30,35 +30,49 @@ public final class TimestampRanges {
     }
 
     /**
-     * Returns a timestamp in the provided timestamp range that has the provided residue class modulo the provided
-     * modulus.
+     * Returns all timestamps in given residue class for given modulus in provided timestamp range. Timestamps are
+     * represented by {@link PartitionedTimestamps}.
      *
-     * We do not make any guarantees on which timestamp is provided if multiple timestamps in the range reside
-     * in the provided residue class. For example, if the TimestampRange is from 1 to 5 inclusive and we want a
-     * timestamp with residue 1 modulo 2, this method may return any of 1, 3 and 5.
-     *
-     * If the timestamp range does not contain a timestamp matching the criteria, returns empty.
-     *
-     * @param residue desired residue class of the timestamp returned
+     * @param residue desired residue class of the timestamps returned
      * @param modulus modulus used to partition numbers into residue classes
-     * @return a timestamp in the given range in the relevant residue class modulo modulus
-     * @throws IllegalArgumentException if modulus <= 0
-     * @throws IllegalArgumentException if |residue| >= modulus; this is unsolvable
+     * @return {@link PartitionedTimestamps} satisfying the residue class condition
      */
-    public static OptionalLong getTimestampMatchingModulus(TimestampRange range, int residue, int modulus) {
+    public static PartitionedTimestamps getPartitionedTimestamps(TimestampRange range, int residue, int modulus) {
+        checkModulusAndResidue(residue, modulus);
+
+        long startTimestamp = getLowestTimestampMatchingModulus(range.getLowerBound(), residue, modulus);
+        long endTimestamp = range.getUpperBound() % modulus == residue ? range.getUpperBound() :
+                getLowestTimestampMatchingModulus(range.getUpperBound(), residue, modulus) - modulus;
+
+        if (startTimestamp > endTimestamp) {
+            return ImmutablePartitionedTimestamps.builder()
+                    .start(range.getLowerBound())
+                    .interval(modulus)
+                    .count(0)
+                    .build();
+        }
+
+        int count = (int) ((endTimestamp - startTimestamp) / modulus) + 1;
+
+        return ImmutablePartitionedTimestamps.builder()
+                .start(startTimestamp)
+                .interval(modulus)
+                .count(count)
+                .build();
+    }
+
+    private static long getLowestTimestampMatchingModulus(long lowerBound, int residue, int modulus) {
+        long lowerBoundResidue = LongMath.mod(lowerBound, modulus);
+        long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
+                residue - lowerBoundResidue;
+        return lowerBound + shift;
+    }
+
+    private static void checkModulusAndResidue(int residue, int modulus) {
         Preconditions.checkArgument(modulus > 0, "Modulus should be positive, but found %s.", modulus);
-        Preconditions.checkArgument(Math.abs(residue) < modulus,
+        Preconditions.checkArgument(Math.abs((long) residue) < modulus,
                 "Absolute value of residue %s equals or exceeds modulus %s - no solutions",
                 residue,
                 modulus);
-
-        long lowerBoundResidue = LongMath.mod(range.getLowerBound(), modulus);
-        long shift = residue < lowerBoundResidue ? modulus + residue - lowerBoundResidue :
-                residue - lowerBoundResidue;
-        long candidate = range.getLowerBound() + shift;
-
-        return range.getUpperBound() >= candidate
-                ? OptionalLong.of(candidate)
-                : OptionalLong.empty();
     }
 }

@@ -115,7 +115,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
-                TestResource.class, true);
+                TestResource.class, UserAgents.DEFAULT_USER_AGENT, true);
         assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE / 2]))
                 .as("Request with payload size below limit succeeds")
                 .isTrue();

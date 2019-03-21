@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
-import java.util.OptionalLong;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -28,7 +27,7 @@ import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.lock.v2.TimestampAndPartition;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
@@ -57,16 +56,17 @@ public class DelegatingClientAwareManagedTimestampService
     }
 
     @Override
-    public TimestampAndPartition getFreshTimestampForClient(UUID clientIdentifier) {
+    public PartitionedTimestamps getFreshTimestampsForClient(UUID clientIdentifier, int numTransactionsRequested) {
         while (true) {
-            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS);
+            TimestampRange timestampRange = delegate.getFreshTimestamps(NUM_PARTITIONS * numTransactionsRequested);
             int targetResidue = allocator.getRelevantModuli(clientIdentifier).iterator().next();
-            OptionalLong relevantTimestamp = TimestampRanges.getTimestampMatchingModulus(
+            PartitionedTimestamps partitionedTimestamps = TimestampRanges.getPartitionedTimestamps(
                     timestampRange,
                     targetResidue,
                     NUM_PARTITIONS);
-            if (relevantTimestamp.isPresent()) {
-                return TimestampAndPartition.of(relevantTimestamp.getAsLong(), targetResidue);
+
+            if (partitionedTimestamps.count() > 0) {
+                return partitionedTimestamps;
             }
 
             // Not a bug - getFreshTimestamps is permitted to return less than the number of timestamps asked for,
