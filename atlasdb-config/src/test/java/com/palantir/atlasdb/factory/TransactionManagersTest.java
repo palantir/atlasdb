@@ -213,20 +213,11 @@ public class TransactionManagersTest {
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
                 .build();
-
-        closeables = new ArrayList<>();
     }
 
     @After
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
-        closeables.forEach(closeable -> {
-            try {
-                closeable.close();
-            } catch (Exception e) {
-                throw new RuntimeException("exception thrown while closing resources", e);
-            }
-        });
     }
 
     @Test
@@ -605,8 +596,7 @@ public class TransactionManagersTest {
                 () -> ts,
                 () -> ts,
                 invalidator,
-                USER_AGENT,
-                closeables);
+                USER_AGENT);
     }
 
     private void verifyUserAgentOnRawTimestampAndLockRequests() {
@@ -634,8 +624,7 @@ public class TransactionManagersTest {
                         () -> ts,
                         () -> ts,
                         invalidator,
-                        USER_AGENT,
-                        closeables);
+                        USER_AGENT);
         lockAndTimestamp.timelock().getFreshTimestamp();
         lockAndTimestamp.timelock().currentTimeMillis();
 
@@ -663,21 +652,5 @@ public class TransactionManagersTest {
                         .addAllServers(servers)
                         .build())
                 .build();
-    }
-
-    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
-            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        return TransactionManagers.createLockAndTimestampServices(
-                metricsManager,
-                atlasDbConfig,
-                () -> atlasDbRuntimeConfig,
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                () -> ts,
-                invalidator,
-                USER_AGENT,
-                closeables);
     }
 }
