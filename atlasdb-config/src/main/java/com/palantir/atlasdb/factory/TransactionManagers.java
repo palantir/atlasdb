@@ -669,6 +669,7 @@ public abstract class TransactionManagers {
                 .from(lockAndTimestampServices)
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .close(timeLockClient::close)
                 .build();
     }
 
@@ -759,8 +760,7 @@ public abstract class TransactionManagers {
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, userAgent);
         } else if (isUsingTimeLock(config, initialRuntimeConfig)) {
-            return createRawServicesFromTimeLock(
-                    metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
+            return createRawServicesFromTimeLock(metricsManager, config, runtimeConfigSupplier, invalidator, userAgent);
         } else {
             return createRawEmbeddedServices(metricsManager, env, lock, time, timeManagement);
         }

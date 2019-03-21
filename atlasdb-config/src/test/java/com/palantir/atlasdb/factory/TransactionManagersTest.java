@@ -38,7 +38,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -158,8 +157,6 @@ public class TransactionManagersTest {
     private Consumer<Object> environment;
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
-
-    private List<AutoCloseable> closeables;
 
     @ClassRule
     public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
