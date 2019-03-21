@@ -26,6 +26,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
@@ -82,6 +83,32 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                                 rowsToColumns.values().stream().mapToInt(value -> value.size()).sum()),
                         LoggingArgs.rowCount(rowsToColumns.size()),
                         LoggingArgs.sizeInBytes(ThriftObjectSizeUtils.getApproximateSizeOfColsByKey(rowsToColumns))));
+    }
+
+    @Override
+    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        int numberOfKeyPredicates = keyPredicates.size();
+        long startTime = System.currentTimeMillis();
+
+        return KvsProfilingLogger.maybeLog(
+                () -> client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level),
+                (logger, timer) -> logger.log("CassandraClient.multiget_multislice({}, {}, {}) at time {}, on kvs.{}"
+                                + " took {} ms",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("numberOfKeyPredicates", numberOfKeyPredicates),
+                        SafeArg.of("consistency", consistency_level.toString()),
+                        LoggingArgs.startTimeMillis(startTime),
+                        SafeArg.of("kvsMethodName", kvsMethodName),
+                        LoggingArgs.durationMillis(timer)),
+                (logger, rowsToColumnLists) -> logger.log("and returned {} cells in {} rows with {} bytes",
+                        LoggingArgs.cellCount(getCellCount(rowsToColumnLists)),
+                        LoggingArgs.rowCount(rowsToColumnLists.size()),
+                        LoggingArgs.sizeInBytes(
+                                ThriftObjectSizeUtils.getApproximateSizeOfColListsByKey(rowsToColumnLists))));
     }
 
     @Override
@@ -218,5 +245,10 @@ public class ProfilingCassandraClient implements AutoDelegate_CassandraClient {
                                 LoggingArgs.startTimeMillis(startTime));
                     }
                 });
+    }
+
+    private int getCellCount(Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> rowsToColumnLists) {
+        return rowsToColumnLists.values().stream().mapToInt(
+                columnLists -> columnLists.stream().mapToInt(columnList -> columnList.size()).sum()).sum();
     }
 }
