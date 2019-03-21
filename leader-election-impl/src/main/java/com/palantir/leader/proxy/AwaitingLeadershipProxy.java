@@ -44,6 +44,7 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.Tracer;
 import com.palantir.tracing.Tracers;
 
 public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
@@ -131,6 +132,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void gainLeadershipWithRetry() {
+        log.info("running with trace id", SafeArg.of("traceId", Tracer.getTraceId()));
         while (!gainLeadershipBlocking()) {
             try {
                 log.info("Failed to gain leadership, sleeping",
@@ -158,6 +160,12 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void onGainedLeadership(LeadershipToken leadershipToken)  {
+        try (CloseableTrace ignored = startLocalTrace("onGainedLeadership")) {
+            onGainedLeadershipUntraced(leadershipToken);
+        }
+    }
+
+    private void onGainedLeadershipUntraced(LeadershipToken leadershipToken) {
         log.info("Gained leadership, getting delegate to start serving calls",
                 SafeArg.of("thread", Thread.currentThread().getId()));
         // We are now the leader, we should create a delegate so we can service calls
