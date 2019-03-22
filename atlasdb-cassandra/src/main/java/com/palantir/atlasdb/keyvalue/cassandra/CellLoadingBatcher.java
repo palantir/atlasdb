@@ -34,7 +34,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 /**
  * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
  */
-class CellLoadingBatcher {
+final class CellLoadingBatcher {
     private static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
 
     private final IntSupplier crossColumnLoadBatchLimitSupplier;
