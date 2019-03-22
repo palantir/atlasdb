@@ -278,9 +278,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                         .stream()
                         .map(this::deserializeSequenceAndBound)
                         .collect(Collectors.toList()));
-            } else {
-                return getMostRecentValueAndBound(oldValue, newValue);
             }
+            return getFailedResultWithMostRecentValueAndBound(oldValue, newValue);
         }
     }
 
@@ -303,6 +302,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
+    @VisibleForTesting
     byte[] serializeSequenceAndBound(SequenceAndBound sequenceAndBound) {
         return serializeData(sequenceAndBound, COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION);
     }
@@ -322,6 +322,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         }
     }
 
+    @VisibleForTesting
     Cell getCoordinationValueCell() {
         return getCellForSequence(0);
     }
@@ -335,8 +336,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 .get(cell));
     }
 
-    private CheckAndSetResult<SequenceAndBound> getMostRecentValueAndBound(Optional<SequenceAndBound> oldValue,
-            SequenceAndBound newValue) {
+    private CheckAndSetResult<SequenceAndBound> getFailedResultWithMostRecentValueAndBound(
+            Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
         Optional<SequenceAndBound> actualValue = getCoordinationValue();
         if (!actualValue.isPresent()) {
             throw new SafeIllegalStateException("Failed to check and set coordination value from {} to {}, but "

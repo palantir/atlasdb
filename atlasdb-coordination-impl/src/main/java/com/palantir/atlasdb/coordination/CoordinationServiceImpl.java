@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.logsafe.SafeArg;
 
@@ -51,8 +50,7 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
 
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
-     * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
-     * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     * of CAS failure only if the implementation of the CoordinationStore makes such guarantees.
      */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform) {
