@@ -188,11 +188,16 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>Background Sweep will now continue to prioritise tables accordingly, if writes to the sweep queue are enabled but targeted sweep is disabled on startup.
+Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3824">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>We’ve rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3836">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><cite>AtlasDbHttpClients</cite>, <cite>FeignOkHttpClients</cite> and <cite>AtlasDbFeignTargetFactory</cite> are refactored to get rid of deprecated methods and overused overloads.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3837">Pull Request</a>)</td>
 </tr>
