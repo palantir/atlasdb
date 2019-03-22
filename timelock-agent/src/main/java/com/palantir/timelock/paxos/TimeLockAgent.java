@@ -16,23 +16,34 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
+import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosAcceptor;
+import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosAcceptorAdapter;
+import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosLearner;
+import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosLearnerAdapter;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.lock.LockService;
+import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
@@ -103,11 +114,40 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
+    private List<ClientAwarePaxosLearner> createClientAwarePaxosLearners() {
+        Set<String> remoteServerPaths = PaxosRemotingUtils.getRemoteServerPaths(install);
+        return createProxies(ClientAwarePaxosLearner.class, remoteServerPaths, "timestamp-bound-store.learner");
+    }
+
+    private List<ClientAwarePaxosAcceptor> createClientAwarePaxosAcceptors() {
+        Set<String> remoteServerPaths = PaxosRemotingUtils.getRemoteServerPaths(install);
+        return createProxies(ClientAwarePaxosAcceptor.class, remoteServerPaths, "timestamp-bound-store.acceptor");
+    }
+
+    private <T> List<T> createProxies(Class<T> clazz, Set<String> remoteUris, String userAgent) {
+        Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install)
+                .map(SslSocketFactories::createTrustContext);
+        return remoteUris.stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(
+                        metricsManager.getRegistry(),
+                        trustContext,
+                        uri, clazz, userAgent, false))
+                .collect(Collectors.toList());
+    }
+
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
-        return new PaxosTimestampCreator(metrics, paxosResource,
-                PaxosRemotingUtils.getRemoteServerPaths(install),
-                PaxosRemotingUtils.getSslConfigurationOptional(install).map(SslSocketFactories::createTrustContext),
-                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get));
+        List<ClientAwarePaxosAcceptor> paxosAcceptors = createClientAwarePaxosAcceptors();
+        List<ClientAwarePaxosLearner> paxosLearners = createClientAwarePaxosLearners();
+        return new PaxosTimestampCreator(
+                metrics,
+                paxosResource,
+                Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
+                client -> paxosAcceptors.stream()
+                        .<PaxosAcceptor>map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
+                        .collect(Collectors.toList()),
+                client -> paxosLearners.stream()
+                        .<PaxosLearner>map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
+                        .collect(Collectors.toList()));
     }
 
     private void createAndRegisterResources() {

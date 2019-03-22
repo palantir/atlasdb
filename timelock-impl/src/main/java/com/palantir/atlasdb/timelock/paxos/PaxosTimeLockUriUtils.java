@@ -29,6 +29,7 @@ public final class PaxosTimeLockUriUtils {
                 PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE);
     }
 
+    // TODO(fdesouza): delete this
     public static Set<String> getClientPaxosUris(Set<String> addresses, String client) {
         return getNamespacedUris(
                 addresses,
