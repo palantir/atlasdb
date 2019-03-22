@@ -48,6 +48,10 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
         return Optional.of(cachedReference);
     }
 
+    /**
+     * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
+     * of CAS failure only if the implementation of the CoordinationStore makes such guarantees.
+     */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform) {
         CheckAndSetResult<ValueAndBound<T>> transformResult = store.transformAgreedValue(transform);
