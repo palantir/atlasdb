@@ -32,6 +32,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
@@ -57,6 +59,7 @@ import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
@@ -66,6 +69,8 @@ import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.tracing.Tracers;
 
 public final class Leaders {
+
+    private static final Logger log = LoggerFactory.getLogger(Leaders.class);
     private Leaders() {
         // Utility class
     }
@@ -189,9 +194,11 @@ public final class Leaders {
                 .build();
         DisruptorAutobatcher<Void, LeaderElectionService.LeadershipToken> autobatcher = DisruptorAutobatcher.create(batch -> {
             try {
-                System.out.println("batch size: " + batch.size());
+                log.info("batch size: {}", SafeArg.of("batchSize", batch.size()) );
                 LeaderElectionService.LeadershipToken leadershipToken = paxosLeaderElectionService.blockOnBecomingLeader();
+                log.info("finished auto batch block on becoming leader");
                 batch.forEach(e -> e.result().set(leadershipToken));
+                log.info("finished completing each future");
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
