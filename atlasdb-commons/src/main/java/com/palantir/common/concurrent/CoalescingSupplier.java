@@ -15,13 +15,21 @@
  */
 package com.palantir.common.concurrent;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.tracing.Tracer;
 
 /**
  * A supplier that coalesces computation requests, such that only one computation is ever running at a time, and
@@ -30,12 +38,23 @@ import com.google.common.base.Throwables;
  */
 public class CoalescingSupplier<T> implements Supplier<T> {
 
+    private static final Logger log = LoggerFactory.getLogger(CoalescingSupplier.class);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
     private final Supplier<T> delegate;
-    private volatile CompletableFuture<T> nextResult = new CompletableFuture<T>();
+    private final Optional<String> operation;
+    private volatile CompletableFuture<T> nextResult = new CompletableFuture<>();
+
     private final Lock fairLock = new ReentrantLock(true);
 
     public CoalescingSupplier(Supplier<T> delegate) {
         this.delegate = delegate;
+        this.operation = Optional.empty();
+    }
+
+    public CoalescingSupplier(Supplier<T> delegate, String operation) {
+        this.delegate = delegate;
+        this.operation = Optional.of(operation);
     }
 
     @Override
@@ -63,7 +82,14 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
         nextResult = new CompletableFuture<T>();
         try {
-            future.complete(delegate.get());
+            T value = delegate.get();
+            if (operation.isPresent()) {
+                log.info("finished executing delegate for operation " + operation.get(),
+                        SafeArg.of("operation", operation.get()),
+                        SafeArg.of("thread", Thread.currentThread().getId()),
+                        SafeArg.of("traceId", Tracer.getTraceId()));
+            }
+            future.complete(value);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -71,7 +97,20 @@ public class CoalescingSupplier<T> implements Supplier<T> {
 
     private T getResult(CompletableFuture<T> future) {
         try {
-            return future.getNow(null);
+            if (operation.isPresent()) {
+                log.info("retrieving from future for operation " + operation.get(),
+                        SafeArg.of("operation", operation.get()),
+                        SafeArg.of("thread", Thread.currentThread().getId()),
+                        SafeArg.of("traceId", Tracer.getTraceId()));
+            }
+            T now = future.getNow(null);
+            if (operation.isPresent()) {
+                log.info("finished retrieving from future for operation " + operation.get(),
+                        SafeArg.of("operation", operation.get()),
+                        SafeArg.of("thread", Thread.currentThread().getId()),
+                        SafeArg.of("traceId", Tracer.getTraceId()));
+            }
+            return now;
         } catch (CompletionException ex) {
             throw Throwables.propagate(ex.getCause());
         }

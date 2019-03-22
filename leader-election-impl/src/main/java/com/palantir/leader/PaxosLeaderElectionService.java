@@ -105,7 +105,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     // TODO(fdesouza): what to do here?
                     throw new RuntimeException(e);
                 }
-            });
+            }, "block on becoming leader");
 
     /**
      * @deprecated Use PaxosLeaderElectionServiceBuilder instead.
