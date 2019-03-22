@@ -33,6 +33,14 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 
 /**
  * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
+ *
+ * The batcher partitions cells by columns.
+ * If for a given column the number of cells provided is at least the value returned by the
+ * crossColumnLoadBatchLimitSupplier, then the cells for that column will exclusively occupy one or more
+ * batches, with no batch exceeding the value returned by the singleQueryLoadBatchLimitSupplier.
+ * Otherwise, the cells provided may be combined with cells for other columns in batches of size up to the value
+ * returned by the crossColumnLoadBatchLimitSupplier. There is no guarantee that all cells for this column will
+ * be in the same batch.
  */
 final class CellLoadingBatcher {
     private static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
