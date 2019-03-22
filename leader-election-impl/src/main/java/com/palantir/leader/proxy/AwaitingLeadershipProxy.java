@@ -22,6 +22,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
@@ -141,6 +143,24 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     @Override
     protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+        Thread currentThread = Thread.currentThread();
+        Stopwatch timer = Stopwatch.createStarted();
+        try {
+            log.debug("[{} - {}] Starting handleInvocation for method {}",
+                    currentThread.getName(),
+                    currentThread.getId(),
+                    method.getName());
+            return handleInvocationInternal(proxy, method, args);
+        } finally {
+            log.debug("[{} - {}] Handled invocation for method {} (took {}ms)",
+                    currentThread.getName(),
+                    currentThread.getId(),
+                    method.getName(),
+                    timer.elapsed(TimeUnit.MILLISECONDS));
+        }
+    }
+
+    private Object handleInvocationInternal(Object proxy, Method method, Object[] args) throws Throwable {
         final LeadershipToken leadershipToken = leadershipTokenRef.get();
 
         if (leadershipToken == null) {
@@ -180,6 +200,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             throw e.getCause();
         }
     }
+
 
     private NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
         Optional<HostAndPort> maybeLeader = leaderElectionService.getSuspectedLeaderInMemory();
