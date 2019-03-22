@@ -18,8 +18,6 @@ package com.palantir.common.concurrent;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -28,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tracing.Tracer;
 
@@ -39,7 +38,6 @@ import com.palantir.tracing.Tracer;
 public class CoalescingSupplier<T> implements Supplier<T> {
 
     private static final Logger log = LoggerFactory.getLogger(CoalescingSupplier.class);
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private final Supplier<T> delegate;
     private final Optional<String> operation;
@@ -75,13 +73,24 @@ public class CoalescingSupplier<T> implements Supplier<T> {
         }
     }
 
+    private CloseableTrace startLocalTrace(String operation) {
+        return CloseableTrace.startLocalTrace("AtlasDB:CoalescingSupplier", operation + " {}", this.operation);
+    }
+
     private void resetAndCompleteIfNotCompleted(CompletableFuture<T> future) {
         if (future.isDone()) {
             return;
         }
 
         nextResult = new CompletableFuture<T>();
-        try {
+        try (CloseableTrace ignored = startLocalTrace("executeDelegate" + operation)) {
+            if (operation.isPresent()) {
+                log.info("executing delegate for operation " + operation.get(),
+                        SafeArg.of("operation", operation.get()),
+                        SafeArg.of("thread", Thread.currentThread().getId()),
+                        SafeArg.of("traceId", Tracer.getTraceId()));
+            }
+
             T value = delegate.get();
             if (operation.isPresent()) {
                 log.info("finished executing delegate for operation " + operation.get(),
@@ -90,13 +99,14 @@ public class CoalescingSupplier<T> implements Supplier<T> {
                         SafeArg.of("traceId", Tracer.getTraceId()));
             }
             future.complete(value);
+
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
     }
 
     private T getResult(CompletableFuture<T> future) {
-        try {
+        try (CloseableTrace ignored = startLocalTrace("get result" + operation)) {
             if (operation.isPresent()) {
                 log.info("retrieving from future for operation " + operation.get(),
                         SafeArg.of("operation", operation.get()),
