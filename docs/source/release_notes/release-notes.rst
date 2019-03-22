@@ -54,6 +54,11 @@ develop
          - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3848>`__)
 
+    *    - |fixed| |userbreak|
+         - Background Sweep will now continue to prioritise tables accordingly, if writes to the sweep queue are enabled but targeted sweep is disabled on startup.
+           Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3824>`__)
+
     *    - |changed|
          - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)

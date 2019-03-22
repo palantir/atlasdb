@@ -314,8 +314,9 @@ public abstract class TransactionManagers {
             kvs = ProfilingKeyValueService.create(kvs);
             kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
 
-            // If we are writing to the sweep queue, then we do not need to use SweepStatsKVS to record modifications.
-            if (!config().targetedSweep().enableSweepQueueWrites()) {
+            // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want to
+            // at least retain the option to perform background sweep, which requires updating the priority table.
+            if (!targetedSweepIsFullyEnabled()) {
                 kvs = SweepStatsKeyValueService.create(kvs,
                         new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
                         Suppliers.compose(SweepConfig::writeThreshold, sweepConfig::get),
@@ -439,6 +440,11 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private boolean targetedSweepIsFullyEnabled() {
+        return config().targetedSweep().enableSweepQueueWrites()
+                && runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
     }
 
     private TransactionSchemaInstaller initializeTransactionSchemaInstaller(@Output List<AutoCloseable> closeables,
@@ -720,7 +726,10 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
+                .close(() -> {
+                    lockAndTimestampServices.close();
+                    timeLockClient.close();
+                })
                 .build();
     }
 
@@ -822,14 +831,15 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
         LockService lockService = creator.createService(LockService.class);
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        TimelockService timelockService = RemoteTimelockServiceAdapter.create(timelockClient);
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(timelockClient);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
-                .timelock(timelockService)
+                .timelock(remoteTimelockServiceAdapter)
+                .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
 
