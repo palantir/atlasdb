@@ -36,6 +36,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.KsDef;
@@ -84,6 +85,18 @@ public class CassandraClientImpl implements CassandraClient {
         ColumnParent colFam = getColumnParent(tableRef);
 
         return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
+    }
+
+    @Override
+    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
+            String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        ColumnParent colFam = getColumnParent(tableRef);
+
+        return executeHandlingExceptions(() -> client.multiget_multislice(keyPredicates, colFam, consistency_level));
     }
 
     @Override
