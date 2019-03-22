@@ -5,6 +5,7 @@ apply plugin: 'org.inferred.processors'
 dependencies {
   compile project(":leader-election-api")
   compile project(":atlasdb-commons")
+  compile project(":atlasdb-autobatch")
 
   compile group: "com.github.ben-manes.caffeine", name: "caffeine"
   compile group: "com.google.protobuf", name: "protobuf-java"

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
@@ -185,10 +187,20 @@ public final class Leaders {
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
                 .build();
+        DisruptorAutobatcher<Void, LeaderElectionService.LeadershipToken> autobatcher = DisruptorAutobatcher.create(batch -> {
+            try {
+                System.out.println("batch size: " + batch.size());
+                LeaderElectionService.LeadershipToken leadershipToken = paxosLeaderElectionService.blockOnBecomingLeader();
+                batch.forEach(e -> e.result().set(leadershipToken));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 LeaderElectionService.class,
                 paxosLeaderElectionService);
+
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
                 paxosLeaderElectionService);
@@ -196,10 +208,50 @@ public final class Leaders {
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
-                .leaderElectionService(leaderElectionService)
+                .leaderElectionService(new Bla(leaderElectionService, autobatcher))
                 .pingableLeader(pingableLeader)
                 .leadershipObserver(leadershipObserver)
                 .build();
+    }
+
+    public static class Bla implements LeaderElectionService {
+
+        private final LeaderElectionService electionService;
+        private final DisruptorAutobatcher<Void, LeadershipToken> batch;
+
+        public Bla(LeaderElectionService electionService, DisruptorAutobatcher<Void, LeadershipToken> batch) {
+            this.electionService = electionService;
+            this.batch = batch;
+        }
+
+        @Override
+        public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
+            try {
+                return batch.apply(null).get();
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public Optional<LeadershipToken> getCurrentTokenIfLeading() {
+            return electionService.getCurrentTokenIfLeading();
+        }
+
+        @Override
+        public StillLeadingStatus isStillLeading(LeadershipToken token) {
+            return electionService.isStillLeading(token);
+        }
+
+        @Override
+        public Optional<HostAndPort> getSuspectedLeaderInMemory() {
+            return electionService.getSuspectedLeaderInMemory();
+        }
+
+        @Override
+        public Set<PingableLeader> getPotentialLeaders() {
+            return electionService.getPotentialLeaders();
+        }
     }
 
     public static <T> List<T> createProxyAndLocalList(

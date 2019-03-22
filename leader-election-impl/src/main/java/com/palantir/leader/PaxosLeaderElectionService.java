@@ -50,7 +50,6 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.Throwables;
-import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
@@ -96,16 +95,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
-    private final CoalescingSupplier<LeadershipToken> blockOnBecomingLeader = new CoalescingSupplier<>(
-            () -> {
-                log.info("entering coalesced block", SafeArg.of("thread", Thread.currentThread().getId()));
-                try {
-                    return blockOnBecomingLeaderNonCoalesced();
-                } catch (InterruptedException e) {
-                    // TODO(fdesouza): what to do here?
-                    throw new RuntimeException(e);
-                }
-            }, "block on becoming leader");
 
     /**
      * @deprecated Use PaxosLeaderElectionServiceBuilder instead.
@@ -182,7 +171,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
-        return blockOnBecomingLeader.get();
+        return blockOnBecomingLeaderNonCoalesced();
     }
 
     private LeadershipToken blockOnBecomingLeaderNonCoalesced() throws InterruptedException {
