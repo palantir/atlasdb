@@ -133,27 +133,8 @@ class CellLoader {
                     new FunctionCheckedException<CassandraClient, Void, Exception>() {
                         @Override
                         public Void apply(CassandraClient client) throws Exception {
-                            Map<byte[], SlicePredicate> canonicalPredicates
-                                    = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
-                            List<KeyPredicate> query = new ArrayList<>(partition.size());
-
-                            for (Cell cell : partition) {
-                                SlicePredicate predicate = canonicalPredicates.computeIfAbsent(
-                                        cell.getColumnName(),
-                                        columnKey -> {
-                                            SlicePredicates.Range range = SlicePredicates.Range.singleColumn(
-                                                    columnKey, startTs);
-                                            SlicePredicates.Limit limit = loadAllTs
-                                                    ? SlicePredicates.Limit.NO_LIMIT
-                                                    : SlicePredicates.Limit.ONE;
-                                            return SlicePredicates.create(range, limit);
-                                        });
-
-                                KeyPredicate keyPredicate = new KeyPredicate()
-                                        .setKey(cell.getRowName())
-                                        .setPredicate(predicate);
-                                query.add(keyPredicate);
-                            }
+                            List<KeyPredicate> query
+                                    = translatePartitionToKeyPredicates(partition, startTs, loadAllTs);
 
                             if (log.isTraceEnabled()) {
                                 log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
@@ -166,7 +147,6 @@ class CellLoader {
 
                             Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
                                     kvsMethodName, client, tableRef, query, consistency);
-
                             Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
                                     lists -> Lists.newArrayList(Iterables.concat(lists)));
                             visitor.visit(aggregatedResults);
@@ -175,7 +155,7 @@ class CellLoader {
 
                         @Override
                         public String toString() {
-                            return "multiget_slice(" + host + ", " + colFam + ", "
+                            return "multiget_multislice(" + host + ", " + colFam + ", "
                                     + partition.size() + " cells" + ")";
                         }
 
@@ -185,6 +165,30 @@ class CellLoader {
                     multiGetCallable));
         }
         return tasks;
+    }
+
+    private static List<KeyPredicate> translatePartitionToKeyPredicates(
+            List<Cell> partition, long startTs, boolean loadAllTs) {
+        Map<byte[], SlicePredicate> canonicalPredicates = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        List<KeyPredicate> keyPredicates = new ArrayList<>(partition.size());
+
+        for (Cell cell : partition) {
+            SlicePredicate predicate = canonicalPredicates.computeIfAbsent(
+                    cell.getColumnName(),
+                    columnKey -> {
+                        SlicePredicates.Range range = SlicePredicates.Range.singleColumn(columnKey, startTs);
+                        SlicePredicates.Limit limit = loadAllTs
+                                ? SlicePredicates.Limit.NO_LIMIT
+                                : SlicePredicates.Limit.ONE;
+                        return SlicePredicates.create(range, limit);
+                    });
+
+            KeyPredicate keyPredicate = new KeyPredicate()
+                    .setKey(cell.getRowName())
+                    .setPredicate(predicate);
+            keyPredicates.add(keyPredicate);
+        }
+        return keyPredicates;
     }
 
     private void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
