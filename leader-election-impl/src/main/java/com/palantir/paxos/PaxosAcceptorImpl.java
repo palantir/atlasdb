@@ -17,9 +17,12 @@ package com.palantir.paxos;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Stopwatch;
 
 public class PaxosAcceptorImpl implements PaxosAcceptor {
     private static final Logger logger = LoggerFactory.getLogger(PaxosAcceptorImpl.class);
@@ -118,11 +121,20 @@ public class PaxosAcceptorImpl implements PaxosAcceptor {
 
     @Override
     public long getLatestSequencePreparedOrAccepted() {
+        Stopwatch timer = Stopwatch.createStarted();
+        Thread currentThread = Thread.currentThread();
+        logger.debug("[{} - {}] Entering getLatestSequencePreparedOrAccepted", currentThread.getName(), currentThread.getId());
+
+        long result;
         if (state.isEmpty()) {
-            return greatestInLogAtStartup;
+            result = greatestInLogAtStartup;
         } else {
-            return Math.max(greatestInLogAtStartup, state.lastKey());
+            result = Math.max(greatestInLogAtStartup, state.lastKey());
         }
+
+        logger.debug("[{} - {}] Exiting getLatestSequencePreparedOrAccepted - took {}ms",
+                     currentThread.getName(), currentThread.getId(), timer.elapsed(TimeUnit.MILLISECONDS));
+        return result;
     }
 
     private void checkLogIfNeeded(long seq) throws TruncatedStateLogException, IOException {

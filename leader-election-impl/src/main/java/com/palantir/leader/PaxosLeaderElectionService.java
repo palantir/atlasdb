@@ -33,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -43,6 +44,7 @@ import com.google.common.base.Defaults;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -504,7 +506,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private void populateStillLeadingCall(StillLeadingCall batch, LeadershipToken token) {
         try {
             batch.getRequestCountAndSetInvalid();
-            StillLeadingStatus status = isStillLeadingInternal(token);
+            StillLeadingStatus status = isStillLeadingInternalWithTiming(token);
             batch.populate(status);
         } catch (Throwable t) {
             log.error("Something went wrong while checking leadership", t);
@@ -516,6 +518,25 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
              */
             currentIsStillLeadingCall.remove(token, batch);
         }
+    }
+
+    private StillLeadingStatus isStillLeadingInternalWithTiming(LeadershipToken token) {
+        Thread currentThread = Thread.currentThread();
+        log.debug("[{} - {}] Entering isStillLeadingInternal", currentThread.getName(), currentThread.getId());
+        StillLeadingStatus result = null;
+        Stopwatch timer = Stopwatch.createStarted();
+
+        try {
+            result = isStillLeadingInternal(token);
+        } finally {
+            log.debug("[{} - {}] isStillLeadingInternal completed {} (took {}ms)",
+                    currentThread.getName(),
+                    currentThread.getId(),
+                    result,
+                    timer.elapsed(TimeUnit.MILLISECONDS));
+        }
+
+        return result;
     }
 
 
@@ -536,6 +557,10 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return StillLeadingStatus.NOT_LEADING;
         }
 
+        Thread currentThread = Thread.currentThread();
+        Stopwatch quorumTimer = Stopwatch.createStarted();
+        log.debug("[{} - {}] Requesting quorum for StillLeadingStatus", currentThread.getName(), currentThread.getId());
+
         // check if node still has quorum
         List<PaxosResponse> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosResponse> collectQuorumResponses(
                 acceptors,
@@ -543,13 +568,40 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     @Override
                     @Nullable
                     public PaxosResponse apply(@Nullable PaxosAcceptor acceptor) {
-                        return confirmLeader(acceptor, seq);
+                        log.debug("[{} - {}] Sent confirmLeader request to {}",
+                                currentThread.getName(), // Intentionally reusing the parent thread name and ID
+                                currentThread.getId(),  // so this can be associated with the parent call
+                                acceptor.hashCode());
+
+                        PaxosResponse response = null;
+                        Stopwatch requestTimer = Stopwatch.createStarted();
+                        try {
+                            response = confirmLeader(acceptor, seq);
+                        } finally {
+                            Boolean responseBool = (response == null) ? null : response.isSuccessful();
+                            log.debug("[{} - {}] confirmLeader returned for node {}: success={} (took {}ms)",
+                                    currentThread.getName(),
+                                    currentThread.getId(),
+                                    acceptor.hashCode(),
+                                    responseBool,
+                                    requestTimer.elapsed(TimeUnit.MILLISECONDS));
+                        }
+                        return response;
                     }
                 },
                 proposer.getQuorumSize(),
                 executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS,
                 true);
+
+        if (log.isDebugEnabled()) {
+            log.debug("[{} - {}] Quorum completed for StillLeadingStatus (took {}ms): {}",
+                    currentThread.getName(),
+                    currentThread.getId(),
+                    quorumTimer.elapsed(TimeUnit.MILLISECONDS),
+                    responses.stream().map(PaxosResponse::isSuccessful).collect(Collectors.toList()));
+        }
+
         if (PaxosQuorumChecker.hasQuorum(responses, proposer.getQuorumSize())) {
             // If we have a quorum we are good to go
             return StillLeadingStatus.LEADING;
@@ -562,6 +614,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 return StillLeadingStatus.NOT_LEADING;
             }
         }
+
         return StillLeadingStatus.NO_QUORUM;
     }
 
