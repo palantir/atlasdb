@@ -199,7 +199,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void clearDelegate() {
-        log.info("closing delegate", SafeArg.of("thread", Thread.currentThread().getId()));
         Object delegate = delegateRef.getAndSet(null);
         if (delegate instanceof Closeable) {
             try {
@@ -209,7 +208,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 log.warn("problem closing delegate", ex);
             }
         }
-        log.info("closed delegate", SafeArg.of("thread", Thread.currentThread().getId()));
     }
 
     private static CloseableTrace startLocalTrace(String operation) {
@@ -231,25 +229,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
         Object delegate = delegateRef.get();
         StillLeadingStatus leading = null;
-        try (CloseableTrace ignored = startLocalTrace("checkIsStillLeading")) {
-            for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
-                // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
-                leading = leaderElectionService.isStillLeading(leadershipToken);
-                if (leading != StillLeadingStatus.NO_QUORUM) {
-                    log.info("established quorum after number of iterations",
-                            SafeArg.of("i", i),
-                            SafeArg.of("thread", Thread.currentThread().getId()));
-                    break;
-                }
+        for (int i = 0; i < MAX_NO_QUORUM_RETRIES; i++) {
+            // TODO(nziebart): check if leadershipTokenRef has been nulled out between iterations?
+            leading = leaderElectionService.isStillLeading(leadershipToken);
+            if (leading != StillLeadingStatus.NO_QUORUM) {
+                break;
             }
         }
 
         // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
         // and should assume we're not the leader
         if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-            try (CloseableTrace ignored = startLocalTrace("mark as not leading + propose")) {
-                markAsNotLeading(leadershipToken, null /* cause */);
-            }
+            markAsNotLeading(leadershipToken, null /* cause */);
         }
 
         if (isClosed) {
@@ -257,8 +248,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
 
         Preconditions.checkNotNull(delegate, "%s backing is null", interfaceClass.getName());
-        try (CloseableTrace closeableTrace = startLocalTrace("invoke delegate")) {
-            closeableTrace.addMetadata("delegate", delegate.getClass().getCanonicalName());
+        try {
             return method.invoke(delegate, args);
         } catch (InvocationTargetException e) {
             if (e.getTargetException() instanceof ServiceNotAvailableException
