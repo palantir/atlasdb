@@ -720,7 +720,10 @@ public abstract class TransactionManagers {
                 .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
                 .timelock(timeLockClient)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .close(timeLockClient::close)
+                .close(() -> {
+                    lockAndTimestampServices.close();
+                    timeLockClient.close();
+                })
                 .build();
     }
 
@@ -822,14 +825,15 @@ public abstract class TransactionManagers {
         ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent, timelockServerListConfig);
         LockService lockService = creator.createService(LockService.class);
         TimelockRpcClient timelockClient = creator.createService(TimelockRpcClient.class);
-        TimelockService timelockService = RemoteTimelockServiceAdapter.create(timelockClient);
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(timelockClient);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
         return ImmutableLockAndTimestampServices.builder()
                 .lock(lockService)
-                .timestamp(new TimelockTimestampServiceAdapter(timelockService))
+                .timestamp(new TimelockTimestampServiceAdapter(remoteTimelockServiceAdapter))
                 .timestampManagement(timestampManagementService)
-                .timelock(timelockService)
+                .timelock(remoteTimelockServiceAdapter)
+                .close(remoteTimelockServiceAdapter::close)
                 .build();
     }
 

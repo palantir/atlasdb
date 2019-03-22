@@ -650,19 +650,4 @@ public class TransactionManagersTest {
                         .build())
                 .build();
     }
-
-    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
-            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        return TransactionManagers.createLockAndTimestampServices(
-                metricsManager,
-                atlasDbConfig,
-                () -> atlasDbRuntimeConfig,
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                () -> ts,
-                invalidator,
-                USER_AGENT);
-    }
 }
