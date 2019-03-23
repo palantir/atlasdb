@@ -129,8 +129,8 @@ public final class LockServiceImpl
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
 
     /** Executor for the reaper threads. */
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+//    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
+//            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
             from -> from.getTokenId().toString(Character.MAX_RADIX);
@@ -248,14 +248,14 @@ public final class LockServiceImpl
         lockStateLoggerDir = options.getLockStateLoggerDir();
 
         slowLogTriggerMillis = options.slowLogTriggerMillis();
-        executor.execute(() -> {
-            Thread.currentThread().setName("Held Locks Token Reaper");
-            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-        });
-        executor.execute(() -> {
-            Thread.currentThread().setName("Held Locks Grant Reaper");
-            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-        });
+//        executor.execute(() -> {
+//            Thread.currentThread().setName("Held Locks Token Reaper");
+//            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
+//        });
+//        executor.execute(() -> {
+//            Thread.currentThread().setName("Held Locks Grant Reaper");
+//            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
+//        });
     }
 
     private HeldLocksToken createHeldLocksToken(LockClient client,
@@ -1060,7 +1060,7 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            executor.shutdownNow();
+//            executor.shutdownNow();
             wakeIndefiniteBlockers();
             callOnClose.run();
         }
