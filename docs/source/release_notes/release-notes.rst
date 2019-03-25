@@ -49,6 +49,22 @@ develop
 
     *    - Type
          - Change
+         
+    *    -
+         -
+         
+========
+v0.127.0
+========
+
+25 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
