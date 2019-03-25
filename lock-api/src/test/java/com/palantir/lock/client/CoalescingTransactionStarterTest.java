@@ -97,7 +97,8 @@ public class CoalescingTransactionStarterTest {
         StartTransactionResponseV4 startTransactionResponse = getStartTransactionResponse(12, 1);
 
         when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
-        StartIdentifiedAtlasDbTransactionResponse response = coalescingTransactionStarter.startIdentifiedAtlasDbTransaction();
+        StartIdentifiedAtlasDbTransactionResponse response =
+                coalescingTransactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
