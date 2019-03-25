@@ -15,10 +15,14 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -106,6 +110,16 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         } catch (Throwable t) {
             log.warn("Error occurred talking to host '{}': {}",
                     SafeArg.of("host", CassandraLogHelper.host(host)), UnsafeArg.of("exception", t.toString()));
+            if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
+                log.warn("Extra information about exhausted pool",
+                        SafeArg.of("numActive", clientPool.getNumActive()),
+                        SafeArg.of("maxTotal", clientPool.getMaxTotal()),
+                        SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
+                        SafeArg.of("meanIdleTimeMillis", clientPool.getMeanIdleTimeMillis()));
+                if (log.isDebugEnabled()) {
+                    logThreadStates();
+                }
+            }
             throw t;
         } finally {
             openRequests.getAndDecrement();
@@ -263,6 +277,27 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         GenericObjectPool<CassandraClient> pool = new GenericObjectPool<>(cassandraClientFactory, poolConfig);
         registerMetrics(pool);
         return pool;
+    }
+
+    private void logThreadStates() {
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        for (ThreadInfo info : threadBean.getThreadInfo(threadBean.getAllThreadIds())) {
+            // we're fairly good about annotating our C* pool thread names with the current action
+            if (log.isTraceEnabled()) {
+                log.trace("active thread",
+                        UnsafeArg.of("threadName", info.getThreadName()),
+                        SafeArg.of("state", info.getThreadState()),
+                        SafeArg.of("blockedTime", info.getBlockedTime()),
+                        SafeArg.of("waitedTime", info.getWaitedTime()),
+                        UnsafeArg.of("stackTrace", info.getStackTrace()));
+            } else if (log.isDebugEnabled()) { // omit the rather lengthy stack traces
+                log.debug("active thread",
+                        UnsafeArg.of("threadName", info.getThreadName()),
+                        SafeArg.of("state", info.getThreadState()),
+                        SafeArg.of("blockedTime", info.getBlockedTime()),
+                        SafeArg.of("waitedTime", info.getWaitedTime()));
+            }
+        }
     }
 
     private void registerMetrics(GenericObjectPool<CassandraClient> pool) {
