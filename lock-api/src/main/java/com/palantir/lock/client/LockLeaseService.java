@@ -34,13 +34,12 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.Preconditions;
 
-class LockLeaseService implements LockDecoratorService {
+class LockLeaseService {
     private final TimelockRpcClient delegate;
     private final UUID clientId;
     private final CoalescingSupplier<LeaderTime> time;
@@ -56,7 +55,6 @@ class LockLeaseService implements LockDecoratorService {
         return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
     }
 
-    @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
@@ -66,21 +64,6 @@ class LockLeaseService implements LockDecoratorService {
                 LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
-                StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
-
-        Lease lease = response.getLease();
-        LeasedLockToken leasedLockToken = LeasedLockToken.of(response.immutableTimestamp().getLock(), lease);
-        long immutableTs = response.immutableTimestamp().getImmutableTimestamp();
-
-        return StartIdentifiedAtlasDbTransactionResponse.of(
-                LockImmutableTimestampResponse.of(immutableTs, leasedLockToken),
-                response.startTimestampAndPartition());
-    }
-
-    @Override
     public StartTransactionResponseV4 startTransactions(int batchSize) {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
         StartTransactionResponseV4 response = delegate.startTransactions(request);
@@ -95,7 +78,6 @@ class LockLeaseService implements LockDecoratorService {
                 lease);
     }
 
-    @Override
     public LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
@@ -105,7 +87,6 @@ class LockLeaseService implements LockDecoratorService {
                 unsuccessful -> LockResponse.timedOut()));
     }
 
-    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
@@ -120,7 +101,6 @@ class LockLeaseService implements LockDecoratorService {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);

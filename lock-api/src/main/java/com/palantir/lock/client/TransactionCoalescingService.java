@@ -31,40 +31,38 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimestampAndPartition;
 
-final class TransactionCoalescingLockDecoratorService implements LockDecoratorService {
+final class TransactionCoalescingService implements AutoCloseable {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
-    private final LockDecoratorService delegate;
+    private final LockLeaseService lockLeaseService;
 
-    private TransactionCoalescingLockDecoratorService(
+    private TransactionCoalescingService(
             DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher,
-            LockDecoratorService delegate) {
+            LockLeaseService lockLeaseService) {
         this.autobatcher = autobatcher;
-        this.delegate = delegate;
+        this.lockLeaseService = lockLeaseService;
     }
 
-    static TransactionCoalescingLockDecoratorService create(LockDecoratorService delegate) {
-        return new TransactionCoalescingLockDecoratorService(DisruptorAutobatcher.create(batch -> {
+    static TransactionCoalescingService create(LockLeaseService lockLeaseService) {
+        return new TransactionCoalescingService(DisruptorAutobatcher.create(batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(delegate, numTransactions);
+                    getStartTransactionResponses(lockLeaseService, numTransactions);
 
             for (int i = 0; i < numTransactions; i++) {
                 batch.get(i).result().set(startTransactionResponses.get(i));
             }
-        }), delegate);
+        }), lockLeaseService);
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockDecoratorService delegate, int numberOfTransactions) {
+            LockLeaseService delegate, int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
             result.addAll(split(delegate.startTransactions(numberOfTransactions - result.size())));
@@ -72,12 +70,6 @@ final class TransactionCoalescingLockDecoratorService implements LockDecoratorSe
         return result;
     }
 
-    @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return delegate.lockImmutableTimestamp();
-    }
-
-    @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         try {
             return autobatcher.apply(null).get();
@@ -88,22 +80,11 @@ final class TransactionCoalescingLockDecoratorService implements LockDecoratorSe
         }
     }
 
-    @Override
-    public StartTransactionResponseV4 startTransactions(int numTransactions) {
-        return delegate.startTransactions(numTransactions);
-    }
-
-    @Override
-    public LockResponse lock(LockRequest lockRequest) {
-        return delegate.lock(lockRequest);
-    }
-
-    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
-        Set<LockToken> refreshedTokens = delegate.refreshLockLeases(Sets.union(
+        Set<LockToken> refreshedTokens = lockLeaseService.refreshLockLeases(Sets.union(
                 reduceForRefresh(lockTokenShares),
                 lockTokens));
 
@@ -117,7 +98,6 @@ final class TransactionCoalescingLockDecoratorService implements LockDecoratorSe
         return Sets.union(resultLockTokenShares, resultLockTokens);
     }
 
-    @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
@@ -130,7 +110,7 @@ final class TransactionCoalescingLockDecoratorService implements LockDecoratorSe
         Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
 
         Set<LockToken> refreshed = refreshLockLeasesInternal(toRefresh);
-        Set<LockToken> unlocked = delegate.unlock(Sets.union(toUnlock, lockTokens));
+        Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
         Set<LockToken> resultLockTokenShares = lockTokenShares.stream()
                 .filter(t -> unlocked.contains(t.sharedLockToken()) || refreshed.contains(t.sharedLockToken()))
@@ -140,9 +120,14 @@ final class TransactionCoalescingLockDecoratorService implements LockDecoratorSe
         return Sets.union(resultLockTokenShares, resultLockTokens);
     }
 
+    @Override
+    public void close() {
+        autobatcher.close();
+    }
+
     private Set<LockToken> refreshLockLeasesInternal(Set<LockToken> toRefresh) {
         if (!toRefresh.isEmpty()) {
-            return delegate.refreshLockLeases(toRefresh);
+            return lockLeaseService.refreshLockLeases(toRefresh);
         } else {
             return ImmutableSet.of();
         }

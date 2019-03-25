@@ -29,17 +29,18 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public final class RemoteTimelockServiceAdapter implements TimelockService {
+public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final TimelockRpcClient timelockRpcClient;
-    private final LockDecoratorService lockDecoratorService;
+    private final LockLeaseService lockLeaseService;
+    private final TransactionCoalescingService transactionCoalescingService;
 
     private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
         this.timelockRpcClient = timelockRpcClient;
-        this.lockDecoratorService = TransactionCoalescingLockDecoratorService.create(
-                LockLeaseService.create(timelockRpcClient));
+        this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
+        this.transactionCoalescingService = TransactionCoalescingService.create(lockLeaseService);
     }
 
-    public static TimelockService create(TimelockRpcClient timelockRpcClient) {
+    public static RemoteTimelockServiceAdapter create(TimelockRpcClient timelockRpcClient) {
         return new RemoteTimelockServiceAdapter(timelockRpcClient);
     }
 
@@ -65,27 +66,27 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return lockDecoratorService.lockImmutableTimestamp();
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return lockDecoratorService.startIdentifiedAtlasDbTransaction();
+        return lockLeaseService.lockImmutableTimestamp();
     }
 
     @Override
     public LockResponse lock(LockRequest request) {
-        return lockDecoratorService.lock(request);
+        return lockLeaseService.lock(request);
+    }
+
+    @Override
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return transactionCoalescingService.startIdentifiedAtlasDbTransaction();
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return lockDecoratorService.refreshLockLeases(tokens);
+        return transactionCoalescingService.refreshLockLeases(tokens);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockDecoratorService.unlock(tokens);
+        return transactionCoalescingService.unlock(tokens);
     }
 
     @Override
@@ -93,4 +94,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
         return timelockRpcClient.currentTimeMillis();
     }
 
+    @Override
+    public void close() {
+        transactionCoalescingService.close();
+    }
 }

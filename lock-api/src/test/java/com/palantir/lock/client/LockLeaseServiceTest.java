@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.NanoTime;
+import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
@@ -45,9 +46,11 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimestampAndPartition;
 
@@ -55,7 +58,7 @@ import com.palantir.lock.v2.TimestampAndPartition;
 public class LockLeaseServiceTest {
     @Mock private TimelockRpcClient timelockRpcClient;
     @Mock private LockRequest lockRequest;
-    @Mock private TimestampAndPartition timestampAndPartition;
+    @Mock private PartitionedTimestamps partitionedTimestamps;
 
     private static final Duration LEASE_DURATION = Duration.ofSeconds(1);
     private static final LeadershipId LEADER_ID = LeadershipId.random();
@@ -98,15 +101,15 @@ public class LockLeaseServiceTest {
     }
 
     @Test
-    public void startAtlasdbTransactionResponseHasCorrectLeasedLock() {
+    public void startTransactionsResponseHasCorrectLeasedLock() {
         Lease lease = getLease();
-        when(timelockRpcClient.deprecatedStartTransaction(any())).thenReturn(
-                startTransactionResponseWith(LOCK_TOKEN, lease));
+        when(timelockRpcClient.startTransactions(any())).thenReturn(
+                startTransactionsResponseWith(LOCK_TOKEN, lease));
 
-        StartIdentifiedAtlasDbTransactionResponse clientResponse =
-                lockLeaseService.startIdentifiedAtlasDbTransaction();
+        StartTransactionResponseV4 clientResponse =
+                lockLeaseService.startTransactions(2);
 
-        verify(timelockRpcClient).deprecatedStartTransaction(any());
+        verify(timelockRpcClient).startTransactions(any());
 
         LeasedLockToken leasedLock = (LeasedLockToken) clientResponse.immutableTimestamp().getLock();
         assertThat(leasedLock.serverToken()).isEqualTo(LOCK_TOKEN);
@@ -188,10 +191,10 @@ public class LockLeaseServiceTest {
         assertThat(refreshedLeasedLockToken).isEqualTo(leasedLockToken);
     }
 
-    private StartAtlasDbTransactionResponseV3 startTransactionResponseWith(LockToken lockToken, Lease lease) {
-        return StartAtlasDbTransactionResponseV3.of(
+    private StartTransactionResponseV4 startTransactionsResponseWith(LockToken lockToken, Lease lease) {
+        return StartTransactionResponseV4.of(
                 LockImmutableTimestampResponse.of(1L, lockToken),
-                timestampAndPartition,
+                partitionedTimestamps,
                 lease);
     }
 

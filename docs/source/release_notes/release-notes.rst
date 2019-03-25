@@ -50,6 +50,36 @@ develop
     *    - Type
          - Change
 
+    *    - |fixed|
+         - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3848>`__)
+
+    *    - |fixed| |userbreak|
+         - Background Sweep will now continue to prioritise tables accordingly, if writes to the sweep queue are enabled but targeted sweep is disabled on startup.
+           Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3824>`__)
+
+    *    - |changed|
+         - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
+
+    *    - |improved| |devbreak|
+         - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
+
+========
+v0.126.0
+========
+
+18 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |changed| |userbreak|
          - Removed functionality for marking tables as deprecated as part of the schema definition and automatically dropping deprecated tables on startup.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3829>`__)
@@ -72,7 +102,20 @@ develop
     *    - |fixed|
          - Fixed a bug in ``PaxosQuorumChecker`` causing a new timelock leader to block for 5 seconds before being able to serve requests if another node was unreachable.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3811>`__)
-    
+
+========
+v0.125.0
+========
+
+07 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
     *    - |improved|
          - ``CassandraKeyValueService`` now exposes a lightweight method for obtaining row keys.
            If you believe you need to use this method, you should reach out to the AtlasDB team first to assess your options.
@@ -82,9 +125,11 @@ develop
          - The minimum Postgres version is now 9.5.2
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3786>`__)
 
-    *    - |new|
-         - Timelock Server now exposes a ``startTransactions`` endpoint that enables coalescing multiple start transaction requests into a single rpc.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3797>`__)
+    *    - |fixed|
+         - Some race conditions in ``TableRemappingKeyValueService`` and ``KvTableMappingService`` have been fixed.
+           Previously, it was possible to run into unexpected instances of ``NullPointerException`` and ``IllegalStateException`` when reading from tables, even when other (completely disjoint) sets of tables were created or dropped.
+           It is likely that there remain more bugs here, though we have fixed several more egregious ones.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3803>`__)
 
 ========
 v0.122.0
@@ -148,7 +193,7 @@ v0.120.0
          - Change
 
     *    - |devbreak|
-         - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`. 
+         - The deprecated `startAtlasDbTransaction()` method is removed from `TimelockService`.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3758>`__)
 
     *    - |devbreak|
@@ -599,7 +644,7 @@ v0.108.0
          - On Oracle backed DbKvs, schema changes that would require the addition of an overflow column will now throw upon application.
            Previously, puts would instead fail at runtime when the column did not exist.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3604>`__)
- 
+
     *    - |improved|
          - The index cleanup task for stream stores now only fetches the first column for each stream ID when determining whether the stream is still in use.
            Previously, we would fetch the entire row which is unnecessary and causes read pressure on the key-value-service for highly referenced streams.
