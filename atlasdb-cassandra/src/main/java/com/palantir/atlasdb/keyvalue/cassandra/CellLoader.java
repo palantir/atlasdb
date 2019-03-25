@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
@@ -37,6 +38,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
@@ -52,11 +54,26 @@ class CellLoader {
     private final CassandraClientPool clientPool;
     private final WrappingQueryRunner queryRunner;
     private final TaskRunner taskRunner;
+    private final CellLoadingBatcher batcher;
 
-    CellLoader(CassandraClientPool clientPool, WrappingQueryRunner queryRunner, TaskRunner taskRunner) {
+    private CellLoader(
+            CassandraClientPool clientPool,
+            WrappingQueryRunner queryRunner,
+            TaskRunner taskRunner,
+            CellLoadingBatcher batcher) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.taskRunner = taskRunner;
+        this.batcher = batcher;
+    }
+
+    static CellLoader create(
+            CassandraClientPool clientPool,
+            WrappingQueryRunner queryRunner,
+            TaskRunner taskRunner,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> configSupplier) {
+        CellLoadingBatcher batcher = new CellLoadingBatcher(() -> configSupplier.get().cellLoadingConfig());
+        return new CellLoader(clientPool, queryRunner, taskRunner, batcher);
     }
 
     Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long ts,
@@ -123,11 +140,9 @@ class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        CellLoadingBatcher batcher = CellLoadingBatcher.create(
-                (numRows) -> logRebatchingWarnMessage(host, tableRef, numRows));
-
         List<Callable<Void>> tasks = Lists.newArrayList();
-        for (final List<Cell> partition : batcher.partitionIntoBatches(cells)) {
+        for (final List<Cell> partition : batcher.partitionIntoBatches(
+                cells, (numRows) -> logRebatchingWarnMessage(host, tableRef, numRows))) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
                     host,
                     new FunctionCheckedException<CassandraClient, Void, Exception>() {

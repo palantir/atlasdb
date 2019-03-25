@@ -20,91 +20,71 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntConsumer;
-import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
 /**
  * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
  *
  * The batcher partitions cells by columns.
- * If for a given column the number of cells provided is at least the value returned by the
- * crossColumnLoadBatchLimitSupplier, then the cells for that column will exclusively occupy one or more
- * batches, with no batch having size greater than the value returned by the singleQueryLoadBatchLimitSupplier.
+ * If for a given column the number of cells provided is at least
+ * {@link CassandraCellLoadingConfig#crossColumnLoadBatchLimit()}, then the cells for that column will exclusively
+ * occupy one or more batches, with no batch having size greater than that limit..
  * Otherwise, the cells provided may be combined with cells for other columns in batches of size up to the value
- * returned by the crossColumnLoadBatchLimitSupplier. There is no guarantee that all cells for this column will
- * be in the same batch in this case.
+ * from {@link CassandraCellLoadingConfig#singleQueryLoadBatchLimit()}. There is no guarantee that all cells for this
+ * column will be in the same batch in this case.
  *
- * Live reloading: Batching will take place following some values of crossColumnLoadBatchLimit or
- * singleQueryLoadBatchLimit that were available during the execution of a partition operation. There is no guarantee
- * that changes during a partition operation may or may not be applied. Furthermore, there is no guarantee that both
- * limits are read atomically in any way.
+ * Live reloading: Batching will take place following some {@link CassandraCellLoadingConfig} available from
+ * the supplier during the execution of a partition operation. There is no guarantee as to whether new values
+ * available during a partition operation will or will not be applied.
  */
 final class CellLoadingBatcher {
-    private static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
+    private final Supplier<CassandraCellLoadingConfig> loadingConfigSupplier;
 
-    private final IntSupplier crossColumnLoadBatchLimitSupplier;
-    private final IntSupplier singleQueryLoadBatchLimitSupplier;
+    CellLoadingBatcher(Supplier<CassandraCellLoadingConfig> loadingConfigSupplier) {
+        this.loadingConfigSupplier = loadingConfigSupplier;
+    }
 
-    private final IntConsumer rebatchingManyRowsWarningCallback;
-
-    @VisibleForTesting
-    CellLoadingBatcher(
-            IntSupplier crossColumnLoadBatchLimitSupplier,
-            IntSupplier singleQueryLoadBatchLimitSupplier,
+    List<List<Cell>> partitionIntoBatches(Collection<Cell> cellsToPartition,
             IntConsumer rebatchingManyRowsWarningCallback) {
-        this.crossColumnLoadBatchLimitSupplier = crossColumnLoadBatchLimitSupplier;
-        this.singleQueryLoadBatchLimitSupplier = singleQueryLoadBatchLimitSupplier;
-        this.rebatchingManyRowsWarningCallback = rebatchingManyRowsWarningCallback;
-    }
-
-    static CellLoadingBatcher create(IntConsumer rebatchingManyRowsWarningCallback) {
-        // TODO (jkong): Maybe not the best default for the transaction timestamp batching.
-        return new CellLoadingBatcher(
-                () -> DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT,
-                () -> AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT,
-                rebatchingManyRowsWarningCallback);
-    }
-
-    List<List<Cell>> partitionIntoBatches(Collection<Cell> cellsToPartition) {
-        int multigetMultisliceBatchLimit = crossColumnLoadBatchLimitSupplier.getAsInt();
-        int singleQueryLoadBatchLimit = singleQueryLoadBatchLimitSupplier.getAsInt();
+        CassandraCellLoadingConfig config = loadingConfigSupplier.get();
 
         ListMultimap<byte[], Cell> cellsByColumn = indexCellsByColumnName(cellsToPartition);
 
         List<List<Cell>> batches = Lists.newArrayList();
         List<Cell> cellsForCrossColumnBatching = Lists.newArrayList();
         for (Map.Entry<byte[], List<Cell>> cellColumnPair : Multimaps.asMap(cellsByColumn).entrySet()) {
-            if (shouldExplicitlyAllocateBatchToColumn(multigetMultisliceBatchLimit, cellColumnPair.getValue())) {
-                batches.addAll(
-                        partitionBySingleQueryLoadBatchLimit(cellColumnPair.getValue(), singleQueryLoadBatchLimit));
+            if (shouldExplicitlyAllocateBatchToColumn(config, cellColumnPair.getValue())) {
+                batches.addAll(partitionBySingleQueryLoadBatchLimit(
+                        cellColumnPair.getValue(), config, rebatchingManyRowsWarningCallback));
             } else {
                 cellsForCrossColumnBatching.addAll(cellColumnPair.getValue());
             }
         }
-        batches.addAll(Lists.partition(cellsForCrossColumnBatching, multigetMultisliceBatchLimit));
+        batches.addAll(Lists.partition(cellsForCrossColumnBatching, config.crossColumnLoadBatchLimit()));
 
         return batches;
     }
 
-    private List<List<Cell>> partitionBySingleQueryLoadBatchLimit(List<Cell> cells, int singleQueryLoadBatchLimit) {
-        if (cells.size() > singleQueryLoadBatchLimit) {
+    private List<List<Cell>> partitionBySingleQueryLoadBatchLimit(
+            List<Cell> cells, CassandraCellLoadingConfig config, IntConsumer rebatchingManyRowsWarningCallback) {
+        if (cells.size() > config.singleQueryLoadBatchLimit()) {
             rebatchingManyRowsWarningCallback.accept(cells.size());
-            return Lists.partition(cells, singleQueryLoadBatchLimit);
+            return Lists.partition(cells, config.singleQueryLoadBatchLimit());
         }
         return ImmutableList.of(cells);
     }
 
-    private static boolean shouldExplicitlyAllocateBatchToColumn(int multigetMultisliceBatchLimit, List<Cell> cells) {
-        return cells.size() > multigetMultisliceBatchLimit;
+    private static boolean shouldExplicitlyAllocateBatchToColumn(CassandraCellLoadingConfig config, List<Cell> cells) {
+        return cells.size() > config.crossColumnLoadBatchLimit();
     }
 
     private static ListMultimap<byte[], Cell> indexCellsByColumnName(Collection<Cell> cells) {
