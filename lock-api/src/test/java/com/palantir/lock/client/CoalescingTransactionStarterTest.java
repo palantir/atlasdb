@@ -104,19 +104,19 @@ public class CoalescingTransactionStarterTest {
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
-        StartTransactionResponseV4 batchResponse = getStartTransactionResponse(40, 2);
-        when(lockLeaseService.startTransactions(2))
+        StartTransactionResponseV4 batchResponse = getStartTransactionResponse(40, 3);
+        when(lockLeaseService.startTransactions(3))
                 .thenReturn(batchResponse);
 
-        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(2);
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
         assertThatStartTransactionResponsesAreUnique(responses);
         assertThat(responses)
-                .hasSize(2)
+                .hasSize(3)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
     }
 
     @Test
-    public void shouldCallTimelockMultipleTimesUntilCollectingAllRequiredTimestamps() {
+    public void shouldCallTimelockMultipleTimesUntilCollectsAllRequiredTimestamps() {
         when(lockLeaseService.startTransactions(anyInt()))
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
