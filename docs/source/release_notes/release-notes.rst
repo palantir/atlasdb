@@ -67,6 +67,14 @@ develop
          - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
 
+    *    - |improved|
+         - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+
+    *    - |devbreak|
+         - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+
 ========
 v0.126.0
 ========
