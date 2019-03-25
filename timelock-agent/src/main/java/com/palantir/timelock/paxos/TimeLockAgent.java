@@ -20,12 +20,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -75,9 +74,11 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+    private final ExecutorService executor;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
     private TimeLockResource resource;
+
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -107,6 +108,14 @@ public class TimeLockAgent {
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
         this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
+        this.executor = new InstrumentedExecutorService(
+                PTExecutors.newCachedThreadPool(
+                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
+                                .setNameFormat("paxos-timestamp-creator-remote-%d")
+                                .setDaemon(true)
+                                .build(), metricsManager.getRegistry())),
+                metricsManager.getRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator-remote", "executor"));
     }
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
@@ -143,24 +152,8 @@ public class TimeLockAgent {
                         metricsManager.getRegistry(),
                         trustContext,
                         uri, clazz, userAgent, false))
-                .map(ignored -> executorService())
+                .map(ignored -> executor)
                 .collectToMap();
-    }
-
-    private ExecutorService executorService() {
-        return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        0,
-                        100,
-                        5,
-                        TimeUnit.SECONDS,
-                        new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-remote-%d")
-                                .setDaemon(true)
-                                .build()),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator-remote", "executor"));
     }
 
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
