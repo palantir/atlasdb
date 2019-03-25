@@ -24,7 +24,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 
 /**
- * Specifies limits on query sizes for how cells should be loaded from an underlying Cassandra key-value service.
+ * Specifies limits on query sizes when loading cells from an underlying Cassandra key-value service.
  *
  * Specifying large limits may allow for greater overall throughput across nodes as there are overall fewer RPCs,
  * but may increase the latency of individual queries owing to implementation reasons.
@@ -39,6 +39,8 @@ public abstract class CassandraCellLoadingConfig {
     /**
      * Implementations of Cassandra KVS may combine requests for different columns in a single call to the database.
      * These "merged" calls will have size no larger than this value.
+     *
+     * To disable cross-column batching, this value may be set to 1.
      */
     @Value.Default
     public int crossColumnLoadBatchLimit() {
@@ -67,5 +69,9 @@ public abstract class CassandraCellLoadingConfig {
                 "Cross column load batch limit %s shouldn't exceed single query load batch limit %s",
                 crossColumnLoadBatchLimit(),
                 singleQueryLoadBatchLimit());
+    }
+
+    static CassandraCellLoadingConfig defaultConfig() {
+        return ImmutableCassandraCellLoadingConfig.builder().build();
     }
 }

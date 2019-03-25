@@ -60,6 +60,9 @@ public final class CassandraConstants {
     public static final int DEFAULT_MUTATION_BATCH_COUNT = 5000;
     public static final int DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS = 30;
 
+    public static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
+    public static final int DEFAULT_SINGLE_QUERY_LOAD_BATCH_LIMIT = 50_000;
+
     static final int DENSELY_ACCESSED_WIDE_ROWS_INDEX_INTERVAL = 1;
     static final int DEFAULT_MIN_INDEX_INTERVAL = 128;
     static final int DEFAULT_MAX_INDEX_INTERVAL = 2048;

@@ -67,9 +67,20 @@ public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueS
         return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
+    /**
+     * The maximum number of rows to query for in a single call to the database when loading entire rows.
+     */
     @Value.Default
     public int fetchBatchCount() {
         return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
+    }
+
+    /**
+     * Limits on query sizes when loading cells from an underlying Cassandra key-value service.
+     */
+    @Value.Default
+    public CassandraCellLoadingConfig cellLoadingConfig() {
+        return CassandraCellLoadingConfig.defaultConfig();
     }
 
     /**
