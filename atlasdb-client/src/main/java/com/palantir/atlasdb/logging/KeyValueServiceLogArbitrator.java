@@ -57,5 +57,10 @@ interface KeyValueServiceLogArbitrator {
             TableReference tableReference,
             String longNameForColumn);
 
+    /**
+     * Combines the judgments of this arbitrator with another. The meaning of this operation is implementation
+     * dependent, though items that are expressly unsafe in either arbitrator should remain unsafe in the
+     * combined arbitrator.
+     */
     KeyValueServiceLogArbitrator combine(KeyValueServiceLogArbitrator other);
 }
