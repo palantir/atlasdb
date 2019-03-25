@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -50,7 +51,8 @@ final class CellLoadingBatcher {
 
     private final IntConsumer rebatchingManyRowsWarningCallback;
 
-    private CellLoadingBatcher(
+    @VisibleForTesting
+    CellLoadingBatcher(
             IntSupplier crossColumnLoadBatchLimitSupplier,
             IntSupplier singleQueryLoadBatchLimitSupplier,
             IntConsumer rebatchingManyRowsWarningCallback) {
