@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import org.slf4j.Logger;
 
-import com.palantir.util.AssertUtils;
 import com.palantir.util.VersionStrings;
 
 public final class PostgresVersionCheck {
@@ -26,11 +25,11 @@ public final class PostgresVersionCheck {
     private PostgresVersionCheck() {}
 
     public static void checkDatabaseVersion(String version, Logger log) {
-        boolean checkPasses = version.matches("^[\\.0-9]+$")
-                && VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) >= 0;
-        AssertUtils.assertAndLog(log, checkPasses, "Your key value service currently uses version %s of postgres."
-                + " The minimum supported version is %s."
-                + " If you absolutely need to use an older version of postgres,"
-                + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
+        if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
+            log.error("Your key value service currently uses version {} of postgres."
+                    + " The minimum supported version is {}."
+                    + " If you absolutely need to use an older version of postgres,"
+                    + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
+        }
     }
 }
