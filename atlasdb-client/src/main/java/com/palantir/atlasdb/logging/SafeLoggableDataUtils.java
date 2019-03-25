@@ -43,6 +43,9 @@ public final class SafeLoggableDataUtils {
     public static SafeLoggableData fromTableMetadata(Map<TableReference, byte[]> tableRefToMetadata) {
         ImmutableSafeLoggableData.Builder builder = ImmutableSafeLoggableData.builder();
 
+        // this is a system table with empty metadata, but safe for logging.
+        builder.addPermittedTableReferences(AtlasDbConstants.DEFAULT_METADATA_TABLE);
+
         tableRefToMetadata.forEach(
                 (ref, metadataBytes) -> {
                     try {
@@ -63,26 +66,29 @@ public final class SafeLoggableDataUtils {
             TableMetadata tableMetadata) {
         if (IS_SAFE.test(tableMetadata.getNameLogSafety())) {
             builder.addPermittedTableReferences(ref);
+        } else {
+            builder.addProhibitedTableReferences(ref);
         }
-        // this is a system table with empty metadata, but safe for logging.
-        builder.addPermittedTableReferences(AtlasDbConstants.DEFAULT_METADATA_TABLE);
 
-        Set<String> loggableRowComponentNames = tableMetadata.getRowMetadata()
+        Map<Boolean, Set<String>> loggableRowComponentNames = tableMetadata.getRowMetadata()
                 .getRowParts()
                 .stream()
-                .filter(rowComponent -> IS_SAFE.test(rowComponent.getLogSafety()))
-                .map(NameComponentDescription::getComponentName)
-                .collect(Collectors.toSet());
-        builder.putPermittedRowComponents(ref, loggableRowComponentNames);
+                .collect(Collectors.groupingBy(
+                        rowComponent -> IS_SAFE.test(rowComponent.getLogSafety()),
+                        Collectors.mapping(NameComponentDescription::getComponentName, Collectors.toSet())));
+        builder.putPermittedRowComponents(ref, loggableRowComponentNames.get(true));
+        builder.putProhibitedColumnNames(ref, loggableRowComponentNames.get(false));
 
         Set<NamedColumnDescription> namedColumns = tableMetadata.getColumns().getNamedColumns();
         if (namedColumns != null) {
-            Set<String> loggableColumnNames = namedColumns
+            Map<Boolean, Set<String>> safetyToColumnNames = namedColumns
                     .stream()
-                    .filter(columnComponent -> IS_SAFE.test(columnComponent.getLogSafety()))
-                    .map(NamedColumnDescription::getLongName)
-                    .collect(Collectors.toSet());
-            builder.putPermittedColumnNames(ref, loggableColumnNames);
+                    .collect(Collectors.groupingBy(
+                            columnComponent -> IS_SAFE.test(columnComponent.getLogSafety()),
+                            Collectors.mapping(NamedColumnDescription::getLongName, Collectors.toSet())));
+
+            builder.putPermittedColumnNames(ref, safetyToColumnNames.get(true));
+            builder.putProhibitedColumnNames(ref, safetyToColumnNames.get(false));
         }
     }
 }
