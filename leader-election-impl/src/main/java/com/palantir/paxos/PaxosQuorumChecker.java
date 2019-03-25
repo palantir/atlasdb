@@ -158,6 +158,8 @@ public final class PaxosQuorumChecker {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
                 MultiplexingCompletionService.create(executors);
 
+        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
+                shortcircuitIfQuorumImpossible);
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
         for (final SERVICE remote : remotes) {
@@ -165,6 +167,7 @@ public final class PaxosQuorumChecker {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
             } catch (RejectedExecutionException e) {
                 requestExecutionRejection.mark();
+                receivedResponses.markFailure();
                 if (shouldLogDiagnosticInformation()) {
                     log.info("Quorum checker executor rejected task", e);
                     log.info("Rate of execution rejections: {}",
@@ -175,8 +178,6 @@ public final class PaxosQuorumChecker {
 
         List<Throwable> encounteredErrors = Lists.newArrayList();
         boolean interrupted = false;
-        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
-                shortcircuitIfQuorumImpossible);
         try {
             long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
             while (receivedResponses.hasMoreRequests() && receivedResponses.shouldProcessNextRequest()) {
