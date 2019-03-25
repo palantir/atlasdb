@@ -16,11 +16,15 @@
 package com.palantir.paxos;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -29,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -69,40 +74,56 @@ public final class PaxosProposerImpl implements PaxosProposer {
             int quorumSize,
             UUID leaderUuid,
             ExecutorService executor) {
+
+        return new PaxosProposerImpl(
+                localLearner,
+                mapToSingleExecutorService(allAcceptors, executor),
+                mapToSingleExecutorService(allLearners, executor),
+                quorumSize,
+                leaderUuid.toString());
+    }
+
+    private static <T> Map<T, ExecutorService> mapToSingleExecutorService(Collection<T> remotes, ExecutorService executor) {
+        return remotes.stream()
+                .collect(Collectors.toMap(Function.identity(), $ -> executor));
+    }
+
+    public static PaxosProposer newProposer(
+            PaxosLearner localLearner,
+            Map<PaxosAcceptor, ExecutorService> allAcceptors,
+            Map<PaxosLearner, ExecutorService> allLearners,
+            int quorumSize,
+            UUID leaderUuid) {
         return new PaxosProposerImpl(
                 localLearner,
                 allAcceptors,
                 allLearners,
                 quorumSize,
-                leaderUuid.toString(),
-                executor);
+                leaderUuid.toString());
     }
 
-    final ImmutableList<PaxosAcceptor> allAcceptors;
-    final ImmutableList<PaxosLearner> allLearners;
     final PaxosLearner localLearner;
     final int quorumSize;
     final String uuid;
     final AtomicLong proposalNumber;
 
-    private final ExecutorService executor;
+    private final Map<PaxosAcceptor, ExecutorService> acceptorExecutors;
+    private final Map<PaxosLearner, ExecutorService> learnerExecutors;
 
     private PaxosProposerImpl(PaxosLearner localLearner,
-                              List<PaxosAcceptor> acceptors,
-                              List<PaxosLearner> learners,
+                              Map<PaxosAcceptor, ExecutorService> acceptors,
+                              Map<PaxosLearner, ExecutorService> learners,
                               int quorumSize,
-                              String uuid,
-                              ExecutorService executor) {
+                              String uuid) {
         Preconditions.checkState(
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
         this.localLearner = localLearner;
-        this.allAcceptors = ImmutableList.copyOf(acceptors);
-        this.allLearners = ImmutableList.copyOf(learners);
+        this.acceptorExecutors = ImmutableMap.copyOf(acceptors);
+        this.learnerExecutors = ImmutableMap.copyOf(learners);
         this.quorumSize = quorumSize;
         this.uuid = uuid;
         this.proposalNumber = new AtomicLong();
-        this.executor = executor;
     }
 
     private static CloseableTrace startLocalTrace(String operation) {
@@ -134,12 +155,13 @@ public final class PaxosProposerImpl implements PaxosProposer {
 
         try (CloseableTrace ignored = startLocalTrace("broadcast learned value")) {
             // broadcast learned value
-            for (final PaxosLearner learner : allLearners) {
+            for (final PaxosLearner learner : learnerExecutors.keySet()) {
                 // local learner is forced to update later
                 if (localLearner == learner) {
                     continue;
                 }
 
+                ExecutorService executor = learnerExecutors.get(learner);
                 executor.execute(() -> {
                     try {
                         learner.learn(seq, finalValue);
@@ -173,10 +195,10 @@ public final class PaxosProposerImpl implements PaxosProposer {
     private PaxosValue phaseOne(final long seq, final PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
         PaxosResponses<PaxosPromise> receivedPromises = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
+                ImmutableList.copyOf(acceptorExecutors.keySet()),
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
-                executor,
+                acceptorExecutors,
                 Duration.ofMillis(750));
 
         if (!receivedPromises.hasQuorum()) {
@@ -209,10 +231,10 @@ public final class PaxosProposerImpl implements PaxosProposer {
             throws PaxosRoundFailureException {
         final PaxosProposal proposal = new PaxosProposal(proposalId, proposalValue);
         PaxosResponses<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
+                ImmutableList.copyOf(acceptorExecutors.keySet()),
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
-                executor,
+                acceptorExecutors,
                 Duration.ofMillis(750));
         if (!responses.hasQuorum()) {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");

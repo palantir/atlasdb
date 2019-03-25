@@ -16,14 +16,19 @@
 package com.palantir.timelock.paxos;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
+import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
@@ -39,8 +44,11 @@ import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosLearnerAdapter;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
@@ -114,40 +122,61 @@ public class TimeLockAgent {
                 timestampBoundPersistence.getClass()));
     }
 
-    private List<ClientAwarePaxosLearner> createClientAwarePaxosLearners() {
-        Set<String> remoteServerPaths = PaxosRemotingUtils.getRemoteServerPaths(install);
-        return createProxies(ClientAwarePaxosLearner.class, remoteServerPaths, "timestamp-bound-store.learner");
+    private Map<ClientAwarePaxosLearner, ExecutorService> createClientAwarePaxosLearners() {
+        return createProxiesWithExecutors(ClientAwarePaxosLearner.class, "timestamp-bound-store.learner");
     }
 
-    private List<ClientAwarePaxosAcceptor> createClientAwarePaxosAcceptors() {
-        Set<String> remoteServerPaths = PaxosRemotingUtils.getRemoteServerPaths(install);
-        return createProxies(ClientAwarePaxosAcceptor.class, remoteServerPaths, "timestamp-bound-store.acceptor");
+    private Map<ClientAwarePaxosAcceptor, ExecutorService> createClientAwarePaxosAcceptors() {
+        return createProxiesWithExecutors(ClientAwarePaxosAcceptor.class, "timestamp-bound-store.acceptor");
     }
 
-    private <T> List<T> createProxies(Class<T> clazz, Set<String> remoteUris, String userAgent) {
+    private <T> Map<T, ExecutorService> createProxiesWithExecutors(Class<T> clazz, String userAgent) {
+        Set<String> remoteServerPaths = PaxosRemotingUtils.getRemoteServerPaths(install);
+        return createProxies(clazz, remoteServerPaths, userAgent);
+    }
+
+    private <T> Map<T, ExecutorService> createProxies(Class<T> clazz, Set<String> remoteUris, String userAgent) {
         Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install)
                 .map(SslSocketFactories::createTrustContext);
-        return remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
+        return KeyedStream.of(remoteUris)
+                .mapKeys(uri -> AtlasDbHttpClients.createProxy(
                         metricsManager.getRegistry(),
                         trustContext,
                         uri, clazz, userAgent, false))
-                .collect(Collectors.toList());
+                .map(ignored -> executorService())
+                .collectToMap();
+    }
+
+    private ExecutorService executorService() {
+        return new InstrumentedExecutorService(
+                PTExecutors.newThreadPoolExecutor(
+                        5,
+                        50, // we should tune these to whatever makes sense
+                        // hack, we know that we will run accept and learn, so at least core pool size of 2
+                        5000,
+                        TimeUnit.MILLISECONDS,
+                        new SynchronousQueue<>(),
+                        new ThreadFactoryBuilder()
+                                .setNameFormat("paxos-timestamp-creator-remote-%d")
+                                .setDaemon(true)
+                                .build()),
+                metricsManager.getRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-remote-local", "executor"));
     }
 
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
-        List<ClientAwarePaxosAcceptor> paxosAcceptors = createClientAwarePaxosAcceptors();
-        List<ClientAwarePaxosLearner> paxosLearners = createClientAwarePaxosLearners();
+        Map<ClientAwarePaxosAcceptor, ExecutorService> paxosAcceptors = createClientAwarePaxosAcceptors();
+        Map<ClientAwarePaxosLearner, ExecutorService> paxosLearners = createClientAwarePaxosLearners();
         return new PaxosTimestampCreator(
                 metrics,
                 paxosResource,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                client -> paxosAcceptors.stream()
-                        .<PaxosAcceptor>map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
-                        .collect(Collectors.toList()),
-                client -> paxosLearners.stream()
-                        .<PaxosLearner>map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
-                        .collect(Collectors.toList()));
+                client -> KeyedStream.stream(paxosAcceptors)
+                        .<PaxosAcceptor>mapKeys(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
+                        .collectToMap(),
+                client -> KeyedStream.stream(paxosLearners)
+                        .<PaxosLearner>mapKeys(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
+                        .collectToMap());
     }
 
     private void createAndRegisterResources() {
