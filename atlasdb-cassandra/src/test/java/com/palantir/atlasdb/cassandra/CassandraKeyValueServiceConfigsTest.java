@@ -88,6 +88,10 @@ public class CassandraKeyValueServiceConfigsTest {
         CassandraKeyValueServiceRuntimeConfig expectedConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .numberOfRetriesOnSameHost(4)
                 .numberOfRetriesOnAllHosts(8)
+                .cellLoadingConfig(ImmutableCassandraCellLoadingConfig.builder()
+                        .crossColumnLoadBatchLimit(42)
+                        .singleQueryLoadBatchLimit(424242)
+                        .build())
                 .conservativeRequestExceptionHandler(true)
                 .build();
 
