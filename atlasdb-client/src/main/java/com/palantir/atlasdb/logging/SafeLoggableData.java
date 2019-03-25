@@ -15,12 +15,14 @@
  */
 package com.palantir.atlasdb.logging;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 
@@ -84,19 +86,29 @@ public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
         }
         SafeLoggableData otherData = (SafeLoggableData) other;
 
+        // Cannot use from(this) because merging is tricky
         return ImmutableSafeLoggableData.builder()
-                .from(this)
+                .addAllPermittedTableReferences(permittedTableReferences())
                 .addAllPermittedTableReferences(otherData.permittedTableReferences())
+                .addAllProhibitedTableReferences(prohibitedTableReferences())
                 .addAllProhibitedTableReferences(otherData.prohibitedTableReferences())
-                .putAllPermittedRowComponents(otherData.permittedRowComponents())
-                .putAllProhibitedRowComponents(otherData.prohibitedRowComponents())
-                .putAllPermittedColumnNames(otherData.permittedColumnNames())
-                .putAllProhibitedColumnNames(otherData.prohibitedColumnNames())
+                .permittedRowComponents(mergeMaps(permittedRowComponents(), otherData.permittedRowComponents()))
+                .prohibitedRowComponents(mergeMaps(prohibitedRowComponents(), otherData.prohibitedRowComponents()))
+                .permittedColumnNames(mergeMaps(permittedColumnNames(), otherData.permittedColumnNames()))
+                .prohibitedColumnNames(mergeMaps(prohibitedColumnNames(), otherData.prohibitedColumnNames()))
                 .build();
     }
 
     static KeyValueServiceLogArbitrator noData() {
         return ImmutableSafeLoggableData.builder().build();
+    }
+
+    private static Map<TableReference, Set<String>> mergeMaps(
+            Map<TableReference, Set<String>> first,
+            Map<TableReference, Set<String>> second) {
+        Map<TableReference, Set<String>> result = new HashMap<>(first);
+        second.forEach((key, value) -> result.merge(key, value, Sets::union));
+        return result;
     }
 
     private static boolean hasMatchingComponent(TableReference tableReference, String rowComponentName,

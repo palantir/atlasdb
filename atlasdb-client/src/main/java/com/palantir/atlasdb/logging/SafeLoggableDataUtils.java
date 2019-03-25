@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -76,8 +77,8 @@ public final class SafeLoggableDataUtils {
                 .collect(Collectors.groupingBy(
                         rowComponent -> IS_SAFE.test(rowComponent.getLogSafety()),
                         Collectors.mapping(NameComponentDescription::getComponentName, Collectors.toSet())));
-        builder.putPermittedRowComponents(ref, loggableRowComponentNames.get(true));
-        builder.putProhibitedColumnNames(ref, loggableRowComponentNames.get(false));
+        builder.putPermittedRowComponents(ref, loggableRowComponentNames.getOrDefault(true, ImmutableSet.of()));
+        builder.putProhibitedRowComponents(ref, loggableRowComponentNames.getOrDefault(false, ImmutableSet.of()));
 
         Set<NamedColumnDescription> namedColumns = tableMetadata.getColumns().getNamedColumns();
         if (namedColumns != null) {
@@ -87,8 +88,8 @@ public final class SafeLoggableDataUtils {
                             columnComponent -> IS_SAFE.test(columnComponent.getLogSafety()),
                             Collectors.mapping(NamedColumnDescription::getLongName, Collectors.toSet())));
 
-            builder.putPermittedColumnNames(ref, safetyToColumnNames.get(true));
-            builder.putProhibitedColumnNames(ref, safetyToColumnNames.get(false));
+            builder.putPermittedColumnNames(ref, safetyToColumnNames.getOrDefault(true, ImmutableSet.of()));
+            builder.putProhibitedColumnNames(ref, safetyToColumnNames.getOrDefault(false, ImmutableSet.of()));
         }
     }
 }

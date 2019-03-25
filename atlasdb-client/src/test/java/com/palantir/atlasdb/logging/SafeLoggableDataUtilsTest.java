@@ -120,4 +120,33 @@ public class SafeLoggableDataUtilsTest {
         assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_2, COLUMN_LONG_NAME)).isTrue();
         assertThat(safeLoggableData.isColumnNameSafe(TABLE_REFERENCE_3, COLUMN_LONG_NAME)).isFalse();
     }
+
+    @Test
+    public void combineAcceptsItemsRecommendedAsSafeInEither() {
+        ImmutableSafeLoggableData.Builder builder1 = ImmutableSafeLoggableData.builder();
+        SafeLoggableDataUtils.addLoggableNamesToBuilder(builder1, TABLE_REFERENCE_1, TABLE_METADATA_2);
+        SafeLoggableData data1 = builder1.build();
+
+        ImmutableSafeLoggableData.Builder builder2 = ImmutableSafeLoggableData.builder();
+        SafeLoggableDataUtils.addLoggableNamesToBuilder(builder2, TABLE_REFERENCE_2, TABLE_METADATA_2);
+        SafeLoggableData data2 = builder2.build();
+
+        SafeLoggableData combined = data1.combine(data2);
+        assertThat(combined.isTableReferenceSafe(TABLE_REFERENCE_1)).isTrue();
+        assertThat(combined.isTableReferenceSafe(TABLE_REFERENCE_2)).isTrue();
+    }
+
+    @Test
+    public void combineRejectsItemsIfSafeInOneButExplicitlyUnsafeInOther() {
+        ImmutableSafeLoggableData.Builder builder1 = ImmutableSafeLoggableData.builder();
+        SafeLoggableDataUtils.addLoggableNamesToBuilder(builder1, TABLE_REFERENCE_1, TABLE_METADATA_1); // Unsafe
+        SafeLoggableData data1 = builder1.build();
+
+        ImmutableSafeLoggableData.Builder builder2 = ImmutableSafeLoggableData.builder();
+        SafeLoggableDataUtils.addLoggableNamesToBuilder(builder2, TABLE_REFERENCE_1, TABLE_METADATA_2); // Safe
+        SafeLoggableData data2 = builder2.build();
+
+        SafeLoggableData combined = data1.combine(data2);
+        assertThat(combined.isTableReferenceSafe(TABLE_REFERENCE_1)).isFalse();
+    }
 }
