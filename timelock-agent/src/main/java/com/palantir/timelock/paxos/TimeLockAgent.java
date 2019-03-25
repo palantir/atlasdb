@@ -100,6 +100,15 @@ public class TimeLockAgent {
         this.runtime = runtime;
         this.registrar = registrar;
 
+        this.executor = new InstrumentedExecutorService(
+                PTExecutors.newCachedThreadPool(
+                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
+                                .setNameFormat("paxos-timestamp-creator-%d")
+                                .setDaemon(true)
+                                .build(), metricsManager.getRegistry())),
+                metricsManager.getRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
+
         this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
                 install.paxos().dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(this.metricsManager, install, runtime, registrar);
@@ -108,14 +117,6 @@ public class TimeLockAgent {
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
         this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
-        this.executor = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(
-                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-remote-%d")
-                                .setDaemon(true)
-                                .build(), metricsManager.getRegistry())),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator-remote", "executor"));
     }
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
