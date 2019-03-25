@@ -33,6 +33,8 @@ import java.util.stream.LongStream;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 
@@ -40,10 +42,13 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 public class CellLoadingBatcherTest {
     private static final int CROSS_COLUMN_LIMIT = 3;
     private static final int SINGLE_QUERY_LIMIT = 10;
+    private static final CassandraCellLoadingConfig LOADING_CONFIG = ImmutableCassandraCellLoadingConfig.builder()
+            .crossColumnLoadBatchLimit(CROSS_COLUMN_LIMIT)
+            .singleQueryLoadBatchLimit(SINGLE_QUERY_LIMIT)
+            .build();
 
     private IntConsumer rebatchingCallback = mock(IntConsumer.class);
-    private CellLoadingBatcher batcher = new CellLoadingBatcher(
-            () -> CROSS_COLUMN_LIMIT, () -> SINGLE_QUERY_LIMIT, rebatchingCallback);
+    private CellLoadingBatcher batcher = new CellLoadingBatcher(() -> LOADING_CONFIG);
 
     @Test
     public void splitsCellsByColumnKey() {
@@ -51,19 +56,19 @@ public class CellLoadingBatcherTest {
         cells.addAll(rowRange(CROSS_COLUMN_LIMIT, 0));
         cells.addAll(rowRange(CROSS_COLUMN_LIMIT, 1));
 
-        List<List<Cell>> batches = batcher.partitionIntoBatches(cells);
+        List<List<Cell>> batches = partitionUsingMockCallback(cells);
         assertBatchContentsMatch(batches, rowRange(CROSS_COLUMN_LIMIT, 0), rowRange(CROSS_COLUMN_LIMIT, 1));
     }
 
     @Test
     public void doesNotSplitCellsForSingleColumnsIfUnderSingleQueryLimit() {
-        List<List<Cell>> batches = batcher.partitionIntoBatches(rowRange(SINGLE_QUERY_LIMIT, 0));
+        List<List<Cell>> batches = partitionUsingMockCallback(rowRange(SINGLE_QUERY_LIMIT, 0));
         assertBatchContentsMatch(batches, rowRange(SINGLE_QUERY_LIMIT, 0));
     }
 
     @Test
     public void rebatchesLargeColumnsAndInvokesCallback() {
-        List<List<Cell>> batches = batcher.partitionIntoBatches(rowRange(2 * SINGLE_QUERY_LIMIT, 0));
+        List<List<Cell>> batches = partitionUsingMockCallback(rowRange(2 * SINGLE_QUERY_LIMIT, 0));
         assertBatchContentsMatch(batches,
                 rowRange(0, SINGLE_QUERY_LIMIT, 0),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 0));
@@ -73,7 +78,7 @@ public class CellLoadingBatcherTest {
     @Test
     public void combinesSmallNumberOfRowsForDifferentColumns() {
         List<Cell> smallColumnBatch = ImmutableList.of(cell(1, 1), cell(1, 2), cell(2, 1));
-        List<List<Cell>> batches = batcher.partitionIntoBatches(smallColumnBatch);
+        List<List<Cell>> batches = partitionUsingMockCallback(smallColumnBatch);
         assertBatchContentsMatch(batches, smallColumnBatch);
         verify(rebatchingCallback, never()).accept(anyInt());
     }
@@ -81,7 +86,7 @@ public class CellLoadingBatcherTest {
     @Test
     public void preservesCellsAcrossColumnsAndRebatchesThemToCrossColumnLimit() {
         List<Cell> manyColumns = columnRange(0, 0, 100);
-        List<List<Cell>> batches = batcher.partitionIntoBatches(manyColumns);
+        List<List<Cell>> batches = partitionUsingMockCallback(manyColumns);
 
         assertBatchContainsAllCells(batches, manyColumns);
         batches.forEach(batch -> assertThat(batch.size()).isLessThanOrEqualTo(CROSS_COLUMN_LIMIT));
@@ -94,13 +99,17 @@ public class CellLoadingBatcherTest {
         cells.addAll(rowRange(2 * SINGLE_QUERY_LIMIT, 1));
         cells.addAll(columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
 
-        List<List<Cell>> batches = batcher.partitionIntoBatches(cells);
+        List<List<Cell>> batches = partitionUsingMockCallback(cells);
         assertBatchContentsMatch(batches,
                 rowRange(SINGLE_QUERY_LIMIT, 0),
                 rowRange(0, SINGLE_QUERY_LIMIT, 1),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 1),
                 columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
         verify(rebatchingCallback).accept(2 * SINGLE_QUERY_LIMIT);
+    }
+
+    private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
+        return batcher.partitionIntoBatches(cells, rebatchingCallback);
     }
 
     private static void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {
