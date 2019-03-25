@@ -64,7 +64,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setNameFormat("async-lock-reaper-%d")
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-reaper");
-        timeoutExecutor = new InstrumentedScheduledExecutorService(
+        this.timeoutExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-timeouts-%d")
                         .setDaemon(true)

@@ -15,6 +15,7 @@
  */
 package com.palantir.paxos;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -176,7 +177,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                Duration.ofMillis(750));
 
         if (!receivedPromises.hasQuorum()) {
             // update proposal number on failure
@@ -212,7 +213,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                Duration.ofMillis(750));
         if (!responses.hasQuorum()) {
             throw new PaxosRoundFailureException("failed to acquire quorum in paxos phase two");
         }
