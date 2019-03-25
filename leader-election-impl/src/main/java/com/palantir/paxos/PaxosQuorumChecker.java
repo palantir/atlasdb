@@ -160,6 +160,8 @@ public final class PaxosQuorumChecker {
 
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
+        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
+                shortcircuitIfQuorumImpossible);
         for (final SERVICE remote : remotes) {
             try {
                 allFutures.add(responseCompletionService.submit(remote, () -> request.apply(remote)));
@@ -170,13 +172,12 @@ public final class PaxosQuorumChecker {
                     log.info("Rate of execution rejections: {}",
                             SafeArg.of("rate1m", requestExecutionRejection.getOneMinuteRate()));
                 }
+                receivedResponses.markFailure();
             }
         }
 
         List<Throwable> encounteredErrors = Lists.newArrayList();
         boolean interrupted = false;
-        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
-                shortcircuitIfQuorumImpossible);
         try {
             long deadline = System.nanoTime() + remoteRequestTimeout.toNanos();
             while (receivedResponses.hasMoreRequests() && receivedResponses.shouldProcessNextRequest()) {
