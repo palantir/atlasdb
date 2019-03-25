@@ -103,7 +103,7 @@ public class CellLoadingBatcherTest {
         verify(rebatchingCallback).accept(2 * SINGLE_QUERY_LIMIT);
     }
 
-    private void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {
+    private static void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {
         List<List<Cell>> sortedExpected = Arrays.stream(expected)
                 .map(CellLoadingBatcherTest::sortedCopyOf)
                 .collect(Collectors.toList());
@@ -112,7 +112,7 @@ public class CellLoadingBatcherTest {
                 .containsExactlyInAnyOrderElementsOf(sortedExpected);
     }
 
-    private void assertBatchContainsAllCells(List<List<Cell>> actual, List<Cell> expected) {
+    private static void assertBatchContainsAllCells(List<List<Cell>> actual, List<Cell> expected) {
         assertThat(actual.stream().flatMap(Collection::stream)).hasSameElementsAs(expected);
     }
 
