@@ -139,7 +139,6 @@ public class CoalescingTransactionStarterTest {
 
         BlockingBatchedResponse blockingBatchedResponse =
                 new BlockingBatchedResponse(getStartTransactionResponse(12, 1));
-        getStartTransactionResponse(40, 2);
 
         when(lockLeaseService.startTransactions(anyInt()))
                 .thenAnswer(blockingBatchedResponse)

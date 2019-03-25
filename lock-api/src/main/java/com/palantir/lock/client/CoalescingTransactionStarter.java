@@ -70,10 +70,10 @@ final class CoalescingTransactionStarter implements AutoCloseable {
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService delegate, int numberOfTransactions) {
+            LockLeaseService lockLeaseService, int numberOfTransactions) {
         List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
         while (result.size() < numberOfTransactions) {
-            result.addAll(split(delegate.startTransactions(numberOfTransactions - result.size())));
+            result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
         }
         return result;
     }
@@ -117,6 +117,7 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
         Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
 
+        //calling refresh to check validity of tokens that won't be unlocked
         Set<LockToken> refreshed = refreshLockLeasesInternal(toRefresh);
         Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
@@ -149,8 +150,9 @@ final class CoalescingTransactionStarter implements AutoCloseable {
 
         Stream<LockImmutableTimestampResponse> immutableTsAndLocks =
                 LockTokenShare.share(immutableTsAndLock.getLock(), partitionedTimestamps.count()).stream()
-                        .map(token ->
-                                LockImmutableTimestampResponse.of(immutableTsAndLock.getImmutableTimestamp(), token));
+                        .map(tokenShare -> LockImmutableTimestampResponse.of(
+                                immutableTsAndLock.getImmutableTimestamp(),
+                                tokenShare));
 
         Stream<TimestampAndPartition> timestampAndPartitions = partitionedTimestamps.stream()
                 .mapToObj(timestamp -> TimestampAndPartition.of(timestamp, partition));
