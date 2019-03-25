@@ -70,7 +70,7 @@ final class TransactionCoalescingService implements AutoCloseable {
         return result;
     }
 
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         try {
             return autobatcher.apply(null).get();
         } catch (ExecutionException e) {
@@ -80,7 +80,7 @@ final class TransactionCoalescingService implements AutoCloseable {
         }
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
@@ -98,7 +98,7 @@ final class TransactionCoalescingService implements AutoCloseable {
         return Sets.union(resultLockTokenShares, resultLockTokens);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);

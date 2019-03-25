@@ -51,11 +51,11 @@ class LockLeaseService {
         this.time = new CoalescingSupplier<>(timelockRpcClient::getLeaderTime);
     }
 
-    public static LockLeaseService create(TimelockRpcClient timelockRpcClient) {
+    static LockLeaseService create(TimelockRpcClient timelockRpcClient) {
         return new LockLeaseService(timelockRpcClient, UUID.randomUUID());
     }
 
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+    LockImmutableTimestampResponse lockImmutableTimestamp() {
         StartAtlasDbTransactionResponseV3 response = delegate.deprecatedStartTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(clientId));
 
@@ -64,7 +64,7 @@ class LockLeaseService {
                 LeasedLockToken.of(response.immutableTimestamp().getLock(), response.getLease()));
     }
 
-    public StartTransactionResponseV4 startTransactions(int batchSize) {
+    StartTransactionResponseV4 startTransactions(int batchSize) {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(clientId, batchSize);
         StartTransactionResponseV4 response = delegate.startTransactions(request);
 
@@ -78,7 +78,7 @@ class LockLeaseService {
                 lease);
     }
 
-    public LockResponse lock(LockRequest request) {
+    LockResponse lock(LockRequest request) {
         LockResponseV2 leasableResponse = delegate.lock(IdentifiedLockRequest.from(request));
 
         return leasableResponse.accept(LockResponseV2.Visitor.of(
@@ -87,7 +87,7 @@ class LockLeaseService {
                 unsuccessful -> LockResponse.timedOut()));
     }
 
-    public Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+    Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 
@@ -101,7 +101,7 @@ class LockLeaseService {
         return Sets.union(refreshedTokens, validByLease);
     }
 
-    public Set<LockToken> unlock(Set<LockToken> tokens) {
+    Set<LockToken> unlock(Set<LockToken> tokens) {
         Set<LeasedLockToken> leasedLockTokens = leasedTokens(tokens);
         leasedLockTokens.forEach(LeasedLockToken::invalidate);
 
