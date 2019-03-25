@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -147,7 +149,12 @@ public class TimeLockAgent {
 
     private ExecutorService executorService() {
         return new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(
+                PTExecutors.newThreadPoolExecutor(
+                        0,
+                        100,
+                        5,
+                        TimeUnit.SECONDS,
+                        new SynchronousQueue<>(),
                         new ThreadFactoryBuilder()
                                 .setNameFormat("paxos-timestamp-creator-remote-%d")
                                 .setDaemon(true)
