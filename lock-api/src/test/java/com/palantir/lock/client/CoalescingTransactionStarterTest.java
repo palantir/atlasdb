@@ -53,9 +53,9 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransactionCoalescingLockDecoratorServiceTest {
+public class CoalescingTransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
-    private TransactionCoalescingService transactionService;
+    private CoalescingTransactionStarter transactionService;
 
     private static final int NUM_PARTITIONS = 16;
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
@@ -67,14 +67,14 @@ public class TransactionCoalescingLockDecoratorServiceTest {
 
     @Before
     public void before() {
-        transactionService = TransactionCoalescingService.create(lockLeaseService);
+        transactionService = CoalescingTransactionStarter.create(lockLeaseService);
     }
 
     @Test
     public void splitShouldYieldCorrectStartTransactionResponses_singleTransaction() {
         StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
 
-        assertThat(TransactionCoalescingService.split(batchedResponse))
+        assertThat(CoalescingTransactionStarter.split(batchedResponse))
                 .hasSize(1)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
     }
@@ -84,10 +84,10 @@ public class TransactionCoalescingLockDecoratorServiceTest {
         StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses =
-                TransactionCoalescingService.split(batchedResponse);
+                CoalescingTransactionStarter.split(batchedResponse);
 
         assertThatStartTransactionResponsesAreUnique(responses);
-        assertThat(TransactionCoalescingService.split(batchedResponse))
+        assertThat(CoalescingTransactionStarter.split(batchedResponse))
                 .hasSize(5)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
     }

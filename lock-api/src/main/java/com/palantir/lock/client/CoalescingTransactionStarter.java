@@ -37,19 +37,27 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimestampAndPartition;
 
-final class TransactionCoalescingService implements AutoCloseable {
+/**
+ * A service responsible for coalescing multiple start transaction calls into a single start transactions call. This
+ * service also handles creating {@link LockTokenShare}'s to enable multiple transactions sharing a single immutable
+ * timestamp.
+ *
+ * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
+ * rather than directly calling delegate lock service.
+ */
+final class CoalescingTransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
     private final LockLeaseService lockLeaseService;
 
-    private TransactionCoalescingService(
+    private CoalescingTransactionStarter(
             DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher,
             LockLeaseService lockLeaseService) {
         this.autobatcher = autobatcher;
         this.lockLeaseService = lockLeaseService;
     }
 
-    static TransactionCoalescingService create(LockLeaseService lockLeaseService) {
-        return new TransactionCoalescingService(DisruptorAutobatcher.create(batch -> {
+    static CoalescingTransactionStarter create(LockLeaseService lockLeaseService) {
+        return new CoalescingTransactionStarter(DisruptorAutobatcher.create(batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =

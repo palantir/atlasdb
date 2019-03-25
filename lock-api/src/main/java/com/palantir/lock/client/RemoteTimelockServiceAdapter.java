@@ -32,12 +32,12 @@ import com.palantir.timestamp.TimestampRange;
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final TimelockRpcClient timelockRpcClient;
     private final LockLeaseService lockLeaseService;
-    private final TransactionCoalescingService transactionCoalescingService;
+    private final CoalescingTransactionStarter coalescingTransactionStarter;
 
     private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
         this.timelockRpcClient = timelockRpcClient;
         this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
-        this.transactionCoalescingService = TransactionCoalescingService.create(lockLeaseService);
+        this.coalescingTransactionStarter = CoalescingTransactionStarter.create(lockLeaseService);
     }
 
     public static RemoteTimelockServiceAdapter create(TimelockRpcClient timelockRpcClient) {
@@ -76,17 +76,17 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return transactionCoalescingService.startIdentifiedAtlasDbTransaction();
+        return coalescingTransactionStarter.startIdentifiedAtlasDbTransaction();
     }
 
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return transactionCoalescingService.refreshLockLeases(tokens);
+        return coalescingTransactionStarter.refreshLockLeases(tokens);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return transactionCoalescingService.unlock(tokens);
+        return coalescingTransactionStarter.unlock(tokens);
     }
 
     @Override
@@ -96,6 +96,6 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @Override
     public void close() {
-        transactionCoalescingService.close();
+        coalescingTransactionStarter.close();
     }
 }
