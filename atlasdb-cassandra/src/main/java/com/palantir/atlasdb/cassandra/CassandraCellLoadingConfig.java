@@ -74,4 +74,11 @@ public abstract class CassandraCellLoadingConfig {
     static CassandraCellLoadingConfig defaultConfig() {
         return ImmutableCassandraCellLoadingConfig.builder().build();
     }
+
+    static CassandraCellLoadingConfig of(int crossColumnLoadBatchLimit, int singleQueryLoadBatchLimit) {
+        return ImmutableCassandraCellLoadingConfig.builder()
+                .crossColumnLoadBatchLimit(crossColumnLoadBatchLimit)
+                .singleQueryLoadBatchLimit(singleQueryLoadBatchLimit)
+                .build();
+    }
 }
