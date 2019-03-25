@@ -48,7 +48,7 @@ import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 
-class CellLoader {
+final class CellLoader {
     private static final Logger log = LoggerFactory.getLogger(CellLoader.class);
 
     private final CassandraClientPool clientPool;
