@@ -38,10 +38,15 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  * The batcher partitions cells by columns.
  * If for a given column the number of cells provided is at least the value returned by the
  * crossColumnLoadBatchLimitSupplier, then the cells for that column will exclusively occupy one or more
- * batches, with no batch exceeding the value returned by the singleQueryLoadBatchLimitSupplier.
+ * batches, with no batch having size greater than the value returned by the singleQueryLoadBatchLimitSupplier.
  * Otherwise, the cells provided may be combined with cells for other columns in batches of size up to the value
  * returned by the crossColumnLoadBatchLimitSupplier. There is no guarantee that all cells for this column will
- * be in the same batch.
+ * be in the same batch in this case.
+ *
+ * Live reloading: Batching will take place following some values of crossColumnLoadBatchLimit or
+ * singleQueryLoadBatchLimit that were available during the execution of a partition operation. There is no guarantee
+ * that changes during a partition operation may or may not be applied. Furthermore, there is no guarantee that both
+ * limits are read atomically in any way.
  */
 final class CellLoadingBatcher {
     private static final int DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT = 200;
@@ -61,7 +66,7 @@ final class CellLoadingBatcher {
         this.rebatchingManyRowsWarningCallback = rebatchingManyRowsWarningCallback;
     }
 
-    public static CellLoadingBatcher create(IntConsumer rebatchingManyRowsWarningCallback) {
+    static CellLoadingBatcher create(IntConsumer rebatchingManyRowsWarningCallback) {
         // TODO (jkong): Maybe not the best default for the transaction timestamp batching.
         return new CellLoadingBatcher(
                 () -> DEFAULT_CROSS_COLUMN_LOAD_BATCH_LIMIT,
