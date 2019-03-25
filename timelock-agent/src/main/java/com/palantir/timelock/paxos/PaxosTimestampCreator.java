@@ -18,8 +18,6 @@ package com.palantir.timelock.paxos;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -66,16 +64,10 @@ public class PaxosTimestampCreator implements TimestampCreator {
         this.paxosAcceptorsForClient = paxosAcceptorsForClient;
         this.paxosLearnersForClient = paxosLearnersForClient;
         this.localExecutor = new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        2,
-                        Math.max(2, 50), // hack, we know that we will run accept and learn, so at least core pool size of 2
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-local-%d")
-                                .setDaemon(true)
-                                .build()),
+                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
+                        .setNameFormat("paxos-timestamp-creator-local-%d")
+                        .setDaemon(true)
+                        .build()),
                 metricRegistry,
                 MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator-local", "executor"));
     }
