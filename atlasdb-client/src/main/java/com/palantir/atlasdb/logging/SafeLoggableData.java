@@ -39,25 +39,69 @@ public abstract class SafeLoggableData implements KeyValueServiceLogArbitrator {
 
     public abstract Map<TableReference, Set<String>> permittedColumnNames();
 
+    public abstract Set<TableReference> prohibitedTableReferences();
+
+    @Value.Lazy
+    public Set<String> prohibitedInternalTableReferences() {
+        return prohibitedTableReferences().stream()
+                .map(AbstractKeyValueService::internalTableName)
+                .collect(Collectors.toSet());
+    }
+
+    public abstract Map<TableReference, Set<String>> prohibitedRowComponents();
+
+    public abstract Map<TableReference, Set<String>> prohibitedColumnNames();
+
     @Override
     public boolean isTableReferenceSafe(TableReference tableReference) {
-        return permittedTableReferences().contains(tableReference);
+        return permittedTableReferences().contains(tableReference)
+                && !prohibitedTableReferences().contains(tableReference);
     }
 
     @Override
     public boolean isInternalTableReferenceSafe(String internalTableReference) {
-        return permittedInternalTableReferences().contains(internalTableReference);
+        return permittedInternalTableReferences().contains(internalTableReference)
+                && !prohibitedInternalTableReferences().contains(internalTableReference);
     }
 
     @Override
     public boolean isRowComponentNameSafe(TableReference tableReference, String rowComponentName) {
-        return permittedRowComponents().containsKey(tableReference)
-                && permittedRowComponents().get(tableReference).contains(rowComponentName);
+        return hasMatchingComponent(tableReference, rowComponentName, permittedRowComponents())
+                && !hasMatchingComponent(tableReference, rowComponentName, prohibitedRowComponents());
     }
 
     @Override
     public boolean isColumnNameSafe(TableReference tableReference, String columnName) {
-        return permittedColumnNames().containsKey(tableReference)
-                && permittedColumnNames().get(tableReference).contains(columnName);
+        return hasMatchingComponent(tableReference, columnName, permittedColumnNames())
+                && !hasMatchingComponent(tableReference, columnName, prohibitedColumnNames());
+    }
+
+    @Override
+    public SafeLoggableData combine(KeyValueServiceLogArbitrator other) {
+        if (!(other instanceof SafeLoggableData)) {
+            throw new UnsupportedOperationException("Not mergeable with arbitrators of other types. Found "
+                    + other.getClass());
+        }
+        SafeLoggableData otherData = (SafeLoggableData) other;
+
+        return ImmutableSafeLoggableData.builder()
+                .from(this)
+                .addAllPermittedTableReferences(otherData.permittedTableReferences())
+                .addAllProhibitedTableReferences(otherData.prohibitedTableReferences())
+                .putAllPermittedRowComponents(otherData.permittedRowComponents())
+                .putAllProhibitedRowComponents(otherData.prohibitedRowComponents())
+                .putAllPermittedColumnNames(otherData.permittedColumnNames())
+                .putAllProhibitedColumnNames(otherData.prohibitedColumnNames())
+                .build();
+    }
+
+    static KeyValueServiceLogArbitrator noData() {
+        return ImmutableSafeLoggableData.builder().build();
+    }
+
+    private static boolean hasMatchingComponent(TableReference tableReference, String rowComponentName,
+            Map<TableReference, Set<String>> tableReferenceSetMap) {
+        return tableReferenceSetMap.containsKey(tableReference)
+                && tableReferenceSetMap.get(tableReference).contains(rowComponentName);
     }
 }

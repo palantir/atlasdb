@@ -56,14 +56,15 @@ public final class LoggingArgs {
         UnsafeArg<List<TableReference>> unsafeTableRefs();
     }
 
-    private static volatile KeyValueServiceLogArbitrator logArbitrator = KeyValueServiceLogArbitrator.ALL_UNSAFE;
+    private static volatile KeyValueServiceLogArbitrator logArbitrator = SafeLoggableData.noData();
 
     private LoggingArgs() {
         // no
     }
 
     public static synchronized void hydrate(Map<TableReference, byte[]> tableRefToMetadata) {
-        logArbitrator = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+        SafeLoggableData data = SafeLoggableDataUtils.fromTableMetadata(tableRefToMetadata);
+        logArbitrator = logArbitrator.combine(data);
     }
 
     @VisibleForTesting

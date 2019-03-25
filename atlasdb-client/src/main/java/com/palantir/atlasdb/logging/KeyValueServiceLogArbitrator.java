@@ -38,6 +38,11 @@ interface KeyValueServiceLogArbitrator {
         public boolean isColumnNameSafe(TableReference tableReference, String longNameForColumn) {
             return false;
         }
+
+        @Override
+        public KeyValueServiceLogArbitrator combine(KeyValueServiceLogArbitrator other) {
+            return this;
+        }
     };
 
     boolean isTableReferenceSafe(TableReference tableReference);
@@ -51,4 +56,6 @@ interface KeyValueServiceLogArbitrator {
     boolean isColumnNameSafe(
             TableReference tableReference,
             String longNameForColumn);
+
+    KeyValueServiceLogArbitrator combine(KeyValueServiceLogArbitrator other);
 }
