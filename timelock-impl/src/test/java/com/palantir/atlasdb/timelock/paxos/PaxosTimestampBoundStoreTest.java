@@ -277,12 +277,13 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
-        return new PaxosTimestampBoundStore(
-                proposer,
-                learners.get(nodeIndex),
-                ImmutableList.copyOf(acceptors),
-                ImmutableList.copyOf(learners),
-                1000L);
+        return null;
+//        return new PaxosTimestampBoundStore(
+//                proposer,
+//                learners.get(nodeIndex),
+//                ImmutableList.copyOf(acceptors),
+//                ImmutableList.copyOf(learners),
+//                1000L);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {
