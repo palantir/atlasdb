@@ -16,20 +16,25 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import com.palantir.tritium.Tritium;
 
 public class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
 
     private final String client;
     private final ClientAwarePaxosAcceptor clientAwarePaxosAcceptor;
 
-    public ClientAwarePaxosAcceptorAdapter(String client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
+    public ClientAwarePaxosAcceptorAdapter(
+            String client,
+            ClientAwarePaxosAcceptor clientAwarePaxosAcceptor,
+            MetricRegistry metricRegistry) {
         this.client = client;
-        this.clientAwarePaxosAcceptor = clientAwarePaxosAcceptor;
+        this.clientAwarePaxosAcceptor = Tritium.instrument(ClientAwarePaxosAcceptor.class, clientAwarePaxosAcceptor, metricRegistry);
     }
 
     @Override

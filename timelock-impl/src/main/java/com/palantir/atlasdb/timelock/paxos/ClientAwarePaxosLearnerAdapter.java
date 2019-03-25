@@ -21,17 +21,22 @@ import java.util.Collection;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.codahale.metrics.MetricRegistry;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.tritium.Tritium;
 
 public class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
 
     private final String client;
     private final ClientAwarePaxosLearner clientAwarePaxosLearner;
 
-    public ClientAwarePaxosLearnerAdapter(String client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
+    public ClientAwarePaxosLearnerAdapter(
+            String client,
+            ClientAwarePaxosLearner clientAwarePaxosLearner,
+            MetricRegistry metricRegistry) {
         this.client = client;
-        this.clientAwarePaxosLearner = clientAwarePaxosLearner;
+        this.clientAwarePaxosLearner = Tritium.instrument(ClientAwarePaxosLearner.class, clientAwarePaxosLearner, metricRegistry);
     }
 
     @Override

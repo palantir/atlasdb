@@ -164,11 +164,12 @@ public class TimeLockAgent {
                 paxosResource,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
                 client -> KeyedStream.stream(paxosAcceptors)
-                        .<PaxosAcceptor>mapKeys(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
+                        .<PaxosAcceptor>mapKeys(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor, metrics))
                         .collectToMap(),
                 client -> KeyedStream.stream(paxosLearners)
-                        .<PaxosLearner>mapKeys(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
-                        .collectToMap());
+                        .<PaxosLearner>mapKeys(learner -> new ClientAwarePaxosLearnerAdapter(client, learner, metrics))
+                        .collectToMap(),
+                executor);
     }
 
     private void createAndRegisterResources() {
