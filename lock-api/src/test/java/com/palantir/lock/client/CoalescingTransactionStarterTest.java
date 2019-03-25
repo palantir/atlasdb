@@ -55,7 +55,7 @@ import com.palantir.lock.v2.StartTransactionResponseV4;
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingTransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
-    private CoalescingTransactionStarter transactionService;
+    private CoalescingTransactionStarter coalescingTransactionStarter;
 
     private static final int NUM_PARTITIONS = 16;
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
@@ -67,7 +67,7 @@ public class CoalescingTransactionStarterTest {
 
     @Before
     public void before() {
-        transactionService = CoalescingTransactionStarter.create(lockLeaseService);
+        coalescingTransactionStarter = CoalescingTransactionStarter.create(lockLeaseService);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class CoalescingTransactionStarterTest {
                 CoalescingTransactionStarter.split(batchedResponse);
 
         assertThatStartTransactionResponsesAreUnique(responses);
-        assertThat(CoalescingTransactionStarter.split(batchedResponse))
+        assertThat(responses)
                 .hasSize(5)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
     }
@@ -97,21 +97,22 @@ public class CoalescingTransactionStarterTest {
         StartTransactionResponseV4 startTransactionResponse = getStartTransactionResponse(12, 1);
 
         when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
-        StartIdentifiedAtlasDbTransactionResponse response = transactionService.startIdentifiedAtlasDbTransaction();
+        StartIdentifiedAtlasDbTransactionResponse response = coalescingTransactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
 
     @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
-        StartTransactionResponseV4 startTransactionResponseV4 = getStartTransactionResponse(40, 2);
+        StartTransactionResponseV4 batchResponse = getStartTransactionResponse(40, 2);
         when(lockLeaseService.startTransactions(2))
-                .thenReturn(startTransactionResponseV4);
+                .thenReturn(batchResponse);
 
-        List<StartIdentifiedAtlasDbTransactionResponse> singleTransactionResponses = requestBatches(2);
-        assertThatStartTransactionResponsesAreUnique(singleTransactionResponses);
-        singleTransactionResponses.forEach(response ->
-                assertDerivableFromBatchedResponse(response, startTransactionResponseV4));
+        List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(2);
+        assertThatStartTransactionResponsesAreUnique(responses);
+        assertThat(responses)
+                .hasSize(2)
+                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
     }
 
     @Test
