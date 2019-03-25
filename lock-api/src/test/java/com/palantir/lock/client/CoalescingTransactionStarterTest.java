@@ -16,31 +16,31 @@
 
 package com.palantir.lock.client;
 
+import static java.util.stream.Collectors.toList;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.annotation.Nullable;
+
+import org.immutables.value.Value;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.v2.ImmutablePartitionedTimestamps;
 import com.palantir.lock.v2.LeaderTime;
@@ -103,66 +103,38 @@ public class CoalescingTransactionStarterTest {
     }
 
     @Test
-    public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() throws Exception {
-        ExecutorService executorService = Executors.newCachedThreadPool();
+    public void shouldDeriveStartTransactionResponseFromBatchedResponse_multipleTransactions() {
+        StartTransactionResponseV4 startTransactionResponseV4 = getStartTransactionResponse(40, 2);
+        when(lockLeaseService.startTransactions(2))
+                .thenReturn(startTransactionResponseV4);
 
-        BlockingBatchedResponse blockingBatchedResponse =
-                new BlockingBatchedResponse(getStartTransactionResponse(12, 1));
-
-        StartTransactionResponseV4 batchedStartTransactionResponse = getStartTransactionResponse(40, 2);
-
-        when(lockLeaseService.startTransactions(anyInt()))
-                .thenAnswer(blockingBatchedResponse)
-                .thenReturn(getStartTransactionResponse(40, 2));
-
-        CompletableFuture.runAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
-
-        blockingBatchedResponse.waitForFirstCallToBlock();
-
-        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response1 =
-                CompletableFuture.supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
-
-        CompletableFuture<StartIdentifiedAtlasDbTransactionResponse> response2 =
-                CompletableFuture.supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
-
-        blockingBatchedResponse.unblock();
-
-        assertThatStartTransactionResponsesAreUnique(response1.get(), response2.get());
-        assertDerivableFromBatchedResponse(response1.get(), batchedStartTransactionResponse);
-        assertDerivableFromBatchedResponse(response2.get(), batchedStartTransactionResponse);
-
+        List<StartIdentifiedAtlasDbTransactionResponse> singleTransactionResponses = requestBatches(2);
+        assertThatStartTransactionResponsesAreUnique(singleTransactionResponses);
+        singleTransactionResponses.forEach(response ->
+                assertDerivableFromBatchedResponse(response, startTransactionResponseV4));
     }
 
     @Test
-    public void shouldCallTimelockMultipleTimesUntilCollectingAllRequiredTimestamps() throws Exception {
-        ExecutorService executorService = Executors.newCachedThreadPool();
-
-        BlockingBatchedResponse blockingBatchedResponse =
-                new BlockingBatchedResponse(getStartTransactionResponse(12, 1));
-
+    public void shouldCallTimelockMultipleTimesUntilCollectingAllRequiredTimestamps() {
         when(lockLeaseService.startTransactions(anyInt()))
-                .thenAnswer(blockingBatchedResponse)
                 .thenReturn(getStartTransactionResponse(40, 2))
                 .thenReturn(getStartTransactionResponse(100, 1));
 
-        CompletableFuture.runAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService);
-
-        blockingBatchedResponse.waitForFirstCallToBlock();
-
-        List<CompletableFuture> responses = IntStream.range(0, 3)
-                .mapToObj(unused -> CompletableFuture
-                        .supplyAsync(transactionService::startIdentifiedAtlasDbTransaction, executorService))
-                .collect(Collectors.toList());
-
-        blockingBatchedResponse.unblock();
-        responses.forEach(CompletableFuture::join);
-
-        verify(lockLeaseService, times(2)).startTransactions(1);
+        requestBatches(3);
         verify(lockLeaseService).startTransactions(3);
+        verify(lockLeaseService).startTransactions(1);
+
     }
 
-    private void assertThatStartTransactionResponsesAreUnique(StartIdentifiedAtlasDbTransactionResponse... responses) {
-        assertThatStartTransactionResponsesAreUnique(Arrays.asList(responses));
+    private List<StartIdentifiedAtlasDbTransactionResponse> requestBatches(int size) {
+        List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>> elements = IntStream.range(0, size)
+                .mapToObj(unused -> ImmutableTestBatchElement.builder()
+                        .argument(null)
+                        .result(SettableFuture.create())
+                        .build())
+                .collect(toList());
+        CoalescingTransactionStarter.consumer(lockLeaseService).accept(elements);
+        return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
     private void assertThatStartTransactionResponsesAreUnique(
@@ -218,28 +190,10 @@ public class CoalescingTransactionStarterTest {
                 .build();
     }
 
-    private static final class BlockingBatchedResponse implements Answer<StartTransactionResponseV4> {
-        private final CountDownLatch returnBatchedResponseLatch = new CountDownLatch(1);
-        private final CountDownLatch blockingLatch = new CountDownLatch(1);
-        private final StartTransactionResponseV4 batchedStartTransactionResponse;
-
-        private BlockingBatchedResponse(StartTransactionResponseV4 batchedStartTransactionResponse) {
-            this.batchedStartTransactionResponse = batchedStartTransactionResponse;
-        }
-
+    @Value.Immutable
+    interface TestBatchElement extends BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse> {
         @Override
-        public StartTransactionResponseV4 answer(InvocationOnMock invocation) throws Throwable {
-            blockingLatch.countDown();
-            returnBatchedResponseLatch.await();
-            return batchedStartTransactionResponse;
-        }
-
-        void unblock() {
-            returnBatchedResponseLatch.countDown();
-        }
-
-        void waitForFirstCallToBlock() throws InterruptedException {
-            blockingLatch.await();
-        }
+        @Nullable Void argument();
     }
+
 }

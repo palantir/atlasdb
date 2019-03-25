@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,6 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -57,7 +59,15 @@ final class CoalescingTransactionStarter implements AutoCloseable {
     }
 
     static CoalescingTransactionStarter create(LockLeaseService lockLeaseService) {
-        return new CoalescingTransactionStarter(DisruptorAutobatcher.create(batch -> {
+        return new CoalescingTransactionStarter(DisruptorAutobatcher.create(
+                consumer(lockLeaseService)),
+                lockLeaseService);
+    }
+
+    @VisibleForTesting
+    static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
+            LockLeaseService lockLeaseService) {
+        return batch -> {
             int numTransactions = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
@@ -66,7 +76,7 @@ final class CoalescingTransactionStarter implements AutoCloseable {
             for (int i = 0; i < numTransactions; i++) {
                 batch.get(i).result().set(startTransactionResponses.get(i));
             }
-        }), lockLeaseService);
+        };
     }
 
     private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
