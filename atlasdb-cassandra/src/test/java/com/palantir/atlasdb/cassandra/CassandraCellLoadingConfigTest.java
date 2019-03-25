@@ -49,7 +49,20 @@ public class CassandraCellLoadingConfigTest {
         assertThatThrownBy(() -> CassandraCellLoadingConfig.of(5, -24))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("singleQueryLoadBatchLimit should be positive");
+        assertThatThrownBy(() -> CassandraCellLoadingConfig.of(8, 0))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("singleQueryLoadBatchLimit should be positive");
         assertThatThrownBy(() -> CassandraCellLoadingConfig.of(-512, -333))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("should be positive"); // could be either one
+    }
+
+    @Test
+    public void cannotCreateConfigWithBothLimitsNonPositive() {
+        assertThatThrownBy(() -> CassandraCellLoadingConfig.of(-512, -333))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("should be positive"); // could be either one
+        assertThatThrownBy(() -> CassandraCellLoadingConfig.of(0, 0))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("should be positive"); // could be either one
     }
