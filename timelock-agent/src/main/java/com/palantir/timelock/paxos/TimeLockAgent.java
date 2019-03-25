@@ -151,7 +151,7 @@ public class TimeLockAgent {
         return new InstrumentedExecutorService(
                 PTExecutors.newThreadPoolExecutor(
                         5,
-                        50, // we should tune these to whatever makes sense
+                        100, // we should tune these to whatever makes sense
                         // hack, we know that we will run accept and learn, so at least core pool size of 2
                         5000,
                         TimeUnit.MILLISECONDS,
