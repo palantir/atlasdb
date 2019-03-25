@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -149,19 +147,13 @@ public class TimeLockAgent {
 
     private ExecutorService executorService() {
         return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        5,
-                        100, // we should tune these to whatever makes sense
-                        // hack, we know that we will run accept and learn, so at least core pool size of 2
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
+                PTExecutors.newCachedThreadPool(
                         new ThreadFactoryBuilder()
                                 .setNameFormat("paxos-timestamp-creator-remote-%d")
                                 .setDaemon(true)
                                 .build()),
                 metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-remote-local", "executor"));
+                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator-remote", "executor"));
     }
 
     private PaxosTimestampCreator getPaxosTimestampCreator(MetricRegistry metrics) {
