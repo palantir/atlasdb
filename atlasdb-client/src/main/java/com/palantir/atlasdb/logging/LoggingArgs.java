@@ -147,18 +147,6 @@ public final class LoggingArgs {
         return getArg("tableName", tableName, logArbitrator.isTableReferenceSafe(tableReference));
     }
 
-    public static Arg<String> rowComponent(String argName, TableReference tableReference, String rowComponentName) {
-        return getArg(argName,
-                rowComponentName,
-                logArbitrator.isRowComponentNameSafe(tableReference, rowComponentName));
-    }
-
-    public static Arg<String> columnName(String argName, TableReference tableReference, String columnName) {
-        return getArg(argName,
-                columnName,
-                logArbitrator.isColumnNameSafe(tableReference, columnName));
-    }
-
     public static Arg<Long> durationMillis(Stopwatch stopwatch) {
         return getArg("durationMillis", stopwatch.elapsed(TimeUnit.MILLISECONDS), true);
     }

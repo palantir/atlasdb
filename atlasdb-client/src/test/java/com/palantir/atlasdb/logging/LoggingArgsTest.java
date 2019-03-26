@@ -138,20 +138,6 @@ public class LoggingArgsTest {
     }
 
     @Test
-    public void propagatesNameAndRowComponentNameIfSafe() {
-        Arg<String> rowNameArg = LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME);
-        assertThat(rowNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(rowNameArg.getValue()).isEqualTo(SAFE_ROW_NAME);
-    }
-
-    @Test
-    public void propagatesNameAndColumnNameIfSafe() {
-        Arg<String> columnNameArg = LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME);
-        assertThat(columnNameArg.getName()).isEqualTo(ARG_NAME);
-        assertThat(columnNameArg.getValue()).isEqualTo(SAFE_COLUMN_NAME);
-    }
-
-    @Test
     public void canReturnBothSafeAndUnsafeTableReferences() {
         assertThat(LoggingArgs.tableRef(ARG_NAME, SAFE_TABLE_REFERENCE)).isInstanceOf(SafeArg.class);
         assertThat(LoggingArgs.tableRef(ARG_NAME, UNSAFE_TABLE_REFERENCE)).isInstanceOf(UnsafeArg.class);
@@ -163,48 +149,8 @@ public class LoggingArgsTest {
         LoggingArgs.SafeAndUnsafeTableReferences returnedArgs =
                 LoggingArgs.tableRefs(LIST_OF_SAFE_AND_UNSAFE_TABLE_REFERENCES);
 
-        assertThat(returnedArgs.safeTableRefs().getValue().contains(SAFE_TABLE_REFERENCE));
-        assertThat(returnedArgs.unsafeTableRefs().getValue().contains(UNSAFE_TABLE_REFERENCE));
-    }
-
-    @Test
-    public void canReturnBothSafeAndUnsafeRowComponentNames() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
-                .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnBothSafeAndUnsafeColumnNames() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
-                .isInstanceOf(SafeArg.class);
-        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnSafeRowComponentEvenIfTableReferenceIsUnsafe() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_ROW_NAME))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void canReturnUnsafeRowComponentEvenIfTableReferenceIsSafe() {
-        assertThat(LoggingArgs.rowComponent(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_ROW_NAME))
-                .isInstanceOf(UnsafeArg.class);
-    }
-
-    @Test
-    public void canReturnSafeColumnNameEvenIfTableReferenceIsUnsafe() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, UNSAFE_TABLE_REFERENCE, SAFE_COLUMN_NAME))
-                .isInstanceOf(SafeArg.class);
-    }
-
-    @Test
-    public void canReturnUnsafeColumnNameEvenIfTableReferenceIsSafe() {
-        assertThat(LoggingArgs.columnName(ARG_NAME, SAFE_TABLE_REFERENCE, UNSAFE_COLUMN_NAME))
-                .isInstanceOf(UnsafeArg.class);
+        assertThat(returnedArgs.safeTableRefs().getValue()).contains(SAFE_TABLE_REFERENCE);
+        assertThat(returnedArgs.unsafeTableRefs().getValue()).contains(UNSAFE_TABLE_REFERENCE);
     }
 
     @Test
