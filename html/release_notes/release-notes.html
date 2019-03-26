@@ -225,7 +225,11 @@ Previously, Background Sweep would not prioritise new writes for sweeping if wri
 <td><cite>AtlasDbHttpClients</cite>, <cite>FeignOkHttpClients</cite> and <cite>AtlasDbFeignTargetFactory</cite> are refactored to get rid of deprecated methods and overused overloads.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3837">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-logs">LOGS</span></td>
+<td>Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3863">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-changed">CHANGED</span></td>
 <td>Postgres 9.5.2+ requirement temporarily rescinded.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3862">Pull Request</a>)</td>
 </tr>
