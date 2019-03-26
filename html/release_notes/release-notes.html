@@ -188,6 +188,26 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-127-0">
+<h2>v0.127.0<a class="headerlink" href="#v0-127-0" title="Permalink to this headline">¶</a></h2>
+<p>25 Mar 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed an issue where the <code class="docutils literal notranslate"><span class="pre">transformAgreedValue</span></code> of the <code class="docutils literal notranslate"><span class="pre">KeyValueServiceCoordinationStore</span></code> would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3848">Pull Request</a>)</td>
@@ -197,7 +217,7 @@
 Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3824">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>We’ve rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3836">Pull Request</a>)</td>
 </tr>
