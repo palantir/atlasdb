@@ -155,16 +155,18 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         return result;
     }
 
-    @VisibleForTesting
-    static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV4 batchedResponse) {
-        LockImmutableTimestampResponse immutableTsAndLock = batchedResponse.immutableTimestamp();
+    private static List<StartIdentifiedAtlasDbTransactionResponse> split(StartTransactionResponseV4 batchedResponse) {
         PartitionedTimestamps partitionedTimestamps = batchedResponse.timestamps();
         int partition = partitionedTimestamps.partition();
 
+        LockToken immutableTsLock = batchedResponse.immutableTimestamp().getLock();
+        long immutableTs = batchedResponse.immutableTimestamp().getImmutableTimestamp();
+
         Stream<LockImmutableTimestampResponse> immutableTsAndLocks =
-                LockTokenShare.share(immutableTsAndLock.getLock(), partitionedTimestamps.count()).stream()
+                LockTokenShare.share(immutableTsLock, partitionedTimestamps.count())
+                        .stream()
                         .map(tokenShare -> LockImmutableTimestampResponse.of(
-                                immutableTsAndLock.getImmutableTimestamp(),
+                                immutableTs,
                                 tokenShare));
 
         Stream<TimestampAndPartition> timestampAndPartitions = partitionedTimestamps.stream()
@@ -190,7 +192,7 @@ final class CoalescingTransactionStarter implements AutoCloseable {
     }
 
     private static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
-        return tokens.stream().filter(t -> isLockTokenShare(t))
+        return tokens.stream().filter(CoalescingTransactionStarter::isLockTokenShare)
                 .map(t -> (LockTokenShare) t)
                 .collect(Collectors.toSet());
     }

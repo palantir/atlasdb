@@ -71,28 +71,6 @@ public class CoalescingTransactionStarterTest {
     }
 
     @Test
-    public void splitShouldYieldCorrectStartTransactionResponses_singleTransaction() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 1);
-
-        assertThat(CoalescingTransactionStarter.split(batchedResponse))
-                .hasSize(1)
-                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
-    }
-
-    @Test
-    public void splitShouldYieldCorrectStartTransactionResponses_multipleTransactions() {
-        StartTransactionResponseV4 batchedResponse = getStartTransactionResponse(10, 5);
-
-        List<StartIdentifiedAtlasDbTransactionResponse> responses =
-                CoalescingTransactionStarter.split(batchedResponse);
-
-        assertThatStartTransactionResponsesAreUnique(responses);
-        assertThat(responses)
-                .hasSize(5)
-                .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchedResponse));
-    }
-
-    @Test
     public void shouldDeriveStartTransactionResponseFromBatchedResponse_singleTransaction() {
         StartTransactionResponseV4 startTransactionResponse = getStartTransactionResponse(12, 1);
 
@@ -139,7 +117,7 @@ public class CoalescingTransactionStarterTest {
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 
-    private void assertThatStartTransactionResponsesAreUnique(
+    private static void assertThatStartTransactionResponsesAreUnique(
             List<StartIdentifiedAtlasDbTransactionResponse> responses) {
         assertThat(responses)
                 .as("Each response should have a different immutable ts lock token")
@@ -152,7 +130,7 @@ public class CoalescingTransactionStarterTest {
                 .doesNotHaveDuplicates();
     }
 
-    private void assertDerivableFromBatchedResponse(
+    private static void assertDerivableFromBatchedResponse(
             StartIdentifiedAtlasDbTransactionResponse startTransactionResponse,
             StartTransactionResponseV4 batchedStartTransactionResponse) {
 
