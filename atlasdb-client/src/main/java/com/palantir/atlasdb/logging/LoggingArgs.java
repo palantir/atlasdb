@@ -192,25 +192,16 @@ public final class LoggingArgs {
         return getArg("range",
                 range,
                 range.getColumnNames().stream().allMatch(
-                        (columnName) ->  logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
+                        (columnName) -> logArbitrator.isColumnNameSafe(tableReference, PtBytes.toString(columnName))));
     }
 
-    public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(TableReference tableReference,
+    public static Arg<BatchColumnRangeSelection> batchColumnRangeSelection(
             BatchColumnRangeSelection batchColumnRangeSelection) {
-        String startCol = PtBytes.toString(batchColumnRangeSelection.getStartCol());
-        String endCol = PtBytes.toString(batchColumnRangeSelection.getEndCol());
-        return getArg("batchColumnRangeSelection", batchColumnRangeSelection,
-                logArbitrator.isColumnNameSafe(tableReference, startCol)
-                        && logArbitrator.isColumnNameSafe(tableReference, endCol));
+        return getArg("batchColumnRangeSelection", batchColumnRangeSelection, false);
     }
 
-    public static Arg<ColumnRangeSelection> columnRangeSelection(TableReference tableReference,
-            ColumnRangeSelection columnRangeSelection) {
-        String startCol = PtBytes.toString(columnRangeSelection.getStartCol());
-        String endCol = PtBytes.toString(columnRangeSelection.getEndCol());
-        return getArg("columnRangeSelection", columnRangeSelection,
-                logArbitrator.isColumnNameSafe(tableReference, startCol)
-                        && logArbitrator.isColumnNameSafe(tableReference, endCol));
+    public static Arg<ColumnRangeSelection> columnRangeSelection(ColumnRangeSelection columnRangeSelection) {
+        return getArg("columnRangeSelection", columnRangeSelection, false);
     }
 
     private static <T> Arg<T> getArg(String name, T value, boolean safe) {
