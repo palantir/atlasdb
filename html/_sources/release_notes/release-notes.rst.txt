@@ -83,6 +83,10 @@ v0.127.0
          - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
 
+    *    - |changed|
+         - Postgres 9.5.2+ requirement temporarily rescinded.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3862>`__)
+
 ========
 v0.126.0
 ========
