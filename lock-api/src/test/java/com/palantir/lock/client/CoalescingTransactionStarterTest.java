@@ -88,8 +88,8 @@ public class CoalescingTransactionStarterTest {
                 .thenReturn(batchResponse);
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
-        assertThatStartTransactionResponsesAreUnique(responses);
         assertThat(responses)
+                .satisfies(CoalescingTransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(3)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
     }
@@ -118,7 +118,7 @@ public class CoalescingTransactionStarterTest {
     }
 
     private static void assertThatStartTransactionResponsesAreUnique(
-            List<StartIdentifiedAtlasDbTransactionResponse> responses) {
+            List<? extends StartIdentifiedAtlasDbTransactionResponse> responses) {
         assertThat(responses)
                 .as("Each response should have a different immutable ts lock token")
                 .extracting(response -> response.immutableTimestamp().getLock().getRequestId())
