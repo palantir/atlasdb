@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
@@ -35,6 +36,8 @@ import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.cassandra.thrift.SuperColumn;
+
+import com.google.common.collect.Maps;
 
 public final class ThriftObjectSizeUtils {
 
@@ -77,6 +80,12 @@ public final class ThriftObjectSizeUtils {
                 rowResult -> ThriftObjectSizeUtils.getByteBufferSize(rowResult.getKey())
                         + getCollectionSize(rowResult.getValue(),
                         ThriftObjectSizeUtils::getColumnOrSuperColumnSize));
+    }
+
+    public static long getApproximateSizeOfColListsByKey(Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> result) {
+        Map<ByteBuffer, List<ColumnOrSuperColumn>> flattenedColumnListMap = Maps.transformValues(result,
+                lists -> lists.stream().flatMap(List::stream).collect(Collectors.toList()));
+        return getApproximateSizeOfColsByKey(flattenedColumnListMap);
     }
 
     public static long getApproximateSizeOfKeySlices(List<KeySlice> slices) {
