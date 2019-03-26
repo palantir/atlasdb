@@ -50,8 +50,11 @@ develop
     *    - Type
          - Change
          
-    *    -
-         -
+    *    - |fixed|
+         - Callbacks specified in TransactionManagers will no longer be run synchronously when ``initializeAsync`` is set to true, even if initialization succeeds in the first, synchronous attempt.
+           Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
+
          
 ========
 v0.127.0
