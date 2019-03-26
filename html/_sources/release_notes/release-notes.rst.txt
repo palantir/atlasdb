@@ -83,6 +83,11 @@ v0.127.0
          - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
 
+    *    - |userbreak|
+         - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
+           This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+
     *    - |logs|
          - Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3863>`__)
