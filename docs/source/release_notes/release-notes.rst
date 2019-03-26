@@ -83,6 +83,10 @@ v0.127.0
          - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
 
+    *    - |logs|
+         - Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3863>`__)
+
     *    - |changed|
          - Postgres 9.5.2+ requirement temporarily rescinded.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3862>`__)
