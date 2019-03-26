@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.io.InterruptedIOException;
 
 import feign.RetryableException;
@@ -26,7 +28,7 @@ import feign.Retryer;
  */
 public class InterruptHonoringRetryer implements Retryer {
 
-    private final Retryer delegate = new Retryer.Default();
+    private final Retryer delegate = new Retryer.Default(100, SECONDS.toMillis(1), 1);
 
     @Override
     public void continueOrPropagate(RetryableException error) {
