@@ -88,6 +88,11 @@ class LockLeaseService {
     }
 
     Set<LockToken> refreshLockLeases(Set<LockToken> uncastedTokens) {
+        //avoid rpcs with empty sets
+        if (uncastedTokens.isEmpty()) {
+            return uncastedTokens;
+        }
+
         LeaderTime leaderTime = time.get();
         Set<LeasedLockToken> allTokens = leasedTokens(uncastedTokens);
 

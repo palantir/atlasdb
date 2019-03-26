@@ -64,30 +64,6 @@ final class CoalescingTransactionStarter implements AutoCloseable {
                 lockLeaseService);
     }
 
-    @VisibleForTesting
-    static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
-            LockLeaseService lockLeaseService) {
-        return batch -> {
-            int numTransactions = batch.size();
-
-            List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
-                    getStartTransactionResponses(lockLeaseService, numTransactions);
-
-            for (int i = 0; i < numTransactions; i++) {
-                batch.get(i).result().set(startTransactionResponses.get(i));
-            }
-        };
-    }
-
-    private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
-            LockLeaseService lockLeaseService, int numberOfTransactions) {
-        List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
-        while (result.size() < numberOfTransactions) {
-            result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
-        }
-        return result;
-    }
-
     StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
         try {
             return autobatcher.apply(null).get();
@@ -127,8 +103,8 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
         Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
 
-        //calling refresh to check validity of tokens that won't be unlocked
-        Set<LockToken> refreshed = refreshLockLeasesInternal(toRefresh);
+        //calling refresh to check validity of tokens that won't be unlocked.
+        Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
         Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
         Set<LockToken> resultLockTokenShares = lockTokenShares.stream()
@@ -144,12 +120,28 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         autobatcher.close();
     }
 
-    private Set<LockToken> refreshLockLeasesInternal(Set<LockToken> toRefresh) {
-        if (!toRefresh.isEmpty()) {
-            return lockLeaseService.refreshLockLeases(toRefresh);
-        } else {
-            return ImmutableSet.of();
+    @VisibleForTesting
+    static Consumer<List<BatchElement<Void, StartIdentifiedAtlasDbTransactionResponse>>> consumer(
+            LockLeaseService lockLeaseService) {
+        return batch -> {
+            int numTransactions = batch.size();
+
+            List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
+                    getStartTransactionResponses(lockLeaseService, numTransactions);
+
+            for (int i = 0; i < numTransactions; i++) {
+                batch.get(i).result().set(startTransactionResponses.get(i));
+            }
+        };
+    }
+
+    private static List<StartIdentifiedAtlasDbTransactionResponse> getStartTransactionResponses(
+            LockLeaseService lockLeaseService, int numberOfTransactions) {
+        List<StartIdentifiedAtlasDbTransactionResponse> result = new ArrayList<>();
+        while (result.size() < numberOfTransactions) {
+            result.addAll(split(lockLeaseService.startTransactions(numberOfTransactions - result.size())));
         }
+        return result;
     }
 
     @VisibleForTesting
@@ -196,7 +188,6 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         return tokens.stream().filter(t -> !isLockTokenShare(t))
                 .collect(Collectors.toSet());
     }
-
 
     private static boolean isLockTokenShare(LockToken lockToken) {
         return lockToken instanceof LockTokenShare;

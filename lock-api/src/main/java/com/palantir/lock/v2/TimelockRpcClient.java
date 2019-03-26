@@ -59,6 +59,13 @@ public interface TimelockRpcClient {
     StartAtlasDbTransactionResponseV3 deprecatedStartTransaction(
             StartIdentifiedAtlasDbTransactionRequest request);
 
+    /**
+     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
+     * be used as start timestamps.
+     *
+     * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
+     * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
+     */
     @POST
     @Path("start-atlasdb-transaction-v4")
     StartTransactionResponseV4 startTransactions(
