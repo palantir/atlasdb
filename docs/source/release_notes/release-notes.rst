@@ -49,8 +49,33 @@ develop
 
     *    - Type
          - Change
+         
+    *    -
+         -
+         
+========
+v0.127.0
+========
 
-    *    - |changed|
+25 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3848>`__)
+
+    *    - |fixed| |userbreak|
+         - Background Sweep will now continue to prioritise tables accordingly, if writes to the sweep queue are enabled but targeted sweep is disabled on startup.
+           Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3824>`__)
+
+    *    - |changed| |improved|
          - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
 
@@ -62,6 +87,14 @@ develop
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
            This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+
+    *    - |logs|
+         - Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3863>`__)
+
+    *    - |changed|
+         - Postgres 9.5.2+ requirement temporarily rescinded.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3862>`__)
 
 ========
 v0.126.0

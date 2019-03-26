@@ -17,20 +17,25 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import org.slf4j.Logger;
 
-import com.palantir.util.AssertUtils;
 import com.palantir.util.VersionStrings;
 
 public final class PostgresVersionCheck {
-    static final String MIN_POSTGRES_VERSION = "9.5.2";
+    private static final String MIN_POSTGRES_VERSION = "9.2";
 
     private PostgresVersionCheck() {}
 
     public static void checkDatabaseVersion(String version, Logger log) {
-        boolean checkPasses = version.matches("^[\\.0-9]+$")
-                && VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) >= 0;
-        AssertUtils.assertAndLog(log, checkPasses, "Your key value service currently uses version %s of postgres."
-                + " The minimum supported version is %s."
-                + " If you absolutely need to use an older version of postgres,"
-                + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
+        if (!version.matches("^[\\.0-9]+$") || VersionStrings.compareVersions(version, MIN_POSTGRES_VERSION) < 0) {
+            log.error("Your key value service currently uses version {} of postgres."
+                    + " The minimum supported version is {}."
+                    + " If you absolutely need to use an older version of postgres,"
+                    + " please contact Palantir support for assistance.", version, MIN_POSTGRES_VERSION);
+        } else if (VersionStrings.compareVersions(version, "9.5") >= 0
+                && VersionStrings.compareVersions(version, "9.5.2") < 0) {
+            throw new DbkvsVersionException(
+                    "You are running Postgres " + version + ". Versions 9.5.0 and 9.5.1 contain a known bug "
+                            + "that causes incorrect results to be returned for certain queries. "
+                            + "Please update your Postgres distribution.");
+        }
     }
 }
