@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
          
-    *    -
-         -
+    *    - |improved|
+         - ``LockRefresher`` now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
          
 ========
 v0.127.0
