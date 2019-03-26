@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -96,14 +95,10 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         Set<LockToken> lockTokens = filterOutTokenShares(tokens);
 
         Set<LockTokenShare> lockTokenShares = filterLockTokenShares(tokens);
-        Set<LockToken> referencedTokens = lockTokenShares.stream()
-                .map(LockTokenShare::sharedLockToken)
-                .collect(Collectors.toSet());
 
         Set<LockToken> toUnlock = reduceForUnlock(lockTokenShares);
-        Set<LockToken> toRefresh = Sets.difference(referencedTokens, toUnlock);
+        Set<LockToken> toRefresh = getLockTokensToRefresh(lockTokenShares, toUnlock);
 
-        //calling refresh to check validity of tokens that won't be unlocked.
         Set<LockToken> refreshed = lockLeaseService.refreshLockLeases(toRefresh);
         Set<LockToken> unlocked = lockLeaseService.unlock(Sets.union(toUnlock, lockTokens));
 
@@ -113,6 +108,22 @@ final class CoalescingTransactionStarter implements AutoCloseable {
         Set<LockToken> resultLockTokens = lockTokens.stream().filter(unlocked::contains).collect(Collectors.toSet());
 
         return Sets.union(resultLockTokenShares, resultLockTokens);
+    }
+
+    /**
+     * Calling unlock on a set of LockTokenShares only calls unlock on shared token iff all references to shared token
+     * are unlocked.
+     *
+     * {@link com.palantir.lock.v2.TimelockService#unlock(Set)} has a guarantee that returned tokens were valid until
+     * calling unlock. To keep that guarantee, we need to check if LockTokenShares were valid (by calling refresh with
+     * referenced shared token) even if we don't unlock the underlying shared token.
+     */
+    private static Set<LockToken> getLockTokensToRefresh(
+            Set<LockTokenShare> lockTokenShares, Set<LockToken> sharedTokensToUnlock) {
+        Set<LockToken> referencedTokens = lockTokenShares.stream()
+                .map(LockTokenShare::sharedLockToken)
+                .collect(Collectors.toSet());
+        return Sets.difference(referencedTokens, sharedTokensToUnlock);
     }
 
     @Override
