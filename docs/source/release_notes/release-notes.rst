@@ -50,9 +50,12 @@ develop
     *    - Type
          - Change
          
-    *    -
-         -
-         
+    *    - |devbreak|
+         - Removed the ``rowComponent`` and ``columnName`` methods on ``LoggingArgs``.
+           These used to be used in production, but as at v0.127.0 do not seem to be.
+           Please contact the AtlasDB team if this is an issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
 ========
 v0.127.0
 ========
