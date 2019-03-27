@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -26,18 +27,16 @@ import java.util.concurrent.Callable;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ColumnParent;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.TreeMultimap;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
@@ -124,70 +123,83 @@ class CellLoader {
             final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
-        Multimap<byte[], Cell> cellsByCol =
-                TreeMultimap.create(UnsignedBytes.lexicographicalComparator(), Ordering.natural());
-        for (Cell cell : cells) {
-            cellsByCol.put(cell.getColumnName(), cell);
-        }
+        CellLoadingBatcher batcher = CellLoadingBatcher.create(
+                (numRows) -> logRebatchingWarnMessage(host, tableRef, numRows));
+
         List<Callable<Void>> tasks = Lists.newArrayList();
-        int fetchBatchCount = AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT;
-        for (Map.Entry<byte[], Collection<Cell>> entry : Multimaps.asMap(cellsByCol).entrySet()) {
-            final byte[] col = entry.getKey();
-            Collection<Cell> columnCells = entry.getValue();
-            if (columnCells.size() > fetchBatchCount) {
-                log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
-                                + " multiget {} rows; this may indicate overly-large batching on a higher level."
-                                + " Note that batches are executed in parallel, which may cause load on both"
-                                + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
-                                + " high.\n{}",
-                        SafeArg.of("host", CassandraLogHelper.host(host)),
-                        LoggingArgs.tableRef(tableRef),
-                        SafeArg.of("rows", columnCells.size()),
-                        SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
-            }
-            for (final List<Cell> partition : Lists.partition(ImmutableList.copyOf(columnCells), fetchBatchCount)) {
-                Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
-                        host,
-                        new FunctionCheckedException<CassandraClient, Void, Exception>() {
-                            @Override
-                            public Void apply(CassandraClient client) throws Exception {
-                                SlicePredicates.Range range = SlicePredicates.Range.singleColumn(col, startTs);
-                                SlicePredicates.Limit limit =
-                                        loadAllTs ? SlicePredicates.Limit.NO_LIMIT : SlicePredicates.Limit.ONE;
-                                SlicePredicate predicate = SlicePredicates.create(range, limit);
+        for (final List<Cell> partition : batcher.partitionIntoBatches(cells)) {
+            Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
+                    host,
+                    new FunctionCheckedException<CassandraClient, Void, Exception>() {
+                        @Override
+                        public Void apply(CassandraClient client) throws Exception {
+                            List<KeyPredicate> query
+                                    = translatePartitionToKeyPredicates(partition, startTs, loadAllTs);
 
-                                List<ByteBuffer> rowNames = Lists.newArrayListWithCapacity(partition.size());
-                                for (Cell c : partition) {
-                                    rowNames.add(ByteBuffer.wrap(c.getRowName()));
-                                }
-
-                                if (log.isTraceEnabled()) {
-                                    log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
-                                            SafeArg.of("cells", partition.size()),
-                                            LoggingArgs.tableRef(tableRef),
-                                            SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
-                                            SafeArg.of("startTs", startTs),
-                                            SafeArg.of("host", CassandraLogHelper.host(host)));
-                                }
-
-                                Map<ByteBuffer, List<ColumnOrSuperColumn>> results = queryRunner.multiget(
-                                        kvsMethodName, client, tableRef, rowNames, predicate, consistency);
-                                visitor.visit(results);
-                                return null;
+                            if (log.isTraceEnabled()) {
+                                log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+                                        SafeArg.of("cells", partition.size()),
+                                        LoggingArgs.tableRef(tableRef),
+                                        SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
+                                        SafeArg.of("startTs", startTs),
+                                        SafeArg.of("host", CassandraLogHelper.host(host)));
                             }
 
-                            @Override
-                            public String toString() {
-                                return "multiget_slice(" + host + ", " + colFam + ", "
-                                        + partition.size() + " cells" + ")";
-                            }
+                            Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results = queryRunner.multiget_multislice(
+                                    kvsMethodName, client, tableRef, query, consistency);
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults = Maps.transformValues(results,
+                                    lists -> Lists.newArrayList(Iterables.concat(lists)));
+                            visitor.visit(aggregatedResults);
+                            return null;
+                        }
 
-                        });
-                tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
-                        "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
-                        multiGetCallable));
-            }
+                        @Override
+                        public String toString() {
+                            return "multiget_multislice(" + host + ", " + colFam + ", "
+                                    + partition.size() + " cells" + ")";
+                        }
+
+                    });
+            tasks.add(AnnotatedCallable.wrapWithThreadName(AnnotationType.PREPEND,
+                    "Atlas loadWithTs " + partition.size() + " cells from " + tableRef + " on " + host,
+                    multiGetCallable));
         }
         return tasks;
+    }
+
+    private static List<KeyPredicate> translatePartitionToKeyPredicates(
+            List<Cell> partition, long startTs, boolean loadAllTs) {
+        Map<byte[], SlicePredicate> canonicalPredicates = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        List<KeyPredicate> keyPredicates = new ArrayList<>(partition.size());
+
+        for (Cell cell : partition) {
+            SlicePredicate predicate = canonicalPredicates.computeIfAbsent(
+                    cell.getColumnName(),
+                    columnKey -> {
+                        SlicePredicates.Range range = SlicePredicates.Range.singleColumn(columnKey, startTs);
+                        SlicePredicates.Limit limit = loadAllTs
+                                ? SlicePredicates.Limit.NO_LIMIT
+                                : SlicePredicates.Limit.ONE;
+                        return SlicePredicates.create(range, limit);
+                    });
+
+            KeyPredicate keyPredicate = new KeyPredicate()
+                    .setKey(cell.getRowName())
+                    .setPredicate(predicate);
+            keyPredicates.add(keyPredicate);
+        }
+        return keyPredicates;
+    }
+
+    private void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
+        log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
+                        + " multiget {} rows; this may indicate overly-large batching on a higher level."
+                        + " Note that batches are executed in parallel, which may cause load on both"
+                        + " your Atlas client as well as on Cassandra if the number of rows is exceptionally"
+                        + " high.\n{}",
+                SafeArg.of("host", CassandraLogHelper.host(host)),
+                LoggingArgs.tableRef(tableRef),
+                SafeArg.of("rows", numRows),
+                SafeArg.of("stacktrace", CassandraKeyValueServices.getFilteredStackTrace("com.palantir")));
     }
 }
