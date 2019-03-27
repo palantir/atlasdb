@@ -326,6 +326,7 @@ public class SerializableTransactionManagerTest {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
             }

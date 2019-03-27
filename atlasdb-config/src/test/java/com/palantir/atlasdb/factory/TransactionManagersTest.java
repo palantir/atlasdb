@@ -494,28 +494,6 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void asyncInitializationIsSynchronousIfKvsIsReady() {
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAtlasDbConfig())
-                .initializeAsync(true)
-                .build();
-
-        TransactionManager manager = TransactionManagers.builder()
-                .config(atlasDbConfig)
-                .userAgent("test")
-                .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .registrar(environment)
-                .addSchemas(GenericTestSchema.getSchema())
-                .build()
-                .serializable();
-
-        assertTrue(manager.isInitialized());
-
-        performTransaction(manager);
-    }
-
-    @Test
     public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
         KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
         assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
