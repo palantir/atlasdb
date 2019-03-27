@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -26,6 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -1617,7 +1619,7 @@ public abstract class AbstractKeyValueServiceTest {
         assertFalse(result.hasNext());
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromWrongValue() {
         Assume.assumeTrue(checkAndSetSupported());
 
@@ -1628,27 +1630,43 @@ public abstract class AbstractKeyValueServiceTest {
             CheckAndSetRequest secondRequest = CheckAndSetRequest
                     .singleCell(TEST_TABLE, TEST_CELL, val(0, 1), val(0, 0));
             keyValueService.checkAndSet(secondRequest);
+            fail();
         } catch (CheckAndSetException ex) {
-            assertThat(ex.getActualValues(), contains(val(0, 0)));
-            throw ex;
+            if (supportsDetailsOnCheckAndSetFailures()) {
+                assertThat(ex.getActualValues(), contains(val(0, 0)));
+            }
         }
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromValueWhenNoValue() {
         Assume.assumeTrue(checkAndSetSupported());
 
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
-        keyValueService.checkAndSet(request);
+        try {
+            CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
+            keyValueService.checkAndSet(request);
+            fail();
+        } catch (CheckAndSetException ex) {
+            if (supportsDetailsOnCheckAndSetFailures()) {
+                assertThat(ex.getActualValues(), empty());
+            }
+        }
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromNoValueWhenValueIsPresent() {
         Assume.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
-        keyValueService.checkAndSet(request);
+        try {
+            keyValueService.checkAndSet(request);
+            fail();
+        } catch (CheckAndSetException ex) {
+            if (supportsDetailsOnCheckAndSetFailures()) {
+                assertThat(ex.getActualValues(), contains(val(0, 0)));
+            }
+        }
     }
 
     @Test
