@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.InstrumentedExecutorService;
+import com.codahale.metrics.InstrumentedThreadFactory;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -75,6 +76,7 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
+    private final ExecutorService executor;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
     private TimeLockResource resource;
@@ -98,7 +100,14 @@ public class TimeLockAgent {
         this.install = install;
         this.runtime = runtime;
         this.registrar = registrar;
-
+        this.executor = new InstrumentedExecutorService(
+                PTExecutors.newCachedThreadPool(
+                        new InstrumentedThreadFactory(new ThreadFactoryBuilder()
+                                .setNameFormat("paxos-timestamp-creator-%d")
+                                .setDaemon(true)
+                                .build(), metricsManager.getRegistry())),
+                metricsManager.getRegistry(),
+                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
         this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
                 install.paxos().dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(this.metricsManager, install, runtime, registrar);
@@ -134,8 +143,8 @@ public class TimeLockAgent {
                         .collectToMap(),
                 client -> KeyedStream.stream(paxosLearners)
                         .<PaxosLearner>mapKeys(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
-                        .collectToMap());
-    }
+                        .collectToMap(),
+                executor);    }
 
     private Map<ClientAwarePaxosLearner, ExecutorService> createClientAwarePaxosLearners() {
         return createProxiesWithExecutors(ClientAwarePaxosLearner.class, "timestamp-bound-store.learner");
@@ -158,7 +167,7 @@ public class TimeLockAgent {
                         metricsManager.getRegistry(),
                         trustContext,
                         uri, clazz, userAgent, false))
-                .map(ignored -> executorService())
+                .map(ignored -> executor)
                 .collectToMap();
     }
 
