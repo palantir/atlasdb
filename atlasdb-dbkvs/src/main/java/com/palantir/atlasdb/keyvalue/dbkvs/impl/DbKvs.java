@@ -570,7 +570,15 @@ public final class DbKvs extends AbstractKeyValueService {
             Map<Cell, byte[]> value = ImmutableMap.of(checkAndSetRequest.cell(), checkAndSetRequest.newValue());
             putUnlessExists(checkAndSetRequest.table(), value);
         } catch (KeyAlreadyExistsException e) {
-            throw new CheckAndSetException("Value unexpectedly present when running check and set", e);
+            // Read the value out. Another call is needed anyway, since the exception for PK violation only has the key
+            Collection<Value> presentValues = get(checkAndSetRequest.table(),
+                    ImmutableMap.of(checkAndSetRequest.cell(), Long.MAX_VALUE))
+                    .values();
+            throw new CheckAndSetException("Value unexpectedly present when running check and set",
+                    e,
+                    checkAndSetRequest.cell(),
+                    checkAndSetRequest.oldValue().orElse(null),
+                    presentValues.stream().map(Value::getContents).collect(Collectors.toList()));
         }
     }
 
