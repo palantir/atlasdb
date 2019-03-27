@@ -62,16 +62,16 @@ final class LockTokenShare implements LockToken {
     /**
      * Unlocks shared token on client side - does not guarantee underlying token to be unlocked on server side.
      *
-     * @return referenced shared lock token if all lock token shares are unlocked; that is lock token on server side is
-     * good to be unlocked.
+     * @return referenced shared lock token iff all lock token shares are unlocked after this unlock call. Only the
+     * unlock call on last reference returns the underlying shared token.
      */
     synchronized Optional<LockToken> unlock() {
         if (!unlocked) {
             unlocked = true;
-            referenceCounter.unmark();
+            return referenceCounter.unmark() ? Optional.of(sharedLockToken) : Optional.empty();
         }
 
-        return referenceCounter.dereferenced() ? Optional.of(sharedLockToken) : Optional.empty();
+        return Optional.empty();
     }
 
     LockToken sharedLockToken() {
@@ -85,12 +85,9 @@ final class LockTokenShare implements LockToken {
             this.referenceCount = referenceCount;
         }
 
-        synchronized void unmark() {
+        synchronized boolean unmark() {
             Preconditions.checkState(referenceCount > 0, "Reference count can not go below zero!");
             referenceCount--;
-        }
-
-        synchronized boolean dereferenced() {
             return referenceCount == 0;
         }
     }
