@@ -26,6 +26,7 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
@@ -70,6 +71,24 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
                 LoggingArgs.safeTableOrPlaceholder(tableRef),
                 numberOfKeys, numberOfColumns, consistency_level, kvsMethodName)) {
             return client.multiget_slice(kvsMethodName, tableRef, keys, predicate, consistency_level);
+        }
+    }
+
+    @Override
+    public Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(String kvsMethodName,
+            TableReference tableRef,
+            List<KeyPredicate> keyPredicates,
+            ConsistencyLevel consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        int numberOfKeyPredicates = keyPredicates.size();
+
+        try (CloseableTrace trace = startLocalTrace(
+                "client.multiget_slice(table {}, number of key-predicate pairs {}, consistency {}) on kvs.{}",
+                LoggingArgs.safeTableOrPlaceholder(tableRef),
+                keyPredicates.size(),
+                consistency_level,
+                kvsMethodName)) {
+            return client.multiget_multislice(kvsMethodName, tableRef, keyPredicates, consistency_level);
         }
     }
 

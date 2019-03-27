@@ -49,6 +49,27 @@ develop
 
     *    - Type
          - Change
+         
+    *    - |improved|
+         - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+
+    *    - |devbreak|
+         - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+         
+========
+v0.127.0
+========
+
+25 Mar 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Fixed an issue where the ``transformAgreedValue`` of the ``KeyValueServiceCoordinationStore`` would throw an NPE when check and set fails on KVSs that do not support detail on CAS failure (DbKvs).
@@ -59,7 +80,7 @@ develop
            Previously, Background Sweep would not prioritise new writes for sweeping if writes to the sweep queue were enabled.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3824>`__)
 
-    *    - |changed|
+    *    - |changed| |improved|
          - We've rolled back the change from 0.117.0 that introduces an extra delay after leader election as we are no longer pursuing leadership leases.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3836>`__)
 
@@ -67,13 +88,18 @@ develop
          - `AtlasDbHttpClients`, `FeignOkHttpClients` and `AtlasDbFeignTargetFactory` are refactored to get rid of deprecated methods and overused overloads.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3837>`__)
 
-    *    - |improved|
-         - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+    *    - |userbreak|
+         - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
+           This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
 
-    *    - |devbreak|
-         - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
+    *    - |logs|
+         - Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3863>`__)
+
+    *    - |changed|
+         - Postgres 9.5.2+ requirement temporarily rescinded.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3862>`__)
 
 ========
 v0.126.0
