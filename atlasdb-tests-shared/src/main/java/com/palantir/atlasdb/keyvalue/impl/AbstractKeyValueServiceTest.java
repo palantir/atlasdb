@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -26,6 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +45,7 @@ import java.util.SortedMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -1516,6 +1519,38 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void putUnlessExistsThrowsExceptionContainingExistingCellIfNoConcurrentOperations() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
+
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> Assertions.assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
+                        .containsExactly(TEST_CELL));
+    }
+
+    @Test
+    public void putUnlessExistsThrowsExceptionOnlyForExistingCellIfNoConcurrentOperations() {
+        Assume.assumeTrue(checkAndSetSupported());
+
+        Cell cell1 = Cell.create(row(1), column(1));
+        Cell cell2 = Cell.create(row(1), column(2));
+        Cell cell3 = Cell.create(row(2), column(1));
+
+        byte[] testValue = val(0, 0);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(cell3, testValue));
+
+        Map<Cell, byte[]> batchQuery = ImmutableMap.of(cell1, testValue, cell2, testValue, cell3, testValue);
+
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, batchQuery))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> Assertions.assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
+                        .containsExactly(cell3));
+    }
+
+    @Test
     public void testCheckAndSetFromEmpty() {
         Assume.assumeTrue(checkAndSetSupported());
 
@@ -1579,7 +1614,7 @@ public abstract class AbstractKeyValueServiceTest {
         assertFalse(result.hasNext());
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromWrongValue() {
         Assume.assumeTrue(checkAndSetSupported());
 
@@ -1590,27 +1625,37 @@ public abstract class AbstractKeyValueServiceTest {
             CheckAndSetRequest secondRequest = CheckAndSetRequest
                     .singleCell(TEST_TABLE, TEST_CELL, val(0, 1), val(0, 0));
             keyValueService.checkAndSet(secondRequest);
+            fail();
         } catch (CheckAndSetException ex) {
             assertThat(ex.getActualValues(), contains(val(0, 0)));
-            throw ex;
         }
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromValueWhenNoValue() {
         Assume.assumeTrue(checkAndSetSupported());
 
-        CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
-        keyValueService.checkAndSet(request);
+        try {
+            CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
+            keyValueService.checkAndSet(request);
+            fail();
+        } catch (CheckAndSetException ex) {
+            assertThat(ex.getActualValues(), empty());
+        }
     }
 
-    @Test(expected = CheckAndSetException.class)
+    @Test
     public void testCheckAndSetFromNoValueWhenValueIsPresent() {
         Assume.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
-        keyValueService.checkAndSet(request);
+        try {
+            keyValueService.checkAndSet(request);
+            fail();
+        } catch (CheckAndSetException ex) {
+            assertThat(ex.getActualValues(), contains(val(0, 0)));
+        }
     }
 
     @Test
