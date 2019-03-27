@@ -36,8 +36,11 @@ public enum CheckAndSetCompatibility {
     /**
      * The {@link KeyValueService} supports CAS and PUE operations. In the event of failure:
      *
-     * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown must return the list
-     *        of existing values. (In practice, this should have zero or one elements.)
+     * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown must return a list
+     *        of existing values that was present at some point during the call. Notice that this may match
+     *        {@link CheckAndSetRequest#oldValue()} in the presence of concurrent updates, if a concurrent request
+     *        updates the cell in question to that value.
+     *        (In practice, this should have zero or one elements.)
      * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} on any such exception thrown must return the list
      *        of all pre-existing cells for any row which the implementation attempted to put into the key value
      *        service. Note that there is no guarantee that the implementation attempts to put all rows atomically.

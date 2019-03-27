@@ -281,6 +281,8 @@ public interface KeyValueService extends AutoCloseable {
      * said value was obtained.
      * If a {@link CheckAndSetException} is thrown, it is likely that the value stored was not as you expected.
      * In this case, you may want to check the stored value and determine why it was different from the expected value.
+     * Please consult {@link CheckAndSetCompatibility} as to what guarantees any exceptions thrown by this method
+     * may have.
      *
      * @param checkAndSetRequest the request, including table, cell, old value and new value.
      * @throws CheckAndSetException if the stored value for the cell was not as expected.
