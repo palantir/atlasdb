@@ -57,7 +57,13 @@ develop
     *    - |devbreak|
          - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
-         
+
+    *    - |fixed| |devbreak|
+         - Callbacks specified in TransactionManagers will no longer be run synchronously when ``initializeAsync`` is set to true, even if initialization succeeds in the first, synchronous attempt.
+           Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
+           Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
+
 ========
 v0.127.0
 ========

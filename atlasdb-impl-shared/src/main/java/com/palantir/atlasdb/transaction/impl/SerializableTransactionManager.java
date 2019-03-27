@@ -68,7 +68,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callBack;
             this.executorService = initializer;
-            runCallbackIfInitializedOrScheduleForLater(this::attemptCallbackSynchronously);
+            scheduleInitializationCheckAndCallback();
         }
 
         @Override
@@ -150,18 +150,6 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
                     && initializationPrerequisite.get();
-        }
-
-        private void attemptCallbackSynchronously() {
-            try {
-                if (callback.runOnceOnly(txManager)) {
-                    changeStateToReady();
-                } else {
-                    scheduleInitializationCheckAndCallback();
-                }
-            } catch (Throwable e) {
-                changeStateToCallbackFailure(e);
-            }
         }
 
         private void runCallbackWithRetry() {
