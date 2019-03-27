@@ -50,6 +50,16 @@ develop
     *    - Type
          - Change
          
+    *    - |fixed|
+         - DbKVS now returns details about failures to perform check-and-set or put-unless-exists operations.
+           Previously, a ``KeyAlreadyExistsException`` thrown from DbKVS did not have any information on existing keys; a ``CheckAndSetException`` thrown from a failed attempt to check-and-set an empty value did not include the value that was already present.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
+    *    - |devbreak|
+         - ``CheckAndSetCompatibility#SUPPORTED_NO_DETAIL`` has been removed; all key-value services are now expected to return information about why check-and-set or put-unless-exists operations failed.
+           Please contact the AtlasDB team if this is an issue.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
     *    - |improved|
          - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
