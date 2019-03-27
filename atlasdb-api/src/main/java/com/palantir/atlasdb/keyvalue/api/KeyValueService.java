@@ -218,7 +218,6 @@ public interface KeyValueService extends AutoCloseable {
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
     @NonIdempotent
-    @Idempotent
     void putWithTimestamps(TableReference tableRef,
                            Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
 

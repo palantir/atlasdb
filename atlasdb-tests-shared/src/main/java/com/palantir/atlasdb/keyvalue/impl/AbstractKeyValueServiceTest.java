@@ -43,6 +43,7 @@ import java.util.SortedMap;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -66,6 +67,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -111,6 +113,10 @@ public abstract class AbstractKeyValueServiceTest {
 
     protected boolean checkAndSetSupported() {
         return true;
+    }
+
+    private boolean supportsDetailsOnCheckAndSetFailures() {
+        return keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
     }
 
     @Before
@@ -1513,6 +1519,38 @@ public abstract class AbstractKeyValueServiceTest {
 
         Value storedValue = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL);
         assertArrayEquals(megabyteValue, storedValue.getContents());
+    }
+
+    @Test
+    public void putUnlessExistsThrowsExceptionContainingExistingCellIfDetailsSupported() {
+        Assume.assumeTrue(supportsDetailsOnCheckAndSetFailures());
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
+
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> Assertions.assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
+                        .containsExactly(TEST_CELL));
+    }
+
+    @Test
+    public void putUnlessExistsThrowsExceptionOnlyForExistingCellIfDetailsSupported() {
+        Assume.assumeTrue(supportsDetailsOnCheckAndSetFailures());
+
+        Cell cell1 = Cell.create(row(1), column(1));
+        Cell cell2 = Cell.create(row(1), column(2));
+        Cell cell3 = Cell.create(row(2), column(1));
+
+        byte[] testValue = val(0, 0);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(cell3, testValue));
+
+        Map<Cell, byte[]> batchQuery = ImmutableMap.of(cell1, testValue, cell2, testValue, cell3, testValue);
+
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, batchQuery))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> Assertions.assertThat(((KeyAlreadyExistsException) exception).getExistingKeys())
+                        .containsExactly(cell3));
     }
 
     @Test

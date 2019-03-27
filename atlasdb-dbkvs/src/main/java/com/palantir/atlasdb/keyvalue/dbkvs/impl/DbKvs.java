@@ -75,6 +75,7 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -276,12 +277,18 @@ public final class DbKvs extends AbstractKeyValueService {
             return null;
         });
     }
+
     @Override
     public void close() {
         super.close();
         dbTables.close();
         connections.close();
         batchingQueryRunner.close();
+    }
+
+    @Override
+    public CheckAndSetCompatibility getCheckAndSetCompatibility() {
+        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE;
     }
 
     @Override
@@ -458,7 +465,9 @@ public final class DbKvs extends AbstractKeyValueService {
                     if (idempotent) {
                         putIfNotUpdate(readTable, writeTable, tableRef, batch, timestamp, e);
                     } else {
-                        throw e;
+                        Map<Cell, Long> extantCells = getLatestTimestamps(tableRef,
+                                batch.stream().collect(Collectors.toMap(Entry::getKey, unused -> Long.MAX_VALUE)));
+                        throw new KeyAlreadyExistsException("key already exists", e, extantCells.keySet());
                     }
                 }
             }
