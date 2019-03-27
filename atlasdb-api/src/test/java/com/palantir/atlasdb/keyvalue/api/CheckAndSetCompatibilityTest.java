@@ -33,26 +33,26 @@ public class CheckAndSetCompatibilityTest {
 
     @Test
     public void minReturnsNotSupportedIfOneKvsHasNotSupported() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
+        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC,
                         CheckAndSetCompatibility.NOT_SUPPORTED,
-                        CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
+                        CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC))
                 .isEqualTo(CheckAndSetCompatibility.NOT_SUPPORTED);
     }
 
     @Test
     public void minReturnsSupportedNoDetailIfNotSupportedAbsent() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE);
+        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC,
+                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC,
+                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC))
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC);
     }
 
     @Test
     public void minReturnsSupportedWithDetailIfAllAreSupportedWithDetail() {
-        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE,
-                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE))
-                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+        assertThat(getMinCompatibility(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC,
+                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC,
+                CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC))
+                .isEqualTo(CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC);
     }
 
     private CheckAndSetCompatibility getMinCompatibility(CheckAndSetCompatibility... compatibilities) {

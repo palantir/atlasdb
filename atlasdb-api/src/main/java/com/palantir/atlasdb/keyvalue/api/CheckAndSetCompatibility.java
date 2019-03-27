@@ -27,26 +27,34 @@ import java.util.stream.Stream;
 public enum CheckAndSetCompatibility {
     NOT_SUPPORTED,
     /**
-     * The {@link KeyValueService} supports CAS and PUE operations. However, in the event of failure, there are no
-     * guarantees that {@link CheckAndSetException#getActualValues()} or
-     * {@link KeyAlreadyExistsException#getExistingKeys()} actually return any meaningful data (other than the
-     * fact that the operation failed).
+     * The {@link KeyValueService} supports CAS and PUE operations. In the event of failure:
+     *
+     * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown will return a list of
+     *        values that existed in the database at some point during the CAS operation. Notice that this may
+     *        even match the value of the {@link CheckAndSetRequest#oldValue()} in ABA situations.
+     * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} must return the list of pre-existing cells
+     *        for any row which the implementation attempted to put into the key value service, as read at some
+     *        point during the PUE operation. These reads need not be atomic, and it is possible to get empty
+     *        results (if a value is separately added and then deleted during the PUE operation).
      */
-    SUPPORTED_NO_DETAIL_ON_FAILURE,
+    SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC,
     /**
      * The {@link KeyValueService} supports CAS and PUE operations. In the event of failure:
      *
      * - CAS: {@link CheckAndSetException#getActualValues()} on any such exception thrown must return the list
-     *        of existing values. (In practice, this should have zero or one elements.)
+     *        of existing values that, at the database level, caused the CAS operation to fail.
+     *        (In practice, this should have zero or one elements.)
      * - PUE: {@link KeyAlreadyExistsException#getExistingKeys()} on any such exception thrown must return the list
      *        of all pre-existing cells for any row which the implementation attempted to put into the key value
-     *        service. Note that there is no guarantee that the implementation attempts to put all rows atomically.
+     *        service. This list must be current at the time the implementation attempted to put values in to the
+     *        key value service for the relevant row. Note that there is no guarantee that the implementation attempts
+     *        to put all rows atomically.
      */
-    SUPPORTED_DETAIL_ON_FAILURE;
+    SUPPORTED_DETAIL_ON_FAILURE_ATOMIC;
 
     public static CheckAndSetCompatibility min(Stream<CheckAndSetCompatibility> compatibilities) {
         Set<CheckAndSetCompatibility> presentCompatibilities = compatibilities.collect(Collectors.toSet());
-        return Stream.of(NOT_SUPPORTED, SUPPORTED_NO_DETAIL_ON_FAILURE, SUPPORTED_DETAIL_ON_FAILURE)
+        return Stream.of(NOT_SUPPORTED, SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC, SUPPORTED_DETAIL_ON_FAILURE_ATOMIC)
                 .filter(presentCompatibilities::contains)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("min requires at least 1 element, but 0 provided"));

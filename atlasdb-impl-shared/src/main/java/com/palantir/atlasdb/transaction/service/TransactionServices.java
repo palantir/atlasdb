@@ -34,7 +34,8 @@ public final class TransactionServices {
 
     public static TransactionService createTransactionService(
             KeyValueService keyValueService, TransactionSchemaManager transactionSchemaManager) {
-        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+        if (keyValueService.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_ATOMIC) {
             return createSplitKeyTransactionService(keyValueService, transactionSchemaManager);
         }
         return createV1TransactionService(keyValueService);

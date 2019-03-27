@@ -66,7 +66,7 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return CheckAndSetCompatibility.SUPPORTED_NO_DETAIL_ON_FAILURE;
+        return CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE_NOT_ATOMIC;
     }
 
     @Override
