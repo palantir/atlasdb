@@ -188,6 +188,14 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Concurrent calls to <cite>TimelockService.startIdentifiedAtlasDbTransaction()</cite> now coalesced into a single Timelock rpc to reduce load on Timelock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><cite>RemoteTimelockServiceAdapter</cite> is now closeable. Users of this class should invoke <cite>close()</cite> before termination to avoid thread leaks.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Callbacks specified in TransactionManagers will no longer be run synchronously when <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, even if initialization succeeds in the first, synchronous attempt.
 Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
