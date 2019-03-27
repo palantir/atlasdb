@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,9 +54,9 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartTransactionResponseV4;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CoalescingTransactionStarterTest {
+public class TransactionStarterTest {
     @Mock private LockLeaseService lockLeaseService;
-    private CoalescingTransactionStarter coalescingTransactionStarter;
+    private TransactionStarter transactionStarter;
 
     private static final int NUM_PARTITIONS = 16;
     private static final LockImmutableTimestampResponse IMMUTABLE_TS_RESPONSE =
@@ -67,7 +68,12 @@ public class CoalescingTransactionStarterTest {
 
     @Before
     public void before() {
-        coalescingTransactionStarter = CoalescingTransactionStarter.create(lockLeaseService);
+        transactionStarter = TransactionStarter.create(lockLeaseService);
+    }
+
+    @After
+    public void after() {
+        transactionStarter.close();
     }
 
     @Test
@@ -76,7 +82,7 @@ public class CoalescingTransactionStarterTest {
 
         when(lockLeaseService.startTransactions(1)).thenReturn(startTransactionResponse);
         StartIdentifiedAtlasDbTransactionResponse response =
-                coalescingTransactionStarter.startIdentifiedAtlasDbTransaction();
+                transactionStarter.startIdentifiedAtlasDbTransaction();
 
         assertDerivableFromBatchedResponse(response, startTransactionResponse);
     }
@@ -89,7 +95,7 @@ public class CoalescingTransactionStarterTest {
 
         List<StartIdentifiedAtlasDbTransactionResponse> responses = requestBatches(3);
         assertThat(responses)
-                .satisfies(CoalescingTransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
+                .satisfies(TransactionStarterTest::assertThatStartTransactionResponsesAreUnique)
                 .hasSize(3)
                 .allSatisfy(startTxnResponse -> assertDerivableFromBatchedResponse(startTxnResponse, batchResponse));
     }
@@ -113,7 +119,7 @@ public class CoalescingTransactionStarterTest {
                         .result(SettableFuture.create())
                         .build())
                 .collect(toList());
-        CoalescingTransactionStarter.consumer(lockLeaseService).accept(elements);
+        TransactionStarter.consumer(lockLeaseService).accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));
     }
 

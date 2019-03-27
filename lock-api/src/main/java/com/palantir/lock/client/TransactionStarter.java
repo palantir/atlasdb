@@ -46,19 +46,19 @@ import com.palantir.lock.v2.TimestampAndPartition;
  * Callers of this class should use {@link #unlock(Set)} and {@link #refreshLockLeases(Set)} for returned lock tokens,
  * rather than directly calling delegate lock service.
  */
-final class CoalescingTransactionStarter implements AutoCloseable {
+final class TransactionStarter implements AutoCloseable {
     private final DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher;
     private final LockLeaseService lockLeaseService;
 
-    private CoalescingTransactionStarter(
+    private TransactionStarter(
             DisruptorAutobatcher<Void, StartIdentifiedAtlasDbTransactionResponse> autobatcher,
             LockLeaseService lockLeaseService) {
         this.autobatcher = autobatcher;
         this.lockLeaseService = lockLeaseService;
     }
 
-    static CoalescingTransactionStarter create(LockLeaseService lockLeaseService) {
-        return new CoalescingTransactionStarter(DisruptorAutobatcher.create(
+    static TransactionStarter create(LockLeaseService lockLeaseService) {
+        return new TransactionStarter(DisruptorAutobatcher.create(
                 consumer(lockLeaseService)),
                 lockLeaseService);
     }
@@ -192,8 +192,8 @@ final class CoalescingTransactionStarter implements AutoCloseable {
     }
 
     private static Set<LockTokenShare> filterLockTokenShares(Set<LockToken> tokens) {
-        return tokens.stream().filter(CoalescingTransactionStarter::isLockTokenShare)
-                .map(t -> (LockTokenShare) t)
+        return tokens.stream().filter(TransactionStarter::isLockTokenShare)
+                .map(LockTokenShare.class::cast)
                 .collect(Collectors.toSet());
     }
 
