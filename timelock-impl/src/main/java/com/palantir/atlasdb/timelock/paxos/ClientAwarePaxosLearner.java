@@ -33,7 +33,7 @@ import com.palantir.paxos.PaxosValue;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
-        + "/{client}"
+        + "/{client: [a-zA-Z0-9_-]+}"
         + "/learner")
 public interface ClientAwarePaxosLearner {
 

@@ -76,7 +76,7 @@ public class TimeLockAgent {
     private final LockCreator lockCreator;
     private final TimestampCreator timestampCreator;
     private final TimeLockServicesCreator timelockCreator;
-    private final ExecutorService executor;
+    private final ExecutorService sharedExecutor;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
     private TimeLockResource resource;
@@ -87,7 +87,8 @@ public class TimeLockAgent {
             Supplier<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
             Consumer<Object> registrar) {
-        TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, deprecated, registrar);
+        ExecutorService executor = createSharedExecutor(metricsManager);
+        TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, deprecated, registrar, executor);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -95,12 +96,25 @@ public class TimeLockAgent {
     private TimeLockAgent(MetricsManager metricsManager, TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             TimeLockDeprecatedConfiguration deprecated,
-            Consumer<Object> registrar) {
+            Consumer<Object> registrar,
+            ExecutorService sharedExecutor) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
         this.registrar = registrar;
-        this.executor = new InstrumentedExecutorService(
+        this.sharedExecutor = sharedExecutor;
+        this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
+                install.paxos().dataDirectory().toString());
+        this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
+        this.lockCreator = new LockCreator(runtime, deprecated);
+        this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
+        LockLog lockLog = new LockLog(metricsManager.getRegistry(),
+                Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
+        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
+    }
+
+    private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
+        return new InstrumentedExecutorService(
                 PTExecutors.newCachedThreadPool(
                         new InstrumentedThreadFactory(new ThreadFactoryBuilder()
                                 .setNameFormat("paxos-timestamp-creator-%d")
@@ -108,14 +122,6 @@ public class TimeLockAgent {
                                 .build(), metricsManager.getRegistry())),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-creator", "executor"));
-        this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
-                install.paxos().dataDirectory().toString());
-        this.leadershipCreator = new PaxosLeadershipCreator(this.metricsManager, install, runtime, registrar);
-        this.lockCreator = new LockCreator(runtime, deprecated);
-        this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
-        LockLog lockLog = new LockLog(metricsManager.getRegistry(),
-                Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
-        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
     }
 
     private TimestampCreator getTimestampCreator(MetricRegistry metrics) {
@@ -144,7 +150,8 @@ public class TimeLockAgent {
                 client -> KeyedStream.stream(paxosLearners)
                         .<PaxosLearner>mapKeys(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
                         .collectToMap(),
-                executor);    }
+                sharedExecutor);
+    }
 
     private Map<ClientAwarePaxosLearner, ExecutorService> createClientAwarePaxosLearners() {
         return createProxiesWithExecutors(ClientAwarePaxosLearner.class, "timestamp-bound-store.learner");
@@ -166,26 +173,12 @@ public class TimeLockAgent {
                 .mapKeys(uri -> AtlasDbHttpClients.createProxy(
                         metricsManager.getRegistry(),
                         trustContext,
-                        uri, clazz, userAgent, false))
-                .map(ignored -> executor)
+                        uri,
+                        clazz,
+                        userAgent,
+                        false))
+                .map(ignored -> sharedExecutor)
                 .collectToMap();
-    }
-
-    private ExecutorService executorService() {
-        return new InstrumentedExecutorService(
-                PTExecutors.newThreadPoolExecutor(
-                        5,
-                        50, // we should tune these to whatever makes sense
-                        // hack, we know that we will run accept and learn, so at least core pool size of 2
-                        5000,
-                        TimeUnit.MILLISECONDS,
-                        new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                                .setNameFormat("paxos-timestamp-creator-remote-%d")
-                                .setDaemon(true)
-                                .build()),
-                metricsManager.getRegistry(),
-                MetricRegistry.name(PaxosLeaderElectionService.class, "paxos-timestamp-remote-local", "executor"));
     }
 
     private void createAndRegisterResources() {

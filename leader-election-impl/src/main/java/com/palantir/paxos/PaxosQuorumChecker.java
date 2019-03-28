@@ -108,6 +108,20 @@ public final class PaxosQuorumChecker {
                 true);
     }
 
+    public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectQuorumResponses(
+            Map<SERVICE, ExecutorService> remotesToExecutors,
+            final Function<SERVICE, RESPONSE> request,
+            int quorumSize,
+            Duration remoteRequestTimeout) {
+        return collectResponses(
+                ImmutableList.copyOf(remotesToExecutors.keySet()),
+                request,
+                quorumSize,
+                remotesToExecutors,
+                remoteRequestTimeout,
+                true);
+    }
+
     /**
      * Collects as many responses as possible from remote services.
      * This method will continue even in the presence of nacks.
