@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -111,6 +112,40 @@ public class CellLoadingBatcherTest {
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 1),
                 columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
         verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
+    }
+
+    @Test
+    public void respondsToChangesInCrossColumnLimitBatchParameter() {
+        AtomicReference<CassandraCellLoadingConfig> config = new AtomicReference<>(LOADING_CONFIG);
+        CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
+
+        reloadingBatcher.partitionIntoBatches(columnRange(0, 0, CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
+        config.set(ImmutableCassandraCellLoadingConfig.builder()
+                .crossColumnLoadBatchLimit(2 * CROSS_COLUMN_LIMIT)
+                .singleQueryLoadBatchLimit(SINGLE_QUERY_LIMIT)
+                .build());
+
+        List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
+                columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
+        assertBatchContentsMatch(largerBatches, columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT));
+        verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
+    }
+
+    @Test
+    public void respondsToChangesInSingleQueryLimitBatchParameter() {
+        AtomicReference<CassandraCellLoadingConfig> config = new AtomicReference<>(LOADING_CONFIG);
+        CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
+
+        reloadingBatcher.partitionIntoBatches(rowRange(SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
+        config.set(ImmutableCassandraCellLoadingConfig.builder()
+                .crossColumnLoadBatchLimit(CROSS_COLUMN_LIMIT)
+                .singleQueryLoadBatchLimit(2 * SINGLE_QUERY_LIMIT)
+                .build());
+
+        List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
+                rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
+        assertBatchContentsMatch(largerBatches, rowRange(2 * SINGLE_QUERY_LIMIT, 0));
+        verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
 
     private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
