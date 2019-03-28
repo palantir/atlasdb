@@ -1,0 +1,72 @@
+/*
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.leader;
+
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+
+import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+
+public class BatchingLeaderElectionService implements LeaderElectionService {
+    private final LeaderElectionService delegate;
+    private final DisruptorAutobatcher<Void, LeadershipToken> batcher;
+
+    public BatchingLeaderElectionService(LeaderElectionService delegate) {
+        this.delegate = delegate;
+        this.batcher = DisruptorAutobatcher.create(batch -> {
+            try {
+                LeaderElectionService.LeadershipToken leadershipToken = delegate.blockOnBecomingLeader();
+                batch.forEach(e -> e.result().set(leadershipToken));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public LeadershipToken blockOnBecomingLeader() throws InterruptedException {
+        try {
+            return batcher.apply(null).get();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Optional<LeadershipToken> getCurrentTokenIfLeading() {
+        return delegate.getCurrentTokenIfLeading();
+    }
+
+    @Override
+    public StillLeadingStatus isStillLeading(LeadershipToken token) {
+        return delegate.isStillLeading(token);
+    }
+
+    @Override
+    public Optional<HostAndPort> getSuspectedLeaderInMemory() {
+        return delegate.getSuspectedLeaderInMemory();
+    }
+
+    @Override
+    public Set<PingableLeader> getPotentialLeaders() {
+        return delegate.getPotentialLeaders();
+    }
+
+}

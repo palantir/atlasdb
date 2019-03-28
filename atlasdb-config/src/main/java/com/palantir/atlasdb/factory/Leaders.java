@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,6 +50,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
+import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeaderElectionService;
@@ -144,10 +146,7 @@ public final class Leaders {
                 metricsManager, remotePaxosServerSpec.remoteLeaderUris(), trustContext, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-proposer-%d")
-                        .setDaemon(true)
-                        .build()),
+                PTExecutors.newCachedThreadPool(threadFactory("atlas-proposer-%d")),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosProposer.class, "executor"));
         PaxosProposer proposer = AtlasDbMetrics.instrument(metricsManager.getRegistry(), PaxosProposer.class,
@@ -163,10 +162,7 @@ public final class Leaders {
                         5000,
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<>(),
-                        new ThreadFactoryBuilder()
-                        .setNameFormat("atlas-leaders-election-" + useCase + "-%d")
-                        .setDaemon(true)
-                        .build()),
+                        threadFactory("atlas-leaders-election-" + useCase + "-%d")),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
 
@@ -193,9 +189,16 @@ public final class Leaders {
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
-                .leaderElectionService(leaderElectionService)
+                .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .pingableLeader(pingableLeader)
                 .leadershipObserver(leadershipObserver)
+                .build();
+    }
+
+    public static ThreadFactory threadFactory(String name) {
+        return new ThreadFactoryBuilder()
+                .setNameFormat(name)
+                .setDaemon(true)
                 .build();
     }
 
