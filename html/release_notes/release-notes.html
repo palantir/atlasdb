@@ -467,15 +467,28 @@ Instead it waits until creating each individual learner or acceptor log director
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The <cite>TableMetadata</cite> class has been refactored to use Immutables.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3624">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now supports _transactions2 if backed by Cassandra KVS or In-Memory KVS.
+This is expected to improve transaction performance by making <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
+This is a beta feature; please contact the AtlasDB team if you are interested to use _transactions2.
+(Many PRs; key PRs include <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3706">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3707">Pull Request 2</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request 3</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3732">Pull Request 4</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on <code class="docutils literal notranslate"><span class="pre">com.palantir.cassandra</span></code> instead of <code class="docutils literal notranslate"><span class="pre">org.apache.cassandra</span></code>.
 This version of Cassandra thrift client supports a <code class="docutils literal notranslate"><span class="pre">put_unless_exists</span></code> operation that can update multiple columns in the same row simultaneously.
 The Cassandra KVS putUnlessExists method has been updated to use the above call.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The <cite>TableMetadata</cite> class has been refactored to use Immutables.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3624">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<td>Transaction services now expose timer metrics indicating how long committing or getting values takes.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3733">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.

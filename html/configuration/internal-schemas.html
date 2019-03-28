@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Enabling Cassandra Tracing &mdash; OSS AtlasDB develop documentation</title>
+  <title>Internal Schema Configuration &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -37,8 +37,8 @@
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Leader Configuration" href="leader_config.html" />
-    <link rel="prev" title="Multinode Cassandra HA Guarantees" href="multinode_cassandra.html" /> 
+    <link rel="next" title="Cluster Management" href="../cluster_management/index.html" />
+    <link rel="prev" title="Timestamp Client Options" href="timestamp_client.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -96,11 +96,11 @@
 <li class="toctree-l2"><a class="reference internal" href="qos_configs/index.html">QoS Service Configurations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cassandra_config.html">Cassandra Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multinode_cassandra.html">Multinode Cassandra HA Guarantees</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Enabling Cassandra Tracing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="leader_config.html">Leader Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="logging.html">Logging Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="timestamp_client.html">Timestamp Client Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="internal-schemas.html">Internal Schema Configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Internal Schema Configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
@@ -156,14 +156,14 @@
         
           <li><a href="index.html">Configuration</a> &raquo;</li>
         
-      <li>Enabling Cassandra Tracing</li>
+      <li>Internal Schema Configuration</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/enabling_cassandra_tracing.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/internal-schemas.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -177,57 +177,33 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="enabling-cassandra-tracing">
-<span id="id1"></span><h1>Enabling Cassandra Tracing<a class="headerlink" href="#enabling-cassandra-tracing" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
-<p>Sometimes in order to do deeper performance analysis of queries hitting
-your Cassandra cluster, you’ll want to enable tracing.  To learn more
-about tracing itself check out DataStax’s <a class="reference external" href="http://www.datastax.com/dev/blog/tracing-in-cassandra-1-2">Request tracing in Cassandra
-1.2</a> and <a class="reference external" href="https://docs.datastax.com/en/cql/3.3/cql/cql_reference/tracing_r.html">TRACING</a>.</p>
-<p>To enable tracing you need to provide a configuration file called
-<code class="docutils literal notranslate"><span class="pre">atlas_tracing.prefs</span></code> and place it in the <code class="docutils literal notranslate"><span class="pre">user.dir</span></code> directory of your
-Java process, which is the directory from which java was executed.</p>
-<p>When a query is traced, you will see the following line your log file:
-<code class="docutils literal notranslate"><span class="pre">Traced</span> <span class="pre">a</span> <span class="pre">call</span> <span class="pre">to</span> <span class="pre">&lt;table-name&gt;</span> <span class="pre">that</span> <span class="pre">took</span> <span class="pre">&lt;duration&gt;</span> <span class="pre">ms.</span> <span class="pre">It</span> <span class="pre">will</span> <span class="pre">appear</span> <span class="pre">in</span> <span class="pre">system_traces</span> <span class="pre">with</span> <span class="pre">UUID=&lt;session-id-of-trace&gt;</span></code></p>
+  <div class="section" id="internal-schema-configuration">
+<span id="id1"></span><h1>Internal Schema Configuration<a class="headerlink" href="#internal-schema-configuration" title="Permalink to this headline">¶</a></h1>
+<p>This document covers configuration pertaining to settings about the internal schema that AtlasDB uses for storing
+some of its state. These settings should be specified under the <code class="docutils literal notranslate"><span class="pre">internalSchema</span></code> key in an
+<code class="docutils literal notranslate"><span class="pre">AtlasDbRuntimeConfiguration</span></code>.</p>
+<p>For a full list of the configurations available at this block, see
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/internalschema/InternalSchemaConfig.java">InternalSchemaConfig.java</a>.</p>
+<div class="section" id="target-transactions-schema-version">
+<h2>Target Transactions Schema Version<a class="headerlink" href="#target-transactions-schema-version" title="Permalink to this headline">¶</a></h2>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Trace logging is meant to be a temporary tool for performance analysis.
-Leaving tracing enabled on a production instance is not recommended due to performance implications.
-Ensure you disable tracing after your performance profiling is completed.</p>
+<p class="last">_transactions2 is currently only supported for Cassandra and In-Memory KVSes.</p>
 </div>
-</div>
-<div class="section" id="the-prefs-file">
-<h2>The Prefs File<a class="headerlink" href="#the-prefs-file" title="Permalink to this headline">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">atlas_tracing.prefs</span></code> is a standard java properties file with
-the following parameters:</p>
-<div class="code properties highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># enables tracing</span>
-<span class="c1"># this will cause a significant performance hit while enabled</span>
-<span class="c1"># ensure you disable tracing after your performance profiling is completed</span>
-<span class="n">tracing_enabled</span><span class="p">:</span> <span class="n">true</span>
-
-<span class="c1"># the probability we trace an eligible query</span>
-<span class="c1"># this is a pre-filter and a good tool to use to ensure you&#39;re not tracing</span>
-<span class="c1"># frequently enough to incur performance degradation</span>
-<span class="n">trace_probability</span><span class="p">:</span> <span class="mf">1.0</span>
-
-<span class="c1"># a comma-separated list of tables whose queries are eligible for tracing</span>
-<span class="c1"># for namespaced tables the table entry must be &lt;namespace&gt;.&lt;table&gt;</span>
-<span class="c1"># like &quot;trace_probability&quot;, this is also a pre-filter</span>
-<span class="n">tables_to_trace</span><span class="p">:</span> <span class="n">_transactions</span><span class="p">,</span><span class="n">namespaceOne</span><span class="o">.</span><span class="n">table_7</span><span class="p">,</span><span class="n">namespaceTwo</span><span class="o">.</span><span class="n">table_3</span>
-
-<span class="c1"># the minimum amount of time a traced query has to take to actually be logged</span>
-<span class="c1"># this is a post-filter and so the trace is still done (and thus still incurs</span>
-<span class="c1"># a performance hit) even if you do not log it</span>
-<span class="n">min_duration_to_log_ms</span><span class="p">:</span> <span class="mi">1000</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="understanding-namespaced-tables-in-cassandra">
-<h2>Understanding Namespaced Tables in Cassandra<a class="headerlink" href="#understanding-namespaced-tables-in-cassandra" title="Permalink to this headline">¶</a></h2>
-<p>In Cassandra, an AtlasDB namespaced table will look like <code class="docutils literal notranslate"><span class="pre">&lt;keyspace&gt;.&lt;namespace&gt;__&lt;table-name&gt;</span></code>.
-As described in the prefs file’s comment, to trace said table you would want to
-write it in the form of <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;.&lt;table-name&gt;</span></code> in the comma-separated list.</p>
+<p>AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
+This may be done in various ways, and is configurable. We currently support two strategies:</p>
+<ul class="simple">
+<li>version 1, which variable-length encodes the start and commit timestamps and stores them in the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code>
+table.</li>
+<li>version 2, which variable-length encodes the start and commit timestamps following the
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java">TicketsEncodingStrategy</a>,
+storing them in the <code class="docutils literal notranslate"><span class="pre">_transactions2</span></code> table.</li>
+</ul>
+<p>If specified, this AtlasDB client will attempt to install the provided transaction schema version. This can be done in
+a live fashion without downtime, though it may take a while (in terms of AtlasDB timestamps) to take effect. If
+install is successful, a message will be logged indicating when the switch will take place. If needed, one can force
+the new version to be used by fast-forwarding the timestamp to that point. To do this, see
+<a class="reference internal" href="../services/timestamp_service/management.html#timestamp-service-management"><span class="std std-ref">Timestamp Service Management</span></a>.</p>
 </div>
 </div>
 
@@ -239,10 +215,10 @@ write it in the form of <code class="docutils literal notranslate"><span class="
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="leader_config.html" class="btn btn-neutral float-right" title="Leader Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../cluster_management/index.html" class="btn btn-neutral float-right" title="Cluster Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="multinode_cassandra.html" class="btn btn-neutral float-left" title="Multinode Cassandra HA Guarantees" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="timestamp_client.html" class="btn btn-neutral float-left" title="Timestamp Client Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
