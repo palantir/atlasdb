@@ -44,3 +44,10 @@ New versions can be specified in a live fashion without downtime, though there a
 - The AtlasDB timestamp still needs to progress forward to that point before we use the new transactions schema version.
   If needed, one can force the new version to be used by fast-forwarding the timestamp to that point. To do this, see
   :ref:`Timestamp Service Management <timestamp-service-management>`.
+
+Users can also consider the metrics produced in ``MetadataCoordinationServiceMetrics`` - currently, the following
+metrics are available:
+
+- ``eventualTransactionsSchemaVersion`` which should change to the target version after the intention to upgrade the
+  transactions schema version has been installed by the coordination service. Note that the AtlasDB timestamp
+  still needs to progress to the point where the new version actually comes into effect.
