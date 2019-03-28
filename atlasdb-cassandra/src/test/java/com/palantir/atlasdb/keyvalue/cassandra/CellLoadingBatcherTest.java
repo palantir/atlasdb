@@ -173,6 +173,10 @@ public class CellLoadingBatcherTest {
                 .hasSameElementsAs(randomCells);
     }
 
+    private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
+        return batcher.partitionIntoBatches(cells, ADDRESS, TABLE_REFERENCE);
+    }
+
     private static boolean batchIsSingleColumnOrSatisfiesCrossColumnLimit(List<Cell> batch) {
         return batchIsSingleColumn(batch) || batch.size() <= CROSS_COLUMN_LIMIT;
     }
@@ -182,10 +186,6 @@ public class CellLoadingBatcherTest {
                 .map(Cell::getColumnName)
                 .collect(Collectors.toCollection(
                         () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator()))).size() == 1;
-    }
-
-    private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
-        return batcher.partitionIntoBatches(cells, ADDRESS, TABLE_REFERENCE);
     }
 
     private static void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {
