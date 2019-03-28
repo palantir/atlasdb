@@ -28,13 +28,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -52,6 +56,7 @@ public class CellLoadingBatcherTest {
 
     private static final InetSocketAddress ADDRESS = new InetSocketAddress(42);
     private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("a.b");
+    private static final int SEED = 1;
 
     private CellLoadingBatcher.BatchCallback rebatchingCallback = mock(CellLoadingBatcher.BatchCallback.class);
     private CellLoadingBatcher batcher = new CellLoadingBatcher(() -> LOADING_CONFIG, rebatchingCallback);
@@ -146,6 +151,37 @@ public class CellLoadingBatcherTest {
                 rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
         assertBatchContentsMatch(largerBatches, rowRange(2 * SINGLE_QUERY_LIMIT, 0));
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
+    }
+
+    @Test
+    public void fuzzTestPreservesBatcherInvariants() {
+        Random random = new Random(SEED);
+        List<Cell> randomCells = IntStream.range(0, 2_000)
+                .mapToObj(unused -> cell(random.nextInt(100), random.nextInt(200)))
+                .distinct()
+                .collect(Collectors.toList());
+        List<List<Cell>> batches = partitionUsingMockCallback(randomCells);
+
+        assertThat(batches)
+                .as("batch size should be limited by the single query limit")
+                .allMatch(batch -> batch.size() <= SINGLE_QUERY_LIMIT);
+        assertThat(batches)
+                .as("mixed column batches should not exceed the cross column query limit")
+                .allMatch(CellLoadingBatcherTest::batchIsSingleColumnOrSatisfiesCrossColumnLimit);
+        assertThat(batches.stream().flatMap(Collection::stream))
+                .as("output of batching should contain an arrangement of the same cells as in the input")
+                .hasSameElementsAs(randomCells);
+    }
+
+    private static boolean batchIsSingleColumnOrSatisfiesCrossColumnLimit(List<Cell> batch) {
+        return batchIsSingleColumn(batch) || batch.size() <= CROSS_COLUMN_LIMIT;
+    }
+
+    private static boolean batchIsSingleColumn(List<Cell> batch) {
+        return batch.stream()
+                .map(Cell::getColumnName)
+                .collect(Collectors.toCollection(
+                        () -> new TreeSet<>(UnsignedBytes.lexicographicalComparator()))).size() == 1;
     }
 
     private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
