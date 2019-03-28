@@ -123,12 +123,7 @@ public class CellLoadingBatcherTest {
     public void respondsToChangesInCrossColumnLimitBatchParameter() {
         AtomicReference<CassandraCellLoadingConfig> config = new AtomicReference<>(LOADING_CONFIG);
         CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
-
-        reloadingBatcher.partitionIntoBatches(columnRange(0, 0, CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
-        config.set(ImmutableCassandraCellLoadingConfig.builder()
-                .crossColumnLoadBatchLimit(2 * CROSS_COLUMN_LIMIT)
-                .singleQueryLoadBatchLimit(SINGLE_QUERY_LIMIT)
-                .build());
+        updateConfig(config, 2 * CROSS_COLUMN_LIMIT, SINGLE_QUERY_LIMIT);
 
         List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
                 columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
@@ -136,16 +131,18 @@ public class CellLoadingBatcherTest {
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
 
+    private void updateConfig(AtomicReference<CassandraCellLoadingConfig> config, int i, int singleQueryLimit) {
+        config.set(ImmutableCassandraCellLoadingConfig.builder()
+                .crossColumnLoadBatchLimit(i)
+                .singleQueryLoadBatchLimit(singleQueryLimit)
+                .build());
+    }
+
     @Test
     public void respondsToChangesInSingleQueryLimitBatchParameter() {
         AtomicReference<CassandraCellLoadingConfig> config = new AtomicReference<>(LOADING_CONFIG);
         CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
-
-        reloadingBatcher.partitionIntoBatches(rowRange(SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
-        config.set(ImmutableCassandraCellLoadingConfig.builder()
-                .crossColumnLoadBatchLimit(CROSS_COLUMN_LIMIT)
-                .singleQueryLoadBatchLimit(2 * SINGLE_QUERY_LIMIT)
-                .build());
+        updateConfig(config, CROSS_COLUMN_LIMIT, 2 * SINGLE_QUERY_LIMIT);
 
         List<List<Cell>> largerBatches = reloadingBatcher.partitionIntoBatches(
                 rowRange(2 * SINGLE_QUERY_LIMIT, 0), ADDRESS, TABLE_REFERENCE);
