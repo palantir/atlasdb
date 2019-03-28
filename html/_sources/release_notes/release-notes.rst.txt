@@ -63,6 +63,11 @@ develop
          - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
 
+    *    - |fixed|
+         - Oracle KVS now deletes old entries correctly if using targeted sweep.
+           Previously, there were situations where it would not delete values that could safely be deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
     *    - |fixed| |devbreak|
          - Callbacks specified in TransactionManagers will no longer be run synchronously when ``initializeAsync`` is set to true, even if initialization succeeds in the first, synchronous attempt.
            Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.

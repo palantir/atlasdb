@@ -201,7 +201,12 @@ We do not want to stay on an RC version now that a full release is available.
 <td><cite>RemoteTimelockServiceAdapter</cite> is now closeable. Users of this class should invoke <cite>close()</cite> before termination to avoid thread leaks.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Oracle KVS now deletes old entries correctly if using targeted sweep.
+Previously, there were situations where it would not delete values that could safely be deleted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3QQQ">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Callbacks specified in TransactionManagers will no longer be run synchronously when <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, even if initialization succeeds in the first, synchronous attempt.
 Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
 Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
