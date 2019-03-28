@@ -49,7 +49,13 @@ develop
 
     *    - Type
          - Change
-         
+
+    *    - |improved|
+         - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
+           Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
+           Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3860>`__)
+
     *    - |improved|
          - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
