@@ -72,7 +72,9 @@ final class CellLoader {
             WrappingQueryRunner queryRunner,
             TaskRunner taskRunner,
             Supplier<CassandraKeyValueServiceRuntimeConfig> configSupplier) {
-        CellLoadingBatcher batcher = new CellLoadingBatcher(() -> configSupplier.get().cellLoadingConfig());
+        CellLoadingBatcher batcher = new CellLoadingBatcher(
+                () -> configSupplier.get().cellLoadingConfig(),
+                CellLoader::logRebatchingWarnMessage);
         return new CellLoader(clientPool, queryRunner, taskRunner, batcher);
     }
 
@@ -141,8 +143,7 @@ final class CellLoader {
             final ConsistencyLevel consistency) {
         final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
         List<Callable<Void>> tasks = Lists.newArrayList();
-        for (final List<Cell> partition : batcher.partitionIntoBatches(
-                cells, (numRows) -> logRebatchingWarnMessage(host, tableRef, numRows))) {
+        for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
             Callable<Void> multiGetCallable = () -> clientPool.runWithRetryOnHost(
                     host,
                     new FunctionCheckedException<CassandraClient, Void, Exception>() {
@@ -206,7 +207,7 @@ final class CellLoader {
         return keyPredicates;
     }
 
-    private void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
+    private static void logRebatchingWarnMessage(InetSocketAddress host, TableReference tableRef, int numRows) {
         log.warn("Re-batching in getLoadWithTsTasksForSingleHost a call to {} for table {} that attempted to"
                         + " multiget {} rows; this may indicate overly-large batching on a higher level."
                         + " Note that batches are executed in parallel, which may cause load on both"

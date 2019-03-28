@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -30,6 +30,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
  * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
@@ -48,13 +49,18 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
  */
 final class CellLoadingBatcher {
     private final Supplier<CassandraCellLoadingConfig> loadingConfigSupplier;
+    private final BatchCallback rebatchingManyRowsForColumnCallback;
 
-    CellLoadingBatcher(Supplier<CassandraCellLoadingConfig> loadingConfigSupplier) {
+    CellLoadingBatcher(Supplier<CassandraCellLoadingConfig> loadingConfigSupplier,
+            BatchCallback rebatchingManyRowsForColumnCallback) {
         this.loadingConfigSupplier = loadingConfigSupplier;
+        this.rebatchingManyRowsForColumnCallback = rebatchingManyRowsForColumnCallback;
     }
 
-    List<List<Cell>> partitionIntoBatches(Collection<Cell> cellsToPartition,
-            IntConsumer rebatchingManyRowsWarningCallback) {
+    List<List<Cell>> partitionIntoBatches(
+            Collection<Cell> cellsToPartition,
+            InetSocketAddress host,
+            TableReference tableReference) {
         CassandraCellLoadingConfig config = loadingConfigSupplier.get();
 
         ListMultimap<byte[], Cell> cellsByColumn = indexCellsByColumnName(cellsToPartition);
@@ -64,7 +70,7 @@ final class CellLoadingBatcher {
         for (Map.Entry<byte[], List<Cell>> cellColumnPair : Multimaps.asMap(cellsByColumn).entrySet()) {
             if (shouldExplicitlyAllocateBatchToColumn(config, cellColumnPair.getValue())) {
                 batches.addAll(partitionBySingleQueryLoadBatchLimit(
-                        cellColumnPair.getValue(), config, rebatchingManyRowsWarningCallback));
+                        cellColumnPair.getValue(), config, host, tableReference));
             } else {
                 cellsForCrossColumnBatching.addAll(cellColumnPair.getValue());
             }
@@ -75,9 +81,12 @@ final class CellLoadingBatcher {
     }
 
     private List<List<Cell>> partitionBySingleQueryLoadBatchLimit(
-            List<Cell> cells, CassandraCellLoadingConfig config, IntConsumer rebatchingManyRowsWarningCallback) {
+            List<Cell> cells,
+            CassandraCellLoadingConfig config,
+            InetSocketAddress host,
+            TableReference tableReference) {
         if (cells.size() > config.singleQueryLoadBatchLimit()) {
-            rebatchingManyRowsWarningCallback.accept(cells.size());
+            rebatchingManyRowsForColumnCallback.consume(host, tableReference, cells.size());
             return Lists.partition(cells, config.singleQueryLoadBatchLimit());
         }
         return ImmutableList.of(cells);
@@ -96,5 +105,10 @@ final class CellLoadingBatcher {
             cellsByColumn.put(cell.getColumnName(), cell);
         }
         return cellsByColumn;
+    }
+
+    @FunctionalInterface
+    interface BatchCallback {
+        void consume(InetSocketAddress host, TableReference tableReference, int numRows);
     }
 }
