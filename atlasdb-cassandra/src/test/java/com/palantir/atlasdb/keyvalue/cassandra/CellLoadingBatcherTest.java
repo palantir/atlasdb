@@ -144,9 +144,10 @@ public class CellLoadingBatcherTest {
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
 
-    private void updateConfig(AtomicReference<CassandraCellLoadingConfig> config, int i, int singleQueryLimit) {
+    private void updateConfig(
+            AtomicReference<CassandraCellLoadingConfig> config, int crossColumnLimit, int singleQueryLimit) {
         config.set(ImmutableCassandraCellLoadingConfig.builder()
-                .crossColumnLoadBatchLimit(i)
+                .crossColumnLoadBatchLimit(crossColumnLimit)
                 .singleQueryLoadBatchLimit(singleQueryLimit)
                 .build());
     }
