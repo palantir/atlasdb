@@ -188,15 +188,20 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
+We do not want to stay on an RC version now that a full release is available.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3872">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Concurrent calls to <cite>TimelockService.startIdentifiedAtlasDbTransaction()</cite> now coalesced into a single Timelock rpc to reduce load on Timelock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><cite>RemoteTimelockServiceAdapter</cite> is now closeable. Users of this class should invoke <cite>close()</cite> before termination to avoid thread leaks.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Callbacks specified in TransactionManagers will no longer be run synchronously when <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, even if initialization succeeds in the first, synchronous attempt.
 Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
 Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
@@ -239,7 +244,7 @@ Previously, Background Sweep would not prioritise new writes for sweeping if wri
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
 This version of Cassandra KVS supports a <code class="docutils literal notranslate"><span class="pre">multiget_multislice</span></code> operation which retrieves different columns across different rows in a single query.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3qqq">Pull Request</a>)</td>
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3849">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
 <td>Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
