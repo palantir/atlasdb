@@ -26,10 +26,12 @@ import static org.mockito.Mockito.verify;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -277,13 +279,12 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex, PaxosProposer proposer) {
-        return null;
-//        return new PaxosTimestampBoundStore(
-//                proposer,
-//                learners.get(nodeIndex),
-//                ImmutableList.copyOf(acceptors),
-//                ImmutableList.copyOf(learners),
-//                1000L);
+        return new PaxosTimestampBoundStore(
+                proposer,
+                learners.get(nodeIndex),
+                mapToExecutorService(acceptors),
+                mapToExecutorService(learners),
+                1000L);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {
@@ -294,6 +295,10 @@ public class PaxosTimestampBoundStoreTest {
                 NUM_NODES / 2 + 1,
                 UUID.randomUUID(),
                 executor);
+    }
+
+    private <T> Map<T, ExecutorService> mapToExecutorService(List<T> keys) {
+        return keys.stream().collect(Collectors.toMap(x -> x, ignore -> executor));
     }
 
     private static class OnceFailingPaxosProposer implements PaxosProposer {
