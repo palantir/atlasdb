@@ -321,7 +321,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                         + " WHERE m.row_name = ? "
                         + "  AND m.col_name = ? "
                         + "  AND m.ts >= ? "
-                        + "  AND m.ts < ?",
+                        + "  AND m.ts <= ?",
                 args);
     }
 
@@ -380,7 +380,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
                 + "                  WHERE i.row_name = ? "
                 + "                    AND i.col_name = ? "
                 + "                    AND i.ts >= ? "
-                + "                    AND i.ts < ? "
+                + "                    AND i.ts <= ? "
                 + "                    AND i.overflow IS NOT NULL)",
                 args);
     }
