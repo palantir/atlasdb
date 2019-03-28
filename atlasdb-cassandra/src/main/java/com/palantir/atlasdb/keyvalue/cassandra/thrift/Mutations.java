@@ -15,34 +15,34 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.thrift;
 
+import java.util.function.ToLongFunction;
+
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.Mutation;
+import org.apache.cassandra.thrift.SlicePredicate;
+
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 
 public final class Mutations {
 
     private Mutations() { }
 
-    public static Mutation rangeTombstoneForColumn(
+    public static Mutation fromTimestampRangeDelete(
             byte[] columnName,
-            long maxAtlasTimestampExclusive,
-            long timestampForRangeTombstone) {
+            TimestampRangeDelete delete,
+            long rangeTombstoneCassandraTimestamp,
+            ToLongFunction<TimestampRangeDelete> exclusiveTimestampExtractor) {
         Deletion deletion = new Deletion()
-                .setTimestamp(timestampForRangeTombstone)
-                .setPredicate(SlicePredicates.rangeTombstoneForColumn(columnName, maxAtlasTimestampExclusive));
+                .setTimestamp(rangeTombstoneCassandraTimestamp)
+                .setPredicate(getSlicePredicate(columnName, delete, exclusiveTimestampExtractor.applyAsLong(delete)));
 
         return new Mutation().setDeletion(deletion);
     }
 
-    public static Mutation rangeTombstoneIncludingSentinelForColumn(
-            byte[] columnName,
-            long maxAtlasTimestampExclusive,
-            long timestampForRangeTombstone) {
-        Deletion deletion = new Deletion()
-                .setTimestamp(timestampForRangeTombstone)
-                .setPredicate(SlicePredicates
-                        .rangeTombstoneIncludingSentinelForColumn(columnName, maxAtlasTimestampExclusive));
-
-        return new Mutation().setDeletion(deletion);
+    private static SlicePredicate getSlicePredicate(
+            byte[] columnName, TimestampRangeDelete delete, long maxExclusiveTimestamp) {
+        return delete.deleteSentinels()
+                ? SlicePredicates.rangeTombstoneIncludingSentinelForColumn(columnName, maxExclusiveTimestamp)
+                : SlicePredicates.rangeTombstoneForColumn(columnName, maxExclusiveTimestamp);
     }
-
 }

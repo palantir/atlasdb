@@ -22,14 +22,16 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.reflect.Reflection;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.remoting.api.config.service.ProxyConfiguration;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.TrustContext;
-import com.palantir.remoting3.ext.refresh.RefreshableProxyInvocationHandler;
+import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
 
 import feign.Client;
 import feign.Contract;
@@ -43,13 +45,11 @@ import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 
 public final class AtlasDbFeignTargetFactory {
-    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
-    // and we don't want it to exactly align with the feign timeout
-    private static final Request.Options DEFAULT_FEIGN_OPTIONS = new Request.Options(
-            10_000, 65_000);
 
     private static final ObjectMapper mapper = new ObjectMapper()
-            .registerModule(new Jdk8Module());
+            .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
+            .registerModule(new GuavaModule());
     private static final Contract contract = new JAXRSContract();
     private static final Encoder encoder = new JacksonEncoder(mapper);
     private static final Decoder decoder = new TextDelegateDecoder(
@@ -64,25 +64,15 @@ public final class AtlasDbFeignTargetFactory {
             Optional<TrustContext> trustContext,
             String uri,
             Class<T> type,
-            String userAgent) {
-        return createProxy(trustContext, uri, false, type, userAgent);
-    }
-
-    public static <T> T createProxy(
-            Optional<TrustContext> trustContext,
-            String uri,
-            boolean refreshingHttpClient,
-            Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayloadSize) {
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(errorDecoder)
                 .retryer(new InterruptHonoringRetryer())
-                .client(refreshingHttpClient
-                        ? FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent)
-                        : FeignOkHttpClients.newOkHttpClient(trustContext, Optional.empty(), userAgent))
+                .client(createClient(trustContext, userAgent, limitPayloadSize))
                 .target(type, uri);
     }
 
@@ -96,7 +86,7 @@ public final class AtlasDbFeignTargetFactory {
                 .encoder(encoder)
                 .decoder(decoder)
                 .errorDecoder(new RsErrorDecoder())
-                .client(FeignOkHttpClients.newOkHttpClient(trustContext, Optional.empty(), userAgent))
+                .client(createClient(trustContext, userAgent, false))
                 .target(type, uri);
     }
 
@@ -104,48 +94,16 @@ public final class AtlasDbFeignTargetFactory {
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
-            Class<T> type,
-            String userAgent) {
-        return createProxyWithFailover(
-                trustContext,
-                proxySelector,
-                endpointUris,
-                DEFAULT_FEIGN_OPTIONS,
-                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
-                type,
-                userAgent);
-    }
-
-    public static <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
             int feignConnectTimeout,
             int feignReadTimeout,
             int maxBackoffMillis,
             Class<T> type,
-            String userAgent) {
-        return createProxyWithFailover(
-                trustContext,
-                proxySelector,
-                endpointUris,
-                new Request.Options(feignConnectTimeout, feignReadTimeout),
-                maxBackoffMillis,
-                type,
-                userAgent);
-    }
-
-    private static <T> T createProxyWithFailover(
-            Optional<TrustContext> trustContext,
-            Optional<ProxySelector> proxySelector,
-            Collection<String> endpointUris,
-            Request.Options feignOptions,
-            int maxBackoffMillis,
-            Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayloadSize) {
         FailoverFeignTarget<T> failoverFeignTarget = new FailoverFeignTarget<>(endpointUris, maxBackoffMillis, type);
         Client client = failoverFeignTarget.wrapClient(
-                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent));
+                FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, proxySelector, userAgent, limitPayloadSize));
+
         return Feign.builder()
                 .contract(contract)
                 .encoder(encoder)
@@ -153,28 +111,11 @@ public final class AtlasDbFeignTargetFactory {
                 .errorDecoder(errorDecoder)
                 .client(client)
                 .retryer(failoverFeignTarget)
-                .options(feignOptions)
+                .options(new Request.Options(feignConnectTimeout, feignReadTimeout))
                 .target(failoverFeignTarget);
     }
 
-    public static <T> T createLiveReloadingProxyWithFailover(
-            Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
-            Class<T> type,
-            String userAgent) {
-        return createLiveReloadingProxyWithFailover(
-                serverListConfigSupplier,
-                trustContextCreator,
-                proxySelectorCreator,
-                DEFAULT_FEIGN_OPTIONS.connectTimeoutMillis(),
-                DEFAULT_FEIGN_OPTIONS.readTimeoutMillis(),
-                FailoverFeignTarget.DEFAULT_MAX_BACKOFF_MILLIS,
-                type,
-                userAgent);
-    }
-
-    public static <T> T createLiveReloadingProxyWithFailover(
+    static <T> T createLiveReloadingProxyWithFailover(
             Supplier<ServerListConfig> serverListConfigSupplier,
             Function<SslConfiguration, TrustContext> trustContextCreator,
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
@@ -182,7 +123,8 @@ public final class AtlasDbFeignTargetFactory {
             int feignReadTimeout,
             int maxBackoffMillis,
             Class<T> type,
-            String userAgent) {
+            String userAgent,
+            boolean limitPayload) {
         PollingRefreshable<ServerListConfig> configPollingRefreshable =
                 PollingRefreshable.create(serverListConfigSupplier);
         return Reflection.newProxy(
@@ -199,10 +141,18 @@ public final class AtlasDbFeignTargetFactory {
                                         feignReadTimeout,
                                         maxBackoffMillis,
                                         type,
-                                        userAgent);
+                                        userAgent,
+                                        limitPayload);
                             }
                             return createProxyForZeroNodes(type);
                         }));
+    }
+
+    private static Client createClient(
+            Optional<TrustContext> trustContext,
+            String userAgent,
+            boolean limitPayload) {
+        return FeignOkHttpClients.newRefreshingOkHttpClient(trustContext, Optional.empty(), userAgent, limitPayload);
     }
 
     private static <T> T createProxyForZeroNodes(Class<T> type) {

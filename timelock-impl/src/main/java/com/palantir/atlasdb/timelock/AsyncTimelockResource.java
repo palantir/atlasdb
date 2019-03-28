@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -27,10 +28,17 @@ import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
+import com.palantir.atlasdb.timelock.lock.Leased;
 import com.palantir.atlasdb.timelock.lock.LockLog;
+import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.LockResponseV2;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
@@ -73,17 +81,37 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("start-atlasdb-transaction")
-    public StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request) {
-        return timelock.startAtlasDbTransaction(request);
+    public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(IdentifiedTimeLockRequest request) {
+        return timelock.deprecatedStartTransaction(request);
     }
 
     @POST
     @Path("start-identified-atlasdb-transaction")
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
+    public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
             StartIdentifiedAtlasDbTransactionRequest request) {
-        return timelock.startIdentifiedAtlasDbTransaction(request);
+        return timelock.startTransaction(request).toStartTransactionResponse();
     }
 
+    @POST
+    @Path("start-atlasdb-transaction-v3")
+    public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
+            StartIdentifiedAtlasDbTransactionRequest request) {
+        return timelock.startTransaction(request);
+    }
+
+    /**
+     * Returns a {@link StartTransactionResponseV4} which has a single immutable ts, and a range of timestamps to
+     * be used as start timestamps.
+     *
+     * It is guaranteed to have at least one usable timestamp matching the partition criteria in the returned timestamp
+     * range, but there is no other guarantee given. (It can be less than number of requested timestamps)
+     */
+    @POST
+    @Path("start-atlasdb-transaction-v4")
+    public StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request) {
+        return timelock.startTransactions(request);
+    }
+    
     @POST
     @Path("immutable-timestamp")
     public long getImmutableTimestamp() {
@@ -92,8 +120,8 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("lock")
-    public void lock(@Suspended final AsyncResponse response, LockRequest request) {
-        AsyncResult<LockToken> result = timelock.lock(request);
+    public void deprecatedLock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
         lockLog.registerRequest(request, result);
         result.onComplete(() -> {
             if (result.isFailed()) {
@@ -101,7 +129,23 @@ public class AsyncTimelockResource {
             } else if (result.isTimedOut()) {
                 response.resume(LockResponse.timedOut());
             } else {
-                response.resume(LockResponse.successful(result.get()));
+                response.resume(LockResponse.successful(result.get().value()));
+            }
+        });
+    }
+    
+    @POST
+    @Path("lock-v2")
+    public void lock(@Suspended final AsyncResponse response, IdentifiedLockRequest request) {
+        AsyncResult<Leased<LockToken>> result = timelock.lock(request);
+        lockLog.registerRequest(request, result);
+        result.onComplete(() -> {
+            if (result.isFailed()) {
+                response.resume(result.getError());
+            } else if (result.isTimedOut()) {
+                response.resume(LockResponseV2.timedOut());
+            } else {
+                response.resume(LockResponseV2.successful(result.get().value(), result.get().lease()));
             }
         });
     }
@@ -124,8 +168,20 @@ public class AsyncTimelockResource {
 
     @POST
     @Path("refresh-locks")
-    public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
+    public Set<LockToken> deprecatedRefreshLockLeases(Set<LockToken> tokens) {
+        return timelock.refreshLockLeases(tokens).refreshedTokens();
+    }
+
+    @POST
+    @Path("refresh-locks-v2")
+    public RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens) {
         return timelock.refreshLockLeases(tokens);
+    }
+
+    @GET
+    @Path("leader-time")
+    public LeaderTime getLeaderTime() {
+        return timelock.leaderTime();
     }
 
     @POST

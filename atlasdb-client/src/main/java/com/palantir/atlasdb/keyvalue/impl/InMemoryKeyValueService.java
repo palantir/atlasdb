@@ -67,6 +67,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -477,6 +478,14 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         for (Map.Entry<Cell, Long> e : keys.entries()) {
             table.remove(new Key(e.getKey(), e.getValue()));
         }
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
+        ConcurrentSkipListMap<Key, byte[]> table = getTableMap(tableRef).entries;
+        deletes.forEach((cell, delete) -> table.subMap(
+                new Key(cell, delete.minTimestampToDelete()), true,
+                new Key(cell, delete.maxTimestampToDelete()), true).clear());
     }
 
     @Override

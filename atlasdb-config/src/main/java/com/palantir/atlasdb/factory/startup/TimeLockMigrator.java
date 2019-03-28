@@ -43,24 +43,16 @@ public class TimeLockMigrator extends AsyncInitializer {
     }
 
     public static TimeLockMigrator create(
-            MetricsManager metricsManager,
-            ServerListConfig serverListConfig,
-            TimestampStoreInvalidator invalidator,
-            String userAgent) {
-        return create(metricsManager, () -> serverListConfig, invalidator,
-                userAgent, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+            TimestampManagementService timestampManagementService,
+            TimestampStoreInvalidator invalidator) {
+        return create(timestampManagementService, invalidator, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
     public static TimeLockMigrator create(
-            MetricsManager metricsManager,
-            Supplier<ServerListConfig> serverListConfigSupplier,
+            TimestampManagementService timestampManagementService,
             TimestampStoreInvalidator invalidator,
-            String userAgent,
             boolean initializeAsync) {
-        TimestampManagementService remoteTimestampManagementService =
-                createRemoteManagementService(
-                        metricsManager, serverListConfigSupplier, userAgent);
-        return new TimeLockMigrator(invalidator, remoteTimestampManagementService, initializeAsync);
+        return new TimeLockMigrator(invalidator, timestampManagementService, initializeAsync);
     }
 
     /**
@@ -85,8 +77,8 @@ public class TimeLockMigrator extends AsyncInitializer {
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfig,
             String userAgent) {
-        return new ServiceCreator<>(metricsManager, TimestampManagementService.class, userAgent)
-                .applyDynamic(serverListConfig);
+        return ServiceCreator.noPayloadLimiter(metricsManager, userAgent, serverListConfig)
+                .createService(TimestampManagementService.class);
     }
 
     @Override

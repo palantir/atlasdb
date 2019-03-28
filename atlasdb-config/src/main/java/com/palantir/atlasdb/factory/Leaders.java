@@ -28,12 +28,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.immutables.value.Value;
 
 import com.codahale.metrics.InstrumentedExecutorService;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -47,6 +47,7 @@ import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.AsyncLeadershipObserver;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeadershipObserver;
@@ -54,14 +55,12 @@ import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.leader.PaxosLeaderElectionServiceBuilder;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.leader.PingableLeader;
-import com.palantir.leader.lease.LeasingLeaderElectionService;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosLearnerImpl;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
-import com.palantir.remoting3.config.ssl.TrustContext;
 
 public final class Leaders {
     private Leaders() {
@@ -182,12 +181,11 @@ public final class Leaders {
                 .randomWaitBeforeProposingLeadershipMs(config.randomWaitBeforeProposingLeadershipMs())
                 .leaderPingResponseWaitMs(config.leaderPingResponseWaitMs())
                 .eventRecorder(leadershipEventRecorder)
-                .onlyLogOnQuorumFailure(Suppliers.compose(LeaderRuntimeConfig::onlyLogOnQuorumFailure, runtime::get))
                 .build();
 
         LeaderElectionService leaderElectionService = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 LeaderElectionService.class,
-                LeasingLeaderElectionService.wrap(paxosLeaderElectionService));
+                paxosLeaderElectionService);
         PingableLeader pingableLeader = AtlasDbMetrics.instrument(metricsManager.getRegistry(),
                 PingableLeader.class,
                 paxosLeaderElectionService);
@@ -206,20 +204,15 @@ public final class Leaders {
             T localObject,
             Set<String> remoteUris,
             Optional<TrustContext> trustContext,
-            Class<T> clazz) {
-        return createProxyAndLocalList(metrics, localObject, remoteUris, trustContext,
-                clazz, UserAgents.DEFAULT_USER_AGENT);
-    }
-
-    public static <T> List<T> createProxyAndLocalList(
-            MetricRegistry metrics,
-            T localObject,
-            Set<String> remoteUris,
-            Optional<TrustContext> trustContext,
             Class<T> clazz,
             String userAgent) {
+
+        List<T> remotes = remoteUris.stream()
+                .map(uri -> AtlasDbHttpClients.createProxy(metrics, trustContext, uri, clazz, userAgent, false))
+                .collect(Collectors.toList());
+
         return ImmutableList.copyOf(Iterables.concat(
-                AtlasDbHttpClients.createProxies(metrics, trustContext, remoteUris, true, clazz, userAgent),
+                remotes,
                 ImmutableList.of(localObject)));
     }
 
@@ -233,9 +226,8 @@ public final class Leaders {
          */
         Map<PingableLeader, HostAndPort> pingables = new IdentityHashMap<>();
         for (String endpoint : remoteEndpoints) {
-            PingableLeader remoteInterface = AtlasDbHttpClients
-                    .createProxy(metricsManager.getRegistry(), trustContext,
-                            endpoint, true, PingableLeader.class, userAgent);
+            PingableLeader remoteInterface = AtlasDbHttpClients.createProxy(metricsManager.getRegistry(), trustContext,
+                            endpoint, PingableLeader.class, userAgent, false);
             HostAndPort hostAndPort = HostAndPort.fromString(endpoint);
             pingables.put(remoteInterface, hostAndPort);
         }

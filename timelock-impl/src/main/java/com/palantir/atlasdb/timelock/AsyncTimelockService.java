@@ -19,35 +19,42 @@ import java.io.Closeable;
 import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
-import com.palantir.atlasdb.timelock.transaction.timestamp.ClientAwareManagedTimestampService;
+import com.palantir.atlasdb.timelock.lock.Leased;
+import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.lock.client.IdentifiedLockRequest;
+import com.palantir.lock.v2.StartTransactionResponseV4;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.v2.RefreshLockResponseV2;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
-import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.WaitForLocksRequest;
 
-public interface AsyncTimelockService extends ClientAwareManagedTimestampService, Closeable {
+public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
 
     long currentTimeMillis();
 
     Set<LockToken> unlock(Set<LockToken> tokens);
 
-    Set<LockToken> refreshLockLeases(Set<LockToken> tokens);
+    RefreshLockResponseV2 refreshLockLeases(Set<LockToken> tokens);
 
     AsyncResult<Void> waitForLocks(WaitForLocksRequest request);
 
-    AsyncResult<LockToken> lock(LockRequest request);
+    AsyncResult<Leased<LockToken>> lock(IdentifiedLockRequest request);
 
     long getImmutableTimestamp();
 
     LockImmutableTimestampResponse lockImmutableTimestamp(IdentifiedTimeLockRequest request);
 
-    StartAtlasDbTransactionResponse startAtlasDbTransaction(IdentifiedTimeLockRequest request);
+    StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request);
 
-    StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(
-            StartIdentifiedAtlasDbTransactionRequest request);
+    StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);
 
+    StartTransactionResponseV4 startTransactions(StartTransactionRequestV4 request);
+
+    LeaderTime leaderTime();
 }

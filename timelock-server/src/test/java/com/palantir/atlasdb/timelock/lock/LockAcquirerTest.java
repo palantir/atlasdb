@@ -51,12 +51,16 @@ public class LockAcquirerTest {
     private static final TimeLimit TIMEOUT = TimeLimit.of(123L);
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
+    private final LeaderClock leaderClock = LeaderClock.create();
 
     private final ExclusiveLock lockA = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
     private final ExclusiveLock lockB = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
     private final ExclusiveLock lockC = spy(new ExclusiveLock(LOCK_DESCRIPTOR));
 
-    private final LockAcquirer lockAcquirer = new LockAcquirer(new LockLog(new MetricRegistry(), () -> 2L), executor);
+    private final LockAcquirer lockAcquirer = new LockAcquirer(
+            new LockLog(new MetricRegistry(), () -> 2L),
+            executor,
+            leaderClock);
 
     @Test
     public void acquiresLocksInOrder() {

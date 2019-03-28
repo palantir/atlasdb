@@ -22,19 +22,15 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.thrift.KeyRange;
-import org.apache.cassandra.thrift.KeySlice;
-import org.apache.cassandra.thrift.SlicePredicate;
-
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CqlExecutor;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
-import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.concurrent.PTExecutors;
 
 public class GetCellTimestamps {
@@ -103,7 +99,7 @@ public class GetCellTimestamps {
         ExecutorService executor = PTExecutors.newFixedThreadPool(executorThreads);
 
         while (timestamps.isEmpty()) {
-            List<byte[]> rows = getRows(rangeStart);
+            List<byte[]> rows = rowGetter.getRowKeysInRange(rangeStart, PtBytes.EMPTY_BYTE_ARRAY, batchHint);
             if (rows.isEmpty()) {
                 return;
             }
@@ -116,14 +112,6 @@ public class GetCellTimestamps {
         }
 
         executor.shutdown();
-    }
-
-    private List<byte[]> getRows(byte[] rangeStart) {
-        KeyRange keyRange = new KeyRange().setStart_key(rangeStart).setEnd_key(new byte[0]).setCount(batchHint);
-        SlicePredicate slicePredicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.ZERO);
-
-        List<KeySlice> rows = rowGetter.getRows("getCandidateCellsForSweeping", keyRange, slicePredicate);
-        return rows.stream().map(KeySlice::getKey).collect(Collectors.toList());
     }
 
     private void fetchRemainingTimestampsForLastRow() {

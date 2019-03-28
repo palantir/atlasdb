@@ -37,8 +37,8 @@ public class ThreeNodeCassandraResource extends ExternalResource implements KvsM
     private TestResourceManager testResourceManager;
 
     public ThreeNodeCassandraResource() {
-        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
-                ThreeNodeCassandraCluster.KVS_CONFIG, Optional.empty());
+        this.supplier = () ->
+                CassandraKeyValueServiceImpl.createForTesting(ThreeNodeCassandraCluster.KVS_CONFIG);
     }
 
     public Statement apply(Statement base, Description description) {

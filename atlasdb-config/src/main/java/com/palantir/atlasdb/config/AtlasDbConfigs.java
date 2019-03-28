@@ -35,7 +35,7 @@ import com.google.common.base.Strings;
 import com.palantir.config.crypto.DecryptingVariableSubstitutor;
 import com.palantir.config.crypto.jackson.JsonNodeStringReplacer;
 import com.palantir.config.crypto.jackson.JsonNodeVisitors;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public final class AtlasDbConfigs {
     public static final String ATLASDB_CONFIG_OBJECT_PATH = "/atlasdb";

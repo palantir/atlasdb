@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.dbkvs.DdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
@@ -166,11 +167,11 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
     }
 
     @Override
-    public void deleteAllTimestamps(Map<Cell, Long> maxTimestampExclusiveByCell, boolean deleteSentinels) {
-        List<Object[]> args = Lists.newArrayListWithCapacity(maxTimestampExclusiveByCell.size());
-        long minTsToDelete = getLowerBound(deleteSentinels);
-        maxTimestampExclusiveByCell.forEach((cell, ts) ->
-                args.add(new Object[] {cell.getRowName(), cell.getColumnName(), minTsToDelete, ts}));
+    public void deleteAllTimestamps(Map<Cell, TimestampRangeDelete> deletes) {
+        List<Object[]> args = Lists.newArrayListWithCapacity(deletes.size());
+        deletes.forEach((cell, ts) ->
+                args.add(new Object[] {cell.getRowName(), cell.getColumnName(),
+                                       ts.minTimestampToDelete(), ts.maxTimestampToDelete()}));
 
         String prefixedTableName = prefixedTableNames.get(tableRef, conns);
         conns.get().updateManyUnregisteredQuery(" /* DELETE_ALL_TS (" + prefixedTableName + ") */ "
@@ -179,11 +180,7 @@ public abstract class AbstractDbWriteTable implements DbWriteTable {
                         + " WHERE m.row_name = ? "
                         + "  AND m.col_name = ? "
                         + "  AND m.ts >= ? "
-                        + "  AND m.ts < ?",
+                        + "  AND m.ts <= ?",
                 args);
-    }
-
-    private long getLowerBound(boolean includeSentinels) {
-        return includeSentinels ? Value.INVALID_VALUE_TIMESTAMP : Value.INVALID_VALUE_TIMESTAMP + 1;
     }
 }

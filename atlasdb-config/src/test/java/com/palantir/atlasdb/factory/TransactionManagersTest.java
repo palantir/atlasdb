@@ -38,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,14 +70,19 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
+import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
+import com.palantir.atlasdb.config.ImmutableTargetedSweepInstallConfig;
+import com.palantir.atlasdb.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
@@ -488,25 +494,62 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void asyncInitializationIsSynchronousIfKvsIsReady() {
-        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+    public void kvsRecordsSweepStatsIfBothSweepQueueWritesAndTargetedSweepDisabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, false);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
+    public void kvsRecordsSweepStatsIfSweepQueueWritesDisabledButTargetedSweepEnabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false, true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
+    public void kvsRecordsSweepStatsIfSweepQueueWritesEnabledButTargetedSweepDisabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, false);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(true));
+    }
+
+    @Test
+    public void kvsDoesNotRecordSweepStatsIfSweepQueueWritesAndTargetedSweepEnabled() {
+        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true, true);
+        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService), is(false));
+    }
+
+    private KeyValueService initializeKeyValueServiceWithSweepSettings(
+            boolean enableSweepQueueWrites, boolean enableTargetedSweep) {
+        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
-                .initializeAsync(true)
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder()
+                        .enableSweepQueueWrites(enableSweepQueueWrites)
+                        .build())
+                .build();
+        AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
+                .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
+                        .enabled(enableTargetedSweep)
+                        .build())
                 .build();
 
         TransactionManager manager = TransactionManagers.builder()
-                .config(atlasDbConfig)
+                .config(installConfig)
                 .userAgent("test")
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .registrar(environment)
                 .addSchemas(GenericTestSchema.getSchema())
+                .runtimeConfigSupplier(() -> Optional.of(atlasDbRuntimeConfig))
                 .build()
                 .serializable();
+        return manager.getKeyValueService();
+    }
 
-        assertTrue(manager.isInitialized());
-
-        performTransaction(manager);
+    private static boolean isSweepStatsKvsPresentInDelegatingChain(KeyValueService keyValueService) {
+        if (keyValueService instanceof SweepStatsKeyValueService) {
+            return true;
+        }
+        Collection<? extends KeyValueService> services = keyValueService.getDelegates();
+        return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
     private void performTransaction(TransactionManager manager) {
@@ -649,20 +692,5 @@ public class TransactionManagersTest {
                         .addAllServers(servers)
                         .build())
                 .build();
-    }
-
-    private TransactionManagers.LockAndTimestampServices createLockAndTimestampServicesForConfig(
-            AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
-        InMemoryTimestampService ts = new InMemoryTimestampService();
-        return TransactionManagers.createLockAndTimestampServices(
-                metricsManager,
-                atlasDbConfig,
-                () -> atlasDbRuntimeConfig,
-                environment,
-                LockServiceImpl::create,
-                () -> ts,
-                () -> ts,
-                invalidator,
-                USER_AGENT);
     }
 }

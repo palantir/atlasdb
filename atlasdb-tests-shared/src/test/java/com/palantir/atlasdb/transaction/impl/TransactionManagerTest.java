@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -192,9 +191,9 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 () -> ImmutableTransactionConfig.builder().build());
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
-        when(timelock.lockImmutableTimestamp(any())).thenReturn(
+        when(timelock.lockImmutableTimestamp()).thenReturn(
                 LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())));
-        when(timelock.startIdentifiedAtlasDbTransaction(any())).thenReturn(
+        when(timelock.startIdentifiedAtlasDbTransaction()).thenReturn(
                 StartIdentifiedAtlasDbTransactionResponse.of(
                         LockImmutableTimestampResponse.of(2L, LockToken.of(UUID.randomUUID())),
                         TimestampAndPartition.of(1L, 1)

@@ -18,6 +18,7 @@ package com.palantir.paxos;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.palantir.common.concurrent.CoalescingSupplier;
 
 /**
  * A verifier that coalesces verification requests for a given round, such that only one verification for a round is

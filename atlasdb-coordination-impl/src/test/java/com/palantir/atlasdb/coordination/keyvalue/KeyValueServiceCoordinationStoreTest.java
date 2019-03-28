@@ -18,6 +18,12 @@ package com.palantir.atlasdb.coordination.keyvalue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,17 +32,22 @@ import java.util.function.Function;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.ImmutableSequenceAndBound;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.remoting3.ext.jackson.ObjectMappers;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_ROW = PtBytes.toBytes("aaaaa");
@@ -48,21 +59,14 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final SequenceAndBound SEQUENCE_AND_BOUND_2 = ImmutableSequenceAndBound.of(3, 4);
     private static final Function<ValueAndBound<String>, String> VALUE_PRESERVING_FUNCTION
             = valueAndBound -> valueAndBound.value()
-                    .orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
+            .orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
 
     // Casting is reasonable because we initialize with false. We need the precise typing for some of the
     // tests that hit the store directly.
-    private final KeyValueServiceCoordinationStore<String> coordinationStore
-            = (KeyValueServiceCoordinationStore<String>) KeyValueServiceCoordinationStore.create(
-                    ObjectMappers.newServerObjectMapper(),
-                    keyValueService,
-                    COORDINATION_ROW,
-                    timestampSequence::incrementAndGet,
-                    String.class,
-                    false);
+    private final KeyValueServiceCoordinationStore<String> coordinationStore = coordinationStoreForKvs(keyValueService);
 
     @Test
     public void getReturnsEmptyIfNoKeyFound() {
@@ -160,15 +164,55 @@ public class KeyValueServiceCoordinationStoreTest {
         byte[] otherCoordinationKey = PtBytes.toBytes("bbbbb");
         CoordinationStore<String> otherCoordinationStore
                 = KeyValueServiceCoordinationStore.create(
-                        ObjectMappers.newServerObjectMapper(),
-                        keyValueService,
-                        otherCoordinationKey,
-                        timestampSequence::incrementAndGet,
-                        String.class,
-                        false);
+                ObjectMappers.newServerObjectMapper(),
+                keyValueService,
+                otherCoordinationKey,
+                timestampSequence::incrementAndGet,
+                String.class,
+                false);
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
         otherCoordinationStore.transformAgreedValue(unused -> VALUE_2);
         assertThat(coordinationStore.getAgreedValue().get().value()).contains(VALUE_1);
         assertThat(otherCoordinationStore.getAgreedValue().get().value()).contains(VALUE_2);
+    }
+
+    @Test
+    public void whenCheckAndSetFailsWithNoDetailsReadSequenceAndBoundFromKvs() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
+        doThrow(new CheckAndSetException("No detail")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
+        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), anyMap()))
+                .thenReturn(ImmutableMap.of(
+                        store.getCoordinationValueCell(),
+                        Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_1), 0L)));
+
+        CheckAndSetResult<SequenceAndBound> casResult = store
+                .checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2);
+
+        assertThat(casResult.successful()).isFalse();
+        assertThat(casResult.existingValues()).containsExactly(SEQUENCE_AND_BOUND_1);
+    }
+
+    @Test
+    public void throwsWhenCheckAndSetFailsWithNoDetailsAndNoValueInKvs() {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
+        doThrow(new CheckAndSetException("No detail")).when(mockKvs).checkAndSet(any(CheckAndSetRequest.class));
+        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), anyMap())).thenReturn(ImmutableMap.of());
+
+        assertThatThrownBy(() -> store.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2))
+                .as("Failed but no value in KVS")
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Failed to check and set coordination value");
+    }
+
+    private KeyValueServiceCoordinationStore<String> coordinationStoreForKvs(KeyValueService kvs) {
+        return (KeyValueServiceCoordinationStore<String>) KeyValueServiceCoordinationStore.create(
+                ObjectMappers.newServerObjectMapper(),
+                kvs,
+                COORDINATION_ROW,
+                timestampSequence::incrementAndGet,
+                String.class,
+                false);
     }
 }

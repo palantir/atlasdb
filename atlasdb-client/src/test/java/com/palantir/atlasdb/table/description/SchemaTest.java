@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.table.description;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -39,13 +38,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class SchemaTest {
     @Rule
@@ -209,34 +205,6 @@ public class SchemaTest {
         }});
 
         schema.validate();
-    }
-
-    @Test
-    public void canAddDeprecatedTablesAndIndexes() {
-        Namespace namespace = Namespace.create("namespace");
-        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
-        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        schema.addDeprecatedTables("anOldTable");
-
-        schema.validate();
-        assertThat(schema.getDeprecatedTables()).containsOnly(
-                TableReference.create(namespace, "anOldTable"));
-    }
-
-    @Test
-    public void cannotAddDeprecatedTablesOrIndexesThatConflictWithCurrentTables() {
-        Namespace namespace = Namespace.create("namespace");
-        Schema schema = new Schema("TableWithDeprecations", TEST_PACKAGE, namespace);
-        schema.addTableDefinition(TEST_TABLE_NAME, getSimpleTableDefinition(TABLE_REF));
-        schema.addDeprecatedTables(TEST_TABLE_NAME);
-
-        assertThatExceptionOfType(SafeIllegalStateException.class)
-                .isThrownBy(schema::validate)
-                .withMessageStartingWith("A deprecated table cannot also be part of your schema. "
-                        + "Check logs for any unsafe table names.")
-                .satisfies(e -> assertThat(e.getArgs()).contains(UnsafeArg.of(
-                        "invalidDeprecatedTables_unsafe",
-                        ImmutableSet.of(TableReference.create(namespace, TEST_TABLE_NAME)))));
     }
 
     private void checkIfFilesAreTheSame(List<String> generatedTestTables) {

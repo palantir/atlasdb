@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 
 import org.junit.Test;
 
@@ -46,7 +45,6 @@ public class PaxosLatestRoundVerifierTest {
             acceptor2,
             acceptor3);
 
-    private final Supplier<Boolean> onlyLogOnQuorumFailure = () -> false;
     private final Map<PaxosAcceptor, ExecutorService> executorServiceMap = ImmutableMap.of(
             acceptor1, Executors.newSingleThreadExecutor(),
             acceptor2, Executors.newSingleThreadExecutor(),
@@ -54,7 +52,7 @@ public class PaxosLatestRoundVerifierTest {
     );
 
     private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptors, 2,
-            executorServiceMap, onlyLogOnQuorumFailure);
+            executorServiceMap);
 
     @Test
     public void hasQuorumIfAllNodesAgree() {

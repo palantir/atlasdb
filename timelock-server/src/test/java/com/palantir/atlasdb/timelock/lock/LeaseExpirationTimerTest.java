@@ -67,7 +67,7 @@ public class LeaseExpirationTimerTest {
     }
 
     private Duration leaseDuration() {
-        return LeaseExpirationTimer.LEASE_TIMEOUT;
+        return LockLeaseContract.SERVER_LEASE_TIMEOUT;
     }
 
 }

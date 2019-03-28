@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -49,11 +50,13 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
-import com.palantir.lock.v2.IdentifiedTimeLockRequest;
+import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockResponseV2;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.StartTransactionRequestV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
@@ -95,9 +98,9 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     @Test
     public void canLockImmutableTimestamp() {
         LockImmutableTimestampResponse response1 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
         LockImmutableTimestampResponse response2 = cluster.timelockService()
-                .lockImmutableTimestamp(IdentifiedTimeLockRequest.create());
+                .lockImmutableTimestamp();
 
         long immutableTs = cluster.timelockService().getImmutableTimestamp();
         assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
@@ -107,6 +110,31 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
 
         cluster.unlock(response2.getLock());
+    }
+
+    @Test
+    public void batchedStartTransactionCallShouldLockImmutableTimestamp() {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
+                UUID.randomUUID(),
+                123);
+
+        LockImmutableTimestampResponse response1 = cluster.timelockRpcClient()
+                .startTransactions(request)
+                .immutableTimestamp();
+
+        LockImmutableTimestampResponse response2 = cluster.timelockRpcClient()
+                .startTransactions(request)
+                .immutableTimestamp();
+
+        long immutableTs = cluster.timelockService().getImmutableTimestamp();
+        assertThat(immutableTs).isEqualTo(response1.getImmutableTimestamp());
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(response1.getLock()));
+
+        assertThat(immutableTs).isEqualTo(response2.getImmutableTimestamp());
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(response2.getLock()));
+
     }
 
     @Test
@@ -123,7 +151,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
             // safety check only applies if the cluster is indeed async
             return;
         }
-        assertBadRequest(() -> cluster.lockService().getMinLockedInVersionId("foo"));
+        // Catching any exception since this currently is an error deserialization exception
+        // until we stop requiring http-remoting2 errors
+        assertThatThrownBy(() -> cluster.lockService().getMinLockedInVersionId("foo"))
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -258,8 +289,10 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         assertThat(Iterables.getOnlyElement(cluster.lockService().getTokens(TEST_CLIENT_2)).getLockDescriptors())
                 .contains(LOCK_A);
 
+        // Catching any exception since this currently is an error deserialization exception
+        // until we stop requiring http-remoting2 errors
         assertThatThrownBy(() -> cluster.lockService().useGrant(TEST_CLIENT_3, heldLocksGrant.getGrantId()))
-                .isInstanceOf(AtlasDbRemoteException.class);
+                .isInstanceOf(Exception.class);
     }
 
     @Test
@@ -286,29 +319,56 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
     }
 
     @Test
-    public void testGetLockServerOptions() throws InterruptedException {
+    public void testGetLockServerOptions() {
         assertThat(cluster.lockService().getLockServerOptions())
                 .isEqualTo(LockServerOptions.builder().randomBitCount(127).build());
     }
 
     @Test
-    public void testCurrentTimeMillis() throws InterruptedException {
+    public void testCurrentTimeMillis() {
         assertThat(cluster.lockService().currentTimeMillis()).isPositive();
     }
 
     @Test
-    public void lockRequestsAreIdempotent() {
-        LockToken token = cluster.lock(requestFor(LOCK_A)).getToken();
+    public void lockRequestsToRpcClientAreIdempotent() {
+        IdentifiedLockRequest firstRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
 
-        LockRequest request = requestFor(LOCK_A);
-        CompletableFuture<LockResponse> response = cluster.lockAsync(request);
-        CompletableFuture<LockResponse> duplicateResponse = cluster.lockAsync(request);
+        LockToken token = getToken(cluster.timelockRpcClient().lock(firstRequest));
 
-        cluster.unlock(token);
+        IdentifiedLockRequest secondRequest = IdentifiedLockRequest.from(requestFor(LOCK_A));
+        CompletableFuture<LockResponseV2> responseFuture =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(secondRequest));
+        CompletableFuture<LockResponseV2> duplicateResponseFuture =
+                cluster.runWithRpcClientAsync(rpcClient -> rpcClient.lock(secondRequest));
 
-        assertThat(response.join()).isEqualTo(duplicateResponse.join());
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(token));
 
-        cluster.unlock(response.join().getToken());
+        LockResponseV2 response = responseFuture.join();
+        LockResponseV2 duplicateResponse = duplicateResponseFuture.join();
+        assertThat(response).isEqualTo(duplicateResponse);
+
+        cluster.timelockRpcClient().unlock(ImmutableSet.of(getToken(response)));
+    }
+
+    private LockToken getToken(LockResponseV2 responseV2) {
+        return responseV2.accept(LockResponseV2.Visitor.of(
+                LockResponseV2.Successful::getToken,
+                unsuccessful -> {
+                    throw new RuntimeException("Unsuccessful lock request");
+                }));
+    }
+
+    @Test
+    public void lockSucceedsOnlyOnce() {
+        LockRequest request = requestFor(SHORT_TIMEOUT, LOCK_A);
+
+        LockResponse response = cluster.lock(request);
+        LockResponse duplicateResponse = cluster.lock(request);
+
+        assertThat(response.wasSuccessful()).isTrue();
+        assertThat(duplicateResponse.wasSuccessful()).isFalse();
+
+        cluster.unlock(response.getToken());
     }
 
     @Test

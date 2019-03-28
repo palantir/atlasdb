@@ -19,11 +19,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -36,26 +40,28 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.TimelockService;
 
 public class MultiNodePaxosTimeLockServerIntegrationTest {
-    private static final String CLIENT_1 = "test";
     private static final String CLIENT_2 = "test2";
     private static final String CLIENT_3 = "test3";
-    private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3);
+    private static final List<String> ADDITIONAL_CLIENTS = ImmutableList.of(CLIENT_2, CLIENT_3);
 
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "https://localhost",
-            CLIENT_1,
             "paxosMultiServer0.yml",
             "paxosMultiServer1.yml",
             "paxosMultiServer2.yml");
@@ -75,17 +81,17 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        CLUSTER.waitUntilReadyToServeClients(CLIENTS);
+        CLUSTER.waitUntilLeaderIsElected(ADDITIONAL_CLIENTS);
     }
 
     @Before
     public void bringAllNodesOnline() {
-        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(CLIENTS);
+        CLUSTER.waitUntilAllServersOnlineAndReadyToServeClients(ADDITIONAL_CLIENTS);
     }
 
     @Test
     public void blockedLockRequestThrows503OnLeaderElectionForRemoteLock() throws InterruptedException {
-        LockRefreshToken lock = CLUSTER.remoteLock(CLIENT_1, BLOCKING_LOCK_REQUEST);
+        LockRefreshToken lock = CLUSTER.remoteLock(BLOCKING_LOCK_REQUEST);
         assertThat(lock).isNotNull();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();
@@ -108,7 +114,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() throws InterruptedException {
+    public void blockedLockRequestThrows503OnLeaderElectionForAsyncLock() {
         CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         TestableTimelockServer leader = CLUSTER.currentLeader();
@@ -129,7 +135,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void nonLeadersReturn503() {
         CLUSTER.nonLeaders().forEach(server -> {
-            assertThatThrownBy(() -> server.getFreshTimestamp())
+            assertThatThrownBy(server::getFreshTimestamp)
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
             assertThatThrownBy(() -> server.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)))
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
@@ -137,7 +143,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderRespondsToRequests() throws InterruptedException {
+    public void leaderRespondsToRequests() {
         CLUSTER.currentLeader().getFreshTimestamp();
 
         LockToken token = CLUSTER.currentLeader().lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -156,7 +162,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         TestableTimelockServer leader = CLUSTER.currentLeader();
         CLUSTER.nonLeaders().forEach(TestableTimelockServer::kill);
 
-        assertThatThrownBy(() -> leader.getFreshTimestamp())
+        assertThatThrownBy(leader::getFreshTimestamp)
                 .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
     }
 
@@ -193,7 +199,22 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void locksAreInvalidatedAcrossFailures() throws InterruptedException {
+    public void leaderIdChangesAcrossFailovers() {
+        Set<LeaderTime> leaderTimes = new HashSet<>();
+        leaderTimes.add(CLUSTER.timelockRpcClient().getLeaderTime());
+
+        for (int i = 0; i < 3; i++) {
+            CLUSTER.failoverToNewLeader();
+
+            LeaderTime leaderTime = CLUSTER.timelockRpcClient().getLeaderTime();
+            leaderTimes.forEach(previousLeaderTime ->
+                    assertThat(previousLeaderTime.isComparableWith(leaderTime)).isFalse());
+            leaderTimes.add(leaderTime);
+        }
+    }
+
+    @Test
+    public void locksAreInvalidatedAcrossFailures() {
         LockToken token = CLUSTER.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
         for (int i = 0; i < 3; i++) {
@@ -327,12 +348,61 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(temporalSequence).isSorted();
     }
 
-    private StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+    @Test
+    public void temporalOrderingIsPreservedForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        List<Long> allTimestamps = new ArrayList<>();
+
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+
+        assertThat(allTimestamps).isSorted();
+    }
+
+    @Test
+    public void temporalOrderingIsPreservedBetweenDifferentRequestorsForBatchedStartTransactionRequests() {
+        UUID requestor = UUID.randomUUID();
+        UUID requestor2 = UUID.randomUUID();
+        List<Long> allTimestamps = new ArrayList<>();
+
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 1));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 4));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor, 20));
+        allTimestamps.addAll(getSortedBatchedStartTimestamps(requestor2, 15));
+
+        assertThat(allTimestamps).isSorted();
+    }
+
+    @Test
+    public void batchedTimestampsShouldBeSeparatedByModulus() {
+        UUID requestor = UUID.randomUUID();
+
+        List<Long> sortedTimestamps = getSortedBatchedStartTimestamps(requestor, 10);
+
+        Set<Long> differences = IntStream.range(0, sortedTimestamps.size() - 1)
+                .mapToObj(i -> sortedTimestamps.get(i + 1) - sortedTimestamps.get(i))
+                .collect(Collectors.toSet());
+
+        assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
+    private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
+        StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
+                requestorUuid,
+                numRequestedTimestamps);
+        StartTransactionResponseV4 response = CLUSTER.timelockRpcClient().startTransactions(request);
+        return response.timestamps().stream()
+                .boxed()
+                .collect(Collectors.toList());
+    }
+
+    private static StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return CLUSTER.startIdentifiedAtlasDbTransaction(
                 StartIdentifiedAtlasDbTransactionRequest.createForRequestor(requestorUuid));
     }
 
-    private long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
+    private static long getStartTimestampFromIdentifiedAtlasDbTransaction(UUID requestorUuid) {
         return startIdentifiedAtlasDbTransaction(requestorUuid).startTimestampAndPartition().timestamp();
     }
 }

@@ -70,7 +70,8 @@ public class BenchmarkRunnerBase {
                 1_000_000,
                 1_000,
                 BenchmarksService.class,
-                "benchmarks");
+                "benchmarks",
+                false);
     }
 
     private static String readBenchmarkServerUri() {

@@ -33,6 +33,7 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.paxos.PaxosResponses;
 
 public final class PaxosSynchronizer {
     private static final Logger log = LoggerFactory.getLogger(PaxosSynchronizer.class);
@@ -61,11 +62,11 @@ public final class PaxosSynchronizer {
 
     private static Optional<PaxosValue> getMostRecentLearnedValue(List<PaxosLearner> paxosLearners) {
         ExecutorService executor = PTExecutors.newCachedThreadPool();
-        List<PaxosValueResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
+        PaxosResponses<PaxosValueResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
                 ImmutableList.copyOf(paxosLearners),
                 learner -> ImmutablePaxosValueResponse.of(learner.getGreatestLearnedValue()),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT_IN_SECONDS);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
         return responses.stream()
                 .filter(response -> response.paxosValue() != null)
                 .map(PaxosValueResponse::paxosValue)

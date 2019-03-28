@@ -29,6 +29,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.Sweeper;
 
@@ -57,21 +58,19 @@ public class SweepQueueDeleter {
      */
     public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
         Collection<WriteInfo> writes = filter.filter(unfilteredWrites);
-        Map<TableReference, Map<Cell, Long>> maxTimestampByCell = writesPerTable(writes, sweeper);
-        for (Map.Entry<TableReference, Map<Cell, Long>> entry : maxTimestampByCell.entrySet()) {
+        Map<TableReference, Map<Cell, TimestampRangeDelete>> maxTimestampByCell = writesPerTable(writes, sweeper);
+        for (Map.Entry<TableReference, Map<Cell, TimestampRangeDelete>> entry : maxTimestampByCell.entrySet()) {
             try {
                 Iterables.partition(entry.getValue().keySet(), SweepQueueUtils.BATCH_SIZE_KVS)
                         .forEach(cells -> {
-                            Map<Cell, Long> maxTimestampByCellPartition = cells.stream()
+                            Map<Cell, TimestampRangeDelete> maxTimestampByCellPartition = cells.stream()
                                     .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
                             follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
                             if (sweeper.shouldAddSentinels()) {
                                 kvs.addGarbageCollectionSentinelValues(entry.getKey(),
                                         maxTimestampByCellPartition.keySet());
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, false);
-                            } else {
-                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition, true);
                             }
+                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
                 if (tableWasDropped(entry.getKey())) {
@@ -87,9 +86,10 @@ public class SweepQueueDeleter {
         return Arrays.equals(kvs.getMetadataForTable(tableRef), AtlasDbConstants.EMPTY_TABLE_METADATA);
     }
 
-    private Map<TableReference, Map<Cell, Long>> writesPerTable(Collection<WriteInfo> writes, Sweeper sweeper) {
+    private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(
+            Collection<WriteInfo> writes, Sweeper sweeper) {
         return writes.stream().collect(Collectors.groupingBy(
                 WriteInfo::tableRef,
-                Collectors.toMap(WriteInfo::cell, write -> write.timestampToDeleteAtExclusive(sweeper))));
+                Collectors.toMap(WriteInfo::cell, write -> write.toDelete(sweeper))));
     }
 }

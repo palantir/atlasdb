@@ -34,7 +34,8 @@ import com.palantir.atlasdb.ete.coordination.MultipleSchemaVersionsCoordinationE
         CassandraTimestampsEteTest.class,
         TimestampManagementEteTest.class,
         CoordinationEteTest.class,
-        MultipleSchemaVersionsCoordinationEteTest.class
+        MultipleSchemaVersionsCoordinationEteTest.class,
+        LockWithoutTimelockEteTest.class
         })
 public class CassandraNoLeaderTestSuite extends EteSetup {
     private static final List<String> CLIENTS = ImmutableList.of("ete1");

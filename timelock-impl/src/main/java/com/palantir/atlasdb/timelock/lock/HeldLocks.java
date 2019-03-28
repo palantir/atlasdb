@@ -36,8 +36,8 @@ public class HeldLocks {
     @GuardedBy("this")
     private boolean isUnlocked = false;
 
-    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId) {
-        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(NanoTime::now));
+    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId, LeaderClock leaderClock) {
+        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(() -> leaderClock.time().currentTime()));
     }
 
     @VisibleForTesting
@@ -90,6 +90,10 @@ public class HeldLocks {
 
     public UUID getRequestId() {
         return token.getRequestId();
+    }
+
+    public NanoTime lastRefreshTime() {
+        return expirationTimer.lastRefreshTime();
     }
 
     @VisibleForTesting

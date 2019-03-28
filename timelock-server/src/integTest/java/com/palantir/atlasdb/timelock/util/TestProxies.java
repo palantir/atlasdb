@@ -28,9 +28,9 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
-import com.palantir.remoting.api.config.ssl.SslConfiguration;
-import com.palantir.remoting3.config.ssl.SslSocketFactories;
-import com.palantir.remoting3.config.ssl.TrustContext;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public class TestProxies {
 
@@ -63,7 +63,8 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                MultiNodePaxosTimeLockServerIntegrationTest.class.toString()));
+                MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
+                false));
     }
 
     public <T> T failoverForClient(String client, Class<T> serviceInterface) {
@@ -75,9 +76,9 @@ public class TestProxies {
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 Optional.of(TRUST_CONTEXT),
+                Optional.empty(),
                 uris,
-                serviceInterface,
-                getClass().toString()));
+                serviceInterface));
     }
 
     public List<String> getServerUris() {
