@@ -27,13 +27,17 @@ This may be done in various ways, and is configurable. We currently support two 
   `TicketsEncodingStrategy <https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java>`__,
   storing them in the ``_transactions2`` table.
 
-If specified, this AtlasDB client will attempt to install the provided transaction schema version. This can be done in
-a live fashion without downtime, though there are two caveats to be aware of:
+If specified, this AtlasDB client will attempt to install the provided transaction schema version. This parameter is
+optional; if it is not specified, this AtlasDB client will not install any new transaction schema versions, and will
+run with whatever version is already installed (1 by default).
+
+New versions can be specified in a live fashion without downtime, though there are two caveats to be aware of:
 
 - The ``TransactionSchemaInstaller`` which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
-  If a faster installation is required, you can (rolling) bounce your services. After installation is done, a log message of the following form will be logged:
+  If a faster installation is required, you can (rolling) bounce your services, as we do read this on startup.
+  After installation is done, a log message of the following form will be logged:
 
-.. code-block::
+.. code-block:: none
 
   "We attempted to install the transactions schema version {}, and this was successful. This version will take effect no later than timestamp {}. (newVersion: 2, timestamp: 25161223)"
 
