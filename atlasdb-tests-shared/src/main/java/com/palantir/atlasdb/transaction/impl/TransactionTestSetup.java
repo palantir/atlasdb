@@ -26,8 +26,13 @@ import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -116,10 +121,36 @@ public abstract class TransactionTestSetup {
         timestampService = ts;
         timestampManagementService = ts;
         timelockService = new LegacyTimelockService(timestampService, lockService, lockClient);
-        transactionService = TransactionServices.createRaw(keyValueService, timestampService, false);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        txMgr = getManager();
+        if (!tmManager.getLastRegisteredTransactionManager().isPresent()) {
+            setUpTransactionService();
+            txMgr = getManager();
+        } else {
+            txMgr = getManager();
+            transactionService = txMgr.getTransactionService();
+        }
+    }
+
+    private void setUpTransactionService() {
+        CoordinationService<InternalSchemaMetadata> coordinationService
+                = CoordinationServices.createDefault(keyValueService, timestampService, false);
+        TransactionSchemaManager manager = new TransactionSchemaManager(coordinationService);
+        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+            installTransactionsV2(manager);
+        }
+        transactionService = TransactionServices.createTransactionService(keyValueService, manager);
+    }
+
+    private void installTransactionsV2(TransactionSchemaManager manager) {
+        // XXX Installs transactions2 correctly, but this is very unidiomatic usage!
+        boolean installed = false;
+        while (!installed) {
+            installed = manager.tryInstallNewTransactionsSchemaVersion(
+                    TransactionConstants.TICKETS_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+        }
+
+        timestampManagementService.fastForwardTimestamp(timestampService.getFreshTimestamp() + 50_000_000);
     }
 
     protected KeyValueService getKeyValueService() {
