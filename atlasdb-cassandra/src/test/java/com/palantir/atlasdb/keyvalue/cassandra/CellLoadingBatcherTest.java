@@ -17,16 +17,17 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCellLoadingConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @SuppressWarnings("unchecked") // AssertJ assertions
 public class CellLoadingBatcherTest {
@@ -47,8 +49,11 @@ public class CellLoadingBatcherTest {
             .singleQueryLoadBatchLimit(SINGLE_QUERY_LIMIT)
             .build();
 
-    private IntConsumer rebatchingCallback = mock(IntConsumer.class);
-    private CellLoadingBatcher batcher = new CellLoadingBatcher(() -> LOADING_CONFIG);
+    private static final InetSocketAddress ADDRESS = new InetSocketAddress(42);
+    private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("a.b");
+
+    private CellLoadingBatcher.BatchCallback rebatchingCallback = mock(CellLoadingBatcher.BatchCallback.class);
+    private CellLoadingBatcher batcher = new CellLoadingBatcher(() -> LOADING_CONFIG, rebatchingCallback);
 
     @Test
     public void splitsCellsByColumnKey() {
@@ -72,7 +77,7 @@ public class CellLoadingBatcherTest {
         assertBatchContentsMatch(batches,
                 rowRange(0, SINGLE_QUERY_LIMIT, 0),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 0));
-        verify(rebatchingCallback).accept(2 * SINGLE_QUERY_LIMIT);
+        verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
     }
 
     @Test
@@ -80,7 +85,7 @@ public class CellLoadingBatcherTest {
         List<Cell> smallColumnBatch = ImmutableList.of(cell(1, 1), cell(1, 2), cell(2, 1));
         List<List<Cell>> batches = partitionUsingMockCallback(smallColumnBatch);
         assertBatchContentsMatch(batches, smallColumnBatch);
-        verify(rebatchingCallback, never()).accept(anyInt());
+        verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
     }
 
     @Test
@@ -105,11 +110,11 @@ public class CellLoadingBatcherTest {
                 rowRange(0, SINGLE_QUERY_LIMIT, 1),
                 rowRange(SINGLE_QUERY_LIMIT, 2 * SINGLE_QUERY_LIMIT, 1),
                 columnRange(0, 2, 2 + CROSS_COLUMN_LIMIT));
-        verify(rebatchingCallback).accept(2 * SINGLE_QUERY_LIMIT);
+        verify(rebatchingCallback).consume(ADDRESS, TABLE_REFERENCE, 2 * SINGLE_QUERY_LIMIT);
     }
 
     private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {
-        return batcher.partitionIntoBatches(cells, rebatchingCallback);
+        return batcher.partitionIntoBatches(cells, ADDRESS, TABLE_REFERENCE);
     }
 
     private static void assertBatchContentsMatch(List<List<Cell>> actual, List<Cell>... expected) {
