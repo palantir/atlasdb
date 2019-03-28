@@ -52,7 +52,7 @@ develop
          
     *    - |userbreak| |fixed|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
-           This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query; the main goal was to avoid us staying on an RC version.
+           We do not want to stay on an RC version now that a full release is available.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3872>`__)
 
     *    - |improved|
