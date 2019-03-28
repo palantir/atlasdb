@@ -18,6 +18,7 @@ package com.palantir.atlasdb.internalschema.metrics;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +28,13 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
+import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.monitoring.TrackerUtils;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.TimestampService;
 
 public final class MetadataCoordinationServiceMetrics {
     private static final Logger log = LoggerFactory.getLogger(MetadataCoordinationServiceMetrics.class);
-
-    private static final int DEFAULT_CACHE_TTL = 10;
 
     private MetadataCoordinationServiceMetrics() {
         // utility class
@@ -47,12 +48,14 @@ public final class MetadataCoordinationServiceMetrics {
      *
      * @param metricsManager metrics manager to register the
      * @param metadataCoordinationService metadata coordination service that should be tracked
+     * @param timestamp
      */
     public static void registerMetrics(
             MetricsManager metricsManager,
-            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+            CoordinationService<InternalSchemaMetadata> metadataCoordinationService,
+            TimestampService timestamp) {
         registerValidityBoundMetric(metricsManager, metadataCoordinationService);
-        registerEventualTransactionsSchemaVersionMetric(metricsManager, metadataCoordinationService);
+        registerTransactionsSchemaVersionMetrics(metricsManager, metadataCoordinationService, timestamp);
     }
 
     /**
@@ -77,31 +80,58 @@ public final class MetadataCoordinationServiceMetrics {
     }
 
     /**
-     * Registers a gauge which tracks the eventual transactions schema version - that is, at the end of the current
+     * Registers two gauges which track transactions schema versions:
+     *
+     * 1. the eventual schema version - that is, at the end of the current
      * period of validity for the bound, what the metadata says the transactions schema version should be.
+     * 2. the current schema version - that is, the schema version at a fresh timestamp.
      *
      * @param metricsManager metrics manager to register the gauge on
      * @param metadataCoordinationService metadata coordination service that should be tracked
      */
-    private static void registerEventualTransactionsSchemaVersionMetric(MetricsManager metricsManager,
-            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+    // TODO (jkong): Cache the reads from the supplier, but/and handle exceptions in the gauges.
+    private static void registerTransactionsSchemaVersionMetrics(MetricsManager metricsManager,
+            CoordinationService<InternalSchemaMetadata> metadataCoordinationService,
+            TimestampService timestampService) {
+        Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> timestampMapSupplier = () -> {
+            Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
+                    = metadataCoordinationService.getLastKnownLocalValue();
+            return latestValue
+                    .map(ValueAndBound::value)
+                    .flatMap(Function.identity())
+                    .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
+                    .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()))
+                    .orElse(null);
+        };
+
+        registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
+                AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                timestampMapSupplier,
+                ValueAndBound::bound);
+        registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
+                AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION,
+                timestampMapSupplier,
+                unused -> timestampService.getFreshTimestamp());
+    }
+
+    private static void registerMetricForTransactionsSchemaVersionAtTimestamp(MetricsManager metricsManager,
+            String metricName,
+            Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> timestampMapSupplier,
+            Function<ValueAndBound<TimestampPartitioningMap<Integer>>, Long> timestampQuery) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
-                AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                metricName,
                 TrackerUtils.createCachingExceptionHandlingGauge(
                         log,
                         Clock.defaultClock(),
-                        AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
+                        metricName,
                         () -> {
-                            Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
-                                    = metadataCoordinationService.getLastKnownLocalValue();
-                            return latestValue
-                                    .map(ValueAndBound::value)
-                                    .flatMap(Function.identity())
-                                    .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                                    .map(timestampMap -> timestampMap.getValueForTimestamp(latestValue.get().bound()))
-                                    .orElse(null);
+                            ValueAndBound<TimestampPartitioningMap<Integer>> mapAndBound = timestampMapSupplier.get();
+                            return getVersionAtTimestamp(mapAndBound.value(), timestampQuery.apply(mapAndBound));
                         }));
     }
 
+    private static Integer getVersionAtTimestamp(Optional<TimestampPartitioningMap<Integer>> timestampMap, long bound) {
+        return timestampMap.map(map -> map.getValueForTimestamp(bound)).orElse(null);
+    }
 }
