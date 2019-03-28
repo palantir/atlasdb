@@ -28,7 +28,15 @@ This may be done in various ways, and is configurable. We currently support two 
   storing them in the ``_transactions2`` table.
 
 If specified, this AtlasDB client will attempt to install the provided transaction schema version. This can be done in
-a live fashion without downtime, though it may take a while (in terms of AtlasDB timestamps) to take effect. If
-install is successful, a message will be logged indicating when the switch will take place. If needed, one can force
-the new version to be used by fast-forwarding the timestamp to that point. To do this, see
-:ref:`Timestamp Service Management <timestamp-service-management>`.
+a live fashion without downtime, though there are two caveats to be aware of:
+
+- The ``TransactionSchemaInstaller`` which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
+  If a faster installation is required, you can (rolling) bounce your services. After installation is done, a log message of the following form will be logged:
+
+.. code-block::
+
+  "We attempted to install the transactions schema version {}, and this was successful. This version will take effect no later than timestamp {}. (newVersion: 2, timestamp: 25161223)"
+
+- The AtlasDB timestamp still needs to progress forward to that point before we use the new transactions schema version.
+  If needed, one can force the new version to be used by fast-forwarding the timestamp to that point. To do this, see
+  :ref:`Timestamp Service Management <timestamp-service-management>`.
