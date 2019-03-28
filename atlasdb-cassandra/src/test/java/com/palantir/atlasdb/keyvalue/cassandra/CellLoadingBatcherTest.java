@@ -62,6 +62,19 @@ public class CellLoadingBatcherTest {
     private CellLoadingBatcher batcher = new CellLoadingBatcher(() -> LOADING_CONFIG, rebatchingCallback);
 
     @Test
+    public void handlesEmptyBatch() {
+        List<List<Cell>> batches = partitionUsingMockCallback(ImmutableList.of());
+        assertThat(batches).isEmpty();
+    }
+
+    @Test
+    public void queriesOneCellInOneBatch() {
+        List<Cell> oneCell = ImmutableList.of(cell(0, 0));
+        List<List<Cell>> batches = partitionUsingMockCallback(oneCell);
+        assertBatchContentsMatch(batches, oneCell);
+    }
+
+    @Test
     public void splitsCellsByColumnKey() {
         List<Cell> cells = new ArrayList<>();
         cells.addAll(rowRange(CROSS_COLUMN_LIMIT, 0));
