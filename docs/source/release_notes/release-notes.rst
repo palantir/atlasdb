@@ -55,6 +55,11 @@ develop
            Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
            Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3860>`__)
+         
+    *    - |userbreak| |fixed|
+         - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
+           We do not want to stay on an RC version now that a full release is available.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3872>`__)
 
     *    - |improved|
          - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
@@ -103,7 +108,7 @@ v0.127.0
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
            This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3849>`__)
 
     *    - |logs|
          - Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
