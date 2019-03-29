@@ -1664,8 +1664,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
-                                casResult.getCurrent_values().stream().
-                                        map(column -> Cell.create(partition.getKey().toByteArray(),
+                                casResult.getCurrent_values().stream()
+                                        .map(column -> Cell.create(partition.getKey().toByteArray(),
                                                 CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
                                         .collect(Collectors.toList())));
                     }
