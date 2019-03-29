@@ -40,7 +40,6 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 /**
  * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link EncodingTransactionService},
@@ -51,16 +50,16 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  */
 public final class WriteBatchingTransactionService implements TransactionService {
     private final EncodingTransactionService delegate;
-    private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
+    private final DisruptorAutobatcher<TimestampPair, Boolean> autobatcher;
 
     private WriteBatchingTransactionService(
-            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
+            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Boolean> autobatcher) {
         this.delegate = delegate;
         this.autobatcher = autobatcher;
     }
 
     public static TransactionService create(EncodingTransactionService delegate) {
-        DisruptorAutobatcher<TimestampPair, Void> autobatcher = DisruptorAutobatcher.create(
+        DisruptorAutobatcher<TimestampPair, Boolean> autobatcher = DisruptorAutobatcher.create(
                 elements -> processBatch(delegate, elements));
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
@@ -78,17 +77,20 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        try {
-            autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)).get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
+        boolean taskComplete = false;
+        while (!taskComplete) {
+            try {
+                taskComplete = autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)).get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                }
+                throw new RuntimeException(cause);
             }
-            throw new RuntimeException(cause);
         }
     }
 
@@ -102,9 +104,9 @@ public final class WriteBatchingTransactionService implements TransactionService
      * Semantics for batch processing:
      *
      * - If there are multiple requests to {@link TransactionService#putUnlessExists(long, long)} with the same
-     *   start timestamp, only the first of these will actually be attempted; the remainder will fail with a
-     *   {@link SafeIllegalArgumentException}, which is fine (following the contract it means the put may or may not
-     *   have happened).
+     *   start timestamp, only the first of these will actually be attempted; the remainder will receive a response
+     *   indicating they should try again. The booleans returned by this method indicate whether a request to the
+     *   batcher that has been processed was processed properly (true), or if it should be re-submitted (false).
      * - If a {@link KeyAlreadyExistsException} is thrown, we fail out requests for keys present in the
      *   {@link KeyAlreadyExistsException}, and then retry our request with those keys removed. If the
      *   {@link KeyAlreadyExistsException} does not include any present keys, we throw an exception.
@@ -119,9 +121,9 @@ public final class WriteBatchingTransactionService implements TransactionService
      */
     @VisibleForTesting
     static void processBatch(
-            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
+            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Boolean>> batchElements) {
         Map<Long, Long> accumulatedRequest = Maps.newConcurrentMap();
-        Map<Long, SettableFuture<Void>> futures = Maps.newConcurrentMap();
+        Map<Long, SettableFuture<Boolean>> futures = Maps.newConcurrentMap();
         failDuplicateRequestsOnStartTimestamp(batchElements, accumulatedRequest, futures);
 
         while (!accumulatedRequest.isEmpty()) {
@@ -145,8 +147,8 @@ public final class WriteBatchingTransactionService implements TransactionService
         }
     }
 
-    private static boolean markSuccessful(SettableFuture<Void> result) {
-        return result.set(null);
+    private static boolean markSuccessful(SettableFuture<Boolean> result) {
+        return result.set(true);
     }
 
     private static Set<Long> getAlreadyExistingStartTimestamps(
@@ -175,20 +177,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     private static void failDuplicateRequestsOnStartTimestamp(
-            List<BatchElement<TimestampPair, Void>> batchElements,
+            List<BatchElement<TimestampPair, Boolean>> batchElements,
             @Output Map<Long, Long> accumulatedRequest,
-            @Output Map<Long, SettableFuture<Void>> futures) {
-        for (BatchElement<TimestampPair, Void> batchElement : batchElements) {
+            @Output Map<Long, SettableFuture<Boolean>> futures) {
+        for (BatchElement<TimestampPair, Boolean> batchElement : batchElements) {
             TimestampPair pair = batchElement.argument();
             if (!accumulatedRequest.containsKey(pair.startTimestamp())) {
                 accumulatedRequest.put(pair.startTimestamp(), pair.commitTimestamp());
                 futures.put(pair.startTimestamp(), batchElement.result());
             } else {
-                batchElement.result().setException(
-                        new SafeIllegalArgumentException("Attempted to putUnlessExists the same start timestamp as"
-                                + " another request which came first, so we will prioritise that.",
-                                SafeArg.of("startTimestamp", pair.startTimestamp()),
-                                SafeArg.of("commitTimestamp", pair.commitTimestamp())));
+                batchElement.result().set(false);
             }
         }
     }

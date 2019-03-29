@@ -38,12 +38,12 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class WriteBatchingTransactionServiceTest {
@@ -161,21 +161,23 @@ public class WriteBatchingTransactionServiceTest {
     }
 
     @Test
-    public void filtersOutDuplicateKeysInBatcher() {
+    public void returnsTrueForFirstRequestAtEachTimestampAndThenFalse() {
         TestTransactionBatchElement firstElement = TestTransactionBatchElement.of(1L, 200L);
         TestTransactionBatchElement secondElement = TestTransactionBatchElement.of(1L, 300L);
+        TestTransactionBatchElement thirdElement = TestTransactionBatchElement.of(1L, 300L);
 
         WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                firstElement, secondElement));
+                firstElement, secondElement, thirdElement));
 
-        assertThatCode(() -> firstElement.result().get()).doesNotThrowAnyException();
-        assertThatThrownBy(() -> secondElement.result().get()).hasCauseInstanceOf(SafeIllegalArgumentException.class);
+        assertThat(Futures.getUnchecked(firstElement.result())).isTrue();
+        assertThat(Futures.getUnchecked(secondElement.result())).isFalse();
+        assertThat(Futures.getUnchecked(thirdElement.result())).isFalse();
 
         verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(1L, 200L));
     }
 
     @Value.Immutable
-    interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Void> {
+    interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Boolean> {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {
             return ImmutableTestTransactionBatchElement.builder()
                     .argument(ImmutableTimestampPair.of(startTimestamp, commitTimestamp))
