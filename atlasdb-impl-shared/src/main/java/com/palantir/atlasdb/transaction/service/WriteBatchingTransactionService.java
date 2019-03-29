@@ -30,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
@@ -42,6 +44,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link EncodingTransactionService},
@@ -135,16 +138,13 @@ public final class WriteBatchingTransactionService implements TransactionService
                 batchElements.forEach(element -> element.result().set(null));
                 return;
             } catch (KeyAlreadyExistsException exception) {
-                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
-                for (Long failedTimestamp : failedTimestamps) {
-                    SettableFuture<Void> result = futures.get(failedTimestamp);
-                    markFailed(accumulatedRequest, exception, failedTimestamp, result);
-                }
+                Map<Long, Long> thisRequest = ImmutableMap.copyOf(accumulatedRequest);
 
-                Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
-                for (Long successfulTimestamp : successfulTimestamps) {
-                    markSuccessful(accumulatedRequest, successfulTimestamp, futures.get(successfulTimestamp));
-                }
+                Set<Long> failedTimestamps = extractAndHandleFailures(delegate, accumulatedRequest, futures, exception,
+                        thisRequest);
+
+                Set<Long> successfulTimestamps = extractAndHandleExistingSuccesses(delegate, futures, exception,
+                        thisRequest);
 
                 accumulatedRequest = Maps.filterKeys(accumulatedRequest,
                         timestamp -> !failedTimestamps.contains(timestamp)
@@ -153,28 +153,73 @@ public final class WriteBatchingTransactionService implements TransactionService
         }
     }
 
-    private static void markFailed(Map<Long, Long> request,
-            KeyAlreadyExistsException exception,
-            Long timestamp,
-            SettableFuture<Void> result) {
-        if (result == null) {
-            log.warn("Failed to putUnlessExists some timestamp which it seems we never asked for."
+    private static Set<Long> extractAndHandleFailures(EncodingTransactionService delegate,
+            Map<Long, Long> accumulatedRequest, Map<Long, SettableFuture<Void>> futures,
+            KeyAlreadyExistsException exception, Map<Long, Long> thisRequest) {
+        Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
+
+        Map<Boolean, List<Long>> wereFailedTimestampsExpected = classifyTimestampsOnKeySetPresence(
+                thisRequest, failedTimestamps);
+
+        handleExpectedFailures(futures, exception, thisRequest, failedTimestamps, wereFailedTimestampsExpected);
+        handleUnexpectedFailures(thisRequest, wereFailedTimestampsExpected);
+        return failedTimestamps;
+    }
+
+    private static Map<Boolean, List<Long>> classifyTimestampsOnKeySetPresence(Map<Long, Long> requestKeySet,
+            Set<Long> timestampSet) {
+        return timestampSet.stream().collect(Collectors.groupingBy(requestKeySet::containsKey));
+    }
+
+    private static void handleExpectedFailures(Map<Long, SettableFuture<Void>> futures,
+            KeyAlreadyExistsException exception, Map<Long, Long> thisRequest, Set<Long> failedTimestamps,
+            Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
+        List<Long> expectedFailedTimestamps = wereFailedTimestampsExpected.get(true);
+        if (expectedFailedTimestamps == null) {
+            // We expected something important to fail, but nothing did.
+            throw new SafeIllegalStateException("Made a batch request to putUnlessExists and failed."
+                    + " The exception returned did not contain anything pertinent, which is unexpected.",
+                    SafeArg.of("batchRequest", thisRequest),
+                    SafeArg.of("failedTimestamps", failedTimestamps));
+        }
+        expectedFailedTimestamps.forEach(timestamp -> futures.get(timestamp).setException(exception));
+    }
+
+    private static void handleUnexpectedFailures(Map<Long, Long> thisRequest,
+            Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
+        List<Long> unexpectedFailedTimestamps = wereFailedTimestampsExpected.get(false);
+        if (unexpectedFailedTimestamps != null) {
+            log.warn("Failed to putUnlessExists some timestamps which it seems we never asked for."
                             + " Skipping, as this is likely to be safe, but flagging for debugging.",
-                    SafeArg.of("failedTimestamp", timestamp),
-                    SafeArg.of("ourRequest", request));
-        } else {
-            result.setException(exception);
+                    SafeArg.of("unexpectedFailedTimestamps", unexpectedFailedTimestamps),
+                    SafeArg.of("batchRequest", thisRequest));
         }
     }
 
-    private static void markSuccessful(Map<Long, Long> request, Long timestamp, SettableFuture<Void> result) {
-        if (result == null) {
-            log.warn("Failed to mark as successful some timestamp which it seems we never asked for."
-                    + " Skipping, as this is likely to be safe, but flagging for debugging.",
-                    SafeArg.of("successfulTimestamp", timestamp),
-                    SafeArg.of("ourRequest", request));
-        } else {
-            result.set(null);
+    private static Set<Long> extractAndHandleExistingSuccesses(EncodingTransactionService delegate,
+            Map<Long, SettableFuture<Void>> futures, KeyAlreadyExistsException exception, Map<Long, Long> thisRequest) {
+        Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
+        Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected = classifyTimestampsOnKeySetPresence(
+                thisRequest, successfulTimestamps);
+        handleExpectedSuccesses(futures, wereSuccessfulTimestampsExpected);
+        handleUnexpectedSuccesses(thisRequest, wereSuccessfulTimestampsExpected);
+        return successfulTimestamps;
+    }
+
+    private static void handleExpectedSuccesses(Map<Long, SettableFuture<Void>> futures,
+            Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
+        wereSuccessfulTimestampsExpected.getOrDefault(true, ImmutableList.of()).forEach(
+                timestamp -> futures.get(timestamp).set(null));
+    }
+
+    private static void handleUnexpectedSuccesses(Map<Long, Long> thisRequest,
+            Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
+        List<Long> unexpectedlySuccessfulTimestamps = wereSuccessfulTimestampsExpected.get(false);
+        if (unexpectedlySuccessfulTimestamps != null) {
+            log.warn("Successfully putUnlessExists some timestamps which it seems we never asked for."
+                            + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                    SafeArg.of("unexpectedSuccessfulPuts", unexpectedlySuccessfulTimestamps),
+                    SafeArg.of("batchRequest", thisRequest));
         }
     }
 
