@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -50,6 +52,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
 public final class WriteBatchingTransactionService implements TransactionService {
+    private static final Logger log = LoggerFactory.getLogger(WriteBatchingTransactionService.class);
+
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
@@ -120,8 +124,8 @@ public final class WriteBatchingTransactionService implements TransactionService
     @VisibleForTesting
     static void processBatch(
             EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
-        Map<Long, Long> accumulatedRequest = Maps.newConcurrentMap();
-        Map<Long, SettableFuture<Void>> futures = Maps.newConcurrentMap();
+        Map<Long, Long> accumulatedRequest = Maps.newHashMap();
+        Map<Long, SettableFuture<Void>> futures = Maps.newHashMap();
         failDuplicateRequestsOnStartTimestamp(batchElements, accumulatedRequest, futures);
 
         while (!accumulatedRequest.isEmpty()) {
@@ -133,7 +137,17 @@ public final class WriteBatchingTransactionService implements TransactionService
                 return;
             } catch (KeyAlreadyExistsException exception) {
                 Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
-                failedTimestamps.forEach(timestamp -> futures.get(timestamp).setException(exception));
+                for (Long failedTimestamp : failedTimestamps) {
+                    SettableFuture<Void> result = futures.get(failedTimestamp);
+                    if (result == null) {
+                        log.warn("Failed to putUnlessExists some timestamp which it seems we never asked for."
+                                        + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                                SafeArg.of("failedTimestamp", failedTimestamp),
+                                SafeArg.of("ourRequest", accumulatedRequest));
+                    } else {
+                        result.setException(exception);
+                    }
+                }
 
                 Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
                 successfulTimestamps.forEach(timestamp -> markSuccessful(futures.get(timestamp)));
