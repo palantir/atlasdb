@@ -30,7 +30,7 @@ import com.palantir.paxos.PaxosProposalId;
 
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
-        + "/{client: [a-zA-Z0-9_-]+}"
+        + "/{client}"
         + "/acceptor")
 public interface ClientAwarePaxosAcceptor {
     /**
