@@ -45,6 +45,10 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
         try {
             return batcher.apply(null).get();
         } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
             throw new RuntimeException(e);
         }
     }
