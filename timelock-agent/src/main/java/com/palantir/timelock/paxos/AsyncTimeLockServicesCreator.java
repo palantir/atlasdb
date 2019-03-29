@@ -51,12 +51,16 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final MetricsManager metricsManager;
     private final LockLog lockLog;
     private final PaxosLeadershipCreator leadershipCreator;
+    private final ScheduledExecutorService reaperExecutor;
+    private final ScheduledExecutorService timeoutExecutor;
 
     public AsyncTimeLockServicesCreator(MetricsManager metricsManager,
             LockLog lockLog, PaxosLeadershipCreator leadershipCreator) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
         this.leadershipCreator = leadershipCreator;
+        this.reaperExecutor = createInstrumentedExecutor(metricsManager.getRegistry(), "async-lock-reaper");
+        this.timeoutExecutor = createInstrumentedExecutor(metricsManager.getRegistry(), "async-lock-timeouts");
     }
 
     @Override
@@ -68,7 +72,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 metricsManager.getTaggedRegistry(),
                 AsyncTimelockService.class,
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier),
+                () -> createRawAsyncTimelockService(rawTimestampServiceSupplier),
                 client);
         AsyncTimelockResource asyncTimelockResource = new AsyncTimelockResource(lockLog, asyncTimelockService);
 
@@ -98,22 +102,22 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .isPresent();
     }
 
-    private AsyncTimelockService createRawAsyncTimelockService(
-            String client,
-            Supplier<ManagedTimestampService> timestampServiceSupplier) {
-        ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
-                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                        .setNameFormat("async-lock-reaper-" + client + "-%d")
-                        .setDaemon(true)
-                        .build()), metricsManager.getRegistry(), "async-lock-reaper");
-        ScheduledExecutorService timeoutExecutor = new InstrumentedScheduledExecutorService(
-                PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
-                        .setNameFormat("async-lock-timeouts-" + client + "-%d")
-                        .setDaemon(true)
-                        .build()), metricsManager.getRegistry(), "async-lock-timeouts");
+    private AsyncTimelockService createRawAsyncTimelockService(Supplier<ManagedTimestampService> supplier) {
+
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor),
-                timestampServiceSupplier.get());
+                supplier.get());
+    }
+
+    private static ScheduledExecutorService createInstrumentedExecutor(MetricRegistry metrics, String name) {
+        return new InstrumentedScheduledExecutorService(
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new ThreadFactoryBuilder()
+                                .setNameFormat(name + "-%d")
+                                .setDaemon(true)
+                                .build()),
+                metrics,
+                name);
     }
 
     private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,

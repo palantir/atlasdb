@@ -119,7 +119,7 @@ public class LockAcquirer {
                 return;
             }
 
-            timeoutExecutor.schedule(() -> timeoutAll(), timeout.getTimeMillis(), TimeUnit.MILLISECONDS);
+            timeoutExecutor.schedule(this::timeoutAll, timeout.getTimeMillis(), TimeUnit.MILLISECONDS);
         }
 
         private void timeoutAll() {
