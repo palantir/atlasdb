@@ -37,7 +37,6 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.annotation.Output;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -115,7 +114,7 @@ public final class WriteBatchingTransactionService implements TransactionService
      *
      * Retrying does theoretically mean that in the worst case with N transactions in our batch, we may actually
      * require N calls to the database, though this is extremely unlikely especially because of the semantics of
-     * {@link TimelockService#startIdentifiedAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest)}.
+     * {@link TimelockService#startIdentifiedAtlasDbTransaction()}.
      * Alternatives considered included failing out all requests (which is likely to be inefficient and lead to
      * spurious retries on requests that actually committed), and re-submitting requests other than the failed one
      * for consideration in the next batch (which may achieve higher throughput, but could lead to starvation of old
@@ -133,7 +132,7 @@ public final class WriteBatchingTransactionService implements TransactionService
                 delegate.putUnlessExistsMultiple(accumulatedRequest);
 
                 // If the result was already set to be exceptional, this will not interfere with that.
-                batchElements.forEach(element -> markSuccessful(element.result()));
+                batchElements.forEach(element -> element.result().set(null));
                 return;
             } catch (KeyAlreadyExistsException exception) {
                 Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
