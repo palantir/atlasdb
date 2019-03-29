@@ -139,18 +139,13 @@ public final class WriteBatchingTransactionService implements TransactionService
                 Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
                 for (Long failedTimestamp : failedTimestamps) {
                     SettableFuture<Void> result = futures.get(failedTimestamp);
-                    if (result == null) {
-                        log.warn("Failed to putUnlessExists some timestamp which it seems we never asked for."
-                                        + " Skipping, as this is likely to be safe, but flagging for debugging.",
-                                SafeArg.of("failedTimestamp", failedTimestamp),
-                                SafeArg.of("ourRequest", accumulatedRequest));
-                    } else {
-                        result.setException(exception);
-                    }
+                    markFailed(accumulatedRequest, exception, failedTimestamp, result);
                 }
 
                 Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
-                successfulTimestamps.forEach(timestamp -> markSuccessful(futures.get(timestamp)));
+                for (Long successfulTimestamp : successfulTimestamps) {
+                    markSuccessful(accumulatedRequest, successfulTimestamp, futures.get(successfulTimestamp));
+                }
 
                 accumulatedRequest = Maps.filterKeys(accumulatedRequest,
                         timestamp -> !failedTimestamps.contains(timestamp)
@@ -159,8 +154,29 @@ public final class WriteBatchingTransactionService implements TransactionService
         }
     }
 
-    private static boolean markSuccessful(SettableFuture<Void> result) {
-        return result.set(null);
+    private static void markFailed(Map<Long, Long> request,
+            KeyAlreadyExistsException exception,
+            Long timestamp,
+            SettableFuture<Void> result) {
+        if (result == null) {
+            log.warn("Failed to putUnlessExists some timestamp which it seems we never asked for."
+                            + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                    SafeArg.of("failedTimestamp", timestamp),
+                    SafeArg.of("ourRequest", request));
+        } else {
+            result.setException(exception);
+        }
+    }
+
+    private static void markSuccessful(Map<Long, Long> request, Long timestamp, SettableFuture<Void> result) {
+        if (result == null) {
+            log.warn("Failed to mark as successful some timestamp which it seems we never asked for."
+                    + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                    SafeArg.of("successfulTimestamp", timestamp),
+                    SafeArg.of("ourRequest", request));
+        } else {
+            result.set(null);
+        }
     }
 
     private static Set<Long> getAlreadyExistingStartTimestamps(
