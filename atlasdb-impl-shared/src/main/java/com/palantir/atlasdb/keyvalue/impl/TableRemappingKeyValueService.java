@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableSet;
@@ -135,13 +136,9 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
         delegate().dropTables(tableNames);
 
         // We're purposely updating the table mappings after all drops are complete
-        for (TableReference tableRef : tableRefs) {
-            // Handles the edge case of deleting _namespace when clearing the kvs
-            if (tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE)) {
-                break;
-            }
-            tableMapper.removeTable(tableRef);
-        }
+        tableMapper.removeTables(tableRefs.stream()
+                .filter(tableRef -> !tableRef.equals(AtlasDbConstants.NAMESPACE_TABLE))
+                .collect(Collectors.toSet()));
     }
 
     private Set<TableReference> getShortTableReferencesForExistingTables(Set<TableReference> tableRefs) {

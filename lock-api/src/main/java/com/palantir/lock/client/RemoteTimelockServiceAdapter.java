@@ -29,16 +29,18 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 
-public final class RemoteTimelockServiceAdapter implements TimelockService {
-    private final LockLeaseService lockLeaseService;
+public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private final TimelockRpcClient timelockRpcClient;
+    private final LockLeaseService lockLeaseService;
+    private final TransactionStarter transactionStarter;
 
     private RemoteTimelockServiceAdapter(TimelockRpcClient timelockRpcClient) {
         this.timelockRpcClient = timelockRpcClient;
         this.lockLeaseService = LockLeaseService.create(timelockRpcClient);
+        this.transactionStarter = TransactionStarter.create(lockLeaseService);
     }
 
-    public static TimelockService create(TimelockRpcClient timelockRpcClient) {
+    public static RemoteTimelockServiceAdapter create(TimelockRpcClient timelockRpcClient) {
         return new RemoteTimelockServiceAdapter(timelockRpcClient);
     }
 
@@ -53,23 +55,8 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     }
 
     @Override
-    public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        return lockLeaseService.lockImmutableTimestamp();
-    }
-
-    @Override
-    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
-        return lockLeaseService.startIdentifiedAtlasDbTransaction();
-    }
-
-    @Override
     public long getImmutableTimestamp() {
         return timelockRpcClient.getImmutableTimestamp();
-    }
-
-    @Override
-    public LockResponse lock(LockRequest request) {
-        return lockLeaseService.lock(request);
     }
 
     @Override
@@ -78,17 +65,37 @@ public final class RemoteTimelockServiceAdapter implements TimelockService {
     }
 
     @Override
+    public LockImmutableTimestampResponse lockImmutableTimestamp() {
+        return lockLeaseService.lockImmutableTimestamp();
+    }
+
+    @Override
+    public LockResponse lock(LockRequest request) {
+        return lockLeaseService.lock(request);
+    }
+
+    @Override
+    public StartIdentifiedAtlasDbTransactionResponse startIdentifiedAtlasDbTransaction() {
+        return transactionStarter.startIdentifiedAtlasDbTransaction();
+    }
+
+    @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
-        return lockLeaseService.refreshLockLeases(tokens);
+        return transactionStarter.refreshLockLeases(tokens);
     }
 
     @Override
     public Set<LockToken> unlock(Set<LockToken> tokens) {
-        return lockLeaseService.unlock(tokens);
+        return transactionStarter.unlock(tokens);
     }
 
     @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis();
+    }
+
+    @Override
+    public void close() {
+        transactionStarter.close();
     }
 }
