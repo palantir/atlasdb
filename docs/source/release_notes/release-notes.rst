@@ -51,9 +51,6 @@ develop
          - Change
 
     *    - |improved|
-         - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
-
-    *    - |improved|
          - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
            Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
            Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
@@ -82,6 +79,10 @@ develop
            Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
            Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
+           
+    *    - |improved|
+         - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3886>`__)
 
 ========
 v0.127.0
