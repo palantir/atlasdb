@@ -128,7 +128,7 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
-                TestResource.class);
+                TestResource.class, UserAgents.DEFAULT_USER_AGENT, false);
         assertThat(client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
                 .as("Request with payload size exceeding limit succeeds when not limiting payload size")
                 .isTrue();
@@ -150,8 +150,8 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void userAgentIsPresentOnClientRequests() {
         TestResource client =
-                AtlasDbHttpClients.createProxy(
-                        new MetricRegistry(), NO_SSL, getUriForPort(availablePort), TestResource.class);
+                AtlasDbHttpClients.createProxy(new MetricRegistry(), NO_SSL, getUriForPort(availablePort),
+                        TestResource.class, UserAgents.DEFAULT_USER_AGENT, false);
         client.getTestNumber();
 
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);

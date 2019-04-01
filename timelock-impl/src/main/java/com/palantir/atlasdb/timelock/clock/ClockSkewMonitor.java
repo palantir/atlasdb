@@ -28,6 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -53,7 +54,7 @@ public final class ClockSkewMonitor {
         Map<String, ClockService> clocksByServer = Maps.toMap(
                 remoteServers,
                 (remoteServer) -> AtlasDbHttpClients.createProxy(metricsManager.getRegistry(),
-                        optionalSecurity, remoteServer, ClockService.class));
+                        optionalSecurity, remoteServer, ClockService.class, UserAgents.DEFAULT_USER_AGENT, false));
 
         return new ClockSkewMonitor(
                 clocksByServer,
