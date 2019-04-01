@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,6 +33,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -77,22 +81,33 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
     public void canUntangleHighlyConflictingPutUnlessExists() {
         TransactionTables.createTables(keyValueService);
         TransactionTables.truncateTables(keyValueService);
-        TransactionService transactionService = WriteBatchingTransactionService.create(
-                SimpleTransactionService.createV2(keyValueService));
+        SimpleTransactionService v2TransactionService = SimpleTransactionService.createV2(keyValueService);
+        TransactionService transactionService = WriteBatchingTransactionService.create(v2TransactionService);
         ExecutorService executorService = Executors.newCachedThreadPool();
-        List<Future<?>> futures = LongStream.range(0, 100)
-                .mapToObj(unused -> executorService.submit(() -> {
-                    try {
-                        transactionService.putUnlessExists(unused, unused + 1);
-                        transactionService.putUnlessExists(unused + 1, unused + 3);
-                        transactionService.putUnlessExists(unused - 1, unused + 5);
-                    } catch (KeyAlreadyExistsException ex) {
-                        // Some are expected
-                    }
+
+        List<KeyAlreadyExistsException> exceptions = Collections.synchronizedList(Lists.newArrayList());
+
+        int numTransactionPutters = 100;
+        List<Future<?>> futures = LongStream.range(1, numTransactionPutters)
+                .mapToObj(timestamp -> executorService.submit(() -> {
+                    tryPutTimestampTrackingExceptions(transactionService, exceptions, timestamp);
+                    tryPutTimestampTrackingExceptions(transactionService, exceptions, timestamp + 1);
                 }))
                 .collect(Collectors.toList());
         futures.forEach(Futures::getUnchecked);
-        // Successful completion is satisfactory.
+
+        assertThat(exceptions).hasSize(numTransactionPutters - 1);
+    }
+
+    private void tryPutTimestampTrackingExceptions(
+            TransactionService transactionService,
+            List<KeyAlreadyExistsException> keyAlreadyExistsExceptions,
+            long timestamp) {
+        try {
+            transactionService.putUnlessExists(timestamp, timestamp + 1);
+        } catch (KeyAlreadyExistsException ex) {
+            keyAlreadyExistsExceptions.add(ex);
+        }
     }
 
     private KeyValueService createAndRegisterKeyValueService() {
