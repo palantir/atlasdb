@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +30,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.containers.CassandraResource;
@@ -83,26 +81,23 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
         TransactionService transactionService = WriteBatchingTransactionService.create(v2TransactionService);
         ExecutorService executorService = Executors.newCachedThreadPool();
 
-        List<KeyAlreadyExistsException> exceptions = Collections.synchronizedList(Lists.newArrayList());
-
         int numTransactionPutters = 100;
         List<Future<?>> futures = LongStream.range(1, numTransactionPutters)
                 .mapToObj(timestamp -> executorService.submit(() -> {
-                    tryPutTimestampTrackingExceptions(transactionService, exceptions, timestamp);
-                    tryPutTimestampTrackingExceptions(transactionService, exceptions, timestamp + 1);
+                    tryPutTimestampPermittingExceptions(transactionService, timestamp);
+                    tryPutTimestampPermittingExceptions(transactionService, timestamp + 1);
                 }))
                 .collect(Collectors.toList());
         futures.forEach(Futures::getUnchecked);
     }
 
-    private void tryPutTimestampTrackingExceptions(
+    private void tryPutTimestampPermittingExceptions(
             TransactionService transactionService,
-            List<KeyAlreadyExistsException> keyAlreadyExistsExceptions,
             long timestamp) {
         try {
             transactionService.putUnlessExists(timestamp, timestamp + 1);
         } catch (KeyAlreadyExistsException ex) {
-            keyAlreadyExistsExceptions.add(ex);
+            // OK
         }
     }
 
