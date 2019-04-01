@@ -28,8 +28,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class ReadOnlyTransactionSchemaManager {
-    private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);
-
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
 
     public ReadOnlyTransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
