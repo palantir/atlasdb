@@ -16,11 +16,13 @@
 
 package com.palantir.leader;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.net.HostAndPort;
+import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 
 public class BatchingLeaderElectionService implements LeaderElectionService {
@@ -29,15 +31,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
 
     public BatchingLeaderElectionService(LeaderElectionService delegate) {
         this.delegate = delegate;
-        this.batcher = DisruptorAutobatcher.create(batch -> {
-            try {
-                LeaderElectionService.LeadershipToken leadershipToken = delegate.blockOnBecomingLeader();
-                batch.forEach(e -> e.result().set(leadershipToken));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
-        });
+        this.batcher = DisruptorAutobatcher.create(this::processBatch);
     }
 
     @Override
@@ -73,4 +67,13 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
         return delegate.getPotentialLeaders();
     }
 
+    private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {
+        try {
+            LeaderElectionService.LeadershipToken leadershipToken = delegate.blockOnBecomingLeader();
+            batch.forEach(request -> request.result().set(leadershipToken));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            batch.forEach(request -> request.result().setException(e));
+        }
+    }
 }
