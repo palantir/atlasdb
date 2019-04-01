@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -95,8 +93,6 @@ public class CassandraKeyValueServiceTransactionIntegrationTest extends Abstract
                 }))
                 .collect(Collectors.toList());
         futures.forEach(Futures::getUnchecked);
-
-        assertThat(exceptions).hasSize(numTransactionPutters - 1);
     }
 
     private void tryPutTimestampTrackingExceptions(
