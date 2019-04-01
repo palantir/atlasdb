@@ -242,9 +242,17 @@ import com.palantir.timestamp.TimestampService;
                 validateLocksOnReads,
                 transactionConfig);
     }
-
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
+            C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        if (transactionConfig.get().lockOnReadOnlyTransactions()) {
+            return runTaskWithConditionThrowOnConflict(condition, task);
+        } else {
+            return runTaskWithConditionReadOnlyInternal(condition, task);
+        }
+    }
+
+    private  <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnlyInternal(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
