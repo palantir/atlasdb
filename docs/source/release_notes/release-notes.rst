@@ -79,6 +79,10 @@ develop
            Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
            Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
+           
+    *    - |improved|
+         - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3886>`__)
 
 ========
 v0.127.0
