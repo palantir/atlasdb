@@ -17,6 +17,9 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -24,11 +27,11 @@ import javax.annotation.Nullable;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
+final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
     private final String client;
     private final ClientAwarePaxosLearner clientAwarePaxosLearner;
 
-    ClientAwarePaxosLearnerAdapter(String client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
+    private ClientAwarePaxosLearnerAdapter(String client, ClientAwarePaxosLearner clientAwarePaxosLearner) {
         this.client = client;
         this.clientAwarePaxosLearner = clientAwarePaxosLearner;
     }
@@ -54,5 +57,14 @@ class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
     @Override
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
         return clientAwarePaxosLearner.getLearnedValuesSince(client, seq);
+    }
+
+    /**
+     * Given a list of {@link ClientAwarePaxosLearner}s, returns a function allowing for injection of the client name.
+     */
+    static Function<String, List<PaxosLearner>> wrap(List<ClientAwarePaxosLearner> learners) {
+        return client -> learners.stream()
+                .map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
+                .collect(Collectors.toList());
     }
 }
