@@ -43,7 +43,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
             if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
             }
-            throw new RuntimeException(e);
+            throw new RuntimeException(cause);
         }
     }
 

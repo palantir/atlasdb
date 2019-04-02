@@ -146,7 +146,7 @@ public final class Leaders {
                 metricsManager, remotePaxosServerSpec.remoteLeaderUris(), trustContext, userAgent);
 
         InstrumentedExecutorService proposerExecutorService = new InstrumentedExecutorService(
-                PTExecutors.newCachedThreadPool(threadFactory("atlas-proposer-%d")),
+                PTExecutors.newCachedThreadPool(daemonThreadFactory("atlas-proposer")),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosProposer.class, "executor"));
         PaxosProposer proposer = AtlasDbMetrics.instrument(metricsManager.getRegistry(), PaxosProposer.class,
@@ -162,7 +162,7 @@ public final class Leaders {
                         5000,
                         TimeUnit.MILLISECONDS,
                         new SynchronousQueue<>(),
-                        threadFactory("atlas-leaders-election-" + useCase + "-%d")),
+                        daemonThreadFactory("atlas-leaders-election-" + useCase)),
                 metricsManager.getRegistry(),
                 MetricRegistry.name(PaxosLeaderElectionService.class, useCase, "executor"));
 
@@ -195,9 +195,9 @@ public final class Leaders {
                 .build();
     }
 
-    public static ThreadFactory threadFactory(String name) {
+    private static ThreadFactory daemonThreadFactory(String name) {
         return new ThreadFactoryBuilder()
-                .setNameFormat(name)
+                .setNameFormat(name + "-%d")
                 .setDaemon(true)
                 .build();
     }
