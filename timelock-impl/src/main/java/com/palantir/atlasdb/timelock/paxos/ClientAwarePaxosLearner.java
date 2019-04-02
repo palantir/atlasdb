@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.paxos;
+package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.Collection;
 
@@ -28,43 +28,56 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.common.annotation.Inclusive;
-import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
-/**
- * This interface is used internally to allow creating a single feign proxy where different clients can be injected
- * using {@link ClientAwarePaxosLearner} to create {@link PaxosLearner}s instead of creating a proxy per client. This
- * reduces the resource allocation when a new timelock node becomes the leader.
- */
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client}"
         + "/learner")
-interface ClientAwarePaxosLearner {
+public interface ClientAwarePaxosLearner {
+
+    /**
+     * Learn given value for the seq-th round.
+     *
+     * @param seq round in question
+     * @param val value learned for that round
+     */
     @POST
-    @Path("learn/{seq}")
+    @Path("learn/{seq:.+}")
     @Consumes(MediaType.APPLICATION_JSON)
     void learn(@PathParam("client") String client, @PathParam("seq") long seq, PaxosValue val);
 
+    /**
+     * Returns learned value or null if non-exists.
+     */
     @Nullable
     @GET
-    @Path("learned-value/{seq}")
+    @Path("learned-value/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
     PaxosValue getLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
 
+    /**
+     * Returns the learned value for the greatest known round or null if nothing has been learned.
+     */
     @Nullable
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
     PaxosValue getGreatestLearnedValue(@PathParam("client") String client);
 
+    /**
+     * Returns some collection of learned values since the seq-th round (inclusive).
+     *
+     * @param seq lower round cutoff for returned values
+     * @return some set of learned values for rounds since the seq-th round
+     */
     @Nonnull
     @GET
-    @Path("learned-values-since/{seq}")
+    @Path("learned-values-since/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
     Collection<PaxosValue> getLearnedValuesSince(
             @PathParam("client") String client,
             @PathParam("seq") @Inclusive long seq);
+
 }

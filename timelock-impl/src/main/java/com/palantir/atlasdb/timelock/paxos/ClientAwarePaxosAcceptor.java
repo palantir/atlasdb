@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.paxos;
+package com.palantir.atlasdb.timelock.paxos;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -23,38 +23,50 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.paxos.BooleanPaxosResponse;
-import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
-/**
- * This interface is used internally to allow creating a single feign proxy where different clients can be injected
- * using {@link ClientAwarePaxosAcceptorAdapter} to create {@link PaxosAcceptor}s instead of creating a proxy per
- * client. This reduces the resource allocation when a new timelock node becomes the leader.
- */
 @Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client}"
         + "/acceptor")
-interface ClientAwarePaxosAcceptor {
+public interface ClientAwarePaxosAcceptor {
+    /**
+     * The acceptor prepares for a given proposal by either promising not to accept future proposals
+     * or rejecting the proposal.
+     *
+     * @param seq the number identifying this instance of paxos
+     * @param pid the proposal to prepare for
+     * @return a paxos promise not to accept lower numbered proposals
+     */
     @POST
     @Path("prepare/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     PaxosPromise prepare(@PathParam("client") String client, @PathParam("seq") long seq, PaxosProposalId pid);
 
-
+    /**
+     * The acceptor decides whether to accept or reject a given proposal.
+     *
+     * @param seq the number identifying this instance of paxos
+     * @param proposal the proposal in question
+     * @return a paxos message indicating if the proposal was accepted or rejected
+     */
     @POST
     @Path("accept/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     BooleanPaxosResponse accept(@PathParam("client") String client, @PathParam("seq") long seq, PaxosProposal proposal);
 
-
-    @POST
+    /**
+     * Gets the sequence number of the acceptor's most recent known round.
+     *
+     * @return the sequence number of the most recent round or {@value NO_LOG_ENTRY} if this
+     *         acceptor has not prepared or accepted any rounds
+     */
+    @POST // This is marked as a POST because we cannot accept stale or cached results for this method.
     @Path("latest-sequence-prepared-or-accepted")
     @Produces(MediaType.APPLICATION_JSON)
     long getLatestSequencePreparedOrAccepted(@PathParam("client") String client);

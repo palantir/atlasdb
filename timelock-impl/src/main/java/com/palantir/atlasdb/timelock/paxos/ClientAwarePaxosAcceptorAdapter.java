@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.paxos;
-
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.paxos.BooleanPaxosResponse;
 import com.palantir.paxos.PaxosAcceptor;
@@ -26,12 +22,12 @@ import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 
+public class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
 
-final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
     private final String client;
     private final ClientAwarePaxosAcceptor clientAwarePaxosAcceptor;
 
-    private ClientAwarePaxosAcceptorAdapter(String client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
+    public ClientAwarePaxosAcceptorAdapter(String client, ClientAwarePaxosAcceptor clientAwarePaxosAcceptor) {
         this.client = client;
         this.clientAwarePaxosAcceptor = clientAwarePaxosAcceptor;
     }
@@ -49,14 +45,5 @@ final class ClientAwarePaxosAcceptorAdapter implements PaxosAcceptor {
     @Override
     public long getLatestSequencePreparedOrAccepted() {
         return clientAwarePaxosAcceptor.getLatestSequencePreparedOrAccepted(client);
-    }
-
-    /**
-     * Given a list of {@link ClientAwarePaxosAcceptor}s, returns a function allowing for injection of the client name.
-     */
-    static Function<String, List<PaxosAcceptor>> wrap(List<ClientAwarePaxosAcceptor> acceptors) {
-        return client -> acceptors.stream()
-                .map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
-                .collect(Collectors.toList());
     }
 }
