@@ -1,3 +1,5 @@
+.. _timestamp-service-management:
+
 ==================
 Service Management
 ==================
@@ -22,3 +24,14 @@ on the Timelock Server. Fast forward operates by updating the last known issued 
 TS.
 
 Note that fast forward is idempotent, since we use maximums. Also, fast forwarding to the past is a no-op.
+
+Fast Forward on TimeLock
+------------------------
+
+The following command needs to be run on the TimeLock leader, and will fast forward the timestamp to TS.
+
+.. code:: bash
+
+      curl -XPOST localhost:8080/timelock/api/namespace/timestamp-management/fast-forward?currentTimestamp=TS
+
+On success, timestamps serviced for this namespace will now return values greater than ``TS``.

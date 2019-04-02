@@ -2,3 +2,6 @@
   numberOfRetriesOnSameHost: 4
   numberOfRetriesOnAllHosts: 8
   conservativeRequestExceptionHandler: true
+  cellLoadingConfig:
+    crossColumnLoadBatchLimit: 42
+    singleQueryLoadBatchLimit: 424242

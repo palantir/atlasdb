@@ -66,6 +66,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
@@ -1513,6 +1514,22 @@ public abstract class AbstractKeyValueServiceTest {
 
         Value storedValue = keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL);
         assertArrayEquals(megabyteValue, storedValue.getContents());
+    }
+
+    @Test
+    public void putUnlessExistsDecodesCellsCorrectlyIfSupported() {
+        Assume.assumeTrue(keyValueService.getCheckAndSetCompatibility()
+                == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE);
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
+
+        // Exact message is KVS specific so not asserting on that
+        assertThatThrownBy(() -> keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0))))
+                .isInstanceOf(KeyAlreadyExistsException.class)
+                .satisfies(exception -> {
+                    KeyAlreadyExistsException keyAlreadyExistsException = (KeyAlreadyExistsException) exception;
+                    assertThat(keyAlreadyExistsException.getExistingKeys(), contains(TEST_CELL));
+                });
     }
 
     @Test

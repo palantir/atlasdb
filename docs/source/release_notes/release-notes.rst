@@ -49,7 +49,18 @@ develop
 
     *    - Type
          - Change
+
+    *    - |fixed|
+         - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
+           Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
          
+    *    - |improved|
+         - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
+           Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
+           Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3860>`__)
+
     *    - |userbreak| |fixed|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
            We do not want to stay on an RC version now that a full release is available.
@@ -63,11 +74,20 @@ develop
          - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
 
+    *    - |fixed|
+         - Oracle KVS now deletes old entries correctly if using targeted sweep.
+           Previously, there were situations where it would not delete values that could safely be deleted.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3870>`__)
+
     *    - |fixed| |devbreak|
          - Callbacks specified in TransactionManagers will no longer be run synchronously when ``initializeAsync`` is set to true, even if initialization succeeds in the first, synchronous attempt.
            Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
            Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
+           
+    *    - |improved|
+         - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3886>`__)
 
 ========
 v0.127.0
@@ -286,15 +306,28 @@ v0.118.0
     *    - Type
          - Change
 
-    *    - |devbreak| |improved|
-         - The `TableMetadata` class has been refactored to use Immutables.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
+    *    - |new|
+         - AtlasDB now supports _transactions2 if backed by Cassandra KVS or In-Memory KVS.
+           This is expected to improve transaction performance by making ``putUnlessExists`` faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
+           This is a beta feature; please contact the AtlasDB team if you are interested to use _transactions2.
+           (Many PRs; key PRs include `Pull Request 1 <https://github.com/palantir/atlasdb/pull/3706>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3707>`__,
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/3726>`__,
+           `Pull Request 4 <https://github.com/palantir/atlasdb/pull/3732>`__)
 
     *    - |improved| |devbreak|
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
            This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
            The Cassandra KVS putUnlessExists method has been updated to use the above call.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
+
+    *    - |devbreak| |improved|
+         - The `TableMetadata` class has been refactored to use Immutables.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3624>`__)
+
+    *    - |new| |metrics|
+         - Transaction services now expose timer metrics indicating how long committing or getting values takes.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3733>`__)
 
     *    - |fixed|
          - Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
