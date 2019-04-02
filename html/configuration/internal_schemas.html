@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Timestamp Client Options &mdash; OSS AtlasDB develop documentation</title>
+  <title>Internal Schema Configuration &mdash; OSS AtlasDB develop documentation</title>
   
 
   
@@ -37,8 +37,8 @@
   <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Internal Schema Configuration" href="internal_schemas.html" />
-    <link rel="prev" title="Logging Configuration" href="logging.html" /> 
+    <link rel="next" title="Cluster Management" href="../cluster_management/index.html" />
+    <link rel="prev" title="Timestamp Client Options" href="timestamp_client.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -99,8 +99,8 @@
 <li class="toctree-l2"><a class="reference internal" href="enabling_cassandra_tracing.html">Enabling Cassandra Tracing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="leader_config.html">Leader Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="logging.html">Logging Configuration</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Timestamp Client Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="internal_schemas.html">Internal Schema Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="timestamp_client.html">Timestamp Client Options</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Internal Schema Configuration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cluster_management/index.html">Cluster Management</a></li>
@@ -156,14 +156,14 @@
         
           <li><a href="index.html">Configuration</a> &raquo;</li>
         
-      <li>Timestamp Client Options</li>
+      <li>Internal Schema Configuration</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
             
-              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/timestamp_client.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/configuration/internal_schemas.rst" class="fa fa-github"> Edit on GitHub</a>
             
           
         
@@ -177,40 +177,52 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="timestamp-client-options">
-<span id="timestamp-client-config"></span><h1>Timestamp Client Options<a class="headerlink" href="#timestamp-client-options" title="Permalink to this headline">¶</a></h1>
-<p>AtlasDB supports client-side batching of timestamp requests, which can improve timestamp service throughput, possibly
-at the expense of latency especially when the timestamp service is lightly loaded.</p>
-<p>Instead of immediately contacting the timestamp service, the AtlasDB client can be configured to queue up requests
-and dispatch them as a single batched request. The AtlasDB client will batch requests as long as there is an
-outstanding request to the timestamp service; thus, this incurs an amortised cost of half a round trip per request.
-However, as the timestamp service itself is less heavily loaded, this could be (and, in benchmarks run by the AtlasDB
-team, has been) offset by increased service-side performance.</p>
-<p>The timestamp client may be configured as follows:</p>
-<table border="1" class="colwidths-given docutils">
-<colgroup>
-<col width="11%" />
-<col width="89%" />
-</colgroup>
-<thead valign="bottom">
-<tr class="row-odd"><th class="head">Property</th>
-<th class="head">Description</th>
-</tr>
-</thead>
-<tbody valign="top">
-<tr class="row-even"><td>enableTimestampBatching</td>
-<td>If set to true, the AtlasDB client will batch requests as long as there is an outstanding request
-to the timestamp service.</td>
-</tr>
-</tbody>
-</table>
-<div class="section" id="live-reloading">
-<h2>Live Reloading<a class="headerlink" href="#live-reloading" title="Permalink to this headline">¶</a></h2>
-<p>The timestamp client supports live reloading; timestamp batching may be enabled or disabled without needing to
-bounce your AtlasDB client.</p>
-<p>Note that in the event one disables timestamp batching, timestamp requests that were batched and still in-flight
-will continue to be processed in a batch (and, should the current batches fail, they will continue to be retried as
-batches).</p>
+  <div class="section" id="internal-schema-configuration">
+<span id="id1"></span><h1>Internal Schema Configuration<a class="headerlink" href="#internal-schema-configuration" title="Permalink to this headline">¶</a></h1>
+<p>This document covers configuration pertaining to settings about the internal schema that AtlasDB uses for storing
+some of its state. These settings should be specified under the <code class="docutils literal notranslate"><span class="pre">internalSchema</span></code> key in an
+<code class="docutils literal notranslate"><span class="pre">AtlasDbRuntimeConfiguration</span></code>.</p>
+<p>For a full list of the configurations available at this block, see
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/internalschema/InternalSchemaConfig.java">InternalSchemaConfig.java</a>.</p>
+<div class="section" id="target-transactions-schema-version">
+<h2>Target Transactions Schema Version<a class="headerlink" href="#target-transactions-schema-version" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">_transactions2 is currently only supported for Cassandra and In-Memory KVSes.</p>
+</div>
+<p>AtlasDB needs to persist information about the start and commit timestamps of transactions that have committed.
+This may be done in various ways, and is configurable. We currently support two strategies:</p>
+<ul class="simple">
+<li>version 1, which variable-length encodes the start and commit timestamps and stores them in the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code>
+table.</li>
+<li>version 2, which variable-length encodes the start and commit timestamps following the
+<a class="reference external" href="https://github.com/palantir/atlasdb/blob/develop/atlasdb-impl-shared/src/main/java/com/palantir/atlasdb/transaction/encoding/TicketsEncodingStrategy.java">TicketsEncodingStrategy</a>,
+storing them in the <code class="docutils literal notranslate"><span class="pre">_transactions2</span></code> table.</li>
+</ul>
+<p>If specified, this AtlasDB client will attempt to install the provided transaction schema version. This parameter is
+optional; if it is not specified, this AtlasDB client will not install any new transaction schema versions, and will
+run with whatever version is already installed (1 by default).</p>
+<p>New versions can be specified in a live fashion without downtime, though there are two caveats to be aware of:</p>
+<ul class="simple">
+<li>The <code class="docutils literal notranslate"><span class="pre">TransactionSchemaInstaller</span></code> which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
+If a faster installation is required, you can (rolling) bounce your services, as we do read this on startup.
+After installation is done, a log message of the following form will be logged:</li>
+</ul>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&quot;We attempted to install the transactions schema version {}, and this was successful. This version will take effect no later than timestamp {}. (newVersion: 2, timestamp: 25161223)&quot;
+</pre></div>
+</div>
+<ul class="simple">
+<li>The AtlasDB timestamp still needs to progress forward to that point before we use the new transactions schema version.
+If needed, one can force the new version to be used by fast-forwarding the timestamp to that point. To do this, see
+<a class="reference internal" href="../services/timestamp_service/management.html#timestamp-service-management"><span class="std std-ref">Timestamp Service Management</span></a>.</li>
+</ul>
+<p>Users can also consider the metrics produced in <code class="docutils literal notranslate"><span class="pre">MetadataCoordinationServiceMetrics</span></code> - currently, the following
+metrics are available:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">eventualTransactionsSchemaVersion</span></code> which should change to the target version after the intention to upgrade the
+transactions schema version has been installed by the coordination service. Note that the AtlasDB timestamp
+still needs to progress to the point where the new version actually comes into effect.</li>
+</ul>
 </div>
 </div>
 
@@ -222,10 +234,10 @@ batches).</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="internal_schemas.html" class="btn btn-neutral float-right" title="Internal Schema Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../cluster_management/index.html" class="btn btn-neutral float-right" title="Cluster Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="logging.html" class="btn btn-neutral float-left" title="Logging Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="timestamp_client.html" class="btn btn-neutral float-left" title="Timestamp Client Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
