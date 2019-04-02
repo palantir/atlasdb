@@ -137,8 +137,12 @@ public class TimeLockAgent {
                 metrics,
                 paxosResource,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                ClientAwarePaxosAcceptorAdapter.wrap(paxosAcceptors),
-                ClientAwarePaxosLearnerAdapter.wrap(paxosLearners),
+                client -> paxosAcceptors.stream()
+                        .map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
+                        .collect(Collectors.toList()),
+                client -> paxosLearners.stream()
+                        .map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
+                        .collect(Collectors.toList()),
                 sharedExecutor);
     }
 
