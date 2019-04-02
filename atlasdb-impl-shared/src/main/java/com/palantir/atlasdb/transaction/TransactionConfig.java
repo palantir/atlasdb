@@ -43,7 +43,7 @@ public abstract class TransactionConfig {
     }
 
     @Value.Default
-    public boolean lockOnReadOnlyTransactions() {
+    public boolean lockImmutableTsOnReadOnlyTransactions() {
         return false;
     }
 }

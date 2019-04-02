@@ -245,7 +245,7 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionReadOnly(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
-        if (transactionConfig.get().lockOnReadOnlyTransactions()) {
+        if (transactionConfig.get().lockImmutableTsOnReadOnlyTransactions()) {
             return runTaskWithConditionThrowOnConflict(condition, task);
         } else {
             return runTaskWithConditionReadOnlyInternal(condition, task);
