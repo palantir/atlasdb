@@ -36,10 +36,6 @@ import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
-import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosAcceptor;
-import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosAcceptorAdapter;
-import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosLearner;
-import com.palantir.atlasdb.timelock.paxos.ClientAwarePaxosLearnerAdapter;
 import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -141,12 +137,8 @@ public class TimeLockAgent {
                 metrics,
                 paxosResource,
                 Suppliers.compose(TimeLockRuntimeConfiguration::paxos, runtime::get),
-                client -> paxosAcceptors.stream()
-                        .map(acceptor -> new ClientAwarePaxosAcceptorAdapter(client, acceptor))
-                        .collect(Collectors.toList()),
-                client -> paxosLearners.stream()
-                        .map(learner -> new ClientAwarePaxosLearnerAdapter(client, learner))
-                        .collect(Collectors.toList()),
+                ClientAwarePaxosAcceptorAdapter.wrap(paxosAcceptors),
+                ClientAwarePaxosLearnerAdapter.wrap(paxosLearners),
                 sharedExecutor);
     }
 
