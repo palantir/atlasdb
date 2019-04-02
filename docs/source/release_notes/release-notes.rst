@@ -57,7 +57,9 @@ develop
          
     *    - |fixed|
          - Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
-           Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each thread will separately attempt to push the bound forward, possibly resulting in unnecessarily many attempts to check-and-set the value.
+           Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
+           This may lead to multiple unnecessary updates to the coordinated value in a short space of time.
+           Note that updates that do change the value will be applied regardless, and could potentially still race if applied in parallel.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
 
     *    - |improved|
