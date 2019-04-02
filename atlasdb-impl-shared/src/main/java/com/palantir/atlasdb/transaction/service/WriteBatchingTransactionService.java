@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -38,11 +40,11 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
  * This class coalesces write (that is, put-unless-exists) requests to an underlying {@link EncodingTransactionService},
@@ -52,6 +54,8 @@ import com.palantir.logsafe.UnsafeArg;
  * {@link KeyAlreadyExistsException#getExistingKeys()}.
  */
 public final class WriteBatchingTransactionService implements TransactionService {
+    private static final Logger log = LoggerFactory.getLogger(WriteBatchingTransactionService.class);
+
     private final EncodingTransactionService delegate;
     private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
@@ -113,7 +117,7 @@ public final class WriteBatchingTransactionService implements TransactionService
      *
      * Retrying does theoretically mean that in the worst case with N transactions in our batch, we may actually
      * require N calls to the database, though this is extremely unlikely especially because of the semantics of
-     * {@link TimelockService#startIdentifiedAtlasDbTransaction(StartIdentifiedAtlasDbTransactionRequest)}.
+     * {@link TimelockService#startIdentifiedAtlasDbTransaction()}.
      * Alternatives considered included failing out all requests (which is likely to be inefficient and lead to
      * spurious retries on requests that actually committed), and re-submitting requests other than the failed one
      * for consideration in the next batch (which may achieve higher throughput, but could lead to starvation of old
@@ -137,20 +141,90 @@ public final class WriteBatchingTransactionService implements TransactionService
                         .collectToMap());
                 markBatchSuccessful(startTimestampKeyedBatchElements, batch);
             } catch (KeyAlreadyExistsException exception) {
-                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, batch.keySet(), exception);
-                failedTimestamps.forEach(timestamp -> {
-                    BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
-                    batchElement.result().setException(exception);
-                    startTimestampKeyedBatchElements.remove(timestamp, batchElement);
-                });
-
-                Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
-                successfulTimestamps.forEach(timestamp -> {
-                    BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
-                    markSuccessful(batchElement.result());
-                    startTimestampKeyedBatchElements.remove(timestamp, batchElement);
-                });
+                handleFailedTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
+                handleSuccessfulTimestamps(delegate, startTimestampKeyedBatchElements, batch, exception);
             }
+        }
+    }
+
+    private static void handleFailedTimestamps(EncodingTransactionService delegate,
+            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            KeyAlreadyExistsException exception) {
+        Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, batch.keySet(), exception);
+        Map<Boolean, List<Long>> wereFailedTimestampsExpected = classifyTimestampsOnKeySetPresence(
+                batch.keySet(), failedTimestamps);
+        handleExpectedFailedTimestamps(startTimestampKeyedBatchElements, batch, exception, failedTimestamps,
+                wereFailedTimestampsExpected);
+        handleUnexpectedFailedTimestamps(batch, wereFailedTimestampsExpected);
+    }
+
+    private static void handleExpectedFailedTimestamps(
+            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            KeyAlreadyExistsException exception, Set<Long> failedTimestamps,
+            Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
+        List<Long> expectedFailedTimestamps = wereFailedTimestampsExpected.get(true);
+        if (expectedFailedTimestamps == null) {
+            // We expected something important to fail, but nothing did.
+            throw new SafeIllegalStateException("Made a batch request to putUnlessExists and failed."
+                    + " The exception returned did not contain anything pertinent, which is unexpected.",
+                    SafeArg.of("batchRequest", batch),
+                    SafeArg.of("failedTimestamps", failedTimestamps));
+        }
+        expectedFailedTimestamps.forEach(timestamp -> {
+            BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+            batchElement.result().setException(exception);
+            startTimestampKeyedBatchElements.remove(timestamp, batchElement);
+        });
+    }
+
+    private static void handleUnexpectedFailedTimestamps(
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Boolean, List<Long>> wereFailedTimestampsExpected) {
+        List<Long> unexpectedFailedTimestamps = wereFailedTimestampsExpected.get(false);
+        if (unexpectedFailedTimestamps != null) {
+            log.warn("Failed to putUnlessExists some timestamps which it seems we never asked for."
+                            + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                    SafeArg.of("unexpectedFailedTimestamps", unexpectedFailedTimestamps),
+                    SafeArg.of("batchRequest", batch));
+        }
+    }
+
+    private static void handleSuccessfulTimestamps(EncodingTransactionService delegate,
+            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            KeyAlreadyExistsException exception) {
+        Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
+        Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected = classifyTimestampsOnKeySetPresence(
+                batch.keySet(), successfulTimestamps);
+        handleExpectedSuccesses(startTimestampKeyedBatchElements, batch, wereSuccessfulTimestampsExpected);
+        handleUnexpectedSuccesses(batch, wereSuccessfulTimestampsExpected);
+    }
+
+    private static void handleExpectedSuccesses(
+            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
+        List<Long> expectedSuccessfulTimestamps = wereSuccessfulTimestampsExpected.get(true);
+        if (expectedSuccessfulTimestamps != null) {
+            expectedSuccessfulTimestamps.forEach(timestamp -> {
+                BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+                markSuccessful(batchElement.result());
+                startTimestampKeyedBatchElements.remove(timestamp, batchElement);
+            });
+        }
+    }
+
+    private static void handleUnexpectedSuccesses(
+            Map<Long, BatchElement<TimestampPair, Void>> batch,
+            Map<Boolean, List<Long>> wereSuccessfulTimestampsExpected) {
+        List<Long> unexpectedSuccessfulTimestamps = wereSuccessfulTimestampsExpected.get(false);
+        if (unexpectedSuccessfulTimestamps != null) {
+            log.warn("Successfully putUnlessExists some timestamps which it seems we never asked for."
+                            + " Skipping, as this is likely to be safe, but flagging for debugging.",
+                    SafeArg.of("unexpectedSuccessfulPuts", unexpectedSuccessfulTimestamps),
+                    SafeArg.of("batchRequest", batch));
         }
     }
 
@@ -165,6 +239,12 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     private static void markSuccessful(SettableFuture<Void> result) {
         result.set(null);
+    }
+
+    private static Map<Boolean, List<Long>> classifyTimestampsOnKeySetPresence(
+            Set<Long> requestKeySet,
+            Set<Long> timestampSet) {
+        return timestampSet.stream().collect(Collectors.groupingBy(requestKeySet::contains));
     }
 
     private static Set<Long> getAlreadyExistingStartTimestamps(
