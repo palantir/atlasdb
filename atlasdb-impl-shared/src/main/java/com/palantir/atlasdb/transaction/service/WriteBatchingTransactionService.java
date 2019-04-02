@@ -29,12 +29,15 @@ import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
-import com.palantir.common.annotation.Output;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
@@ -50,16 +53,16 @@ import com.palantir.logsafe.UnsafeArg;
  */
 public final class WriteBatchingTransactionService implements TransactionService {
     private final EncodingTransactionService delegate;
-    private final DisruptorAutobatcher<TimestampPair, Boolean> autobatcher;
+    private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
 
     private WriteBatchingTransactionService(
-            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Boolean> autobatcher) {
+            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
         this.delegate = delegate;
         this.autobatcher = autobatcher;
     }
 
     public static TransactionService create(EncodingTransactionService delegate) {
-        DisruptorAutobatcher<TimestampPair, Boolean> autobatcher = DisruptorAutobatcher.create(
+        DisruptorAutobatcher<TimestampPair, Void> autobatcher = DisruptorAutobatcher.create(
                 elements -> processBatch(delegate, elements));
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
@@ -77,20 +80,17 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
-        boolean taskComplete = false;
-        while (!taskComplete) {
-            try {
-                taskComplete = autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)).get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
+        try {
+            autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
             }
+            throw new RuntimeException(cause);
         }
     }
 
@@ -121,45 +121,61 @@ public final class WriteBatchingTransactionService implements TransactionService
      */
     @VisibleForTesting
     static void processBatch(
-            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Boolean>> batchElements) {
-        Map<Long, Long> accumulatedRequest = Maps.newConcurrentMap();
-        Map<Long, SettableFuture<Boolean>> futures = Maps.newConcurrentMap();
-        failDuplicateRequestsOnStartTimestamp(batchElements, accumulatedRequest, futures);
+            EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
+        Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements
+                = MultimapBuilder.hashKeys().hashSetValues().build();
+        batchElements.forEach(batchElement -> startTimestampKeyedBatchElements.put(
+                batchElement.argument().startTimestamp(),
+                batchElement));
 
-        while (!accumulatedRequest.isEmpty()) {
+        while (!startTimestampKeyedBatchElements.isEmpty()) {
+            Map<Long, BatchElement<TimestampPair, Void>> batch =
+                    extractSingleBatchForQuerying(startTimestampKeyedBatchElements);
             try {
-                delegate.putUnlessExistsMultiple(accumulatedRequest);
-
-                // If the result was already set to be exceptional, this will not interfere with that.
-                batchElements.forEach(element -> markSuccessful(element.result()));
-                return;
+                delegate.putUnlessExistsMultiple(KeyedStream.stream(batch)
+                        .map(batchElement -> batchElement.argument().commitTimestamp())
+                        .collectToMap());
+                markBatchSuccessful(startTimestampKeyedBatchElements, batch);
             } catch (KeyAlreadyExistsException exception) {
-                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, accumulatedRequest, exception);
-                failedTimestamps.forEach(timestamp -> futures.get(timestamp).setException(exception));
+                Set<Long> failedTimestamps = getAlreadyExistingStartTimestamps(delegate, batch.keySet(), exception);
+                failedTimestamps.forEach(timestamp -> {
+                    BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+                    batchElement.result().setException(exception);
+                    startTimestampKeyedBatchElements.remove(timestamp, batchElement);
+                });
 
                 Set<Long> successfulTimestamps = getTimestampsSuccessfullyPutUnlessExists(delegate, exception);
-                successfulTimestamps.forEach(timestamp -> markSuccessful(futures.get(timestamp)));
-
-                accumulatedRequest = Maps.filterKeys(accumulatedRequest,
-                        timestamp -> !failedTimestamps.contains(timestamp)
-                                && !successfulTimestamps.contains(timestamp));
+                successfulTimestamps.forEach(timestamp -> {
+                    BatchElement<TimestampPair, Void> batchElement = batch.get(timestamp);
+                    markSuccessful(batchElement.result());
+                    startTimestampKeyedBatchElements.remove(timestamp, batchElement);
+                });
             }
         }
     }
 
-    private static boolean markSuccessful(SettableFuture<Boolean> result) {
-        return result.set(true);
+    private static void markBatchSuccessful(
+            Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements,
+            Map<Long, BatchElement<TimestampPair, Void>> batch) {
+        batch.forEach((startTimestamp, batchElement) -> {
+            startTimestampKeyedBatchElements.remove(startTimestamp, batchElement);
+            markSuccessful(batchElement.result());
+        });
+    }
+
+    private static void markSuccessful(SettableFuture<Void> result) {
+        result.set(null);
     }
 
     private static Set<Long> getAlreadyExistingStartTimestamps(
             EncodingTransactionService delegate,
-            Map<Long, Long> batchRequest,
+            Set<Long> startTimestamps,
             KeyAlreadyExistsException exception) {
         Set<Long> existingTimestamps = decodeCellsToTimestamps(delegate, exception.getExistingKeys());
         Preconditions.checkState(!existingTimestamps.isEmpty(),
                 "The underlying service threw a KeyAlreadyExistsException, but claimed no keys already existed!"
                         + " This is likely to be a product bug - please contact support.",
-                SafeArg.of("request", batchRequest),
+                SafeArg.of("startTimestamps", startTimestamps),
                 UnsafeArg.of("exception", exception));
         return existingTimestamps;
     }
@@ -176,19 +192,14 @@ public final class WriteBatchingTransactionService implements TransactionService
                 .collect(Collectors.toSet());
     }
 
-    private static void failDuplicateRequestsOnStartTimestamp(
-            List<BatchElement<TimestampPair, Boolean>> batchElements,
-            @Output Map<Long, Long> accumulatedRequest,
-            @Output Map<Long, SettableFuture<Boolean>> futures) {
-        for (BatchElement<TimestampPair, Boolean> batchElement : batchElements) {
-            TimestampPair pair = batchElement.argument();
-            if (!accumulatedRequest.containsKey(pair.startTimestamp())) {
-                accumulatedRequest.put(pair.startTimestamp(), pair.commitTimestamp());
-                futures.put(pair.startTimestamp(), batchElement.result());
-            } else {
-                batchElement.result().set(false);
-            }
+    private static Map<Long, BatchElement<TimestampPair, Void>> extractSingleBatchForQuerying(
+            Multimap<Long, BatchElement<TimestampPair, Void>> requests) {
+        Map<Long, BatchElement<TimestampPair, Void>> result = Maps.newHashMapWithExpectedSize(requests.keySet().size());
+        for (Map.Entry<Long, Collection<BatchElement<TimestampPair, Void>>> entry
+                : Multimaps.asMap(requests).entrySet()) {
+            result.put(entry.getKey(), entry.getValue().iterator().next());
         }
+        return result;
     }
 
     @Value.Immutable

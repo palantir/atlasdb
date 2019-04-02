@@ -30,6 +30,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.immutables.value.Value;
 import org.junit.After;
@@ -38,11 +42,11 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
@@ -161,23 +165,45 @@ public class WriteBatchingTransactionServiceTest {
     }
 
     @Test
-    public void returnsTrueForFirstRequestAtEachTimestampAndThenFalse() {
-        TestTransactionBatchElement firstElement = TestTransactionBatchElement.of(1L, 200L);
-        TestTransactionBatchElement secondElement = TestTransactionBatchElement.of(1L, 300L);
-        TestTransactionBatchElement thirdElement = TestTransactionBatchElement.of(1L, 300L);
+    public void throwsExceptionsCorrectlyOnDuplicatedElementsInBatch() throws InterruptedException {
+        EncodingTransactionService encodingTransactionService =
+                SimpleTransactionService.createV1(new InMemoryKeyValueService(true));
 
-        WriteBatchingTransactionService.processBatch(mockTransactionService, ImmutableList.of(
-                firstElement, secondElement, thirdElement));
+        int numRequests = 100;
+        List<BatchElement<WriteBatchingTransactionService.TimestampPair, Void>> batchedRequest =
+                IntStream.range(0, numRequests)
+                        .mapToObj(unused -> TestTransactionBatchElement.of(1L, 5L))
+                        .collect(Collectors.toList());
 
-        assertThat(Futures.getUnchecked(firstElement.result())).isTrue();
-        assertThat(Futures.getUnchecked(secondElement.result())).isFalse();
-        assertThat(Futures.getUnchecked(thirdElement.result())).isFalse();
+        WriteBatchingTransactionService.processBatch(encodingTransactionService, batchedRequest);
 
-        verify(mockTransactionService).putUnlessExistsMultiple(ImmutableMap.of(1L, 200L));
+        AtomicLong successCounter = new AtomicLong();
+        AtomicLong exceptionCounter = new AtomicLong();
+        for (BatchElement<WriteBatchingTransactionService.TimestampPair, Void> batchElement : batchedRequest) {
+            try {
+                batchElement.result().get();
+                successCounter.incrementAndGet();
+            } catch (ExecutionException ex) {
+                assertThat(ex)
+                        .hasCauseInstanceOf(KeyAlreadyExistsException.class)
+                        .satisfies(executionException -> {
+                            KeyAlreadyExistsException keyAlreadyExistsException
+                                    = (KeyAlreadyExistsException) executionException.getCause();
+                            assertThat(keyAlreadyExistsException.getExistingKeys()).containsExactly(
+                                    encodingTransactionService.getEncodingStrategy().encodeStartTimestampAsCell(1L));
+                        });
+                exceptionCounter.incrementAndGet();
+            }
+        }
+
+        // XXX Not something reasonable to assume in production (since the one successful call might actually
+        // return fail while succeeding on the KVS), but acceptable for In Memory KVS.
+        assertThat(successCounter).hasValue(1);
+        assertThat(exceptionCounter).hasValue(numRequests - 1);
     }
 
     @Value.Immutable
-    interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Boolean> {
+    interface TestTransactionBatchElement extends BatchElement<WriteBatchingTransactionService.TimestampPair, Void> {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {
             return ImmutableTestTransactionBatchElement.builder()
                     .argument(ImmutableTimestampPair.of(startTimestamp, commitTimestamp))
