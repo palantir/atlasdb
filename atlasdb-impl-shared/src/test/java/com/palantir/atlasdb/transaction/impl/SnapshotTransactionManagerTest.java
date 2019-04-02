@@ -179,21 +179,27 @@ public class SnapshotTransactionManagerTest {
     }
 
     @Test
-    public void callsStartTransactionForReadOnlyIfFlagIsSet() throws InterruptedException {
+    public void callsStartTransactionForReadOnlyTransactionsIfFlagIsSet() throws InterruptedException {
         TimelockService timelockService =
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
-        SnapshotTransactionManager newTransactionManager = createSnapshotTransactionManager(timelockService, true);
-        newTransactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
+
+        transactionManager.runTaskReadOnly(tx -> "ignored");
         verify(timelockService).startIdentifiedAtlasDbTransaction();
+
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        verify(timelockService, times(2)).startIdentifiedAtlasDbTransaction();
     }
 
     @Test
-    public void doesNotCallStartTransactionForReadOnlyIfFlagIsNotSet() {
+    public void doesNotCallStartTransactionForReadOnlyTransactionsIfFlagIsNotSet() {
         TimelockService timelockService =
                 spy(new LegacyTimelockService(timestampService, closeableLockService, LockClient.of("lock")));
-        SnapshotTransactionManager newTransactionManager = createSnapshotTransactionManager(timelockService, false);
-        newTransactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
+        SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
+
+        transactionManager.runTaskReadOnly(tx -> "ignored");
+        transactionManager.runTaskWithConditionReadOnly(PreCommitConditions.NO_OP, (tx, condition) -> "ignored");
         verify(timelockService, never()).startIdentifiedAtlasDbTransaction();
     }
 
@@ -218,7 +224,7 @@ public class SnapshotTransactionManagerTest {
                 executorService,
                 true,
                 () -> ImmutableTransactionConfig.builder()
-                        .lockOnReadOnlyTransactions(grabImmutableTsLockOnReads)
+                        .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
                         .build());
     }
 }
