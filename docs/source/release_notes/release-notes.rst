@@ -53,7 +53,7 @@ develop
     *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
          
     *    - |improved|
          - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
@@ -77,7 +77,7 @@ develop
     *    - |fixed|
          - Oracle KVS now deletes old entries correctly if using targeted sweep.
            Previously, there were situations where it would not delete values that could safely be deleted.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3870>`__)
 
     *    - |fixed| |devbreak|
          - Callbacks specified in TransactionManagers will no longer be run synchronously when ``initializeAsync`` is set to true, even if initialization succeeds in the first, synchronous attempt.
