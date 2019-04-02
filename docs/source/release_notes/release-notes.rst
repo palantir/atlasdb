@@ -89,6 +89,10 @@ develop
          - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3886>`__)
 
+    *    - |fixed|
+         - Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3805>`__)
+
 ========
 v0.127.0
 ========

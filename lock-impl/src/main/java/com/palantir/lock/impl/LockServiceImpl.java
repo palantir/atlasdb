@@ -392,14 +392,14 @@ public final class LockServiceImpl
             if (request.getVersionId() != null) {
                 versionIdMap.put(client, request.getVersionId());
             }
+            if (Thread.interrupted()) {
+                throw new InterruptedException("Interrupted while locking.");
+            }
             HeldLocksToken token = createHeldLocksToken(client, LockCollections.of(lockDescriptorMap.build()), LockCollections.of(locks),
                     request.getLockTimeout(), request.getVersionId(), request.getCreatingThreadName());
             locks.clear();
             if (log.isTraceEnabled()) {
                 logNullResponse(client, request, token);
-            }
-            if (Thread.interrupted()) {
-                throw new InterruptedException("Interrupted while locking.");
             }
             if (requestLogger.isDebugEnabled()) {
                 requestLogger.debug("Successfully acquired locks {} for requesting thread {} after {} ms",
