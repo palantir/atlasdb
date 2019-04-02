@@ -55,6 +55,11 @@ develop
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
          
+    *    - |fixed|
+         - Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
+           Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each thread will separately attempt to push the bound forward, possibly resulting in unnecessarily many attempts to check-and-set the value.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
     *    - |improved|
          - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
            Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
