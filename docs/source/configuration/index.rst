@@ -17,7 +17,7 @@ Configuration
    leader_config
    logging
    timestamp_client
-   internal-schemas
+   internal_schemas
 
 AtlasDB Configuration
 =====================
@@ -94,3 +94,5 @@ Example Configuration
       keyValueService:
         type: cassandra
         sweepReadThreads: 16
+      internalSchema:
+        targetTransactionsSchemaVersion: 2
