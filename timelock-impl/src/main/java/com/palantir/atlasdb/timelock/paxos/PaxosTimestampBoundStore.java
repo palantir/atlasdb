@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -30,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -56,18 +56,20 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
 
-    private final Map<PaxosAcceptor, ExecutorService> acceptors;
-    private final Map<PaxosLearner, ExecutorService> learners;
+    private final ImmutableList<PaxosAcceptor> acceptors;
+    private final ImmutableList<PaxosLearner> learners;
     private final long maximumWaitBeforeProposalMs;
+    private final ExecutorService executor;
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
-            Map<PaxosAcceptor, ExecutorService> acceptors,
-            Map<PaxosLearner, ExecutorService> learners,
-            long maximumWaitBeforeProposalMs) {
+            ImmutableList<PaxosAcceptor> acceptors,
+            ImmutableList<PaxosLearner> learners,
+            long maximumWaitBeforeProposalMs,
+            ExecutorService executor) {
         DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
                 + "Currently, I believe the timestamp bound is {}.",
                 SafeArg.of("proposerUuid", proposer.getUuid()),
@@ -77,6 +79,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         this.acceptors = acceptors;
         this.learners = learners;
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
+        this.executor = executor;
     }
 
     /**
@@ -107,6 +110,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 acceptors,
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 proposer.getQuorumSize(),
+                executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
         if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("could not get a quorum");
@@ -207,6 +211,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 learners,
                 learner -> getLearnedValue(seq, learner),
                 QUORUM_OF_ONE,
+                executor,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
         return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
                 .map(PaxosLong::getValue)

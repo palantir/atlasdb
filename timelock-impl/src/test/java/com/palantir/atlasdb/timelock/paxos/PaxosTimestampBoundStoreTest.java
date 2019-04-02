@@ -282,9 +282,10 @@ public class PaxosTimestampBoundStoreTest {
         return new PaxosTimestampBoundStore(
                 proposer,
                 learners.get(nodeIndex),
-                mapToExecutorService(acceptors),
-                mapToExecutorService(learners),
-                1000L);
+                ImmutableList.copyOf(acceptors),
+                ImmutableList.copyOf(learners),
+                1000L,
+                executor);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {
@@ -295,10 +296,6 @@ public class PaxosTimestampBoundStoreTest {
                 NUM_NODES / 2 + 1,
                 UUID.randomUUID(),
                 executor);
-    }
-
-    private <T> Map<T, ExecutorService> mapToExecutorService(List<T> keys) {
-        return keys.stream().collect(Collectors.toMap(x -> x, ignore -> executor));
     }
 
     private static class OnceFailingPaxosProposer implements PaxosProposer {
