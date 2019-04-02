@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -228,7 +229,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 new Blacklist(config));
-        return createOrShutdownClientPool(metricsManager, config, clientPool,
+        return createOrShutdownClientPool(metricsManager, config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
+                clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
@@ -253,6 +256,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool) {
         return createOrShutdownClientPool(metricsManager,
                 config,
+                CassandraKeyValueServiceRuntimeConfig::getDefault,
                 clientPool,
                 mutationTimestampProvider,
                 LoggerFactory.getLogger(CassandraKeyValueService.class),
@@ -290,28 +294,41 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private static CassandraKeyValueService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
         CassandraClientPool clientPool = CassandraClientPoolImpl.create(metricsManager,
                 config,
-                runtimeConfig,
+                runtimeConfigSupplier,
                 initializeAsync);
-        return createOrShutdownClientPool(metricsManager, config, clientPool, mutationTimestampProvider,
-                log, initializeAsync);
+        return createOrShutdownClientPool(
+                metricsManager,
+                config,
+                runtimeConfigSupplier,
+                clientPool,
+                mutationTimestampProvider,
+                log,
+                initializeAsync);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
             boolean initializeAsync) {
         try {
-            return createAndInitialize(metricsManager, config, clientPool,
-                    mutationTimestampProvider, log, initializeAsync);
+            return createAndInitialize(
+                    metricsManager,
+                    config,
+                    runtimeConfigSupplier,
+                    clientPool,
+                    mutationTimestampProvider,
+                    log,
+                    initializeAsync);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
             try {
@@ -328,6 +345,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private static CassandraKeyValueService createAndInitialize(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             Logger log,
@@ -336,14 +354,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 log,
                 metricsManager,
                 config,
+                runtimeConfigSupplier,
                 clientPool,
                 mutationTimestampProvider);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
 
-    private CassandraKeyValueServiceImpl(Logger log,
-            MetricsManager metricsManager, CassandraKeyValueServiceConfig config,
+    private CassandraKeyValueServiceImpl(
+            Logger log,
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfigSupplier,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider) {
         super(createInstrumentedFixedThreadPool(config, metricsManager.getRegistry()));
@@ -356,7 +378,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
-        this.cellLoader = new CellLoader(clientPool, wrappingQueryRunner, taskRunner);
+        this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfigSupplier);
         this.rangeLoader = new RangeLoader(clientPool, queryRunner, metricsManager, readConsistency);
         this.cellValuePutter = new CellValuePutter(
                 config,
@@ -1642,8 +1664,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
                                 String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
-                                casResult.getCurrent_values().stream().map(column ->
-                                        Cell.create(partition.getKey().toByteArray(), column.getName()))
+                                casResult.getCurrent_values().stream()
+                                        .map(column -> Cell.create(partition.getKey().toByteArray(),
+                                                CassandraKeyValueServices.decompose(column.bufferForName()).lhSide))
                                         .collect(Collectors.toList())));
                     }
                 }

@@ -322,14 +322,14 @@ public class SerializableTransactionManagerTest {
         public void init(TransactionManager transactionManager) {
             successfullyInvoked =
                     transactionManager.getKeyValueServiceStatus() == KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
-            if (block) {
-                throw new RuntimeException();
+            while (block) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
             }
-        }
-
-        @Override
-        public void cleanup(TransactionManager transactionManager, Throwable initException) {
-            // suppress
         }
     }
 

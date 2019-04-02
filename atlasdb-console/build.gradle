@@ -7,7 +7,9 @@ dependencies {
     compile 'org.fusesource.jansi:jansi:1.11'
     compile group: 'commons-cli', name:'commons-cli'
     compile 'jline:jline:2.12'
-    compile group: 'org.codehaus.groovy', name: 'groovy-all'
+    compile group: 'org.codehaus.groovy', name: 'groovy'
+    compile group: 'org.codehaus.groovy', name: 'groovy-groovysh'
+    compile group: 'org.codehaus.groovy', name: 'groovy-json'
 
     testCompile 'org.jmock:jmock-legacy:' + libVersions.jmock
     testCompile 'org.jmock:jmock:' + libVersions.jmock

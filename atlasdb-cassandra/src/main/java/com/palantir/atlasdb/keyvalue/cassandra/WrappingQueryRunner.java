@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
@@ -68,6 +69,21 @@ class WrappingQueryRunner {
         try {
             return queryRunner.run(client, tableRef,
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
+        }
+    }
+
+    Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> multiget_multislice(
+            String kvsMethodName,
+            CassandraClient client,
+            TableReference tableRef,
+            List<KeyPredicate> request,
+            ConsistencyLevel consistency) throws TException {
+        try {
+            return queryRunner.run(client, tableRef,
+                    () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
                     "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);

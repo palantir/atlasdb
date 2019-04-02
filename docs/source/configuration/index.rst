@@ -17,6 +17,7 @@ Configuration
    leader_config
    logging
    timestamp_client
+   internal-schemas
 
 AtlasDB Configuration
 =====================

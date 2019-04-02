@@ -63,8 +63,8 @@ public class LockTokenShareTest {
                 .as("get lock token since both references are unlocked")
                 .contains(LOCK_TOKEN);
         assertThat(firstToken.unlock())
-                .as("first token now has lock token since both references unlocked")
-                .contains(LOCK_TOKEN);
+                .as("returns empty as unlock should return only once")
+                .isEmpty();
     }
 
     @Test
