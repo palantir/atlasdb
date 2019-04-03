@@ -51,6 +51,10 @@ develop
          - Change
 
     *    - |fixed|
+         - lock-api now declares a minimum dependency on timelock-server 0.59.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
+    *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
