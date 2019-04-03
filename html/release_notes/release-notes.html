@@ -193,6 +193,17 @@
 Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3882">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
+Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
+This may lead to multiple unnecessary updates to the coordinated value in a short space of time.
+Note that updates that do change the value will be applied regardless, and could potentially still race if applied in parallel.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3QQQ">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">LockRefresher</span></code> now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3qqq">Pull Request</a>)</td>
+</tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The Cassandra KVS <code class="docutils literal notranslate"><span class="pre">CellLoader</span></code> now supports cross-column batching for requests which query a variety of columns for a few rows.
 Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
