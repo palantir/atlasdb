@@ -203,12 +203,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public void destroyObject(PooledObject<CassandraClient> client) {
-        try (CassandraClient cassandraClient = client.getObject()) {
-            cassandraClient.close();
-            log.debug("Closed transport for client {} of host {}",
-                    UnsafeArg.of("client", client),
-                    SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
-        }
+        client.getObject().close();
+        log.debug("Closed transport for client {} of host {}",
+                UnsafeArg.of("client", client),
+                SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));
     }
 
     static class ClientCreationFailedException extends AtlasDbDependencyException {
