@@ -109,9 +109,12 @@ public final class WriteBatchingTransactionService implements TransactionService
      * Semantics for batch processing:
      *
      * - If there are multiple requests to {@link TransactionService#putUnlessExists(long, long)} with the same
-     *   start timestamp, only the first of these will actually be attempted; the remainder will receive a response
-     *   indicating they should try again. The booleans returned by this method indicate whether a request to the
-     *   batcher that has been processed was processed properly (true), or if it should be re-submitted (false).
+     *   start timestamp, we will actually call the KVS with only one request from the batch for that start timestamp.
+     *   There are no guarantees as to which request we use. If that element was successfully put (if the whole
+     *   operation succeeded, or if the {@link KeyAlreadyExistsException} has partial successes), we return
+     *   success for that request, and throw {@link KeyAlreadyExistsException} for all other requests associated with
+     *   that start timestamp. If it failed and we know the key already exists, all requests associated with that
+     *   start timestamp are failed with a {@link KeyAlreadyExistsException}. Otherwise we will try again.
      * - If a {@link KeyAlreadyExistsException} is thrown, we fail out requests for keys present in the
      *   {@link KeyAlreadyExistsException}, and then retry our request with those keys removed. If the
      *   {@link KeyAlreadyExistsException} does not include any present keys, we throw an exception.
