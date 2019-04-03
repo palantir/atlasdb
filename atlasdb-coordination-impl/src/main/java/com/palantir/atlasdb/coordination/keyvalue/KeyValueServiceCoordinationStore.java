@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.coordination.keyvalue;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
@@ -186,7 +187,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
             // Safe as we're only on this branch if the value is present
             sequenceNumber = coordinationValue.get().sequence();
-            newBound = getNewBound(sequenceNumberSupplier.getAsLong());
+            long freshSequenceNumber = sequenceNumberSupplier.getAsLong();
+            newBound = freshSequenceNumber < extantValueAndBound.bound()
+                    ? extantValueAndBound.bound()
+                    : getNewBound(freshSequenceNumber);
         } else {
             sequenceNumber = sequenceNumberSupplier.getAsLong();
             putUnlessValueExists(sequenceNumber, targetValue);
@@ -262,6 +266,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     @VisibleForTesting
     CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
+        if (oldValue.map(presentOldValue -> Objects.equals(presentOldValue, newValue)).orElse(false)) {
+            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
+        }
+
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
                 .table(AtlasDbConstants.COORDINATION_TABLE)
                 .cell(getCoordinationValueCell())

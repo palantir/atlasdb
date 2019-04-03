@@ -55,6 +55,13 @@ develop
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
          
+    *    - |fixed|
+         - Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
+           Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
+           This may lead to multiple unnecessary updates to the coordinated value in a short space of time.
+           Note that updates that do change the value will be applied regardless, and could potentially still race if applied in parallel.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
     *    - |improved|
          - ``LockRefresher`` now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)

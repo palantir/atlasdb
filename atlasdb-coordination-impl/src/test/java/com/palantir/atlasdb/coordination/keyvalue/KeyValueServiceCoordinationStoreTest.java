@@ -64,8 +64,6 @@ public class KeyValueServiceCoordinationStoreTest {
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
 
-    // Casting is reasonable because we initialize with false. We need the precise typing for some of the
-    // tests that hit the store directly.
     private final KeyValueServiceCoordinationStore<String> coordinationStore = coordinationStoreForKvs(keyValueService);
 
     @Test
@@ -98,9 +96,23 @@ public class KeyValueServiceCoordinationStoreTest {
     }
 
     @Test
-    public void valuePreservingTransformationsAdvanceTheBound() {
+    public void valuePreservingTransformationsDoNotAdvanceBoundIfStillValid() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
         ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+        coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
+        ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
+
+        assertThat(firstValueAndBound.value()).contains(VALUE_1);
+        assertThat(secondValueAndBound.value()).contains(VALUE_1);
+        assertThat(firstValueAndBound.bound()).isEqualTo(secondValueAndBound.bound());
+    }
+
+    @Test
+    public void valuePreservingTransformationsAdvanceBoundIfNeeded() {
+        coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        ValueAndBound<String> firstValueAndBound = coordinationStore.getAgreedValue().get();
+
+        makeBoundInvalid(firstValueAndBound.bound());
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
         ValueAndBound<String> secondValueAndBound = coordinationStore.getAgreedValue().get();
 
@@ -113,11 +125,16 @@ public class KeyValueServiceCoordinationStoreTest {
     public void valuePreservingTransformationsDoNotWriteTheSameValueAgain() {
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
         SequenceAndBound firstSequenceAndBound = coordinationStore.getCoordinationValue().get();
+
+        makeBoundInvalid(firstSequenceAndBound.bound());
         coordinationStore.transformAgreedValue(VALUE_PRESERVING_FUNCTION);
         SequenceAndBound secondSequenceAndBound = coordinationStore.getCoordinationValue().get();
 
         assertThat(firstSequenceAndBound.sequence()).isEqualTo(secondSequenceAndBound.sequence());
-        assertThat(firstSequenceAndBound.bound()).isLessThan(secondSequenceAndBound.bound());
+    }
+
+    private void makeBoundInvalid(long bound) {
+        timestampSequence.accumulateAndGet(bound, (existingBound, newBound) -> Math.max(existingBound, newBound + 1));
     }
 
     @Test
@@ -207,6 +224,8 @@ public class KeyValueServiceCoordinationStoreTest {
     }
 
     private KeyValueServiceCoordinationStore<String> coordinationStoreForKvs(KeyValueService kvs) {
+        // Casting is reasonable because we initialize with false. We need the precise typing for some of the
+        // tests that hit the store directly.
         return (KeyValueServiceCoordinationStore<String>) KeyValueServiceCoordinationStore.create(
                 ObjectMappers.newServerObjectMapper(),
                 kvs,
