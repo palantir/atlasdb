@@ -51,6 +51,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 /**
@@ -186,12 +187,22 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         long newBound;
         if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
             // Safe as we're only on this branch if the value is present
+            log.info("Reusing an existent value in the coordination store, because the value we are about to write"
+                    + " is the same. Coordination value was {}; existing value was {}, and the target value was {}.",
+                    SafeArg.of("coordinationValue", coordinationValue),
+                    UnsafeArg.of("extantValueAndBound", extantValueAndBound),
+                    UnsafeArg.of("targetValue", targetValue));
             sequenceNumber = coordinationValue.get().sequence();
             long freshSequenceNumber = sequenceNumberSupplier.getAsLong();
             newBound = freshSequenceNumber < extantValueAndBound.bound()
                     ? extantValueAndBound.bound()
                     : getNewBound(freshSequenceNumber);
         } else {
+            log.info("Writing a new value {} to the coordination store. Coordination value was {} and the existing"
+                    + "value and bound was {}",
+                    UnsafeArg.of("newValue", targetValue),
+                    UnsafeArg.of("extantValueAndBound", extantValueAndBound),
+                    SafeArg.of("coordinationValue", coordinationValue));
             sequenceNumber = sequenceNumberSupplier.getAsLong();
             putUnlessValueExists(sequenceNumber, targetValue);
             newBound = getNewBound(sequenceNumber);
@@ -267,6 +278,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     CheckAndSetResult<SequenceAndBound> checkAndSetCoordinationValue(
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
         if (oldValue.map(presentOldValue -> Objects.equals(presentOldValue, newValue)).orElse(false)) {
+            log.info("Not actually attempting a check and set, because we are trying to update the coordination"
+                    + " value to itself. This may legitimately happen when the validity bound was surpassed."
+                    + " Coordination value of interest was {}.",
+                    SafeArg.of("coordinationValue", oldValue));
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         }
 
@@ -281,6 +296,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             kvs.checkAndSet(request);
             return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
+            log.info("Check and set to the KVS failed; attempted to set {} to {}.",
+                    SafeArg.of("oldCoordinationValue", oldValue),
+                    SafeArg.of("newCoordinationValue", newValue),
+                    e);
             if (e.getActualValues() != null) {
                 return ImmutableCheckAndSetResult.of(false, e.getActualValues()
                         .stream()
