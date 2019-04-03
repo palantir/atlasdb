@@ -72,6 +72,11 @@ develop
            Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3860>`__)
 
+    *    - |fixed|
+         - ``WriteBatchingTransactionService`` now tries requests for duplicated timestamps in subsequent batches.
+           Previously, we would immediately throw a ``SafeIllegalStateException`` when seeing a duplicate in a single batch, which was causing unnecessary failures in transactions which could handle the ``KeyAlreadyExistsException`` safely.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3879>`__)
+
     *    - |userbreak| |fixed|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
            We do not want to stay on an RC version now that a full release is available.
