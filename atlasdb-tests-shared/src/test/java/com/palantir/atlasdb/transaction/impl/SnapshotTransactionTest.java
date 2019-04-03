@@ -138,7 +138,7 @@ import com.palantir.timestamp.TimestampService;
 
 @SuppressWarnings("checkstyle:all")
 public class SnapshotTransactionTest extends AtlasDbTestCase {
-    private static TransactionConfig transactionConfig = ImmutableTransactionConfig.builder().build();
+    private TransactionConfig transactionConfig;
 
     protected final TimestampCache timestampCache = new TimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
@@ -213,6 +213,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        transactionConfig = ImmutableTransactionConfig.builder().build();
+
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE2, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -1232,10 +1235,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 true);
 
         transaction.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL));
+        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        
         transaction.commit();
         timelockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(timelockService).refreshLockLeases(ImmutableSet.of(res.getLock()));
     }
 
     private void setTransactionConfig(TransactionConfig config) {
