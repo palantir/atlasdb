@@ -24,9 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
 
 public class LockRefresher implements AutoCloseable {
 
@@ -61,8 +63,15 @@ public class LockRefresher implements AutoCloseable {
                 return;
             }
 
-            Set<LockToken> refreshed = timelockService.refreshLockLeases(toRefresh);
-            tokensToRefresh.removeAll(Sets.difference(toRefresh, refreshed));
+            Set<LockToken> successfullyRefreshedTokens = timelockService.refreshLockLeases(toRefresh);
+            Set<LockToken> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
+            tokensToRefresh.removeAll(refreshFailures);
+            if (!refreshFailures.isEmpty()) {
+                log.info("Failed to refresh {} lock tokens, most likely because they were lost on the server."
+                                + " The first (up to) 20 of these were {}.",
+                        SafeArg.of("numLockTokens", refreshFailures.size()),
+                        SafeArg.of("firstFailures", Iterables.limit(refreshFailures, 20)));
+            }
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);
         }

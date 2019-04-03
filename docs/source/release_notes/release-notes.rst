@@ -56,6 +56,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
          
     *    - |improved|
+         - ``LockRefresher`` now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+         
+    *    - |improved|
          - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
            Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
            Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
