@@ -50,6 +50,12 @@ develop
     *    - Type
          - Change
 
+    *    - |new|
+         - A new configuration option ``lockImmutableTsOnReadOnlyTransactions`` is added under ``atlas-runtime.transaction``. Default value for this flag is ``false``, and setting it to ``true``
+           enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
+           please do not change the default value for this flag without talking to AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3888>`__)
+
     *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
