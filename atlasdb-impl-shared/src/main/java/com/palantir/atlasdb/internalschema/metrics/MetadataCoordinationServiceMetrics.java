@@ -48,7 +48,7 @@ public final class MetadataCoordinationServiceMetrics {
      *
      * @param metricsManager metrics manager to register the
      * @param metadataCoordinationService metadata coordination service that should be tracked
-     * @param timestamp
+     * @param timestamp timestamp service that this coordination service uses for sequencing
      */
     public static void registerMetrics(
             MetricsManager metricsManager,
