@@ -203,7 +203,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public void destroyObject(PooledObject<CassandraClient> client) {
-        client.getObject().getOutputProtocol().getTransport().close();
+        client.getObject().close();
         log.debug("Closed transport for client {} of host {}",
                 UnsafeArg.of("client", client),
                 SafeArg.of("cassandraClient", CassandraLogHelper.host(addr)));

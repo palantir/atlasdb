@@ -50,6 +50,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolException;
+import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 import com.google.common.collect.ImmutableSet;
@@ -275,6 +276,17 @@ public class CassandraClientImpl implements CassandraClient {
         ByteBuffer queryBytes = ByteBuffer.wrap(cqlQuery.toString().getBytes(StandardCharsets.UTF_8));
 
         return executeHandlingExceptions(() -> client.execute_cql3_query(queryBytes, compression, consistency));
+    }
+
+    @Override
+    public void close() {
+        TProtocol inputProtocol = getInputProtocol();
+        TProtocol outputProtocol = getOutputProtocol();
+        try (TTransport inputTransport = inputProtocol.getTransport();
+                TTransport outputTransport = outputProtocol.getTransport()) {
+            inputProtocol.reset();
+            outputProtocol.reset();
+        }
     }
 
     private ColumnParent getColumnParent(TableReference tableRef) {
