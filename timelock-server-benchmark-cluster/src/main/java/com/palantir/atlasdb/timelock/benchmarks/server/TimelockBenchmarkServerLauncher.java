@@ -20,7 +20,6 @@ import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.server.config.TimelockBenchmarkServerConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -45,12 +44,12 @@ public class TimelockBenchmarkServerLauncher extends Application<TimelockBenchma
     public void run(TimelockBenchmarkServerConfig configuration, Environment environment) throws Exception {
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
-        TimeLockAgent agent = TimeLockAgent.create(
+        TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
-                ImmutableTimeLockDeprecatedConfiguration.builder().build(),
+                configuration.threadPoolSize(),
+                configuration.blockTimeoutMs(),
                 environment.jersey()::register);
     }
 }
-

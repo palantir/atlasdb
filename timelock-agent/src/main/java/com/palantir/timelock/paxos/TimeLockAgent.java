@@ -37,7 +37,6 @@ import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
-import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
@@ -64,16 +63,20 @@ public class TimeLockAgent {
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
-            TimeLockDeprecatedConfiguration deprecated,
+            int threadPoolSize,
+            long blockingTimeoutMs,
             Consumer<Object> registrar) {
-        TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, deprecated, registrar);
+        TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, threadPoolSize, blockingTimeoutMs,
+                registrar);
         agent.createAndRegisterResources();
         return agent;
     }
 
-    private TimeLockAgent(MetricsManager metricsManager, TimeLockInstallConfiguration install,
+    private TimeLockAgent(MetricsManager metricsManager,
+            TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
-            TimeLockDeprecatedConfiguration deprecated,
+            int threadPoolSize,
+            long blockingTimeoutMs,
             Consumer<Object> registrar) {
         this.metricsManager = metricsManager;
         this.install = install;
@@ -83,7 +86,7 @@ public class TimeLockAgent {
         this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
                 install.paxos().dataDirectory().toString());
         this.leadershipCreator = new PaxosLeadershipCreator(this.metricsManager, install, runtime, registrar);
-        this.lockCreator = new LockCreator(runtime, deprecated);
+        this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));

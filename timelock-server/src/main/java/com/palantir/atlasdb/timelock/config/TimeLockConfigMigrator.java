@@ -21,10 +21,8 @@ import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosInstallConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosRuntimeConfiguration;
-import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockInstallConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
-import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
@@ -65,30 +63,15 @@ public final class TimeLockConfigMigrator {
                 .slowLockLogTriggerMillis(config.slowLockLogTriggerMillis())
                 .build();
 
-        TimeLockDeprecatedConfiguration deprecated = createDeprecatedConfiguration(config, environment);
-
         return ImmutableCombinedTimeLockServerConfiguration.builder()
                 .install(install)
                 .runtime(runtime)
-                .deprecated(deprecated)
+                .threadPoolSize(config.availableThreads())
+                .blockingTimeoutMs(getBlockingTimeout(config, environment))
                 .build();
     }
 
-    private static TimeLockDeprecatedConfiguration createDeprecatedConfiguration(TimeLockServerConfiguration config,
-            Environment environment) {
-        ImmutableTimeLockDeprecatedConfiguration.Builder deprecatedBuilder
-                = ImmutableTimeLockDeprecatedConfiguration.builder();
-
-        if (config.timeLimiterConfiguration().enableTimeLimiting()) {
-            deprecatedBuilder.useLockTimeLimiter(true);
-            deprecatedBuilder.blockingTimeoutInMs(
-                    BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), config));
-        }
-        if (config.useClientRequestLimit()) {
-            deprecatedBuilder.useClientRequestLimit(true);
-            deprecatedBuilder.availableThreads(config.availableThreads());
-        }
-
-        return deprecatedBuilder.build();
+    private static long getBlockingTimeout(TimeLockServerConfiguration config, Environment environment) {
+        return BlockingTimeouts.getBlockingTimeout(environment.getObjectMapper(), config);
     }
 }

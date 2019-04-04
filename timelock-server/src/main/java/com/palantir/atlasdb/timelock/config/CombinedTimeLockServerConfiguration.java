@@ -19,7 +19,6 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
@@ -31,5 +30,7 @@ public interface CombinedTimeLockServerConfiguration {
 
     TimeLockRuntimeConfiguration runtime();
 
-    TimeLockDeprecatedConfiguration deprecated();
+    int threadPoolSize();
+
+    long blockingTimeoutMs();
 }

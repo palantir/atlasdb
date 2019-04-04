@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.benchmarks.server.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
@@ -41,4 +42,11 @@ public class TimelockBenchmarkServerConfig extends Configuration {
         return runtime;
     }
 
+    public int threadPoolSize() {
+        return (int) (Math.max(256, 32 * Runtime.getRuntime().availableProcessors()) * 0.5);
+    }
+
+    public long blockTimeoutMs() {
+        return (long) (HumanReadableDuration.minutes(1).toMilliseconds() * 0.8);
+    }
 }

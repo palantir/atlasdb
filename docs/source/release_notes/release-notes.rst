@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` has been removed.
+           Note that this configuration was only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses the same setup as in production, which forces the use of client request limits and lock time limiter.
+           Note that this may require modifying your ``TimeLockServerConfiguration`` to enable the above two properties.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3898>`__)
+
     *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
