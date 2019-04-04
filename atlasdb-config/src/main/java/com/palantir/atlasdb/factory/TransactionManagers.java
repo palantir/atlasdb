@@ -455,7 +455,8 @@ public abstract class TransactionManagers {
     }
 
     private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
-            MetricsManager metricsManager, LockAndTimestampServices lockAndTimestampServices,
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService) {
         @SuppressWarnings("unchecked") // Coordination service clearly has this type.
         CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
@@ -465,7 +466,10 @@ public abstract class TransactionManagers {
                         keyValueService,
                         lockAndTimestampServices.timestamp(),
                         config().initializeAsync()));
-        MetadataCoordinationServiceMetrics.registerMetrics(metricsManager, metadataCoordinationService);
+        MetadataCoordinationServiceMetrics.registerMetrics(
+                metricsManager,
+                metadataCoordinationService,
+                lockAndTimestampServices.timestamp());
         return metadataCoordinationService;
     }
 
