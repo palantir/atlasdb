@@ -50,6 +50,9 @@ develop
     *    - Type
          - Change
 
+    *    -
+         -
+
 ========
 v0.130.0
 ========
@@ -123,11 +126,11 @@ v0.129.0
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3860>`__)
 
     *    - |improved|
-         - Concurrent calls to `TimelockService.startIdentifiedAtlasDbTransaction()` now coalesced into a single Timelock rpc to reduce load on Timelock.
+         - Concurrent calls to ``TimelockService.startIdentifiedAtlasDbTransaction()`` are now coalesced into a single Timelock rpc to reduce load on Timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
 
     *    - |devbreak|
-         - `RemoteTimelockServiceAdapter` is now closeable. Users of this class should invoke `close()` before termination to avoid thread leaks.
+         - ``RemoteTimelockServiceAdapter`` is now closeable. Users of this class should invoke ``close()`` before termination to avoid thread leaks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3844>`__)
 
     *    - |fixed|
