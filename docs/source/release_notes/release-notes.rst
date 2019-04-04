@@ -104,6 +104,10 @@ develop
          - Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3805>`__)
 
+    *    - |fixed|
+         - Cassandra client input and output transports are now properly closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3892>`__)
+
 ========
 v0.127.0
 ========
