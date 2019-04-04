@@ -93,25 +93,29 @@ public final class MetadataCoordinationServiceMetrics {
     private static void registerTransactionsSchemaVersionMetrics(MetricsManager metricsManager,
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService,
             TimestampService timestampService) {
-        Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> timestampMapSupplier = () -> {
-            Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
-                    = metadataCoordinationService.getLastKnownLocalValue();
-            return latestValue
-                    .map(ValueAndBound::value)
-                    .flatMap(Function.identity())
-                    .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                    .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()))
-                    .orElse(null);
-        };
-
+        Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> valueAndBoundSupplier =
+                () -> MetadataCoordinationServiceMetrics.getTimestampToTransactionsTableSchemaVersionMap(
+                        metadataCoordinationService);
         registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
                 AtlasDbMetricNames.COORDINATION_EVENTUAL_TRANSACTIONS_SCHEMA_VERSION,
-                timestampMapSupplier,
+                valueAndBoundSupplier,
                 ValueAndBound::bound);
         registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
                 AtlasDbMetricNames.COORDINATION_CURRENT_TRANSACTIONS_SCHEMA_VERSION,
-                timestampMapSupplier,
+                valueAndBoundSupplier,
                 unused -> timestampService.getFreshTimestamp());
+    }
+
+    private static ValueAndBound<TimestampPartitioningMap<Integer>> getTimestampToTransactionsTableSchemaVersionMap(
+            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+        Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
+                = metadataCoordinationService.getLastKnownLocalValue();
+        return latestValue
+                .map(ValueAndBound::value)
+                .flatMap(Function.identity())
+                .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
+                .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()))
+                .orElse(null);
     }
 
     private static void registerMetricForTransactionsSchemaVersionAtTimestamp(MetricsManager metricsManager,
