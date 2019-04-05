@@ -13,7 +13,8 @@ This architectural decision record is still a work in progress.
 
 In AtlasDB, the ``_transactions`` table keeps track of whether a transaction that had started at a given timestamp
 was committed or aborted (and in the case of it being committed, its commit timestamp). Logically, this table is a
-mapping of longs to longs, with a special value of ``-1`` meaning that the transaction was aborted.
+mapping of longs to longs, with a special value of ``-1`` meaning that the transaction was aborted. Transactions that
+are in-flight and have yet to either commit or abort will not have an entry in the table.
 
     | startTimestamp | commitTimestamp |
     |             20 |              33 |
