@@ -4,7 +4,8 @@ Date: 05/04/2019
 
 ## Status
 
-**Accepted**
+Technical decision has been accepted.
+This architectural decision record is still a work in progress.
 
 ## Context
 
@@ -81,16 +82,30 @@ However, our choice of encoding also has some issues. Two particularly relevant 
    horizontal scalability; writes are bottlenecked on a single node regardless of the size of the cluster.
 2. VAR_LONG encoding is not particularly efficient for our purposes in that it fails to exploit some characteristics
    of the distribution of our data. In particular:
-   a. The special value ``-1`` is particularly large; under VAR_LONG encoding, negative longs will always encode to 10
-   bytes.
-   b. Storing the full value of the commit timestamp is also wasteful, given that we know that it is generally slightly
-   higher than the value of the start timestamp.
+   1. The special value ``-1`` is particularly large; under VAR_LONG encoding, negative longs will always encode to 10
+      bytes.
+   2. Storing the full value of the commit timestamp is also wasteful, given that we know that it is generally slightly
+      higher than the value of the start timestamp.
 
-### Principles for a Good Transactions Table
+### Principles for a Good Transaction Service
 
-We thus define several principles for what makes a good physical transactions table.
+We thus define three principles that we can use to help guide our decisions as to what makes an implementation of
+a transaction service a good one.
+
+1. **Horizontal Scalability (HS)**: A good transactions service must be horizontally scalable; that is, it should be
+   possible to increase write bandwidth by increasing the number of database nodes and/or service nodes that are
+   performing writing.
+2. **Compact Representation (CR)**: A good transactions service does not unnecessarily use excessive disk space.
+   In addition to saving on disk usage, having a compact representation also improves the ability for query results to
+   be cached in memory, and can improve time taken to execute queries if less data needs to be read through from disk.
+3. **Range Scans (RS)**: A good transactions service supports range scans (without needing to read the entire table
+   and post-filter it). This is used in various backup and restore workflows in AtlasDB, and it is important that we
+   are able to execute restores in a timely fashion.
 
 ## Decision
+
+Implement the tickets encoding strategy, along with other features needed to support its efficient operation.
+The strategy and supporting features will be introduced in the following sections.
 
 ### Tickets Encoding Strategy
 
@@ -117,6 +132,8 @@ We thus define several principles for what makes a good physical transactions ta
 ### Data Compression
 
 ### Backup and Restore
+
+### Cassandra Dependencies
 
 ## Alternatives Considered
 
