@@ -101,13 +101,48 @@ a transaction service a good one.
 3. **Range Scans (RS)**: A good transactions service supports range scans (without needing to read the entire table
    and post-filter it). This is used in various backup and restore workflows in AtlasDB, and it is important that we
    are able to execute restores in a timely fashion.
+4. **Reasonable Usage Patterns (RUP)**: A good transactions service, if using an underlying service, must follow
+   standard principles as to what constitutes a reasonable usage pattern of the underlying service.
 
 ## Decision
 
 Implement the tickets encoding strategy, along with other features needed to support its efficient operation.
 The strategy and supporting features will be introduced in the following sections.
 
-### Tickets Encoding Strategy
+### Tickets Encoding Strategy: Logical Overview
+
+We divide the domain of positive longs into disjoint *partitions* of constant size - we call the size the
+*partitioning quantum* (PQ). These partitions are contiguous ranges that start at a multiple of PQ - thus, the first
+partition consists of timestamps from 0 to PQ - 1, the second from PQ to 2 * PQ - 1 and so on.
+
+We assign a constant number of rows to a partition (NP), and seek to distribute start timestamps as evenly as possible
+among these NP rows as numbers increase. In practice, the least significant bits of the timestamp will be used as
+the row number; we would thus store the value associated with the timestamps k, NP + k, 2NP + k and so on in the same
+row, for a given partition and value of k in the interval [0, NP). To disambiguate between these timestamps, we use
+different column keys - we can use a VAR_LONG encoding of the timestamp's offset relative to the base.
+
+More formally, for a given timestamp TS, we proceed as follows (where / denotes integer division):
+
+- we identify which partition P the timestamp TS belongs to; this is given by TS / PQ
+- we identify which row R TS belongs to; this is given by P * NP + (TS % PQ) % NP.
+- we identify the column C TS belongs to; this is given by (TS % PQ) / NP.
+
+Notice that given R and C, we can similarly decode the original TS:
+
+- we identify the relevant partition P; this is given by R / NP.
+- we identify the offset from the column key, O1; this is given by C * NP.
+- we identify the offset from the second part of the row key, O2; this is given by R % NP.
+- the original timestamp is then P * PQ + O1 + O2.
+
+It may be easier to think of the timestamp being written as a 3-tuple (P, O1, O2), where the row component is the
+pair (P, O2) and the column key is O1. This diagram should illustrate more clearly how this works:
+
+TODO (jkong): Diagram
+
+### Physical Implementation of Tickets
+
+We choose values of PQ and NP based on characteristics of the key-value-service in which we are storing the timestamp
+data, recalling principle RUP.
 
 ### Cassandra Table Tuning
 
