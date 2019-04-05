@@ -119,7 +119,7 @@ We assign a constant number of rows to a partition (NP), and seek to distribute 
 among these NP rows as numbers increase. In practice, the least significant bits of the timestamp will be used as
 the row number; we would thus store the value associated with the timestamps k, NP + k, 2NP + k and so on in the same
 row, for a given partition and value of k in the interval [0, NP). To disambiguate between these timestamps, we use
-different column keys - we can use a VAR_LONG encoding of the timestamp's offset relative to the base.
+dynamic column keys - we can use a VAR_LONG encoding of the timestamp's offset relative to the base.
 
 More formally, for a given timestamp TS, we proceed as follows (where / denotes integer division):
 
@@ -142,8 +142,50 @@ TODO (jkong): Diagram
 
 ### Physical Implementation of Tickets
 
+We store information about transactions committed under the new encoding scheme in the ``_transactions2`` table in
+Cassandra.
+Given that we want to avoid hot-spotting and ensure horizontal scalability, we need to ensure that the rows we may
+be writing data to are distributed differently in byte-space. We thus reverse the bits of each row before encoding it.
+
+```java
+private static byte[] encodeRowName(long startTimestamp) {
+    long row = (startTimestamp / PARTITIONING_QUANTUM) * ROWS_PER_QUANTUM
+            + (startTimestamp % PARTITIONING_QUANTUM) % ROWS_PER_QUANTUM;
+    return PtBytes.toBytes(Long.reverse(row));
+}
+```
+
+We are using a fixed-long encoding here, which uses a constant 8 bytes (instead of variable between 1 and 9). This was
+chosen to ensure that range scans are supported, as the reversed forms of variable length encodings tend to not be
+amenable to range scans.
+
+For the dynamic column keys, we simply use VAR_LONG encoding.
+
+We changed the encoding of values as well. For transactions that successfully committed, we used a delta encoding
+scheme instead, where we take the VAR_LONG of the difference between the commit and start timestamps, which is
+typically a small positive number. This helps to keep the size of the table down. Separately, for transactions that
+were aborted, we store an empty byte array as our special value instead of a negative number, because that is
+unnecessarily large.
+
+### Choosing PQ and NP
+
 We choose values of PQ and NP based on characteristics of the key-value-service in which we are storing the timestamp
-data, recalling principle RUP.
+data, recalling principle RUP. To simplify the discussion in this section, we assume NP divides PQ.
+
+For Cassandra, following the Atlas team's recommended Cassandra best practices, we seek to bound the size of an
+individual row by 100 megabytes. Considering that a VAR_LONG takes at most 9 bytes for positive integers, and we
+can explicitly use an empty byte array to represent a transaction that failed to commit, we can estimate the
+maximum size of a row for a given choice of values of PQ and NP.
+
+Notice that the number of timestamps we actually need to store is given by PQ / NP (since each of the rows in the
+partition is different). For a given start/commit timestamp pair, the row key occupies 8 bytes; that said, in SSTables
+the row key only needs to be represented once. We thus focus on the column keys and values.
+
+The column key is a VAR_LONG encoded number that is bounded by PQ / NP, as that's the largest offset we might actually
+store. The value theoretically could go up to a full 9 bytes for a large positive number, though in practice is likely
+to be considerably smaller.
+
+We selected values of PQ = 25,000,000 and NP = 16.
 
 ### Cassandra Table Tuning
 
