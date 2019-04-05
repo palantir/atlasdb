@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -127,10 +128,6 @@ public final class LockServiceImpl
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
-
-    /** Executor for the reaper threads. */
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
             from -> from.getTokenId().toString(Character.MAX_RADIX);
@@ -238,7 +235,29 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose) {
+    private LockServiceImpl(@Nonnull LockServerOptions options, Runnable callOnClose) {
+        Preconditions.checkNotNull(options);
+        ExecutorService executor = PTExecutors.newCachedThreadPool(
+                new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+        this.callOnClose = callOnClose;
+        isStandaloneServer = options.isStandaloneServer();
+        maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
+        maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
+        maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
+        lockStateLoggerDir = options.getLockStateLoggerDir();
+
+        slowLogTriggerMillis = options.slowLogTriggerMillis();
+        executor.execute(() -> {
+            Thread.currentThread().setName("Held Locks Token Reaper");
+            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
+        });
+        executor.execute(() -> {
+            Thread.currentThread().setName("Held Locks Grant Reaper");
+            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
+        });
+    }
+
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, ExecutorService executor) {
         Preconditions.checkNotNull(options);
         this.callOnClose = callOnClose;
         isStandaloneServer = options.isStandaloneServer();

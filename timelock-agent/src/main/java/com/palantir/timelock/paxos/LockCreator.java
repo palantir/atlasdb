@@ -29,6 +29,7 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 public class LockCreator {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final TimeLockDeprecatedConfiguration deprecated;
+    private final
 
     private static Semaphore sharedThreadPool = new Semaphore(-1);
 
