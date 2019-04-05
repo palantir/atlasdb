@@ -123,8 +123,7 @@ different column keys - we can use a VAR_LONG encoding of the timestamp's offset
 
 More formally, for a given timestamp TS, we proceed as follows (where / denotes integer division):
 
-- we identify which partition P the timestamp TS belongs to; this is given by TS / PQ
-- we identify which row R TS belongs to; this is given by P * NP + (TS % PQ) % NP.
+- we identify which row R TS belongs to; this is given by (TS / PQ) * NP + (TS % PQ) % NP.
 - we identify the column C TS belongs to; this is given by (TS % PQ) / NP.
 
 Notice that given R and C, we can similarly decode the original TS:
@@ -135,7 +134,9 @@ Notice that given R and C, we can similarly decode the original TS:
 - the original timestamp is then P * PQ + O1 + O2.
 
 It may be easier to think of the timestamp being written as a 3-tuple (P, O1, O2), where the row component is the
-pair (P, O2) and the column key is O1. This diagram should illustrate more clearly how this works:
+pair (P, O2) and the column key is O1; if NP divides PQ, then there is a bijection between such 3-tuples where O2 ranges
+from 0 to NP (exclusive), and O1 ranges from 0 to PQ / NP (exclusive).
+This diagram should illustrate more clearly how this works:
 
 TODO (jkong): Diagram
 
