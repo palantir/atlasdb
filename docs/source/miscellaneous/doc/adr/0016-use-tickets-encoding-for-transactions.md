@@ -173,7 +173,7 @@ We choose values of PQ and NP based on characteristics of the key-value-service 
 data, recalling principle RUP. To simplify the discussion in this section, we assume NP divides PQ.
 
 For Cassandra, following the Atlas team's recommended Cassandra best practices, we seek to bound the size of an
-individual row by 100 megabytes. Considering that a VAR_LONG takes at most 9 bytes for positive integers, and we
+individual row by 100 MB. Considering that a VAR_LONG takes at most 9 bytes for positive integers, and we
 can explicitly use an empty byte array to represent a transaction that failed to commit, we can estimate the
 maximum size of a row for a given choice of values of PQ and NP.
 
@@ -185,7 +185,16 @@ The column key is a VAR_LONG encoded number that is bounded by PQ / NP, as that'
 store. The value theoretically could go up to a full 9 bytes for a large positive number, though in practice is likely
 to be considerably smaller.
 
-We selected values of PQ = 25,000,000 and NP = 16.
+We selected values of PQ = 25,000,000 and NP = 16. Under this configuration, each row stores at most 1,562,500
+start-commit timestamp pairs. Thus, the numbers for the rows only go up to 1,562,500, and VAR_LONG encoding is able
+to represent these within 3 bytes. We do need to account for a bit more space as Cassandra needs to create a
+composite buffer to include the ``column2`` part of our physical row, but this should not take more than an additional
+9 bytes. We thus have 12 bytes for the column key and 9 bytes for the value, leading to a total of 21 bytes per
+start-commit timestamp pair. Each row is then bounded by about 32.04 MB, which leaves us quite a bit of headroom.
+
+It is worth mentioning that in practice, for implementation reasons it is very unlikely that we have a full 1,562,500
+start-commit timestamp pairs in a single row, and in practice values are likely to be only 2 or 3 bytes rather than
+9 bytes. In any case, even under these adverse circumstances we still avoid generating excessively wide rows.
 
 ### Cassandra Table Tuning
 
