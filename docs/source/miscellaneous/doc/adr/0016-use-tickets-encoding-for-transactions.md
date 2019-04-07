@@ -197,6 +197,23 @@ It is worth mentioning that in practice, for implementation reasons it is very u
 start-commit timestamp pairs in a single row, and in practice values are likely to be only 2 or 3 bytes rather than
 9 bytes. In any case, even under these adverse circumstances we still avoid generating excessively wide rows.
 
+### Streamlining putUnlessExists
+
+The putUnlessExists operation is performed at a serial consistency level in Cassandra, meaning that reads and writes
+go through Paxos for consensus. Thrift exposes a check-and-set operation on its APIs.
+
+This was sufficient in the original transactions schema, because each row key only stores information about one
+start timestamp; a putUnlessExists operation is then a CAS from an empty row to a row that has one column.
+However, notice that this is not sufficient for transactions2, because each row may contain data about multiple start
+timestamps. This API requires us to provide a list of the old columns, and we don't know that beforehand.
+
+We considered alternatives of reading the existing row and then adding the new columns, or using the CQL API, because
+the behaviour of INSERT IF NOT EXISTS for columns matches the semantics we want. However, both of these solutions were
+found to have unacceptable performance.
+
+We thus decided to extend the Thrift interface to add support for a multi-column put-unless-exists operation that
+has the semantics we want.
+
 ### Cassandra Table Tuning
 
 #### Bloom Filters
@@ -204,8 +221,6 @@ start-commit timestamp pairs in a single row, and in practice values are likely 
 #### Index Intervals
 
 #### Compression Chunk Length
-
-### Write Batching Transactions Service
 
 ### Cell Loader V2
 
