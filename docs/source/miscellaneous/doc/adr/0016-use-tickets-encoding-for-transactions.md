@@ -214,6 +214,8 @@ found to have unacceptable performance.
 We thus decided to extend the Thrift interface to add support for a multi-column put-unless-exists operation that
 has the semantics we want.
 
+#### Multinode Contention and Residues
+
 ### Cassandra Table Tuning
 
 #### Bloom Filters
