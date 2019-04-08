@@ -51,11 +51,18 @@ develop
          - Change
 
     *    - |devbreak|
-         - ``TimelockDeprecatedConfig`` has been removed.
-           Note that this configuration was only used for the dropwizard timelock server, which should only be used in tests.
-           Now, the dropwizard server launcher uses the same setup as in production, which forces the use of client request limits and lock time limiter.
-           Note that this may require modifying your ``TimeLockServerConfiguration`` to enable the above two properties.
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3898>`__)
+
+    *    - |new|
+         - A new configuration option ``lockImmutableTsOnReadOnlyTransactions`` is added under ``atlas-runtime.transaction``. Default value for this flag is ``false``, and setting it to ``true``
+           enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
+           please do not change the default value for this flag without talking to AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3888>`__)
 
     *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
@@ -115,6 +122,10 @@ develop
     *    - |fixed|
          - Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3805>`__)
+
+    *    - |fixed|
+         - Cassandra client input and output transports are now properly closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3892>`__)
 
 ========
 v0.127.0

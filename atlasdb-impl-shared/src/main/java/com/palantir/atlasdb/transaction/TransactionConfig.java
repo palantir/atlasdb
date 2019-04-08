@@ -41,4 +41,9 @@ public abstract class TransactionConfig {
     public TransactionRetryStrategy retryStrategy() {
         return TransactionRetryStrategy.Strategies.LEGACY.get();
     }
+
+    @Value.Default
+    public boolean lockImmutableTsOnReadOnlyTransactions() {
+        return false;
+    }
 }
