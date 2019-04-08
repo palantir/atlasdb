@@ -60,16 +60,6 @@ public class ServiceDiscoveringAtlasSupplier {
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this(metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
             Optional<LeaderConfig> leaderConfig,
@@ -82,23 +72,6 @@ public class ServiceDiscoveringAtlasSupplier {
                 namespace,
                 timestampTable,
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            boolean initializeAsync) {
-        this(metricsManager,
-                config,
-                runtimeConfig,
-                leaderConfig,
-                namespace,
-                Optional.empty(),
-                initializeAsync,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
     }
 
@@ -176,7 +149,7 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     @VisibleForTesting
-    String saveThreadDumps() throws IOException {
+    static String saveThreadDumps() throws IOException {
         File file = getTempFile();
         return saveThreadDumpsToFile(file);
     }
@@ -190,7 +163,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return path.toFile();
     }
 
-    private String saveThreadDumpsToFile(File file) throws IOException {
+    private static String saveThreadDumpsToFile(File file) throws IOException {
         try (FileOutputStream outputStream = new FileOutputStream(file)) {
             writeStringToStream(outputStream,
                     "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
@@ -219,7 +192,7 @@ public class ServiceDiscoveringAtlasSupplier {
         }
     }
 
-    private void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
+    private static void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
         outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
     }
 
