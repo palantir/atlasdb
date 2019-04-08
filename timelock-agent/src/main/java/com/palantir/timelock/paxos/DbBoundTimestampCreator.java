@@ -48,8 +48,8 @@ public class DbBoundTimestampCreator implements TimestampCreator {
                 Optional.empty(),
                 Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE));
 
-        TimestampService timestampService = atlasFactory.getTimestampService();
-        Preconditions.checkArgument(TimestampManagementService.class.isInstance(timestampService),
+        TimestampService timestampService = atlasFactory.getManagedTimestampService();
+        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
                 "The timestamp service is not a managed timestamp service.");
 
         return () -> new DelegatingManagedTimestampService(timestampService,
