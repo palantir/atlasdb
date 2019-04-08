@@ -137,7 +137,7 @@ Notice that given R and C, we can similarly decode the original TS:
 It may be easier to think of the timestamp being written as a 3-tuple (P, O1, O2), where the row component is the
 pair (P, O2) and the column key is O1; if NP divides PQ, then there is a bijection between such 3-tuples where O2 ranges
 from 0 to NP (exclusive), and O1 ranges from 0 to PQ / NP (exclusive). Furthermore, this bijection is order-preserving
-where ordering over the 3-tuples is interpreted lexicographically. 
+where ordering over the 3-tuples is interpreted lexicographically.
 This diagram should illustrate more clearly how this works:
 
 TODO (jkong): Diagram
@@ -220,7 +220,7 @@ timestamps. This API requires us to provide a list of the old columns, and we do
 
 We considered alternatives of reading the existing row and then adding the new columns, or using the CQL API, because
 the behaviour of INSERT IF NOT EXISTS for columns matches the semantics we want. However, both of these solutions were
-found to have unacceptable performance in benchmarking;
+found to have unacceptable performance in benchmarking.
 
 We thus decided to extend the Thrift interface to add support for a multi-column put-unless-exists operation that
 has the semantics we want. This is different from CAS from an empty list, in that this succeeds as long as any of
