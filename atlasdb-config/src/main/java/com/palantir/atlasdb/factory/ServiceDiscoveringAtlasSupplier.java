@@ -42,6 +42,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
@@ -56,7 +57,7 @@ public class ServiceDiscoveringAtlasSupplier {
     private final KeyValueServiceConfig config;
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
-    private final Supplier<TimestampService> timestampService;
+    private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(
@@ -99,7 +100,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         timestampSupplier,
                         initializeAsync));
         timestampService = () ->
-                atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
+                atlasFactory.createManagedTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 

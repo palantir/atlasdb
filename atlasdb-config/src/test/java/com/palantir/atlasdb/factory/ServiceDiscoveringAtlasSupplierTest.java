@@ -37,7 +37,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 public class ServiceDiscoveringAtlasSupplierTest {
     private final KeyValueServiceConfigHelper kvsConfig = () -> AutoServiceAnnotatedAtlasDbFactory.TYPE;
@@ -82,7 +82,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 Optional.empty(),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-        TimestampService timestampService = mock(TimestampService.class);
+        ManagedTimestampService timestampService = mock(ManagedTimestampService.class);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
 
         assertThat(
@@ -119,8 +119,8 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
-                mock(TimestampService.class),
-                mock(TimestampService.class));
+                mock(ManagedTimestampService.class),
+                mock(ManagedTimestampService.class));
 
         assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
     }
