@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -38,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -169,7 +169,7 @@ public final class LockServiceImpl
     private final SimpleTimeDuration maxAllowedLockTimeout;
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
-    private final Runnable callOnClose;
+    private final Runnable shutDownTask;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
@@ -195,11 +195,11 @@ public final class LockServiceImpl
 
     /** The priority queue of lock tokens waiting to be reaped. */
     private final BlockingQueue<HeldLocksToken> lockTokenReaperQueue =
-            new PriorityBlockingQueue<HeldLocksToken>(1, ExpiringToken.COMPARATOR);
+            new PriorityBlockingQueue<>(1, ExpiringToken.COMPARATOR);
 
     /** The priority queue of lock grants waiting to be reaped. */
     private final BlockingQueue<HeldLocksGrant> lockGrantReaperQueue =
-            new PriorityBlockingQueue<HeldLocksGrant>(1, ExpiringToken.COMPARATOR);
+            new PriorityBlockingQueue<>(1, ExpiringToken.COMPARATOR);
 
     /** The mapping from lock client to the set of tokens held by that client. */
     private final SetMultimap<LockClient, HeldLocksToken> lockClientMultimap =
@@ -212,7 +212,7 @@ public final class LockServiceImpl
             Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), () -> TreeMultiset.create()));
+            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), TreeMultiset::create));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -225,41 +225,30 @@ public final class LockServiceImpl
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
+        return create(options, Optional.empty());
+    }
+
+    public static LockServiceImpl create(LockServerOptions options, Optional<ExecutorService> executor) {
+        Preconditions.checkNotNull(options);
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
         LockServiceImpl lockService = new LockServiceImpl(options,
-                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName));
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName), executor);
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
 
-    private LockServiceImpl(@Nonnull LockServerOptions options, Runnable callOnClose) {
-        Preconditions.checkNotNull(options);
-        ExecutorService executor = PTExecutors.newCachedThreadPool(
-                new NamedThreadFactory(LockServiceImpl.class.getName(), true));
-        this.callOnClose = callOnClose;
-        isStandaloneServer = options.isStandaloneServer();
-        maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        lockStateLoggerDir = options.getLockStateLoggerDir();
-
-        slowLogTriggerMillis = options.slowLogTriggerMillis();
-        executor.execute(() -> {
-            Thread.currentThread().setName("Held Locks Token Reaper");
-            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-        });
-        executor.execute(() -> {
-            Thread.currentThread().setName("Held Locks Grant Reaper");
-            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-        });
-    }
-
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, ExecutorService executor) {
-        Preconditions.checkNotNull(options);
-        this.callOnClose = callOnClose;
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Optional<ExecutorService> injected) {
+        ExecutorService executor;
+        if (injected.isPresent()) {
+            executor = injected.get();
+            this.shutDownTask = () -> shutDown(Optional.empty(), callOnClose);
+        } else {
+            executor = PTExecutors.newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+            this.shutDownTask = () -> shutDown(Optional.of(executor), callOnClose);
+        }
         isStandaloneServer = options.isStandaloneServer();
         maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
@@ -1079,16 +1068,18 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            executor.shutdownNow();
-            wakeIndefiniteBlockers();
-            callOnClose.run();
+            shutDownTask.run();
         }
     }
 
+    private void shutDown(Optional<ExecutorService> executorToClose, Runnable callOnClose) {
+        executorToClose.map(ExecutorService::shutdownNow);
+        wakeIndefiniteBlockers();
+        callOnClose.run();
+    }
+
     private void wakeIndefiniteBlockers() {
-        for (Thread blocked : indefinitelyBlockingThreads) {
-            blocked.interrupt();
-        }
+        indefinitelyBlockingThreads.forEach(Thread::interrupt);
     }
 
     @Override
