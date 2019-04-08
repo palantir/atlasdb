@@ -14,17 +14,16 @@ install:
       - "localhost:9050"
     local-server: "localhost:9050"
   timestampBoundPersistence:
+
 runtime:
   paxos:
 
 server:
   minThreads: 1
-  maxThreads: 100
+  maxThreads: 200
   applicationConnectors:
     - type: h2
       port: 9050
-      selectorThreads: 8
-      acceptorThreads: 4
       selectorThreads: 8
       acceptorThreads: 4
       keyStorePath: var/security/keyStore.jks

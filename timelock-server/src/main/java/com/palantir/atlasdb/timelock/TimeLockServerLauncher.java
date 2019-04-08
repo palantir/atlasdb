@@ -61,12 +61,13 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         Consumer<Object> registrar = component -> environment.jersey().register(component);
+
         TimeLockAgent.create(
                 metricsManager,
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
-                configuration.threadPoolSize(),
-                configuration.blockingTimeoutMs(),
+                CombinedTimeLockServerConfiguration.threadPoolSize(),
+                CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
                 registrar);
     }
 }

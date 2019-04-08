@@ -41,11 +41,11 @@ public class CombinedTimeLockServerConfiguration extends Configuration {
         return runtime;
     }
 
-    public int threadPoolSize() {
+    public static int threadPoolSize() {
         return (int) (Math.max(256, 32 * Runtime.getRuntime().availableProcessors()) * 0.5);
     }
 
-    public long blockingTimeoutMs() {
+    public static long blockingTimeoutMs() {
         return (long) (HumanReadableDuration.minutes(1).toMilliseconds() * 0.8);
     }
 }

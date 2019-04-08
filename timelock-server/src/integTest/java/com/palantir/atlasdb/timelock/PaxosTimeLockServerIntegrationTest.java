@@ -54,6 +54,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
+import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
@@ -86,11 +87,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
     private static final String INVALID_CLIENT = "test2\b";
 
-    private static final int MAX_SERVER_THREADS = 100;
-    private static final int SELECTOR_THREADS = 8;
-    private static final int ACCEPTOR_THREADS = 4;
-    private static final int AVAILABLE_THREADS = MAX_SERVER_THREADS - SELECTOR_THREADS - ACCEPTOR_THREADS - 1;
-    private static final int SHARED_TC_LIMIT = AVAILABLE_THREADS;
+    private static final int SHARED_TC_LIMIT = CombinedTimeLockServerConfiguration.threadPoolSize();
 
     private static final long ONE_MILLION = 1000000;
     private static final long TWO_MILLION = 2000000;
@@ -101,7 +98,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
     private static final File TIMELOCK_CONFIG_TEMPLATE =
-            new File(ResourceHelpers.resourceFilePath("paxosSingleServerWithAsyncLock.yml"));
+            new File(ResourceHelpers.resourceFilePath("paxosSingleServer.yml"));
 
     private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
     private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
@@ -182,7 +179,7 @@ public class PaxosTimeLockServerIntegrationTest {
         int requestsPerClient = (SHARED_TC_LIMIT + exceedingRequests) / 2;
 
         assertThat(lockAndUnlockAndCountExceptions(lockServiceList, requestsPerClient))
-                .isEqualTo(exceedingRequests - 1);
+                .isEqualTo(exceedingRequests);
     }
 
     private int lockAndUnlockAndCountExceptions(List<LockService> lockServices, int numRequestsPerClient)
@@ -212,7 +209,8 @@ public class PaxosTimeLockServerIntegrationTest {
         AtomicInteger exceptionCounter = new AtomicInteger(0);
         futures.forEach(future -> {
             try {
-                assertNull(future.get());
+                LockRefreshToken test = future.get();
+                assertNull(test);
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 assertThat(cause.getClass().getName()).contains("RetryableException");

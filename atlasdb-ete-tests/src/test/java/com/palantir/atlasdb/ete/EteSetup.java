@@ -94,7 +94,7 @@ public abstract class EteSetup {
             String composeFile,
             List<String> availableClientNames,
             Map<String, String> environment) {
-        waitDuration = Duration.TWO_MINUTES;
+        waitDuration = Duration.TEN_MINUTES;
         return setup(eteClass, composeFile, availableClientNames, environment, true);
     }
 

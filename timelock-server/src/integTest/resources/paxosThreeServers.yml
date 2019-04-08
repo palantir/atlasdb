@@ -16,6 +16,7 @@ install:
       - "localhost:9062"
     local-server: "localhost:9060"
   timestampBoundPersistence:
+
 runtime:
   paxos:
 
