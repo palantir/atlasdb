@@ -86,7 +86,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
 
         assertThat(
-                atlasSupplier.getTimestampService(),
+                atlasSupplier.getManagedTimestampService(),
                 is(timestampService));
     }
 
@@ -122,7 +122,7 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 mock(ManagedTimestampService.class),
                 mock(ManagedTimestampService.class));
 
-        assertThat(supplier.getTimestampService(), is(not(sameObjectAs(supplier.getTimestampService()))));
+        assertThat(supplier.getManagedTimestampService(), is(not(sameObjectAs(supplier.getManagedTimestampService()))));
     }
 
     @Test

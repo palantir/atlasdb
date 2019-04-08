@@ -43,8 +43,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
 
@@ -108,7 +106,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return keyValueService.get();
     }
 
-    public synchronized TimestampService getTimestampService() {
+    public synchronized ManagedTimestampService getManagedTimestampService() {
         log.info("[timestamp-service-creation] Fetching timestamp service from "
                         + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
@@ -119,10 +117,6 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
-    }
-
-    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
-        return AtlasDbFactory.createTimestampManagementService(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
