@@ -62,7 +62,14 @@ public class ServiceDiscoveringAtlasSupplierTest {
 
         assertThat(
                 atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(metrics, kvsConfig, leaderConfig)));
+                is(delegate.createRawKeyValueService(
+                        metrics,
+                        kvsConfig,
+                        Optional::empty,
+                        leaderConfig,
+                        Optional.empty(),
+                        AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE,
+                        AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC)));
     }
 
     @Test

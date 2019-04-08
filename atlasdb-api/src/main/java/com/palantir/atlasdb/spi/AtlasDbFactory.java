@@ -42,18 +42,6 @@ public interface AtlasDbFactory {
 
     String getType();
 
-    default KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        return createRawKeyValueService(
-                metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                THROWING_FRESH_TIMESTAMP_SOURCE,
-                DEFAULT_INITIALIZE_ASYNC);
-    }
-
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
      *
@@ -76,10 +64,6 @@ public interface AtlasDbFactory {
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
             boolean initializeAsync);
-
-    default TimestampService createTimestampService(KeyValueService rawKvs) {
-        return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
-    }
 
     TimestampService createTimestampService(
             KeyValueService rawKvs,
