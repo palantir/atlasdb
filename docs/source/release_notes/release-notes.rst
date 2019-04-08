@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - ``CellLoader`` no longer queries Cassandra for duplicate cells, which should improve performance.
+           Previously, if user queries included the same cell multiple times, we would request it multiple times, meaning that Cassandra would unnecessarily load it multiple times.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3QQQ>`__)
+
     *    - |new|
          - A new configuration option ``lockImmutableTsOnReadOnlyTransactions`` is added under ``atlas-runtime.transaction``. Default value for this flag is ``false``, and setting it to ``true``
            enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
