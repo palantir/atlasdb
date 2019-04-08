@@ -11,19 +11,26 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-      - "localhost:9050"
-    local-server: "localhost:9050"
+      - "localhost:9030"
+    local-server: "localhost:9030"
   timestampBoundPersistence:
 
 runtime:
   paxos:
 
 server:
-  minThreads: 1
-  maxThreads: 1024
+  requestLog:
+    appenders:
+      - archivedFileCount: 10
+        maxFileSize: 1GB
+        archivedLogFilenamePattern: "var/log/timelock-server-request-%i.log.gz"
+        currentLogFilename: var/log/timelock-server-request.log
+        threshold: INFO
+        timeZone: UTC
+        type: non-blocking-file
   applicationConnectors:
     - type: h2
-      port: 9050
+      port: 9030
       selectorThreads: 8
       acceptorThreads: 4
       keyStorePath: var/security/keyStore.jks
@@ -46,6 +53,3 @@ server:
         - TLS_RSA_WITH_AES_256_CBC_SHA
         - TLS_RSA_WITH_AES_128_CBC_SHA
         - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
-  adminConnectors:
-    - type: http
-      port: 7050
