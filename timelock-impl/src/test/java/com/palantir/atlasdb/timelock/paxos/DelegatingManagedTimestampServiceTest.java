@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 

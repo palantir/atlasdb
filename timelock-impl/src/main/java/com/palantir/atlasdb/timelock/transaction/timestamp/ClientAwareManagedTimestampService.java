@@ -18,9 +18,8 @@ package com.palantir.atlasdb.timelock.transaction.timestamp;
 
 import java.util.UUID;
 
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
-import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.lock.v2.PartitionedTimestamps;
+import com.palantir.timestamp.ManagedTimestampService;
 
 /**
  * Like {@link com.palantir.timestamp.TimestampService}, but may provide timestamps that are tailored to client

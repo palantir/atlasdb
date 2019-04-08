@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 public class AsyncTimelockServiceImplTest {
     @Test
