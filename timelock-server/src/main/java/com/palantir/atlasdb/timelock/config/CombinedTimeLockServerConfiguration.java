@@ -42,7 +42,7 @@ public class CombinedTimeLockServerConfiguration extends Configuration {
     }
 
     public static int threadPoolSize() {
-        return (int) (Math.max(256, 32 * Runtime.getRuntime().availableProcessors()) * 0.5);
+        return 128;
     }
 
     public static long blockingTimeoutMs() {

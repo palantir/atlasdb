@@ -20,7 +20,7 @@ runtime:
 
 server:
   minThreads: 1
-  maxThreads: 1024
+  maxThreads: 200
   applicationConnectors:
     - type: h2
       port: 9050
