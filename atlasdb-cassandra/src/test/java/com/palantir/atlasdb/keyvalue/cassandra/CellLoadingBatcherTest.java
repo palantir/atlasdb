@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -133,6 +134,31 @@ public class CellLoadingBatcherTest {
     }
 
     @Test
+    public void deduplicatesCellsInSingleRow() {
+        List<Cell> cells = new ArrayList<>();
+        cells.addAll(rowRange(SINGLE_QUERY_LIMIT, 0));
+        cells.addAll(rowRange(SINGLE_QUERY_LIMIT, 0));
+        cells.addAll(rowRange(SINGLE_QUERY_LIMIT, 0));
+        cells.addAll(rowRange(SINGLE_QUERY_LIMIT, 0));
+
+        List<List<Cell>> batches = partitionUsingMockCallback(cells);
+        assertBatchContentsMatch(batches, rowRange(SINGLE_QUERY_LIMIT, 0));
+    }
+
+    @Test
+    public void deduplicatesCellsInBatch() {
+        List<Cell> cells = new ArrayList<>();
+        cells.addAll(columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT));
+        IntStream.range(0, 100)
+                .forEach(unused -> cells.add(cell(0, ThreadLocalRandom.current().nextLong(2 * CROSS_COLUMN_LIMIT))));
+
+        List<List<Cell>> batches = partitionUsingMockCallback(cells);
+        assertBatchContentsMatch(batches,
+                columnRange(0, 0, CROSS_COLUMN_LIMIT),
+                columnRange(0, CROSS_COLUMN_LIMIT, 2 * CROSS_COLUMN_LIMIT));
+    }
+
+    @Test
     public void respondsToChangesInCrossColumnLimitBatchParameter() {
         AtomicReference<CassandraCellLoadingConfig> config = new AtomicReference<>(LOADING_CONFIG);
         CellLoadingBatcher reloadingBatcher = new CellLoadingBatcher(config::get, rebatchingCallback);
@@ -142,14 +168,6 @@ public class CellLoadingBatcherTest {
                 columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT), ADDRESS, TABLE_REFERENCE);
         assertBatchContentsMatch(largerBatches, columnRange(0, 0, 2 * CROSS_COLUMN_LIMIT));
         verify(rebatchingCallback, never()).consume(any(), any(), anyInt());
-    }
-
-    private void updateConfig(
-            AtomicReference<CassandraCellLoadingConfig> config, int crossColumnLimit, int singleQueryLimit) {
-        config.set(ImmutableCassandraCellLoadingConfig.builder()
-                .crossColumnLoadBatchLimit(crossColumnLimit)
-                .singleQueryLoadBatchLimit(singleQueryLimit)
-                .build());
     }
 
     @Test
@@ -182,6 +200,14 @@ public class CellLoadingBatcherTest {
         assertThat(batches.stream().flatMap(Collection::stream))
                 .as("output of batching should contain an arrangement of the same cells as in the input")
                 .hasSameElementsAs(randomCells);
+    }
+
+    private void updateConfig(
+            AtomicReference<CassandraCellLoadingConfig> config, int crossColumnLimit, int singleQueryLimit) {
+        config.set(ImmutableCassandraCellLoadingConfig.builder()
+                .crossColumnLoadBatchLimit(crossColumnLimit)
+                .singleQueryLoadBatchLimit(singleQueryLimit)
+                .build());
     }
 
     private List<List<Cell>> partitionUsingMockCallback(List<Cell> cells) {

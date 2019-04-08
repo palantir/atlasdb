@@ -20,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -27,6 +28,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -42,6 +44,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
  * Otherwise, the cells provided may be combined with cells for other columns in batches of size up to the value
  * from {@link CassandraCellLoadingConfig#singleQueryLoadBatchLimit()}. There is no guarantee that all cells for this
  * column will be in the same batch in this case.
+ *
+ * The batcher may deduplicate cells, though users should not depend on this always being the case.
  *
  * Live reloading: Batching will take place following some {@link CassandraCellLoadingConfig} available from
  * the supplier during the execution of a partition operation. There is no guarantee as to whether new values
@@ -101,8 +105,12 @@ final class CellLoadingBatcher {
         ListMultimap<byte[], Cell> cellsByColumn = MultimapBuilder.treeKeys(UnsignedBytes.lexicographicalComparator())
                 .arrayListValues()
                 .build();
+        Set<Cell> addedCells = Sets.newHashSetWithExpectedSize(cells.size());
         for (Cell cell : cells) {
-            cellsByColumn.put(cell.getColumnName(), cell);
+            if (!addedCells.contains(cell)) {
+                cellsByColumn.put(cell.getColumnName(), cell);
+                addedCells.add(cell);
+            }
         }
         return cellsByColumn;
     }
