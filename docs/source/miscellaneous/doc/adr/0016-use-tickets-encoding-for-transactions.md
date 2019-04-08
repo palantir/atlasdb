@@ -202,6 +202,16 @@ start-commit timestamp pairs in a single row, and in practice values are likely 
 The putUnlessExists operation is performed at a serial consistency level in Cassandra, meaning that reads and writes
 go through Paxos for consensus. Thrift exposes a check-and-set operation on its APIs.
 
+```
+  CASResult cas(1:required binary key,
+                2:required string column_family,
+                3:list<Column> expected,
+                4:list<Column> updates,
+                5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+                6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
+
 This was sufficient in the original transactions schema, because each row key only stores information about one
 start timestamp; a putUnlessExists operation is then a CAS from an empty row to a row that has one column.
 However, notice that this is not sufficient for transactions2, because each row may contain data about multiple start
@@ -209,12 +219,28 @@ timestamps. This API requires us to provide a list of the old columns, and we do
 
 We considered alternatives of reading the existing row and then adding the new columns, or using the CQL API, because
 the behaviour of INSERT IF NOT EXISTS for columns matches the semantics we want. However, both of these solutions were
-found to have unacceptable performance.
+found to have unacceptable performance in benchmarking;
 
 We thus decided to extend the Thrift interface to add support for a multi-column put-unless-exists operation that
-has the semantics we want.
+has the semantics we want. This is different from CAS from an empty list, in that this succeeds as long as any of
+the existing columns in the column family for the provided key do not overlap with the set of columns being added.
+
+```
+  CASResult put_unless_exists(1:required binary key,
+                              2:required string column_family,
+                              3:list<Column> updates,
+                              4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+                              5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
 
 #### Multinode Contention and Residues
+
+This is an improvement, but still runs into issues when clients (whether across multiple service nodes or on the same
+node) issue multiple requests in parallel, because each put_unless_exists request requires a round of Paxos. Cassandra
+maintains Paxos sequences at the level of a partition (key), so these requests contend as far as Paxos is concerned
+even if they would actually be disjoint. Batching requests on the client side for each partition could be useful, though
+that is still limited in that performance would be poor for services with many nodes.
 
 ### Cassandra Table Tuning
 
