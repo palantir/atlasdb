@@ -16,6 +16,7 @@ install:
       - "localhost:9082"
     local-server: "localhost:9082"
   timestampBoundPersistence:
+
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000

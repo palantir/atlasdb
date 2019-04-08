@@ -16,6 +16,7 @@ install:
       - "localhost:9082"
     local-server: "localhost:9081"
   timestampBoundPersistence:
+
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
@@ -23,7 +24,7 @@ runtime:
 server:
   applicationConnectors:
   - type: h2
-    port: 9084
+    port: 9081
     keyStorePath: var/security/keyStore.jks
     keyStorePassword: keystore
     trustStorePath: var/security/trustStore.jks
