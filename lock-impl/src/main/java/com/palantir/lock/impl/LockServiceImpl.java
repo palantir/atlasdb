@@ -225,17 +225,18 @@ public final class LockServiceImpl
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
+        Preconditions.checkNotNull(options);
         ExecutorService executor = PTExecutors
                 .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
         return create(options, InjectableResource.notInjected(executor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService executor) {
+        Preconditions.checkNotNull(options);
         return create(options, InjectableResource.injected(executor));
     }
 
-    public static LockServiceImpl create(LockServerOptions options, InjectableResource<ExecutorService> executor) {
-        Preconditions.checkNotNull(options);
+    private static LockServiceImpl create(LockServerOptions options, InjectableResource<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
         }
