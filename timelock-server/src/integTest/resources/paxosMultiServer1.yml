@@ -11,8 +11,8 @@ install:
         keyStorePassword: "keystore"
         keyStoreType: "JKS"
       uris:
-      - "localhost:9081"
       - "localhost:9080"
+      - "localhost:9081"
       - "localhost:9082"
     local-server: "localhost:9081"
   timestampBoundPersistence:
