@@ -15,7 +15,6 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
@@ -77,7 +76,7 @@ public class LockCreator {
                 .slowLogTriggerMillis(slowLogTriggerMillis)
                 .build();
 
-        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions, Optional.of(sharedExecutor));
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions, sharedExecutor);
 
         if (deprecated.useLockTimeLimiter()) {
             return BlockingTimeLimitedLockService.create(

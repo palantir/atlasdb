@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -103,6 +102,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.util.InjectableResource;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -225,10 +225,16 @@ public final class LockServiceImpl
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
-        return create(options, Optional.empty());
+        ExecutorService executor = PTExecutors
+                .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+        return create(options, InjectableResource.notInjected(executor));
     }
 
-    public static LockServiceImpl create(LockServerOptions options, Optional<ExecutorService> executor) {
+    public static LockServiceImpl create(LockServerOptions options, ExecutorService executor) {
+        return create(options, InjectableResource.injected(executor));
+    }
+
+    public static LockServiceImpl create(LockServerOptions options, InjectableResource<ExecutorService> executor) {
         Preconditions.checkNotNull(options);
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
@@ -240,27 +246,20 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Optional<ExecutorService> injected) {
-        ExecutorService executor;
-        if (injected.isPresent()) {
-            executor = injected.get();
-            this.shutDownTask = () -> shutDown(Optional.empty(), callOnClose);
-        } else {
-            executor = PTExecutors.newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
-            this.shutDownTask = () -> shutDown(Optional.of(executor), callOnClose);
-        }
-        isStandaloneServer = options.isStandaloneServer();
-        maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        lockStateLoggerDir = options.getLockStateLoggerDir();
+    private LockServiceImpl(LockServerOptions options, Runnable onClose, InjectableResource<ExecutorService> executor) {
+        this.shutDownTask = () -> shutDown(executor, onClose);
+        this.isStandaloneServer = options.isStandaloneServer();
+        this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
+        this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
+        this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
+        this.lockStateLoggerDir = options.getLockStateLoggerDir();
+        this.slowLogTriggerMillis = options.slowLogTriggerMillis();
 
-        slowLogTriggerMillis = options.slowLogTriggerMillis();
-        executor.execute(() -> {
+        executor.resource().execute(() -> {
             Thread.currentThread().setName("Held Locks Token Reaper");
             reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
         });
-        executor.execute(() -> {
+        executor.resource().execute(() -> {
             Thread.currentThread().setName("Held Locks Grant Reaper");
             reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
         });
@@ -1072,14 +1071,12 @@ public final class LockServiceImpl
         }
     }
 
-    private void shutDown(Optional<ExecutorService> executorToClose, Runnable callOnClose) {
-        executorToClose.map(ExecutorService::shutdownNow);
-        wakeIndefiniteBlockers();
-        callOnClose.run();
-    }
-
-    private void wakeIndefiniteBlockers() {
+    private void shutDown(InjectableResource<ExecutorService> executor, Runnable callOnClose) {
+        if (!executor.isInjected()) {
+            executor.resource().shutdownNow();
+        }
         indefinitelyBlockingThreads.forEach(Thread::interrupt);
+        callOnClose.run();
     }
 
     @Override
