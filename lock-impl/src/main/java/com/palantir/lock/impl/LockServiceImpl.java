@@ -102,7 +102,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.util.InjectableResource;
+import com.palantir.util.Owned;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -164,12 +164,13 @@ public final class LockServiceImpl
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
+    private final Owned<ExecutorService> executor;
+    private final Runnable callOnClose;
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
     private final SimpleTimeDuration maxAllowedLockTimeout;
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
-    private final Runnable shutDownTask;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
@@ -226,17 +227,17 @@ public final class LockServiceImpl
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
         Preconditions.checkNotNull(options);
-        ExecutorService executor = PTExecutors
+        ExecutorService newExecutor = PTExecutors
                 .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
-        return create(options, InjectableResource.notInjected(executor));
+        return create(options, Owned.owned(newExecutor));
     }
 
-    public static LockServiceImpl create(LockServerOptions options, ExecutorService executor) {
+    public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         Preconditions.checkNotNull(options);
-        return create(options, InjectableResource.injected(executor));
+        return create(options, Owned.notOwned(injectedExecutor));
     }
 
-    private static LockServiceImpl create(LockServerOptions options, InjectableResource<ExecutorService> executor) {
+    private static LockServiceImpl create(LockServerOptions options, Owned<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
         }
@@ -247,8 +248,9 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable onClose, InjectableResource<ExecutorService> executor) {
-        this.shutDownTask = () -> shutDown(executor, onClose);
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Owned<ExecutorService> executor) {
+        this.executor = executor;
+        this.callOnClose = callOnClose;
         this.isStandaloneServer = options.isStandaloneServer();
         this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
         this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
@@ -1064,20 +1066,14 @@ public final class LockServiceImpl
         return logString;
     }
 
-
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            shutDownTask.run();
-        }
-    }
-
-    private void shutDown(InjectableResource<ExecutorService> executor, Runnable callOnClose) {
-        if (!executor.isInjected()) {
-            executor.resource().shutdownNow();
-        }
-        indefinitelyBlockingThreads.forEach(Thread::interrupt);
-        callOnClose.run();
+            if (executor.isOwned()) {
+                executor.resource().shutdownNow();
+            }
+            indefinitelyBlockingThreads.forEach(Thread::interrupt);
+            callOnClose.run();        }
     }
 
     @Override

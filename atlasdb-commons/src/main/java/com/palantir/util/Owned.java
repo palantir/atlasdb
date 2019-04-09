@@ -19,15 +19,15 @@ package com.palantir.util;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface InjectableResource<R> {
+public interface Owned<R> {
     R resource();
-    boolean isInjected();
+    boolean isOwned();
 
-    static <T> InjectableResource<T> injected(T resourceToInject) {
-        return ImmutableInjectableResource.<T>builder().resource(resourceToInject).isInjected(true).build();
+    static <T> Owned<T> owned(T ownedResource) {
+        return ImmutableOwned.<T>builder().resource(ownedResource).isOwned(true).build();
     }
 
-    static <T> InjectableResource<T> notInjected(T createdResource) {
-        return ImmutableInjectableResource.<T>builder().resource(createdResource).isInjected(false).build();
+    static <T> Owned<T> notOwned(T injectedResource) {
+        return ImmutableOwned.<T>builder().resource(injectedResource).isOwned(false).build();
     }
 }
