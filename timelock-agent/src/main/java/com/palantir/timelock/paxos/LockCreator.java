@@ -15,10 +15,14 @@
  */
 package com.palantir.timelock.paxos;
 
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.timelock.lock.BlockingTimeLimitedLockService;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
@@ -29,7 +33,8 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 public class LockCreator {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
     private final TimeLockDeprecatedConfiguration deprecated;
-    private final
+    private final ExecutorService sharedExecutor = PTExecutors
+            .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
 
     private static Semaphore sharedThreadPool = new Semaphore(-1);
 
@@ -72,7 +77,7 @@ public class LockCreator {
                 .slowLogTriggerMillis(slowLogTriggerMillis)
                 .build();
 
-        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions, Optional.of(sharedExecutor));
 
         if (deprecated.useLockTimeLimiter()) {
             return BlockingTimeLimitedLockService.create(
