@@ -39,7 +39,7 @@ import com.palantir.paxos.PaxosProposalId;
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client}"
         + "/acceptor")
-interface ClientAwarePaxosAcceptor {
+public interface ClientAwarePaxosAcceptor {
     @POST
     @Path("prepare/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
