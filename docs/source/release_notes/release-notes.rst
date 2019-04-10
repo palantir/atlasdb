@@ -120,8 +120,10 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3892>`__)
 
     *    - |fixed| |devbreak|
-         - Stop memoizing the `Supplier` of `TimestampService`, as we **must** get a fresh instance on each `Supplier.get()` call to ensure correctness after leadership elections. Without it, there is a possibility of data corruption.
-           Dev break to force `AtlasDbFactory` and `ServiceDiscoveringAtlasSupplier` to return unified interface of `TimestampService` and `TimestampManagementService`.
+         - Stop memoizing the ``Supplier`` of ``TimestampService``, as we **must** get a fresh instance on each ``Supplier.get()`` call to ensure correctness after leadership elections.
+           Without it, there is a possibility of data corruption if you are running atlas with a leader block in a multi-node configuration.
+           Services using External Timelock, Embedded or Leader with 1 node will not be affected.
+           Dev break to force ``AtlasDbFactory`` and ``ServiceDiscoveringAtlasSupplier`` to return ``ManagedTimestampService`` which unifies ``TimestampService`` and ``TimestampManagementService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3911>`__)
 
 

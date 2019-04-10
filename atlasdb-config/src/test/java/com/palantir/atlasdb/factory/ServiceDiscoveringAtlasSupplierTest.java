@@ -15,18 +15,13 @@
  */
 package com.palantir.atlasdb.factory;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,84 +45,60 @@ public class ServiceDiscoveringAtlasSupplierTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
-    public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingKeyValueServices() {
-        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(metrics,
-                kvsConfig,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
+    public void delegateToFactoriesAnnotatedWithAutoService() {
+        ServiceDiscoveringAtlasSupplier atlasSupplier = createAtlasSupplier(kvsConfig);
 
-        assertThat(
-                atlasSupplier.getKeyValueService(),
-                is(delegate.createRawKeyValueService(
+        assertThat(atlasSupplier.getKeyValueService())
+                .as("delegates createRawKeyValueService")
+                .isEqualTo(delegate.createRawKeyValueService(
                         metrics,
                         kvsConfig,
                         Optional::empty,
                         leaderConfig,
                         Optional.empty(),
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE,
-                        AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC)));
-    }
+                        AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC));
 
-    @Test
-    public void delegateToFactoriesAnnotatedWithAutoServiceForCreatingTimestampServices() {
-        ServiceDiscoveringAtlasSupplier atlasSupplier = new ServiceDiscoveringAtlasSupplier(metrics,
-                kvsConfig,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
         ManagedTimestampService timestampService = mock(ManagedTimestampService.class);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);
 
-        assertThat(
-                atlasSupplier.getManagedTimestampService(),
-                is(timestampService));
+        assertThat(atlasSupplier.getManagedTimestampService())
+                .as("delegates getManagedTimestampService")
+                .isEqualTo(timestampService);
     }
 
     @Test
     public void notAllowConstructionWithoutAValidBackingFactory() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("No atlas provider");
-        exception.expectMessage(invalidKvsConfig.type());
-        exception.expectMessage("Have you annotated it with @AutoService(AtlasDbFactory.class)?");
-
-        new ServiceDiscoveringAtlasSupplier(metrics,
-                invalidKvsConfig,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
+        assertThatIllegalStateException()
+                .isThrownBy(() -> createAtlasSupplier(invalidKvsConfig))
+                .withMessageContaining("No atlas provider")
+                .withMessageContaining(invalidKvsConfig.type());
     }
 
     @Test
     public void returnDifferentTimestampServicesOnSubsequentCalls() {
-        // Need to get a newly-initialized timestamp service in case leadership changed between calls.
-        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(metrics,
-                kvsConfig,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
+        ServiceDiscoveringAtlasSupplier supplier = createAtlasSupplier(kvsConfig);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(
                 mock(ManagedTimestampService.class),
                 mock(ManagedTimestampService.class));
 
-        assertThat(supplier.getManagedTimestampService(), is(not(sameObjectAs(supplier.getManagedTimestampService()))));
+        assertThat(supplier.getManagedTimestampService())
+                .as("Need to get a newly-initialized timestamp service in case leadership changed between calls")
+                .isNotSameAs(supplier.getManagedTimestampService());
     }
 
     @Test
     public void alwaysSaveThreadDumpsToTheSameFile() throws IOException {
-        ServiceDiscoveringAtlasSupplier supplier = new ServiceDiscoveringAtlasSupplier(metrics,
+        ServiceDiscoveringAtlasSupplier supplier = createAtlasSupplier(kvsConfig);
+
+        String firstPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
+        String secondPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
+
+        assertThat(firstPath).isEqualTo(secondPath);
+    }
+
+    private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfigHelper kvsConfig) {
+        return new ServiceDiscoveringAtlasSupplier(metrics,
                 kvsConfig,
                 Optional::empty,
                 leaderConfig,
@@ -135,26 +106,6 @@ public class ServiceDiscoveringAtlasSupplierTest {
                 Optional.empty(),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-
-        String firstPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
-        String secondPath = ServiceDiscoveringAtlasSupplier.saveThreadDumps();
-
-        assertEquals(firstPath, secondPath);
     }
 
-    private static Matcher<Object> sameObjectAs(Object initial) {
-        return new TypeSafeDiagnosingMatcher<Object>() {
-            @Override
-            protected boolean matchesSafely(Object item, Description mismatchDescription) {
-                mismatchDescription.appendValue(item);
-                return initial == item;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("Object which is exactly the same as ").appendValue(initial);
-
-            }
-        };
-    }
 }

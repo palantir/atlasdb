@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -61,29 +60,12 @@ public class ServiceDiscoveringAtlasSupplier {
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            Optional<TableReference> timestampTable) {
-        this(metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                namespace,
-                timestampTable,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
             java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
-        // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
 
