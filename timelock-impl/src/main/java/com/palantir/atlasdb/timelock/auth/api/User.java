@@ -20,6 +20,8 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface User {
+    User ANONYMOUS = User.of("anonymous");
+
     String getUserName();
     boolean isAdmin();
 
