@@ -24,8 +24,9 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.HeldLocksToken;
@@ -124,13 +125,13 @@ public class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     private void refreshLocks() {
-        ImmutableSet<LockRefreshToken> refreshCopy = ImmutableSet.copyOf(toRefresh);
+        ImmutableList<LockRefreshToken> refreshCopy = ImmutableList.copyOf(toRefresh);
         if (refreshCopy.isEmpty()) {
             return;
         }
         Set<LockRefreshToken> refreshedTokens = new HashSet<>();
         // We batch refreshes to avoid sending payload of excessive size
-        for (List<LockRefreshToken> tokenBatch : Iterables.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
+        for (List<LockRefreshToken> tokenBatch : Lists.partition(refreshCopy, REFRESH_BATCH_SIZE)) {
             refreshedTokens.addAll(delegate.refreshLockRefreshTokens(tokenBatch));
         }
         for (LockRefreshToken token : refreshCopy) {
