@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
@@ -42,9 +41,9 @@ import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
-import com.palantir.paxos.PaxosResponses;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
@@ -57,23 +56,22 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
 
-    private final List<PaxosAcceptor> acceptors;
-    private final List<PaxosLearner> learners;
+    private final ImmutableList<PaxosAcceptor> acceptors;
+    private final ImmutableList<PaxosLearner> learners;
     private final long maximumWaitBeforeProposalMs;
+    private final ExecutorService executor;
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
 
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            PTExecutors.newNamedThreadFactory(true));
-
     public PaxosTimestampBoundStore(PaxosProposer proposer,
             PaxosLearner knowledge,
-            List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
-            long maximumWaitBeforeProposalMs) {
-        DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}."
-                + " Currently, I believe the timestamp bound is {}.",
+            ImmutableList<PaxosAcceptor> acceptors,
+            ImmutableList<PaxosLearner> learners,
+            long maximumWaitBeforeProposalMs,
+            ExecutorService executor) {
+        DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
+                + "Currently, I believe the timestamp bound is {}.",
                 SafeArg.of("proposerUuid", proposer.getUuid()),
                 SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
         this.proposer = proposer;
@@ -81,6 +79,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         this.acceptors = acceptors;
         this.learners = learners;
         this.maximumWaitBeforeProposalMs = maximumWaitBeforeProposalMs;
+        this.executor = executor;
     }
 
     /**
@@ -108,7 +107,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
         PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
-                ImmutableList.copyOf(acceptors),
+                acceptors,
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 proposer.getQuorumSize(),
                 executor,
@@ -209,7 +208,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             return Optional.of(ImmutableSequenceAndBound.of(PaxosAcceptor.NO_LOG_ENTRY, 0L));
         }
         PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
-                ImmutableList.copyOf(learners),
+                learners,
                 learner -> getLearnedValue(seq, learner),
                 QUORUM_OF_ONE,
                 executor,
