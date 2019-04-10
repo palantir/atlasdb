@@ -42,7 +42,7 @@ import com.palantir.paxos.PaxosValue;
         + "/" + PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE
         + "/{client}"
         + "/learner")
-interface ClientAwarePaxosLearner {
+public interface ClientAwarePaxosLearner {
     @POST
     @Path("learn/{seq}")
     @Consumes(MediaType.APPLICATION_JSON)
