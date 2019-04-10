@@ -257,6 +257,10 @@ Consequently, even if the initialization of a transaction manager created with a
 <td>Cassandra client input and output transports are now properly closed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3892">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(…) instead of Iterables.partition(…).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3918">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
