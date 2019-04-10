@@ -29,6 +29,7 @@ import org.junit.rules.ExpectedException;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -97,9 +98,9 @@ public class ServiceDiscoveringAtlasSupplierTest {
         assertThat(firstPath).isEqualTo(secondPath);
     }
 
-    private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfigHelper kvsConfig) {
+    private ServiceDiscoveringAtlasSupplier createAtlasSupplier(KeyValueServiceConfig providedKvsConfig) {
         return new ServiceDiscoveringAtlasSupplier(metrics,
-                kvsConfig,
+                providedKvsConfig,
                 Optional::empty,
                 leaderConfig,
                 Optional.empty(),
