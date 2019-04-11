@@ -48,7 +48,7 @@ public final class AtlasDbHttpClients {
      * @param trustContext if present, the proxy will use the supplied SSL factory
      * @param limitPayloadSize if true, request payload size will be limited
      */
-    public static <T> T createProxy(
+    public static <T> T createProxyWithoutRetrying(
             MetricRegistry metricRegistry,
             Optional<TrustContext> trustContext,
             String uri,

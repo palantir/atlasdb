@@ -85,7 +85,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
+        return AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format("https://localhost:%d/%s/%s/%s",

@@ -126,7 +126,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        PingableLeader leader = AtlasDbHttpClients.createProxy(
+        PingableLeader leader = AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
@@ -500,7 +500,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
+        return AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),

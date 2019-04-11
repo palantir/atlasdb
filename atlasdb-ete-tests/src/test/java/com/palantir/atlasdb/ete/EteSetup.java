@@ -188,7 +188,7 @@ public abstract class EteSetup {
 
     private static <T> T createClientFor(Class<T> clazz, String host, short port) {
         String uri = String.format("http://%s:%s", host, port);
-        return AtlasDbHttpClients
-                .createProxy(new MetricRegistry(), NO_SSL, uri, clazz, UserAgents.DEFAULT_USER_AGENT, false);
+        return AtlasDbHttpClients.createProxyWithoutRetrying(new MetricRegistry(), NO_SSL, uri, clazz,
+                UserAgents.DEFAULT_USER_AGENT, false);
     }
 }

@@ -34,7 +34,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
-import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
@@ -122,8 +121,6 @@ public class TimeLockAgent {
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
         registrar.accept(resource);
-
-        ClockSkewMonitorCreator.create(metricsManager, install, registrar).registerClockServices();
     }
 
     @SuppressWarnings("unused") // used by external health checks

@@ -182,13 +182,13 @@ public class TimeLockMigrationEteTest {
 
     private static <T> T createEteClientFor(Class<T> clazz) {
         String uri = String.format("http://%s:%s", ETE_CONTAINER, ETE_PORT);
-        return AtlasDbHttpClients
-                .createProxy(new MetricRegistry(), Optional.empty(), uri, clazz, UserAgents.DEFAULT_USER_AGENT, false);
+        return AtlasDbHttpClients.createProxyWithoutRetrying(new MetricRegistry(), Optional.empty(), uri, clazz,
+                UserAgents.DEFAULT_USER_AGENT, false);
     }
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.empty(), uri, TimestampService.class,
-                UserAgents.DEFAULT_USER_AGENT, true);
+        return AtlasDbHttpClients.createProxyWithoutRetrying(new MetricRegistry(), Optional.empty(), uri,
+                TimestampService.class, UserAgents.DEFAULT_USER_AGENT, true);
     }
 }
