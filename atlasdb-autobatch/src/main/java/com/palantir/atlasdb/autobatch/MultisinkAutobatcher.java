@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,58 +20,80 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.lmax.disruptor.EventHandler;
-import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
 
 /**
  * While this class is public, it shouldn't be used as API outside of AtlasDB because we
  * don't guarantee we won't break it.
+ *
+ * This is a smart version of {@link DisruptorAutobatcher} that batches tasks together and submits them to workers
+ * in a worker pool. This may be used to avoid head-of-line blocking issues where a request is nondeterministically
+ * slow.
  */
-public final class DisruptorAutobatcher<T, R>
+public final class MultisinkAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
     private static final int BUFFER_SIZE = 1024;
     private static final ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setDaemon(true)
-            .setNameFormat("autobatcher-%d")
+            .setNameFormat("multisink-autobatcher-%d")
             .build();
 
-    private final Disruptor<DefaultBatchElement<T, R>> disruptor;
-    private final RingBuffer<DefaultBatchElement<T, R>> buffer;
+    private final DisruptorAutobatcher<T, R> batchCreator;
+    private final Disruptor<List<BatchElement<T, R>>> batchElementDisruptor;
+
     private volatile boolean closed = false;
 
-    public DisruptorAutobatcher(
-            Disruptor<DefaultBatchElement<T, R>> disruptor,
-            RingBuffer<DefaultBatchElement<T, R>> buffer) {
-        this.disruptor = disruptor;
-        this.buffer = buffer;
+    private MultisinkAutobatcher(DisruptorAutobatcher<T, R> batchCreator,
+            Disruptor<List<BatchElement<T, R>>> batchElementDisruptor) {
+        this.batchCreator = batchCreator;
+        this.batchElementDisruptor = batchElementDisruptor;
+    }
+
+    public static <T, R> MultisinkAutobatcher<T, R> create(Consumer<List<BatchElement<T, R>>> batchFunction) {
+        Disruptor<List<BatchElement<T, R>>> batchElementDisruptor = new Disruptor<>(
+                ArrayList::new, BUFFER_SIZE, threadFactory);
+        DisruptorAutobatcher<T, R> batchingDisruptor = DisruptorAutobatcher.create(list -> {
+            batchElementDisruptor.publishEvent(((event, sequence) -> {
+                System.out.println("PUBLISH" + list);
+                event.addAll(list.stream()
+                        .map(x -> {
+                            DefaultBatchElement<T, R> batchElement = new DefaultBatchElement<>();
+                            batchElement.result = x.result();
+                            batchElement.argument = x.argument();
+                            return batchElement;
+                        })
+                        .collect(Collectors.toList()));
+            }));
+        });
+        batchElementDisruptor.handleEventsWithWorkerPool(batchFunction::accept,
+                batchFunction::accept,
+                batchFunction::accept,
+                batchFunction::accept);
+        batchElementDisruptor.start();
+        return new MultisinkAutobatcher<>(batchingDisruptor, batchElementDisruptor);
     }
 
     @Override
     public ListenableFuture<R> apply(T argument) {
         checkState(!closed, "Autobatcher is already shut down");
-        SettableFuture<R> result = SettableFuture.create();
-        buffer.publishEvent((refresh, sequence) -> {
-            refresh.result = result;
-            refresh.argument = argument;
-        });
-        return result;
+        return batchCreator.apply(argument);
     }
 
     @Override
     public void close() {
         closed = true;
-        disruptor.shutdown();
+        batchCreator.close();
+        batchElementDisruptor.shutdown();
     }
 
     private static final class DefaultBatchElement<T, R> implements BatchElement<T, R> {
@@ -95,39 +117,5 @@ public final class DisruptorAutobatcher<T, R>
                     ", result=" + result +
                     '}';
         }
-    }
-
-    private static final class BatchingEventHandler<T, R> implements EventHandler<DefaultBatchElement<T, R>> {
-        private final Consumer<List<BatchElement<T, R>>> batchFunction;
-        private final List<DefaultBatchElement<T, R>> pending = new ArrayList<>(BUFFER_SIZE);
-
-        private BatchingEventHandler(Consumer<List<BatchElement<T, R>>> batchFunction) {
-            this.batchFunction = batchFunction;
-        }
-
-        @Override
-        public void onEvent(DefaultBatchElement<T, R> event, long sequence, boolean endOfBatch) {
-            pending.add(event);
-            if (endOfBatch) {
-                flush();
-            }
-        }
-
-        private void flush() {
-            try {
-                batchFunction.accept(Collections.unmodifiableList(pending));
-            } catch (Throwable t) {
-                pending.forEach(p -> p.result.setException(t));
-            }
-            pending.clear();
-        }
-    }
-
-    public static <T, R> DisruptorAutobatcher<T, R> create(Consumer<List<BatchElement<T, R>>> batchFunction) {
-        Disruptor<DefaultBatchElement<T, R>> disruptor =
-                new Disruptor<>(DefaultBatchElement::new, BUFFER_SIZE, threadFactory);
-        disruptor.handleEventsWith(new BatchingEventHandler<>(batchFunction));
-        disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer());
     }
 }

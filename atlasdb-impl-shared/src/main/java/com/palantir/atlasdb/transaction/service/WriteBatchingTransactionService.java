@@ -35,9 +35,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
-import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.autobatch.MultisinkAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
@@ -58,16 +59,16 @@ public final class WriteBatchingTransactionService implements TransactionService
     private static final Logger log = LoggerFactory.getLogger(WriteBatchingTransactionService.class);
 
     private final EncodingTransactionService delegate;
-    private final DisruptorAutobatcher<TimestampPair, Void> autobatcher;
+    private final MultisinkAutobatcher<TimestampPair, Void> autobatcher;
 
     private WriteBatchingTransactionService(
-            EncodingTransactionService delegate, DisruptorAutobatcher<TimestampPair, Void> autobatcher) {
+            EncodingTransactionService delegate, MultisinkAutobatcher<TimestampPair, Void> autobatcher) {
         this.delegate = delegate;
         this.autobatcher = autobatcher;
     }
 
     public static TransactionService create(EncodingTransactionService delegate) {
-        DisruptorAutobatcher<TimestampPair, Void> autobatcher = DisruptorAutobatcher.create(
+        MultisinkAutobatcher<TimestampPair, Void> autobatcher = MultisinkAutobatcher.create(
                 elements -> processBatch(delegate, elements));
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
@@ -86,7 +87,9 @@ public final class WriteBatchingTransactionService implements TransactionService
     @Override
     public void putUnlessExists(long startTimestamp, long commitTimestamp) throws KeyAlreadyExistsException {
         try {
-            autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp)).get();
+            ListenableFuture<Void> lf = autobatcher.apply(TimestampPair.of(startTimestamp, commitTimestamp));
+            System.out.println(lf);
+            lf.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -130,6 +133,7 @@ public final class WriteBatchingTransactionService implements TransactionService
     @VisibleForTesting
     static void processBatch(
             EncodingTransactionService delegate, List<BatchElement<TimestampPair, Void>> batchElements) {
+        System.out.println("FORTY TWO" + batchElements);
         Multimap<Long, BatchElement<TimestampPair, Void>> startTimestampKeyedBatchElements
                 = MultimapBuilder.hashKeys().hashSetValues().build();
         batchElements.forEach(batchElement -> startTimestampKeyedBatchElements.put(
