@@ -257,7 +257,14 @@ Consequently, even if the initialization of a transaction manager created with a
 <td>Cassandra client input and output transports are now properly closed.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3892">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Stop memoizing the <code class="docutils literal notranslate"><span class="pre">Supplier</span></code> of <code class="docutils literal notranslate"><span class="pre">TimestampService</span></code>, as we <strong>must</strong> get a fresh instance on each <code class="docutils literal notranslate"><span class="pre">Supplier.get()</span></code> call to ensure correctness after leadership elections.
+Without it, there is a possibility of data corruption if you are running atlas with a leader block in a multi-node configuration.
+Services using External Timelock, Embedded or Leader with 1 node will not be affected.
+Dev break to force <code class="docutils literal notranslate"><span class="pre">AtlasDbFactory</span></code> and <code class="docutils literal notranslate"><span class="pre">ServiceDiscoveringAtlasSupplier</span></code> to return <code class="docutils literal notranslate"><span class="pre">ManagedTimestampService</span></code> which unifies <code class="docutils literal notranslate"><span class="pre">TimestampService</span></code> and <code class="docutils literal notranslate"><span class="pre">TimestampManagementService</span></code>.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3911">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(…) instead of Iterables.partition(…).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3918">Pull Request</a>)</td>
 </tr>
