@@ -18,7 +18,7 @@ package com.palantir.timestamp;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
-public interface PersistentTimestampService extends TimestampService, TimestampManagementService {
+public interface PersistentTimestampService extends ManagedTimestampService {
     @SuppressWarnings("unused") // used by product
     long getUpperLimitTimestampToHandOutInclusive();
 }

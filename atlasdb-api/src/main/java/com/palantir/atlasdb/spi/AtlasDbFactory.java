@@ -22,13 +22,11 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public interface AtlasDbFactory {
@@ -41,18 +39,6 @@ public interface AtlasDbFactory {
     };
 
     String getType();
-
-    default KeyValueService createRawKeyValueService(
-            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        return createRawKeyValueService(
-                metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                THROWING_FRESH_TIMESTAMP_SOURCE,
-                DEFAULT_INITIALIZE_ASYNC);
-    }
 
     /**
      * Creates a KeyValueService instance of type according to the config parameter.
@@ -77,24 +63,10 @@ public interface AtlasDbFactory {
             LongSupplier freshTimestampSource,
             boolean initializeAsync);
 
-    default TimestampService createTimestampService(KeyValueService rawKvs) {
-        return createTimestampService(rawKvs, Optional.empty(), DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    TimestampService createTimestampService(
+    ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
             Optional<TableReference> timestampTable,
             boolean initializeAsync);
-
-    static TimestampManagementService createTimestampManagementService(TimestampService timestampService) {
-        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
-                "TimestampManagementService must be created based on result of createTimestampService call."
-                        + "\nExpected a TS implementing TimestampManagementService, got %s",
-                timestampService.getClass());
-
-        return (TimestampManagementService) timestampService;
-
-    }
 
     default TimestampStoreInvalidator createTimestampStoreInvalidator(KeyValueService rawKvs) {
         return () -> {
