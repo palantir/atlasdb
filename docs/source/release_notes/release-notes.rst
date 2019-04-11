@@ -126,6 +126,9 @@ develop
            Dev break to force ``AtlasDbFactory`` and ``ServiceDiscoveringAtlasSupplier`` to return ``ManagedTimestampService`` which unifies ``TimestampService`` and ``TimestampManagementService``.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3911>`__)
 
+    *    - |improved|
+         - Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(...) instead of Iterables.partition(...).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3918>`__)
 
 ========
 v0.127.0
