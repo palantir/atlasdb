@@ -130,6 +130,10 @@ develop
          - Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(...) instead of Iterables.partition(...).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3918>`__)
 
+    *    - |improved|
+         - AtlasDB now logs diagnostic information about uses of the request batching timestamp service.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3923>`__)
+
 ========
 v0.127.0
 ========
