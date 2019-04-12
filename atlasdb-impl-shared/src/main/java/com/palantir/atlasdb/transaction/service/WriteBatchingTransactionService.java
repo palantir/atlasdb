@@ -38,6 +38,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.autobatch.ProfilingAutobatchers;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.common.streams.KeyedStream;
@@ -67,7 +68,9 @@ public final class WriteBatchingTransactionService implements TransactionService
     }
 
     public static TransactionService create(EncodingTransactionService delegate) {
-        DisruptorAutobatcher<TimestampPair, Void> autobatcher = DisruptorAutobatcher.create(
+        DisruptorAutobatcher<TimestampPair, Void> autobatcher = ProfilingAutobatchers.create(
+                log,
+                WriteBatchingTransactionService.class.getSimpleName(),
                 elements -> processBatch(delegate, elements));
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
