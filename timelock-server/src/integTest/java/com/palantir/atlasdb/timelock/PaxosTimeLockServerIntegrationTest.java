@@ -50,7 +50,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
-import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -120,13 +119,11 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @BeforeClass
     public static void waitForClusterToStabilize() {
-        PingableLeader leader = AtlasDbHttpClients.createProxyWithoutRetrying(
+        PingableLeader leader = AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 "https://localhost:" + TIMELOCK_SERVER_HOLDER.getTimelockPort(),
-                PingableLeader.class,
-                UserAgents.DEFAULT_USER_AGENT,
-                false);
+                PingableLeader.class);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
                 .pollInterval(1, TimeUnit.SECONDS)
@@ -492,7 +489,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxyWithoutRetrying(
+        return AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),
