@@ -11,6 +11,8 @@ RUN mv /timelock-server-* /timelock-server
 
 WORKDIR /timelock-server
 
+RUN mkdir -p var/data/paxos
+
 EXPOSE 8421 \
        8422
 
