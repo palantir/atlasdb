@@ -50,12 +50,12 @@ All AtlasDB tables have a similar schema in Cassandra:
   - a big-integer for the timestamp, called ``column2``
 - blob values.
 
-In the transactions table, ``column1`` is always a single byte corresponding to the string ``t``, and
+In the ``_transactions`` table, ``column1`` is always a single byte corresponding to the string ``t``, and
 ``column2`` is a special value of ``-1``. In practice, we don't pay much attention to these values.
 More interestingly, the ``key`` is a VAR_LONG encoding of the start timestamp, and the ``value``
 is similarly a VAR_LONG encoding of the commit timestamp.
 
-The Cassandra representation of the transactions table introduced above may look as follows.
+The Cassandra representation of the ``_transactions`` table introduced above may look as follows.
 
     |        key | column1 | column2 |                  value |
     |       0x14 |    0x74 |      -1 |                   0x21 |
@@ -78,7 +78,7 @@ However, our choice of encoding also has some issues. Two particularly relevant 
    (notice that the encoded forms of 3141592 and 3141595 only differ in their three lowest-order bits). Furthermore,
    most writes to the transactions table will take place at numbers that are numerically close, because these
    correspond to actively running transactions, and thus at keys that are close in byte-space. Considering that
-   Cassandra uses consistent hashing to handle data partitioning, at a given point in time the majority of writes
+   Cassandra uses consistent hashing to handle data partitioning, at any given point in time the majority of writes
    to the cluster will end up going to the same node ('hot-spotting'). This is undesirable, because we lose
    horizontal scalability; writes are bottlenecked on a single node regardless of the size of the cluster.
 2. VAR_LONG encoding is not particularly efficient for our purposes in that it fails to exploit some characteristics
@@ -239,9 +239,15 @@ the existing columns in the column family for the provided key do not overlap wi
 
 This is an improvement, but still runs into issues when clients (whether across multiple service nodes or on the same
 node) issue multiple requests in parallel, because each put_unless_exists request requires a round of Paxos. Cassandra
-maintains Paxos sequences at the level of a partition (key), so these requests contend as far as Paxos is concerned
-even if they would actually be disjoint. Batching requests on the client side for each partition could be useful, though
-that is still limited in that performance would be poor for services with many nodes.
+maintains Paxos sequences at the level of a partition (key), so these requests would contend as far as Paxos is
+concerned, even if the columns are actually disjoint. Internally, Cassandra nodes are trying to apply updates to the
+partition; whether these updates are applied and the order in which they take place is agreed on using Paxos.
+Although the nodes will be OK with accepting multiple proposals if they don't conflict, only one round of consensus
+can be committed at a time (since updates are conditional). Also, Cassandra uses a leaderless implementation of
+Paxos, meaning that the 'dueling proposers' issue might slow the protocol down further.
+
+Batching requests on the client side for each partition could be useful, though that is still limited in that
+performance would be poor for services with many nodes.
 
 ### Cassandra Table Tuning
 
