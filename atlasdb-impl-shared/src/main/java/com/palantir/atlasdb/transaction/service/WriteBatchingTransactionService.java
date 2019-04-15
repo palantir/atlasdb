@@ -69,7 +69,6 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     public static TransactionService create(EncodingTransactionService delegate) {
         DisruptorAutobatcher<TimestampPair, Void> autobatcher = ProfilingAutobatchers.create(
-                log,
                 WriteBatchingTransactionService.class.getSimpleName(),
                 elements -> processBatch(delegate, elements));
         return new WriteBatchingTransactionService(delegate, autobatcher);
