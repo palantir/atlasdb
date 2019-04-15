@@ -1,4 +1,4 @@
-.. _change-log:
+\.. _change-log:
 
 *********
 Changelog
