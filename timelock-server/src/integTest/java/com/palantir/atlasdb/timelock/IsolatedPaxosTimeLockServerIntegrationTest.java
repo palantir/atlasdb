@@ -25,6 +25,7 @@ import org.junit.rules.RuleChain;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
@@ -84,7 +85,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
-        return AtlasDbHttpClients.createProxy(
+        return AtlasDbHttpClients.createProxyWithoutRetrying(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format("https://localhost:%d/%s/%s/%s",
@@ -92,7 +93,9 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
                         PaxosTimeLockConstants.INTERNAL_NAMESPACE,
                         PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE,
                         CLIENT),
-                clazz);
+                clazz,
+                UserAgents.DEFAULT_USER_AGENT,
+                false);
     }
 
 }

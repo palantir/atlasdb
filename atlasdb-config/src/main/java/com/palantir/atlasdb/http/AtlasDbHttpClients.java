@@ -43,18 +43,12 @@ public final class AtlasDbHttpClients {
     }
 
     /**
-     * Constructs a dynamic proxy for the specified type, using the supplied SSL factory if is present, and the
-     * default Feign HTTP client.
+     * Constructs a dynamic proxy for the specified type. Uses a Feign HTTP client with no retrying.
+     *
+     * @param trustContext if present, the proxy will use the supplied SSL factory
+     * @param limitPayloadSize if true, request payload size will be limited
      */
-    public static <T> T createProxy(
-            MetricRegistry metricRegistry,
-            Optional<TrustContext> trustContext,
-            String uri,
-            Class<T> type) {
-        return createProxy(metricRegistry, trustContext, uri, type, UserAgents.DEFAULT_USER_AGENT, false);
-    }
-
-    public static <T> T createProxy(
+    public static <T> T createProxyWithoutRetrying(
             MetricRegistry metricRegistry,
             Optional<TrustContext> trustContext,
             String uri,
@@ -65,7 +59,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory
-                        .createProxy(trustContext, uri, type, userAgent, limitPayloadSize),
+                        .createProxyWithoutRetrying(trustContext, uri, type, userAgent, limitPayloadSize),
                 MetricRegistry.name(type));
     }
 

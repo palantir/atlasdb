@@ -44,7 +44,6 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PaxosLeaderElectionService;
 import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
-import com.palantir.timelock.clock.ClockSkewMonitorCreator;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
@@ -172,8 +171,6 @@ public class TimeLockAgent {
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
         registrar.accept(resource);
-
-        ClockSkewMonitorCreator.create(metricsManager, install, registrar).registerClockServices();
     }
 
     @SuppressWarnings("unused") // used by external health checks
