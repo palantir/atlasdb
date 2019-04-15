@@ -17,14 +17,9 @@ package com.palantir.lock.impl;
 
 import java.util.concurrent.Semaphore;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.palantir.common.base.FunctionCheckedException;
 
 public class ThreadPooledWrapper<F> {
-    private static final Logger log = LoggerFactory.getLogger(ThreadPooledWrapper.class);
-
     private final Semaphore localThreadPool;
     private final Semaphore sharedThreadPool;
     private final F delegate;

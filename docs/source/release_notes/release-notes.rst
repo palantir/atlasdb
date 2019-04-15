@@ -50,11 +50,25 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3898>`__)
+
+    *    - |new|
+         - A new configuration option ``lockImmutableTsOnReadOnlyTransactions`` is added under ``atlas-runtime.transaction``. Default value for this flag is ``false``, and setting it to ``true``
+           enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
+           please do not change the default value for this flag without talking to AtlasDB team.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3888>`__)
+
     *    - |fixed|
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
-         
+
     *    - |fixed|
          - Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
            Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
@@ -65,7 +79,7 @@ develop
     *    - |improved|
          - ``LockRefresher`` now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
-         
+
     *    - |improved|
          - The Cassandra KVS ``CellLoader`` now supports cross-column batching for requests which query a variety of columns for a few rows.
            Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
@@ -100,7 +114,7 @@ develop
            Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
            Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3865>`__)
-           
+
     *    - |improved|
          - Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3886>`__)
@@ -108,6 +122,21 @@ develop
     *    - |fixed|
          - Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3805>`__)
+
+    *    - |fixed|
+         - Cassandra client input and output transports are now properly closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3892>`__)
+
+    *    - |fixed| |devbreak|
+         - Stop memoizing the ``Supplier`` of ``TimestampService``, as we **must** get a fresh instance on each ``Supplier.get()`` call to ensure correctness after leadership elections.
+           Without it, there is a possibility of data corruption if you are running atlas with a leader block in a multi-node configuration.
+           Services using External Timelock, Embedded or Leader with 1 node will not be affected.
+           Dev break to force ``AtlasDbFactory`` and ``ServiceDiscoveringAtlasSupplier`` to return ``ManagedTimestampService`` which unifies ``TimestampService`` and ``TimestampManagementService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3911>`__)
+
+    *    - |improved|
+         - Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(...) instead of Iterables.partition(...).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3918>`__)
 
 ========
 v0.127.0

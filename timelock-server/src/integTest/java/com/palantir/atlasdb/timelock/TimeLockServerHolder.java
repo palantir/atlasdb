@@ -23,7 +23,7 @@ import org.junit.rules.ExternalResource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.palantir.atlasdb.timelock.config.TimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 
 import io.dropwizard.testing.DropwizardTestSupport;
 
@@ -34,7 +34,7 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     private Supplier<String> configFilePathSupplier;
-    private DropwizardTestSupport<TimeLockServerConfiguration> timelockServer;
+    private DropwizardTestSupport<CombinedTimeLockServerConfiguration> timelockServer;
     private boolean isRunning = false;
     private int timelockPort;
 
