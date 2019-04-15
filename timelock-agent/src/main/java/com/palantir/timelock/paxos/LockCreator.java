@@ -23,27 +23,61 @@ import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.impl.ThreadPooledLockService;
+import com.palantir.timelock.config.TimeLockDeprecatedConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
 public class LockCreator {
     private final Supplier<TimeLockRuntimeConfiguration> runtime;
-    private final long blockingTimeoutMs;
-    private final Semaphore sharedThreadPool;
+    private final TimeLockDeprecatedConfiguration deprecated;
 
-    public LockCreator(Supplier<TimeLockRuntimeConfiguration> runtime, int threadPoolSize, long blockingTimeoutMs) {
+    private static Semaphore sharedThreadPool = new Semaphore(-1);
+
+    public LockCreator(Supplier<TimeLockRuntimeConfiguration> runtime, TimeLockDeprecatedConfiguration deprecated) {
         this.runtime = runtime;
-        this.sharedThreadPool = new Semaphore(threadPoolSize);
-        this.blockingTimeoutMs = blockingTimeoutMs;
+        this.deprecated = deprecated;
     }
 
     public CloseableLockService createThreadPoolingLockService() {
+        // TODO (jkong): Live reload slow lock timeout, plus clients (issue #2342)
+        // TODO (?????): Rewrite ThreadPooled to cope with live reload, and/or remove ThreadPooled (if using Async)
+        TimeLockRuntimeConfiguration timeLockRuntimeConfiguration = runtime.get();
+        CloseableLockService lockServiceNotUsingThreadPooling = createTimeLimitedLockService(
+                timeLockRuntimeConfiguration.slowLockLogTriggerMillis());
+
+        if (!deprecated.useClientRequestLimit()) {
+            return lockServiceNotUsingThreadPooling;
+        }
+
+        int availableThreads = deprecated.availableThreads();
+        // TODO(nziebart): Since the number of clients can grow dynamically, we can't compute a correct and useful
+        // value for the local threadpool size at this point. Given that async lock service exists, and doesn't need
+        // a thread pool, it's likely we won't fix this and will eventually remove the thread pooled lock service.
+        // However, for the time being, it's still useful to have global limiting for services that need to use the
+        // legacy lock service.
+        int localThreadPoolSize = -1;
+        int sharedThreadPoolSize = availableThreads;
+
+        synchronized (this) {
+            if (sharedThreadPool.availablePermits() == -1) {
+                sharedThreadPool.release(sharedThreadPoolSize + 1);
+            }
+        }
+
+        return new ThreadPooledLockService(lockServiceNotUsingThreadPooling, localThreadPoolSize, sharedThreadPool);
+    }
+
+    private CloseableLockService createTimeLimitedLockService(long slowLogTriggerMillis) {
         LockServerOptions lockServerOptions = LockServerOptions.builder()
-                .slowLogTriggerMillis(runtime.get().slowLockLogTriggerMillis())
+                .slowLogTriggerMillis(slowLogTriggerMillis)
                 .build();
 
-        CloseableLockService lockService = BlockingTimeLimitedLockService
-                .create(LockServiceImpl.create(lockServerOptions), blockingTimeoutMs);
+        LockServiceImpl rawLockService = LockServiceImpl.create(lockServerOptions);
 
-        return new ThreadPooledLockService(lockService, -1, sharedThreadPool);
+        if (deprecated.useLockTimeLimiter()) {
+            return BlockingTimeLimitedLockService.create(
+                    rawLockService,
+                    deprecated.blockingTimeoutInMs());
+        }
+        return rawLockService;
     }
 }

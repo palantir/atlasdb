@@ -7,9 +7,9 @@ algorithm:
     trustStorePath: var/security/trustStore.jks
 
 cluster:
-  localServer: localhost:9050
+  localServer: localhost:9011
   servers:
-    - localhost:9050
+    - localhost:9011
 
 clients:
   - test
@@ -25,7 +25,7 @@ server:
   maxThreads: 100
   applicationConnectors:
     - type: h2
-      port: 9050
+      port: 9011
       selectorThreads: 8
       acceptorThreads: 4
       selectorThreads: 8
@@ -52,4 +52,4 @@ server:
         - TLS_EMPTY_RENEGOTIATION_INFO_SCSV
   adminConnectors:
     - type: http
-      port: 7050
+      port: 7011

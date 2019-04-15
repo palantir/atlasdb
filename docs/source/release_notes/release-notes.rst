@@ -50,14 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak|
-         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
-           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
-           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
-           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
-           For an example of this conversion, refer to the PR below.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3898>`__)
-
     *    - |new|
          - A new configuration option ``lockImmutableTsOnReadOnlyTransactions`` is added under ``atlas-runtime.transaction``. Default value for this flag is ``false``, and setting it to ``true``
            enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
