@@ -23,10 +23,11 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
+import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -44,12 +45,15 @@ public class DbBoundTimestampCreator implements TimestampCreator {
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
                 new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), x -> false),
                 kvsConfig,
+                Optional::empty,
                 Optional.of(leaderConfig),
                 Optional.empty(),
-                Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE));
+                Optional.of(AtlasDbConstants.TIMELOCK_TIMESTAMP_TABLE),
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 
-        TimestampService timestampService = atlasFactory.getTimestampService();
-        Preconditions.checkArgument(TimestampManagementService.class.isInstance(timestampService),
+        TimestampService timestampService = atlasFactory.getManagedTimestampService();
+        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
                 "The timestamp service is not a managed timestamp service.");
 
         return () -> new DelegatingManagedTimestampService(timestampService,

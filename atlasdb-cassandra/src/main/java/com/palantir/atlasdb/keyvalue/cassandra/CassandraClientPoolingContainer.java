@@ -257,7 +257,6 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
         // immediately throw when we try and borrow from a full pool; dealt with at higher level
         poolConfig.setBlockWhenExhausted(false);
-        poolConfig.setMaxWaitMillis(config.socketTimeoutMillis());
 
         // this test is free/just checks a boolean and does not block; borrow is still fast
         poolConfig.setTestOnBorrow(true);
@@ -307,6 +306,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         registerPoolMetric("numIdle", pool::getNumIdle);
         registerPoolMetric("numActive", pool::getNumActive);
         registerPoolMetric("approximatePoolSize", () -> pool.getNumIdle() + pool.getNumActive());
+        registerPoolMetric("created", pool::getCreatedCount);
+        registerPoolMetric("destroyedByEvictor", pool::getDestroyedByEvictorCount);
+        registerPoolMetric("destroyedByBorrower", pool::getDestroyedByBorrowValidationCount);
         registerPoolMetric("proportionDestroyedByEvictor",
                 () -> ((double) pool.getDestroyedByEvictorCount()) / ((double) pool.getCreatedCount()));
         registerPoolMetric("proportionDestroyedByBorrower",

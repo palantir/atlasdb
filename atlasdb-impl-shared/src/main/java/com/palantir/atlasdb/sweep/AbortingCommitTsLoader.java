@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
@@ -61,7 +61,7 @@ public class AbortingCommitTsLoader extends CacheLoader<Long, Long> {
         List<Long> missingKeys = ImmutableList.copyOf(nonCachedKeys);
         Map<Long, Long> result = new HashMap<>();
 
-        Streams.stream(Iterables.partition(missingKeys, AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT))
+        Streams.stream(Lists.partition(missingKeys, AtlasDbConstants.TRANSACTION_TIMESTAMP_LOAD_BATCH_LIMIT))
                 .forEach(batch -> result.putAll(transactionService.get(batch)));
 
         // roll back any uncommitted transactions

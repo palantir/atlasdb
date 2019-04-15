@@ -227,7 +227,16 @@ public final class CassandraVerifier {
                     "after adding the initial empty keyspace");
             return true;
         } catch (InvalidRequestException e) {
-            return keyspaceAlreadyExists(host, config);
+            boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, config);
+            if (!keyspaceAlreadyExists) {
+                log.info("Encountered an invalid request exception {} when attempting to create a keyspace"
+                        + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
+                        + " cause issues if it recurs persistently, so logging for debugging purposes.",
+                        SafeArg.of("host", CassandraLogHelper.host(host)),
+                        UnsafeArg.of("exceptionMessage", e.toString()));
+                log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
+            }
+            return keyspaceAlreadyExists;
         }
     }
 

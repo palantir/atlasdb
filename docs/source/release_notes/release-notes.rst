@@ -50,9 +50,14 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
-
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3899>`__)
+           
 ========
 v0.130.0
 ========
@@ -81,7 +86,7 @@ v0.130.0
          - ``putUnlessExists`` in Cassandra KVS now produces correct cell names when failing with a ``KeyAlreadyExistsException``.
            Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3882>`__)
-         
+
     *    - |fixed|
          - Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
            Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
@@ -166,6 +171,21 @@ v0.128.0
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
            This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3849>`__)
+
+    *    - |fixed|
+         - Cassandra client input and output transports are now properly closed.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3892>`__)
+
+    *    - |fixed| |devbreak|
+         - Stop memoizing the ``Supplier`` of ``TimestampService``, as we **must** get a fresh instance on each ``Supplier.get()`` call to ensure correctness after leadership elections.
+           Without it, there is a possibility of data corruption if you are running atlas with a leader block in a multi-node configuration.
+           Services using External Timelock, Embedded or Leader with 1 node will not be affected.
+           Dev break to force ``AtlasDbFactory`` and ``ServiceDiscoveringAtlasSupplier`` to return ``ManagedTimestampService`` which unifies ``TimestampService`` and ``TimestampManagementService``.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3911>`__)
+
+    *    - |improved|
+         - Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(...) instead of Iterables.partition(...).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3918>`__)
 
 ========
 v0.127.0
