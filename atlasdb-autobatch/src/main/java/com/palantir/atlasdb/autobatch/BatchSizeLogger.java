@@ -17,12 +17,14 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.time.Duration;
+import java.util.function.BooleanSupplier;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.logsafe.SafeArg;
 
@@ -33,35 +35,41 @@ public final class BatchSizeLogger {
     private static final Duration AUTOBATCHER_LOGGING_INTERVAL = Duration.ofSeconds(10);
     private static final double AUTOBATCHER_LOGGING_PERMITS_PER_SECOND = 1. / AUTOBATCHER_LOGGING_INTERVAL.getSeconds();
 
-    private final RateLimiter rateLimiter;
+    private final BooleanSupplier shouldFlush;
     private final String safeIdentifier;
 
     private long total = 0;
     private long counter = 0;
 
-    private BatchSizeLogger(RateLimiter rateLimiter, String safeIdentifier) {
-        this.rateLimiter = rateLimiter;
+    @VisibleForTesting
+    BatchSizeLogger(BooleanSupplier shouldFlush, String safeIdentifier) {
+        this.shouldFlush = shouldFlush;
         this.safeIdentifier = safeIdentifier;
     }
 
     public static BatchSizeLogger create(String safeLoggerIdentifier) {
         RateLimiter profilingLimiter = RateLimiter.create(AUTOBATCHER_LOGGING_PERMITS_PER_SECOND); // every 10 seconds
-        return new BatchSizeLogger(profilingLimiter, safeLoggerIdentifier);
+        return new BatchSizeLogger(profilingLimiter::tryAcquire, safeLoggerIdentifier);
     }
 
     public void markBatchProcessed(long batchSize) {
         total += batchSize;
         counter++;
-        if (rateLimiter.tryAcquire()) {
+        if (shouldFlush.getAsBoolean()) {
             log.info("The autobatcher with identifier {} has just processed a batch of size {}."
                     + " Over the last {} seconds, it has processed {} batches with average size {}.",
                     SafeArg.of("safeIdentifier", safeIdentifier),
                     SafeArg.of("currentBatchSize", batchSize),
                     SafeArg.of("interval", AUTOBATCHER_LOGGING_INTERVAL.getSeconds()),
                     SafeArg.of("numBatches", counter),
-                    SafeArg.of("averageSize", (double) total / counter));
+                    SafeArg.of("averageSize", getCurrentAverage()));
             total = 0;
             counter = 0;
         }
+    }
+
+    @VisibleForTesting
+    double getCurrentAverage() {
+        return (double) total / counter;
     }
 }
