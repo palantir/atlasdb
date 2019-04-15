@@ -492,7 +492,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static <T> T getProxyForService(String client, Class<T> clazz) {
-        return AtlasDbHttpClients.createProxyWithoutRetrying(
+        return AtlasDbHttpClients.createProxyForTest(
                 new MetricRegistry(),
                 Optional.of(TestProxies.TRUST_CONTEXT),
                 getRootUriForClient(client),

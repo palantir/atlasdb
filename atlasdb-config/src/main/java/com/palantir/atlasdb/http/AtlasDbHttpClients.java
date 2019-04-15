@@ -162,4 +162,18 @@ public final class AtlasDbHttpClients {
                         false),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
+
+    public static <T> T createProxyForTest(
+            MetricRegistry metricRegistry,
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return AtlasDbMetrics.instrument(
+                metricRegistry,
+                type,
+                AtlasDbFeignTargetFactory.createProxyForTest(trustContext, uri, type, userAgent, limitPayloadSize),
+                MetricRegistry.name(type));
+    }
 }

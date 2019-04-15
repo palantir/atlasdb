@@ -149,6 +149,21 @@ public final class AtlasDbFeignTargetFactory {
                         }));
     }
 
+    public static <T> T createProxyForTest(
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(errorDecoder)
+                .client(createClient(trustContext, userAgent, limitPayloadSize))
+                .target(type, uri);
+    }
+
     private static Client createClient(
             Optional<TrustContext> trustContext,
             String userAgent,
