@@ -16,39 +16,24 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-
-import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.logsafe.SafeArg;
-
 public final class ProfilingAutobatchers {
-
-    private static final Duration AUTOBATCHER_LOGGING_INTERVAL = Duration.ofSeconds(10);
-    private static final double AUTOBATCHER_LOGGING_PERMITS_PER_SECOND = 1. / AUTOBATCHER_LOGGING_INTERVAL.getSeconds();
 
     private ProfilingAutobatchers() {
         // factory
     }
 
     public static <T, R> DisruptorAutobatcher<T, R> create(
-            Logger logger,
             String safeIdentifier,
             Consumer<List<BatchElement<T, R>>> batchFunction) {
-        RateLimiter profilingLimiter = RateLimiter.create(AUTOBATCHER_LOGGING_PERMITS_PER_SECOND); // every 10 seconds
+        BatchSizeLogger batchSizeLogger = BatchSizeLogger.create(safeIdentifier);
         return DisruptorAutobatcher.create(elements -> {
             batchFunction.accept(elements);
 
-            if (profilingLimiter.tryAcquire()) {
-                logger.info("Autobatcher with ID {} just processed a batch of size {}."
-                                + " This message is rate limited to once every 10 seconds per autobatcher, so there"
-                                + " may be more batches being processed.",
-                        SafeArg.of("autobatcherIdentifier", safeIdentifier),
-                        SafeArg.of("batchSize", elements.size()));
-            }
+            // Shouldn't affect clients, because futures have already been completed
+            batchSizeLogger.markBatchProcessed(elements.size());
         });
     }
 }
