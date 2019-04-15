@@ -131,7 +131,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3918>`__)
 
     *    - |improved|
-         - AtlasDB now logs diagnostic information about uses of the request batching timestamp service.
+         - AtlasDB now logs diagnostic information about usage of classes that utilise smart batching (e.g. when starting transactions, verifying leadership, _transactions2 put-unless-exists, etc.).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3923>`__)
 
 ========
