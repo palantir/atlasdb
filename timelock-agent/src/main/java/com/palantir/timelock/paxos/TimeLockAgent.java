@@ -149,7 +149,7 @@ public class TimeLockAgent {
         Optional<TrustContext> trustContext = PaxosRemotingUtils.getSslConfigurationOptional(install)
                 .map(SslSocketFactories::createTrustContext);
         return remoteUris.stream()
-                .map(uri -> AtlasDbHttpClients.createProxy(
+                .map(uri -> AtlasDbHttpClients.createProxyWithoutRetrying(
                         metricsManager.getRegistry(),
                         trustContext,
                         uri,
