@@ -1,29 +1,33 @@
-install:
-  paxos:
-    data-directory: "<TEMP_DATA_DIR>"
-    is-new-service: false
-  cluster:
-    cluster:
-      security:
-        trustStorePath: "var/security/trustStore.jks"
-        trustStoreType: "JKS"
-        keyStorePath: "var/security/keyStore.jks"
-        keyStorePassword: "keystore"
-        keyStoreType: "JKS"
-      uris:
-      - "localhost:9050"
-    local-server: "localhost:9050"
-  timestampBoundPersistence:
+algorithm:
+  type: paxos
+  paxosDataDir: <TEMP_DATA_DIR>
+  sslConfiguration:
+    keyStorePath: var/security/keyStore.jks
+    keyStorePassword: keystore
+    trustStorePath: var/security/trustStore.jks
 
-runtime:
-  paxos:
+cluster:
+  localServer: localhost:9050
+  servers:
+    - localhost:9050
+
+clients:
+  - test
+  - test2
+  - test3
+  - learner
+  - acceptor
+
+useClientRequestLimit: true
 
 server:
   minThreads: 1
-  maxThreads: 200
+  maxThreads: 100
   applicationConnectors:
     - type: h2
       port: 9050
+      selectorThreads: 8
+      acceptorThreads: 4
       selectorThreads: 8
       acceptorThreads: 4
       keyStorePath: var/security/keyStore.jks

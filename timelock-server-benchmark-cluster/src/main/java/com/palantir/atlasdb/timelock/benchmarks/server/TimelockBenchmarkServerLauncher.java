@@ -17,9 +17,10 @@ package com.palantir.atlasdb.timelock.benchmarks.server;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
-import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
+import com.palantir.atlasdb.timelock.benchmarks.server.config.TimelockBenchmarkServerConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.timelock.config.ImmutableTimeLockDeprecatedConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
@@ -27,29 +28,29 @@ import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
-public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLockServerConfiguration> {
+public class TimelockBenchmarkServerLauncher extends Application<TimelockBenchmarkServerConfig> {
 
     public static void main(String[] args) throws Exception {
         new TimelockBenchmarkServerLauncher().run(args);
     }
 
     @Override
-    public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
+    public void initialize(Bootstrap<TimelockBenchmarkServerConfig> bootstrap) {
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         super.initialize(bootstrap);
     }
 
     @Override
-    public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
+    public void run(TimelockBenchmarkServerConfig configuration, Environment environment) throws Exception {
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
-        TimeLockAgent.create(
+        TimeLockAgent agent = TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
-                CombinedTimeLockServerConfiguration.threadPoolSize(),
-                CombinedTimeLockServerConfiguration.blockingTimeoutMs(),
+                ImmutableTimeLockDeprecatedConfiguration.builder().build(),
                 environment.jersey()::register);
     }
 }
+
