@@ -138,9 +138,10 @@ It may be easier to think of the timestamp being written as a 3-tuple (P, O1, O2
 pair (P, O2) and the column key is O1; if NP divides PQ, then there is a bijection between such 3-tuples where O2 ranges
 from 0 to NP (exclusive), and O1 ranges from 0 to PQ / NP (exclusive). Furthermore, this bijection is order-preserving
 where ordering over the 3-tuples is interpreted lexicographically.
-This diagram should illustrate more clearly how this works:
 
-TODO (jkong): Diagram
+This diagram should illustrate more clearly how this works, for PQ = 1,000,000 and NP = 100.
+
+![Illustration of the tickets encoding strategy](0016-tickets-encoding.png)
 
 ### Physical Implementation of Tickets
 
@@ -244,7 +245,8 @@ concerned, even if the columns are actually disjoint. Internally, Cassandra node
 partition; whether these updates are applied and the order in which they take place is agreed on using Paxos.
 Although the nodes will be OK with accepting multiple proposals if they don't conflict, only one round of consensus
 can be committed at a time (since updates are conditional). Also, Cassandra uses a leaderless implementation of
-Paxos, meaning that the 'dueling proposers' issue might slow the protocol down further.
+Paxos, meaning that the 'dueling proposers' issue might slow an individual round of the protocol down if multiple nodes
+are trying to concurrently propose values.
 
 Batching requests on the client side for each partition could be useful, though that is still limited in that
 performance would be poor for services with many nodes.
