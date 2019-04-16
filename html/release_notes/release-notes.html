@@ -188,75 +188,47 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>A new configuration option <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions</span></code> is added under <code class="docutils literal notranslate"><span class="pre">atlas-runtime.transaction</span></code>. Default value for this flag is <code class="docutils literal notranslate"><span class="pre">false</span></code>, and setting it to <code class="docutils literal notranslate"><span class="pre">true</span></code>
-enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
-please do not change the default value for this flag without talking to AtlasDB team.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3888">Pull Request</a>)</td>
+<tr class="row-even"><td>&#160;</td>
+<td>&#160;</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> in Cassandra KVS now produces correct cell names when failing with a <code class="docutils literal notranslate"><span class="pre">KeyAlreadyExistsException</span></code>.
-Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3882">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-133-0">
+<h2>v0.133.0<a class="headerlink" href="#v0-133-0" title="Permalink to this headline">¶</a></h2>
+<p>16 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
-Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
-This may lead to multiple unnecessary updates to the coordinated value in a short space of time.
-Note that updates that do change the value will be applied regardless, and could potentially still race if applied in parallel.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3QQQ">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">LockRefresher</span></code> now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3qqq">Pull Request</a>)</td>
-</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The Cassandra KVS <code class="docutils literal notranslate"><span class="pre">CellLoader</span></code> now supports cross-column batching for requests which query a variety of columns for a few rows.
-Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
-Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3860">Pull Request</a>)</td>
+<td>AtlasDB now logs diagnostic information about usage of classes that utilise smart batching (e.g. when starting transactions, verifying leadership, _transactions2 put-unless-exists, etc.).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3924">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">WriteBatchingTransactionService</span></code> now tries requests for duplicated timestamps in subsequent batches.
-Previously, we would immediately throw a <code class="docutils literal notranslate"><span class="pre">SafeIllegalStateException</span></code> when seeing a duplicate in a single batch, which was causing unnecessary failures in transactions which could handle the <code class="docutils literal notranslate"><span class="pre">KeyAlreadyExistsException</span></code> safely.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3879">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-132-0">
+<h2>v0.132.0<a class="headerlink" href="#v0-132-0" title="Permalink to this headline">¶</a></h2>
+<p>11 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
-<td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
-We do not want to stay on an RC version now that a full release is available.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3872">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Concurrent calls to <cite>TimelockService.startIdentifiedAtlasDbTransaction()</cite> now coalesced into a single Timelock rpc to reduce load on Timelock.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td><cite>RemoteTimelockServiceAdapter</cite> is now closeable. Users of this class should invoke <cite>close()</cite> before termination to avoid thread leaks.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Oracle KVS now deletes old entries correctly if using targeted sweep.
-Previously, there were situations where it would not delete values that could safely be deleted.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3870">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Callbacks specified in TransactionManagers will no longer be run synchronously when <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, even if initialization succeeds in the first, synchronous attempt.
-Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
-Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3865">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3886">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3805">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Cassandra client input and output transports are now properly closed.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3892">Pull Request</a>)</td>
-</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Stop memoizing the <code class="docutils literal notranslate"><span class="pre">Supplier</span></code> of <code class="docutils literal notranslate"><span class="pre">TimestampService</span></code>, as we <strong>must</strong> get a fresh instance on each <code class="docutils literal notranslate"><span class="pre">Supplier.get()</span></code> call to ensure correctness after leadership elections.
 Without it, there is a possibility of data corruption if you are running atlas with a leader block in a multi-node configuration.
@@ -268,9 +240,164 @@ Dev break to force <code class="docutils literal notranslate"><span class="pre">
 <td>Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(…) instead of Iterables.partition(…).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3918">Pull Request</a>)</td>
 </tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-131-0">
+<h2>v0.131.0<a class="headerlink" href="#v0-131-0" title="Permalink to this headline">¶</a></h2>
+<p>9 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Cassandra client input and output transports are now properly closed.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3892">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-130-0">
+<h2>v0.130.0<a class="headerlink" href="#v0-130-0" title="Permalink to this headline">¶</a></h2>
+<p>4 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>AtlasDB now supports _transactions2 if backed by Cassandra KVS or In-Memory KVS.
+This is expected to improve transaction performance by making <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
+This is a beta feature; please contact the AtlasDB team if you are interested to use _transactions2.
+(Many PRs; key PRs include <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3706">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3707">Pull Request 2</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request 3</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3732">Pull Request 4</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> in Cassandra KVS now produces correct cell names when failing with a <code class="docutils literal notranslate"><span class="pre">KeyAlreadyExistsException</span></code>.
+Previously, Cassandra KVS used to produce incorrect cell names (that were the concatenation of the correct cell name and an encoding of the AtlasDB timestamp).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3882">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>A new configuration option <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions</span></code> is added under <code class="docutils literal notranslate"><span class="pre">atlas-runtime.transaction</span></code>. Default value for this flag is <code class="docutils literal notranslate"><span class="pre">false</span></code>, and setting it to <code class="docutils literal notranslate"><span class="pre">true</span></code>
+enables running read-only transactions on thorough sweep tables; but introduces a perf overhead to read-only transactions on conservative sweep tables. This is an experimental feature,
+please do not change the default value for this flag without talking to AtlasDB team.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3888">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">WriteBatchingTransactionService</span></code> now tries requests for duplicated timestamps in subsequent batches.
+Previously, we would immediately throw a <code class="docutils literal notranslate"><span class="pre">SafeIllegalStateException</span></code> when seeing a duplicate in a single batch, which was causing unnecessary failures in transactions which could handle the <code class="docutils literal notranslate"><span class="pre">KeyAlreadyExistsException</span></code> safely.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3879">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a rare situation in which interrupting a thread could possibly leave dangling locks.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3805">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Coordination services now only perpetuate an existing value on value-preserving transformations if the existing bound is invalid at a fresh sequence number.
+Previously, we would perpetuate the bound regardless, meaning that when the bound is crossed in a multi-threaded environment, each in-flight transaction that tries to determine its transaction schema version will independently attempt to perpetuate the bound.
+This may lead to multiple unnecessary updates to the coordinated value in a short space of time.
+Note that updates that do change the value will be applied regardless, and could potentially still race if applied in parallel.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3889">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>AtlasDB now logs diagnostic information about usage of classes that utilise smart batching (e.g. when starting transactions, verifying leadership, _transactions2 put-unless-exists, etc.).
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3923">Pull Request</a>)</td>
+<td><code class="docutils literal notranslate"><span class="pre">LockRefresher</span></code> now logs at INFO when locks cannot be refreshed in that the server does not indicate that they were refreshed, along with a sample of the lock tokens involved.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3866">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Reduced dependency footprint by replacing dependency on groovy-all with dependencies on groovy, groovy-groovysh, and groovy-json.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3886">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-129-0">
+<h2>v0.129.0<a class="headerlink" href="#v0-129-0" title="Permalink to this headline">¶</a></h2>
+<p>28 Mar 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Oracle KVS now deletes old entries correctly if using targeted sweep.
+Previously, there were situations where it would not delete values that could safely be deleted.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3870">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The Cassandra KVS <code class="docutils literal notranslate"><span class="pre">CellLoader</span></code> now supports cross-column batching for requests which query a variety of columns for a few rows.
+Previously, we would make separate requests for each of these columns in parallel, creating additional load on Cassandra.
+Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (e.g. small numbers of rows with static columns, or rows with dynamic columns when the column key is varied and known in advance).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3860">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Concurrent calls to <cite>TimelockService.startIdentifiedAtlasDbTransaction()</cite> now coalesced into a single Timelock rpc to reduce load on Timelock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><cite>RemoteTimelockServiceAdapter</cite> is now closeable. Users of this class should invoke <cite>close()</cite> before termination to avoid thread leaks.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3844">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
+<td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
+We do not want to stay on an RC version now that a full release is available.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3872">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-128-0">
+<h2>v0.128.0<a class="headerlink" href="#v0-128-0" title="Permalink to this headline">¶</a></h2>
+<p>27 Mar 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
+This version of Cassandra KVS supports a <code class="docutils literal notranslate"><span class="pre">multiget_multislice</span></code> operation which retrieves different columns across different rows in a single query.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3849">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td>Callbacks specified in TransactionManagers will no longer be run synchronously when <code class="docutils literal notranslate"><span class="pre">initializeAsync</span></code> is set to true, even if initialization succeeds in the first, synchronous attempt.
+Previously, we would attempt to run the callbacks synchronously when synchronous initialization succeeds, but this prevented use cases where the callback must block until an external resource is available.
+Consequently, even if the initialization of a transaction manager created with asynchronous initialization succeeds synchronously, readiness of the returned object must be checked because transaction managers are not ready to be used until callbacks successfully run.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3865">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
+<td>Postgres 9.5.2+ requirement temporarily rescinded.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3862">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
+<td>Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3863">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -305,19 +432,6 @@ Previously, Background Sweep would not prioritise new writes for sweeping if wri
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><cite>AtlasDbHttpClients</cite>, <cite>FeignOkHttpClients</cite> and <cite>AtlasDbFeignTargetFactory</cite> are refactored to get rid of deprecated methods and overused overloads.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3837">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
-This version of Cassandra KVS supports a <code class="docutils literal notranslate"><span class="pre">multiget_multislice</span></code> operation which retrieves different columns across different rows in a single query.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3849">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-logs">LOGS</span></td>
-<td>Added extra debug/trace logging to log the state of the Cassandra pool / application when running into cassandra pool exhaustion errors.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3863">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-changed">CHANGED</span></td>
-<td>Postgres 9.5.2+ requirement temporarily rescinded.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3862">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -521,35 +635,26 @@ Instead it waits until creating each individual learner or acceptor log director
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>AtlasDB now supports _transactions2 if backed by Cassandra KVS or In-Memory KVS.
-This is expected to improve transaction performance by making <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> faster, and increase stability by avoiding hotspotting of the transactions table in Cassandra.
-This is a beta feature; please contact the AtlasDB team if you are interested to use _transactions2.
-(Many PRs; key PRs include <a class="reference external" href="https://github.com/palantir/atlasdb/pull/3706">Pull Request 1</a>,
-<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3707">Pull Request 2</a>,
-<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request 3</a>,
-<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3732">Pull Request 4</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on <code class="docutils literal notranslate"><span class="pre">com.palantir.cassandra</span></code> instead of <code class="docutils literal notranslate"><span class="pre">org.apache.cassandra</span></code>.
 This version of Cassandra thrift client supports a <code class="docutils literal notranslate"><span class="pre">put_unless_exists</span></code> operation that can update multiple columns in the same row simultaneously.
 The Cassandra KVS putUnlessExists method has been updated to use the above call.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The <cite>TableMetadata</cite> class has been refactored to use Immutables.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3624">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span> <span class="changetype changetype-metrics">METRICS</span></td>
 <td>Transaction services now expose timer metrics indicating how long committing or getting values takes.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3733">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Entries with the same value in adjacent ranges in a timestamp partitioning map will now be properly coalesced, and for the purposes of coordination will not be written as new values.
 Previously, these were stored as separate entries, meaning that unnecessary values may have been written to the coordination store; this does not affect correctness, but is unperformant.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3733">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>AtlasDB now allows you to enable a new transaction retry strategy with exponential backoff via configs.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3749">Pull Request</a>)</td>
 </tr>
