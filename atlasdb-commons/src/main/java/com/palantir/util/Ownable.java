@@ -19,15 +19,15 @@ package com.palantir.util;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface Owned<R> {
+public interface Ownable<R> {
     R resource();
     boolean isOwned();
 
-    static <R> Owned<R> owned(R ownedResource) {
-        return ImmutableOwned.<R>builder().resource(ownedResource).isOwned(true).build();
+    static <R> Ownable<R> owned(R ownedResource) {
+        return ImmutableOwnable.<R>builder().resource(ownedResource).isOwned(true).build();
     }
 
-    static <R> Owned<R> notOwned(R injectedResource) {
-        return ImmutableOwned.<R>builder().resource(injectedResource).isOwned(false).build();
+    static <R> Ownable<R> notOwned(R injectedResource) {
+        return ImmutableOwnable.<R>builder().resource(injectedResource).isOwned(false).build();
     }
 }

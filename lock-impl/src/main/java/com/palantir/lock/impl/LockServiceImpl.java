@@ -102,7 +102,7 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.util.Owned;
+import com.palantir.util.Ownable;
 import com.palantir.util.JMXUtils;
 
 /**
@@ -164,7 +164,7 @@ public final class LockServiceImpl
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
-    private final Owned<ExecutorService> executor;
+    private final Ownable<ExecutorService> executor;
     private final Runnable callOnClose;
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
@@ -229,15 +229,15 @@ public final class LockServiceImpl
         Preconditions.checkNotNull(options);
         ExecutorService newExecutor = PTExecutors
                 .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
-        return create(options, Owned.owned(newExecutor));
+        return create(options, Ownable.owned(newExecutor));
     }
 
     public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
         Preconditions.checkNotNull(options);
-        return create(options, Owned.notOwned(injectedExecutor));
+        return create(options, Ownable.notOwned(injectedExecutor));
     }
 
-    private static LockServiceImpl create(LockServerOptions options, Owned<ExecutorService> executor) {
+    private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
         }
@@ -248,7 +248,7 @@ public final class LockServiceImpl
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Owned<ExecutorService> executor) {
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
         this.executor = executor;
         this.callOnClose = callOnClose;
         this.isStandaloneServer = options.isStandaloneServer();
