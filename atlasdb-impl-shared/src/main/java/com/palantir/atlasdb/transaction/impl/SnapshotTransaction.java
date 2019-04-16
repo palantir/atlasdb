@@ -749,11 +749,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef) {
-        return validateLocksOnReads && isThoroughlySwept(tableRef);
+        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef);
     }
 
     private boolean isValidationNecessaryOnCommit(TableReference tableRef) {
-        return !validateLocksOnReads && isThoroughlySwept(tableRef);
+        return !validateLocksOnReads && requiresImmutableTimestampLocking(tableRef);
+    }
+
+    private boolean requiresImmutableTimestampLocking(TableReference tableRef) {
+        return isThoroughlySwept(tableRef) || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
     private boolean isThoroughlySwept(TableReference tableRef) {
