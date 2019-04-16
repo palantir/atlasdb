@@ -1073,7 +1073,8 @@ public final class LockServiceImpl
                 executor.resource().shutdownNow();
             }
             indefinitelyBlockingThreads.forEach(Thread::interrupt);
-            callOnClose.run();        }
+            callOnClose.run();
+        }
     }
 
     @Override
