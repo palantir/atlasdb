@@ -268,6 +268,10 @@ Dev break to force <code class="docutils literal notranslate"><span class="pre">
 <td>Removed unnecessary memory allocations in the lock refresher, and in several other classes, by using Lists.partition(…) instead of Iterables.partition(…).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3918">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now logs diagnostic information about usage of classes that utilise smart batching (e.g. when starting transactions, verifying leadership, _transactions2 put-unless-exists, etc.).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3923">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
