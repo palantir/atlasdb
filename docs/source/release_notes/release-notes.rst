@@ -54,7 +54,7 @@ develop
 v0.133.0
 ========
 
-XX YYY 2019
+16 Apr 2019
 
 .. list-table::
     :widths: 5 40
@@ -71,7 +71,7 @@ XX YYY 2019
 v0.132.0
 ========
 
-XX YYY 2019
+11 Apr 2019
 
 .. list-table::
     :widths: 5 40
@@ -95,7 +95,7 @@ XX YYY 2019
 v0.131.0
 ========
 
-XX YYY 2019
+9 Apr 2019
 
 .. list-table::
     :widths: 5 40
@@ -112,7 +112,7 @@ XX YYY 2019
 v0.130.0
 ========
 
-XX YYY 2019
+4 Apr 2019
 
 .. list-table::
     :widths: 5 40
@@ -170,7 +170,7 @@ XX YYY 2019
 v0.129.0
 ========
 
-XX YYY 2019
+28 Mar 2019
 
 .. list-table::
     :widths: 5 40
