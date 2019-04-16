@@ -17,16 +17,21 @@ package com.palantir.atlasdb.cli.command;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -98,6 +103,11 @@ public class KvsMigrationCommand implements Callable<Integer> {
             description = "inline configuration file for atlasdb")
     private String inlineConfig;
 
+    @Option(name = {"--validationTableBlacklist"},
+            title = "Validation Table Blacklist",
+            description = "a comma-seperated list of tables to ignore validation for")
+    private String validationTableBlacklist;
+
     @Override
     public Integer call() throws Exception {
         if (inlineConfig == null && toConfigFile == null) {
@@ -127,6 +137,15 @@ public class KvsMigrationCommand implements Callable<Integer> {
             migrator.cleanup();
         }
         if (validate) {
+            Set<TableReference> skipTables = Sets.newHashSet();
+            if (validationTableBlacklist != null && !validationTableBlacklist.isEmpty()) {
+                skipTables.addAll(
+                        StreamSupport.stream(
+                                Splitter.on(',').split(validationTableBlacklist).spliterator(), false)
+                                .map(TableReference::createFromFullyQualifiedName)
+                                .collect(Collectors.toSet()));
+            }
+
             KeyValueServiceValidator validator = new KeyValueServiceValidator(fromServices.getTransactionManager(),
                     toServices.getTransactionManager(),
                     fromServices.getKeyValueService(),
@@ -135,7 +154,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     ImmutableMap.of(),
                     (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) ->
                             printer.info(level.toString() + ": " + message),
-                    ImmutableSet.of());
+                    skipTables);
             validator.validate(true);
         }
         return 0;
