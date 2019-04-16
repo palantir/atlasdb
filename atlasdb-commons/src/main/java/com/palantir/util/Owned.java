@@ -23,11 +23,11 @@ public interface Owned<R> {
     R resource();
     boolean isOwned();
 
-    static <T> Owned<T> owned(T ownedResource) {
-        return ImmutableOwned.<T>builder().resource(ownedResource).isOwned(true).build();
+    static <R> Owned<R> owned(R ownedResource) {
+        return ImmutableOwned.<R>builder().resource(ownedResource).isOwned(true).build();
     }
 
-    static <T> Owned<T> notOwned(T injectedResource) {
-        return ImmutableOwned.<T>builder().resource(injectedResource).isOwned(false).build();
+    static <R> Owned<R> notOwned(R injectedResource) {
+        return ImmutableOwned.<R>builder().resource(injectedResource).isOwned(false).build();
     }
 }
