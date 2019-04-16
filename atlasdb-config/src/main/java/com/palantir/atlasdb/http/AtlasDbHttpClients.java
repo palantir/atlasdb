@@ -69,6 +69,21 @@ public final class AtlasDbHttpClients {
                 MetricRegistry.name(type));
     }
 
+    public static <T> T createProxyWithoutRetrying(
+            MetricRegistry metricRegistry,
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return AtlasDbMetrics.instrument(
+                metricRegistry,
+                type,
+                AtlasDbFeignTargetFactory
+                        .createProxyWithoutRetrying(trustContext, uri, type, userAgent, limitPayloadSize),
+                MetricRegistry.name(type));
+    }
+
     /**
      * Constructs an HTTP-invoking dynamic proxy for the specified type that will cycle through the list of supplied
      * endpoints after encountering an exception or connection failure, using the supplied SSL factory if it is
