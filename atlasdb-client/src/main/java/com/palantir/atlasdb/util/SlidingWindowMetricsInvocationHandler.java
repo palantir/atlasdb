@@ -45,7 +45,7 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
     private final String serviceName;
 
     public SlidingWindowMetricsInvocationHandler(MetricRegistry metricRegistry, String serviceName) {
-        super(MetricsInvocationEventHandlerUtils.getEnabledSupplier(serviceName));
+        super(InstrumentationUtils.getEnabledSupplier(serviceName));
         this.metricRegistry = checkNotNull(metricRegistry, "metricRegistry");
         this.serviceName = checkNotNull(serviceName, "serviceName");
     }
@@ -63,8 +63,8 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
         }
 
         long nanos = System.nanoTime() - context.getStartTimeNanos();
-        metricRegistry.timer(MetricsInvocationEventHandlerUtils.getBaseMetricName(context, serviceName),
-                MetricsInvocationEventHandlerUtils::createNewTimer)
+        metricRegistry.timer(InstrumentationUtils.getBaseMetricName(context, serviceName),
+                InstrumentationUtils::createNewTimer)
                 .update(nanos, TimeUnit.NANOSECONDS);
     }
 
@@ -78,12 +78,12 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
             return;
         }
 
-        String failuresMetricName = MetricsInvocationEventHandlerUtils.getFailuresMetricName(context, serviceName);
+        String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         metricRegistry.meter(failuresMetricName).mark();
         metricRegistry.meter(MetricRegistry.name(failuresMetricName, cause.getClass().getName())).mark();
     }
 
     private void markGlobalFailure() {
-        metricRegistry.meter(MetricsInvocationEventHandlerUtils.FAILURES_METRIC_NAME).mark();
+        metricRegistry.meter(InstrumentationUtils.FAILURES_METRIC_NAME).mark();
     }
 }

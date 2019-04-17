@@ -55,7 +55,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             TaggedMetricRegistry taggedMetricRegistry,
             String serviceName,
             Function<InvocationContext, Map<String, String>> tagFunction) {
-        super(MetricsInvocationEventHandlerUtils.getEnabledSupplier(serviceName));
+        super(InstrumentationUtils.getEnabledSupplier(serviceName));
         this.taggedMetricRegistry = checkNotNull(taggedMetricRegistry, "metricRegistry");
         this.serviceName = checkNotNull(serviceName, "serviceName");
         this.tagFunction = tagFunction;
@@ -78,7 +78,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                 .safeName(MetricRegistry.name(serviceName, context.getMethod().getName()))
                 .putAllSafeTags(tagFunction.apply(context))
                 .build();
-        taggedMetricRegistry.timer(finalMetricName, MetricsInvocationEventHandlerUtils::createNewTimer)
+        taggedMetricRegistry.timer(finalMetricName, InstrumentationUtils::createNewTimer)
                 .update(nanos, TimeUnit.NANOSECONDS);
     }
 
@@ -92,7 +92,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
             return;
         }
 
-        String failuresMetricName = MetricsInvocationEventHandlerUtils.getFailuresMetricName(context, serviceName);
+        String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         taggedMetricRegistry.meter(MetricName.builder().safeName(failuresMetricName).build()).mark();
         taggedMetricRegistry.meter(MetricName.builder().safeName(
                 MetricRegistry.name(failuresMetricName, cause.getClass().getName())).build())
@@ -102,7 +102,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     private void markGlobalFailure() {
         taggedMetricRegistry.meter(MetricName.builder()
-                .safeName(MetricsInvocationEventHandlerUtils.FAILURES_METRIC_NAME)
+                .safeName(InstrumentationUtils.FAILURES_METRIC_NAME)
                 .build())
                 .mark();
     }

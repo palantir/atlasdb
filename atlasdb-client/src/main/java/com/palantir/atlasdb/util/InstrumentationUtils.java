@@ -25,26 +25,26 @@ import com.codahale.metrics.Timer;
 import com.palantir.tritium.event.InstrumentationProperties;
 import com.palantir.tritium.event.InvocationContext;
 
-public final class MetricsInvocationEventHandlerUtils {
-    public static final String FAILURES_METRIC_NAME = "failures";
+final class InstrumentationUtils {
+    static final String FAILURES_METRIC_NAME = "failures";
 
-    private MetricsInvocationEventHandlerUtils() {
+    private InstrumentationUtils() {
         // utility
     }
 
-    public static BooleanSupplier getEnabledSupplier(final String serviceName) {
+    static BooleanSupplier getEnabledSupplier(final String serviceName) {
         return InstrumentationProperties.getSystemPropertySupplier(serviceName);
     }
 
-    public static Timer createNewTimer() {
+    static Timer createNewTimer() {
         return new Timer(new SlidingTimeWindowArrayReservoir(35, TimeUnit.SECONDS));
     }
 
-    public static String getBaseMetricName(InvocationContext context, String serviceName) {
+    static String getBaseMetricName(InvocationContext context, String serviceName) {
         return MetricRegistry.name(serviceName, context.getMethod().getName());
     }
 
-    public static String getFailuresMetricName(InvocationContext context, String serviceName) {
+    static String getFailuresMetricName(InvocationContext context, String serviceName) {
         return MetricRegistry.name(getBaseMetricName(context, serviceName), FAILURES_METRIC_NAME);
     }
 }
