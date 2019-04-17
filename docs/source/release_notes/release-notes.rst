@@ -66,6 +66,14 @@ v0.133.0
     *    - Type
          - Change
 
+    *    - |changed|
+         - Changed the default values in ``PaxosConfiguration``.
+           ``leader-ping-response-wait-in-ms`` was reduced to 3000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 500 ms from 5000 ms.
+           These settings have emprirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/???>`__)
+
     *    - |improved|
          - AtlasDB now logs diagnostic information about usage of classes that utilise smart batching (e.g. when starting transactions, verifying leadership, _transactions2 put-unless-exists, etc.).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3924>`__)
