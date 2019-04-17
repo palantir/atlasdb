@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -46,8 +47,8 @@ import feign.Target;
 public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     private static final Logger log = LoggerFactory.getLogger(FailoverFeignTarget.class);
 
-    public static final int DEFAULT_MAX_BACKOFF_MILLIS = 3000;
-    public static final long BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS = 500L;
+    public static final Duration DEFAULT_MAX_BACKOFF = Duration.ofMillis(1000);
+    public static final Duration MAX_BACKOFF_BEFORE_ROUND_ROBIN_RETRY = Duration.ofMillis(250);
 
     private static final double GOLDEN_RATIO = (Math.sqrt(5) + 1.0) / 2.0;
 
@@ -58,7 +59,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
     final int failuresBeforeSwitching = 3;
     private final int numServersToTryBeforeFailing = 14;
     private final int fastFailoverTimeoutMillis = 10000;
-    private final int maxBackoffMillis;
+    private final long maxBackoffMillis;
 
     private final AtomicLong failuresSinceLastSwitch = new AtomicLong();
     private final AtomicLong numSwitches = new AtomicLong();
@@ -69,12 +70,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     private final Clock clock;
 
-    public FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type) {
+    public FailoverFeignTarget(Collection<String> servers, long maxBackoffMillis, Class<T> type) {
         this(servers, maxBackoffMillis, type, System::currentTimeMillis);
     }
 
     @VisibleForTesting
-    FailoverFeignTarget(Collection<String> servers, int maxBackoffMillis, Class<T> type, Clock clock) {
+    FailoverFeignTarget(Collection<String> servers, long maxBackoffMillis, Class<T> type, Clock clock) {
         Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
@@ -113,8 +114,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
                 // We implement some randomness around the expected value of BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS.
                 // Even though this is not exponential backoff, should be enough to avoid a thundering herd problem.
                 long pauseTimeWithJitter = ThreadLocalRandom.current()
-                        .nextLong(BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS / 2,
-                                (BACKOFF_BEFORE_ROUND_ROBIN_RETRY_MILLIS * 3) / 2);
+                        .nextLong(MAX_BACKOFF_BEFORE_ROUND_ROBIN_RETRY.toMillis());
 
                 pauseForBackoff(ex, pauseTimeWithJitter);
             }

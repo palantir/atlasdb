@@ -96,7 +96,7 @@ public final class AtlasDbFeignTargetFactory {
             Collection<String> endpointUris,
             int feignConnectTimeout,
             int feignReadTimeout,
-            int maxBackoffMillis,
+            long maxBackoffMillis,
             Class<T> type,
             String userAgent,
             boolean limitPayloadSize) {
@@ -121,7 +121,7 @@ public final class AtlasDbFeignTargetFactory {
             Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             int feignConnectTimeout,
             int feignReadTimeout,
-            int maxBackoffMillis,
+            long maxBackoffMillis,
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
