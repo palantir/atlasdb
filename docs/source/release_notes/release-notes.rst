@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |metrics| |changed|
-         - All non-tagged AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
+         - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
            Previously, they used an exponentially decaying reservoir.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
