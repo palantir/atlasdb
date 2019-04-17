@@ -40,7 +40,7 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
 
     @Value.Default
     public long pingRateMs() {
-        return 500L;
+        return 50L;
     }
 
     @Value.Default
@@ -50,7 +50,7 @@ public abstract class PaxosConfiguration implements TimeLockAlgorithmConfigurati
 
     @Value.Default
     public long leaderPingResponseWaitMs() {
-        return 3000L;
+        return 2000L;
     }
 
     @Value.Default

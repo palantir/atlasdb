@@ -68,10 +68,10 @@ v0.133.0
 
     *    - |changed|
          - Changed the default values in ``PaxosConfiguration``.
-           ``leader-ping-response-wait-in-ms`` was reduced to 3000 ms from 5000 ms.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
            ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
-           ``ping-rate-in-ms`` was reduced to 500 ms from 5000 ms.
-           These settings have emprirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/???>`__)
 
     *    - |improved|
