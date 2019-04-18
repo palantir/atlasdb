@@ -50,8 +50,9 @@ develop
     *    - Type
          - Change
 
-    *    -
-         -
+    *    - |fixed|
+         - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
 
 ========
 v0.133.0
