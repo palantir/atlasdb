@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -53,7 +53,7 @@ public class GetEmptyLatestValues {
      */
     public Set<Cell> execute() {
         Set<Cell> result = Sets.newHashSet();
-        for (List<CellWithTimestamps> batch : Iterables.partition(cellTimestamps, batchSize)) {
+        for (List<CellWithTimestamps> batch : Lists.partition(cellTimestamps, batchSize)) {
             result.addAll(getSingleBatch(batch));
         }
         return result;

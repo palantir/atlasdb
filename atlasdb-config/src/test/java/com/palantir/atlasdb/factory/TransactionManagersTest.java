@@ -552,7 +552,7 @@ public class TransactionManagersTest {
         return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
-    private void performTransaction(TransactionManager manager) {
+    private static void performTransaction(TransactionManager manager) {
         RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
         manager.runTaskWithRetry(tx -> {
             GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
@@ -634,7 +634,6 @@ public class TransactionManagersTest {
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
-                () -> ts,
                 invalidator,
                 USER_AGENT);
     }
@@ -661,7 +660,6 @@ public class TransactionManagersTest {
                         () -> runtimeConfig,
                         environment,
                         LockServiceImpl::create,
-                        () -> ts,
                         () -> ts,
                         invalidator,
                         USER_AGENT);
