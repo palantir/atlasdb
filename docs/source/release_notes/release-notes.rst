@@ -54,6 +54,10 @@ develop
          - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
 
+    *    - |fixed|
+         - lock-api now declares a minimum dependency on timelock-server 0.59.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
 ========
 v0.133.0
 ========
