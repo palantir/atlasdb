@@ -188,11 +188,16 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Coordination service now only initiates one request to perpetuate the bound forward at a time.
+This should avoid unnecessarily many CAS operations taking place when we need to do this.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3qqq">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>We now close Cassandra clients properly when verifying that one’s Cassandra configuration makes sense.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3944">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>lock-api now declares a minimum dependency on timelock-server 0.59.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
 </tr>
