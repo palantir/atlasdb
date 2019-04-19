@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Coordination service now only initiates one request to perpetuate the bound forward at a time.
+           This should avoid unnecessarily many CAS operations taking place when we need to do this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+
     *    - |fixed|
          - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
