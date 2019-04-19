@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.internalschema;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,11 +38,11 @@ public class TransactionSchemaManager {
     private static final Logger log = LoggerFactory.getLogger(TransactionSchemaManager.class);
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
-    private final CoalescingSupplier<CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>>> boundPerpetuator;
+    private final CoalescingSupplier<List<ValueAndBound<InternalSchemaMetadata>>> boundPerpetuator;
 
     public TransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
-        this.boundPerpetuator = new CoalescingSupplier<>(this::tryPerpetuateExistingState);
+        this.boundPerpetuator = new CoalescingSupplier<>(() -> tryPerpetuateExistingState().existingValues());
     }
 
     /**
@@ -63,8 +64,8 @@ public class TransactionSchemaManager {
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
         while (!possibleVersion.isPresent()) {
-            CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> casResult = boundPerpetuator.get();
-            possibleVersion = extractTimestampVersion(casResult.existingValues()
+            List<ValueAndBound<InternalSchemaMetadata>> existingValues = boundPerpetuator.get();
+            possibleVersion = extractTimestampVersion(existingValues
                             .stream()
                             .filter(valueAndBound -> valueAndBound.bound() >= timestamp)
                             .findAny(),
