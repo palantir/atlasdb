@@ -63,6 +63,12 @@ develop
          - lock-api now declares a minimum dependency on timelock-server 0.59.0.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
 
+    *    - |improved| |devbreak|
+         - Usage metrics for the coordination store have been added.
+           Users should provide a MetricsRegistry when creating their coordination services.
+           Also, ``CoordinationService.createDefault()`` now handles instrumentation of both the coordination service and store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
 ========
 v0.133.0
 ========

@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 
 public class ReadOnlyTransactionServiceIntegrationTest {
@@ -34,7 +35,7 @@ public class ReadOnlyTransactionServiceIntegrationTest {
             = TransactionServices.createRaw(keyValueService, timestampService, false);
     private final TransactionService readOnlyTransactionService
             = TransactionServices.createReadOnlyTransactionServiceIgnoresUncommittedTransactionsDoesNotRollBack(
-            keyValueService);
+                    keyValueService, MetricsManagers.createForTests());
 
     @Test
     public void canReadAlreadyAgreedValuesEvenAfterAdditionalCoordinations() {
