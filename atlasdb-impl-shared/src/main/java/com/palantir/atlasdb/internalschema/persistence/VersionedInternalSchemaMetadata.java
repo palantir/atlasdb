@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
@@ -47,6 +48,7 @@ public interface VersionedInternalSchemaMetadata {
      * provided we are able to deserialize it. Otherwise returns empty.
      */
     @Value.Lazy
+    @JsonIgnore
     default Optional<InternalSchemaMetadata> underlyingData() {
         return InternalSchemaMetadataPayloadCodec.tryDecode(this);
     }
@@ -57,6 +59,7 @@ public interface VersionedInternalSchemaMetadata {
      * and the {@link InternalSchemaMetadata} that underlies the payloads are equal.
      */
     @Value.Lazy
+    @JsonIgnore
     default boolean knowablySemanticallyEquivalent(VersionedInternalSchemaMetadata other) {
         if (version() != other.version()) {
             return false;
