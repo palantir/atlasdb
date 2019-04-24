@@ -53,12 +53,12 @@ develop
     *    - |improved|
          - Coordination service now only initiates one request to perpetuate the bound forward at a time.
            This should avoid unnecessarily many CAS operations taking place when we need to do this.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3953>`__)
 
     *    - |fixed|
-         - Coordination service now checks for semantic equality of ``InternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
+         - Coordination service now checks for semantic equality of ``VersionedInternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
            Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3954>`__)
 
     *    - |fixed|
          - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
