@@ -83,6 +83,7 @@ public final class CoordinationServices {
                 keyValueService,
                 AtlasDbConstants.DEFAULT_METADATA_COORDINATION_KEY,
                 timestampSupplier,
+                VersionedInternalSchemaMetadata::knowablySemanticallyEquivalent,
                 VersionedInternalSchemaMetadata.class,
                 initializeAsync);
     }
