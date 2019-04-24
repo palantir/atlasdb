@@ -56,6 +56,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
 
     *    - |fixed|
+         - Coordination service now checks for semantic equality of ``InternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
+           Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3qqq>`__)
+
+    *    - |fixed|
          - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
 
