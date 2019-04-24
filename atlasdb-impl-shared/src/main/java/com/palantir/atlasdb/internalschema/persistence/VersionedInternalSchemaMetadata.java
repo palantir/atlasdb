@@ -61,7 +61,7 @@ public interface VersionedInternalSchemaMetadata {
     @Value.Lazy
     @JsonIgnore
     default boolean knowablySemanticallyEquivalent(VersionedInternalSchemaMetadata other) {
-        if (version() != other.version()) {
+        if (other == null || version() != other.version()) {
             return false;
         }
         return underlyingData().isPresent()
