@@ -61,7 +61,8 @@ public interface VersionedInternalSchemaMetadata {
         if (this.version() != other.version()) {
             return false;
         }
-        return this.underlyingData().isPresent() && other.underlyingData().isPresent() &&
-                this.underlyingData().get().equals(other.underlyingData().get());
+        return underlyingData().isPresent()
+                && other.underlyingData().isPresent()
+                && underlyingData().get().equals(other.underlyingData().get());
     }
 }
