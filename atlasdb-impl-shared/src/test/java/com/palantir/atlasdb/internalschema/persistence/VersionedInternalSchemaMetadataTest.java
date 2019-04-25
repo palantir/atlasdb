@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 public class VersionedInternalSchemaMetadataTest {
@@ -35,7 +34,7 @@ public class VersionedInternalSchemaMetadataTest {
 
     @Test
     public void metadataSemanticallyEquivalentToItselfIfCanBeDeserializedAndSemanticsAgree() {
-        Assume.assumeTrue(V1_BASE.underlyingData().isPresent());
+        assertThat(V1_BASE.underlyingData()).isPresent();
         assertThat(V1_BASE.knowablySemanticallyEquivalent(V1_BASE)).isTrue();
     }
 
@@ -49,7 +48,7 @@ public class VersionedInternalSchemaMetadataTest {
     @Test
     public void metadataNotSemanticallyEquivalentToItselfIfCannotDeserialize() {
         VersionedInternalSchemaMetadata v2Base = createVersionedMetadata(2, BASE_METADATA_BYTES);
-        Assume.assumeFalse(v2Base.underlyingData().isPresent());
+        assertThat(v2Base.underlyingData()).isNotPresent();
         assertThat(v2Base.knowablySemanticallyEquivalent(v2Base)).isFalse();
     }
 
