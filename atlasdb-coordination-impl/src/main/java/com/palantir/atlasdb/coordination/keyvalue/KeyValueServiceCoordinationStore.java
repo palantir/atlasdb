@@ -67,6 +67,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * the most recent in the coordination sequence and how long it is valid for is written at dynamic column key zero.
  * This {@link SequenceAndBound} should contain the ID of the value that is considered to be the most current
  * in the sequence.
+ *
+ * Sequence numbers are expected to be unique and increasing, in that if one requests a sequence number, the result
+ * returned should be larger than any sequence number returned by any call which finished before our call started.
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
@@ -98,6 +101,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             .build();
 
     private static final long ADVANCEMENT_QUANTUM = 5_000_000L;
+    private static final int MAX_ATTEMPTS_TO_READ = 10;
 
     private static final String COORDINATION_SEQUENCE_AND_BOUND_DESCRIPTION = "coordination sequence and bound";
     private static final String VALUE_DESCRIPTION = "value for coordination service";
@@ -152,15 +156,38 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     // some caching.
     @Override
     public Optional<ValueAndBound<T>> getAgreedValue() {
-        return getCoordinationValue()
-                .map(sequenceAndBound -> ValueAndBound.of(
-                        getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
+        for (int attemptNumber = 0; attemptNumber < MAX_ATTEMPTS_TO_READ; attemptNumber++) {
+            Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
+            if (!coordinationValue.isPresent()) {
+                return Optional.empty();
+            }
+            SequenceAndBound sequenceAndBound = coordinationValue.get();
+            Optional<T> value = getValue(sequenceAndBound.sequence());
+            if (value.isPresent()) {
+                return Optional.of(ValueAndBound.of(value, sequenceAndBound.bound()));
+            }
+            // The value was swept out underneath us. We will retry, a new value should be agreed.
+        }
+        log.warn("Coordination store failed to get an agreed value after {} attempts to read a value",
+                SafeArg.of("numAttempts", MAX_ATTEMPTS_TO_READ));
+        throw new IllegalStateException("The coordination store seemed to be repeatedly swept out from underneath"
+                + " us. Attempted " + MAX_ATTEMPTS_TO_READ + " reads, but all failed!");
     }
 
     /**
      * In case of failure, the returned value and bound are guaranteed to be the ones that were in the KVS at the time
      * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} is
      * {@link com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility#SUPPORTED_DETAIL_ON_FAILURE}.
+     *
+     * The coordination store has an invariant that sequence numbers assigned to values cannot progress backwards.
+     * This holds, because the only transformations that change the sequence number of the active value call the
+     * sequence number supplier for a fresh sequence number, and these happen after reading the value in the
+     * KVS; this value was written only after the previous update got a fresh sequence number. Thus, it is safe
+     * to, upon successful CAS of the {@link SequenceAndBound}, delete all entries from sequence number 1 to the
+     * sequence number (exclusive).
+     *
+     * The catch here is that there may be inflight reads that will now return a {@link ValueAndBound} where the
+     * value is {@link Optional#empty()}, while this should never have happened in the past.
      */
     @Override
     public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
@@ -173,8 +200,20 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         SequenceAndBound newSequenceAndBound
                 = determineNewSequenceAndBound(coordinationValue, extantValueAndBound, targetValue);
 
+        coordinationValue.ifPresent(existingCoordinationValue -> Preconditions.checkState(
+                newSequenceAndBound.sequence() >= existingCoordinationValue.sequence(),
+                "Coordination service looks like it's trying to go back in time, from %s to %s,"
+                        + " which is not allowed",
+                newSequenceAndBound.sequence(),
+                existingCoordinationValue.sequence()));
+
         CheckAndSetResult<SequenceAndBound> casResult = checkAndSetCoordinationValue(
                 coordinationValue, newSequenceAndBound);
+        if (casResult.successful()) {
+            // cleanup values between 1 and newSequenceAndBound.sequence exclusive
+            // TODO (jkong): Implement column range deletes
+            // should be async?
+       }
         return extractRelevantValues(targetValue, newSequenceAndBound.bound(), casResult);
     }
 
