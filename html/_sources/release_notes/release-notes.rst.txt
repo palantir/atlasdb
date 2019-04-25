@@ -74,6 +74,9 @@ develop
            Also, ``CoordinationService.createDefault()`` now handles instrumentation of both the coordination service and store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
 
+    *    - |userbreak|
+         - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
+
 ========
 v0.133.0
 ========
