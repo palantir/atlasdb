@@ -261,8 +261,10 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         // this test is free/just checks a boolean and does not block; borrow is still fast
         poolConfig.setTestOnBorrow(true);
 
-        poolConfig.setMinEvictableIdleTimeMillis(
+        poolConfig.setSoftMinEvictableIdleTimeMillis(
                 TimeUnit.MILLISECONDS.convert(config.idleConnectionTimeoutSeconds(), TimeUnit.SECONDS));
+        poolConfig.setMinEvictableIdleTimeMillis(Long.MAX_VALUE);
+
         // the randomness here is to prevent all of the pools for all of the hosts
         // evicting all at at once, which isn't great for C*.
         int timeBetweenEvictionsSeconds = config.timeBetweenConnectionEvictionRunsSeconds();
