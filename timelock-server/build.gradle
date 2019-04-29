@@ -1,10 +1,9 @@
 apply plugin: 'org.inferred.processors'
 apply plugin: 'org.unbroken-dome.test-sets'
 
-apply from: "../gradle/ete-tests.gradle"
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/timelock.gradle"
+apply from: "../gradle/tests.gradle"
 
 testSets {
     integTest
