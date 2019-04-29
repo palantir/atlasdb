@@ -461,9 +461,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void sanityCheckRingConsistency() {
         Multimap<Set<TokenRange>, InetSocketAddress> tokenRangesToHost = HashMultimap.create();
         for (InetSocketAddress host : getCachedServers()) {
-            CassandraClient client = null;
-            try {
-                client = CassandraClientFactory.getClientInternal(host, config);
+            try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
                 try {
                     client.describe_keyspace(config.getKeyspaceOrThrow());
                 } catch (NotFoundException e) {
@@ -474,10 +472,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 log.warn("Failed to get ring info from host: {}",
                         SafeArg.of("host", CassandraLogHelper.host(host)),
                         e);
-            } finally {
-                if (client != null) {
-                    client.getOutputProtocol().getTransport().close();
-                }
             }
         }
 

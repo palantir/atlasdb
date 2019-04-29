@@ -19,6 +19,7 @@ package com.palantir.atlasdb.coordination.keyvalue;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
@@ -105,6 +106,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     private final KeyValueService kvs;
     private final byte[] coordinationRow;
     private final LongSupplier sequenceNumberSupplier;
+    private final BiPredicate<T, T> shouldReuseExtantValue;
     private final Class<T> clazz;
 
     @VisibleForTesting
@@ -116,11 +118,13 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
+            BiPredicate<T, T> shouldReuseExtantValue,
             Class<T> clazz) {
         this.objectMapper = objectMapper;
         this.kvs = kvs;
         this.coordinationRow = coordinationRow;
         this.sequenceNumberSupplier = sequenceNumberSupplier;
+        this.shouldReuseExtantValue = shouldReuseExtantValue;
         this.clazz = clazz;
     }
 
@@ -129,11 +133,12 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             KeyValueService kvs,
             byte[] coordinationRow,
             LongSupplier sequenceNumberSupplier,
+            BiPredicate<T, T> shouldReuseExistingValue,
             Class<T> clazz,
             boolean initializeAsync) {
         KeyValueServiceCoordinationStore<T> coordinationStore
                 = new KeyValueServiceCoordinationStore<>(
-                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, clazz);
+                        objectMapper, kvs, coordinationRow, sequenceNumberSupplier, shouldReuseExistingValue, clazz);
         coordinationStore.wrapper.initialize(initializeAsync);
         return coordinationStore.isInitialized() ? coordinationStore : coordinationStore.wrapper;
     }
@@ -184,7 +189,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             T targetValue) {
         long sequenceNumber;
         long newBound;
-        if (shouldReuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
+        if (reuseExtantValue(coordinationValue, extantValueAndBound.value(), targetValue)) {
             // Safe as we're only on this branch if the value is present
             sequenceNumber = coordinationValue.get().sequence();
             long freshSequenceNumber = sequenceNumberSupplier.getAsLong();
@@ -200,12 +205,13 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Passed from other operations returning Optional
-    private boolean shouldReuseExtantValue(
+    private boolean reuseExtantValue(
             Optional<SequenceAndBound> coordinationValue,
             Optional<T> extantValue,
             T targetValue) {
         return coordinationValue.isPresent()
-                && extantValue.map(presentValue -> presentValue.equals(targetValue)).orElse(false);
+                && extantValue.map(presentValue -> shouldReuseExtantValue.test(presentValue, targetValue))
+                .orElse(false);
     }
 
     private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(T targetValue, long newBound,

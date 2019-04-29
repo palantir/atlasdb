@@ -23,13 +23,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
-import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
-import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
-import com.palantir.atlasdb.internalschema.persistence.VersionedInternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -81,16 +77,13 @@ public class TransactionSchemaManagerIntegrationTest {
                 .hasMessageContaining("was never given out by the timestamp service");
     }
 
-    private static TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
-        CoordinationServiceImpl<VersionedInternalSchemaMetadata> rawService = new CoordinationServiceImpl<>(
-                KeyValueServiceCoordinationStore.create(
-                        ObjectMappers.newServerObjectMapper(),
+    private TransactionSchemaManager createTransactionSchemaManager(TimestampService ts) {
+        return new TransactionSchemaManager(
+                CoordinationServices.createDefault(
                         new InMemoryKeyValueService(true),
-                        PtBytes.toBytes("aaa"),
-                        ts::getFreshTimestamp,
-                        VersionedInternalSchemaMetadata.class,
+                        timestamps,
+                        MetricsManagers.createForTests(),
                         false));
-        return new TransactionSchemaManager(CoordinationServices.wrapHidingVersionSerialization(rawService));
     }
 
 

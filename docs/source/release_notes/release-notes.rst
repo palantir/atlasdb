@@ -55,6 +55,33 @@ develop
            Previously, they used an exponentially decaying reservoir.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
 
+    *    - |improved|
+         - Coordination service now only initiates one request to perpetuate the bound forward at a time.
+           This should avoid unnecessarily many CAS operations taking place when we need to do this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3953>`__)
+
+    *    - |fixed|
+         - Coordination service now checks for semantic equality of ``VersionedInternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
+           Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3954>`__)
+
+    *    - |fixed|
+         - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
+
+    *    - |fixed|
+         - lock-api now declares a minimum dependency on timelock-server 0.59.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
+    *    - |improved| |devbreak|
+         - Usage metrics for the coordination store have been added.
+           Users should provide a MetricsRegistry when creating their coordination services.
+           Also, ``CoordinationService.createDefault()`` now handles instrumentation of both the coordination service and store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
+    *    - |userbreak|
+         - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
+
 ========
 v0.133.0
 ========
