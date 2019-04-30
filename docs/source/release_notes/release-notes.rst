@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |metrics| |changed|
+         - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
+           Previously, they used an exponentially decaying reservoir.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+
     *    - |improved|
          - Coordination service now only initiates one request to perpetuate the bound forward at a time.
            This should avoid unnecessarily many CAS operations taking place when we need to do this.
