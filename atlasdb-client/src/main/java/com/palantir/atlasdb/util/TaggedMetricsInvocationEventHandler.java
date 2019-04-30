@@ -78,8 +78,7 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                 .safeName(MetricRegistry.name(serviceName, context.getMethod().getName()))
                 .putAllSafeTags(tagFunction.apply(context))
                 .build();
-        taggedMetricRegistry.timer(finalMetricName, InstrumentationUtils::createNewTimer)
-                .update(nanos, TimeUnit.NANOSECONDS);
+        taggedMetricRegistry.timer(finalMetricName).update(nanos, TimeUnit.NANOSECONDS);
     }
 
     @Override

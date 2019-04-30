@@ -31,7 +31,6 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -49,7 +48,6 @@ public class TimeLockServerLauncher extends Application<TimeLockServerConfigurat
     public void initialize(Bootstrap<TimeLockServerConfiguration> bootstrap) {
         MetricRegistry metricRegistry = SharedMetricRegistries
                 .getOrCreate("AtlasDbTest" + UUID.randomUUID().toString());
-        TaggedMetricRegistry taggedMetricRegistry = new DefaultTaggedMetricRegistry();
         bootstrap.setMetricRegistry(metricRegistry);
         bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
