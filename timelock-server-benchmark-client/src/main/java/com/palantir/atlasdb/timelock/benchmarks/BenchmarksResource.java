@@ -36,7 +36,7 @@ import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteDynam
 import com.palantir.atlasdb.timelock.benchmarks.benchmarks.TransactionWriteRowsBenchmark;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class BenchmarksResource implements BenchmarksService {
 
@@ -47,7 +47,7 @@ public class BenchmarksResource implements BenchmarksService {
                 .config(config)
                 .userAgent(UserAgents.DEFAULT_USER_AGENT)
                 .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(new DefaultTaggedMetricRegistry())
+                .globalTaggedMetricRegistry(SharedTaggedMetricRegistries.getSingleton())
                 .addSchemas(BenchmarksSchema.SCHEMA)
                 .allowHiddenTableAccess(true)
                 .runtimeConfigSupplier(Optional::empty)

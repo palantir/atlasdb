@@ -30,7 +30,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 public class DbBoundTimestampCreator implements TimestampCreator {
 
@@ -43,7 +43,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
     @Override
     public Supplier<ManagedTimestampService> createTimestampService(String client, LeaderConfig leaderConfig) {
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
-                new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), x -> false),
+                new MetricsManager(new MetricRegistry(), SharedTaggedMetricRegistries.getSingleton(), x -> false),
                 kvsConfig,
                 Optional::empty,
                 Optional.of(leaderConfig),
