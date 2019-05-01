@@ -56,7 +56,7 @@ develop
            Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
            Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
            For an example of this conversion, refer to the PR below.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3971>`__)
 
     *    - |metrics| |changed|
          - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
