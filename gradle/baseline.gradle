@@ -12,9 +12,16 @@ if (enableErrorProne.toBoolean()) {
         }
 
         tasks.withType(JavaCompile).configureEach {
+            if (generateErrorPronePatch.toBoolean()) {
+                options.errorprone.errorproneArgs << "-XepPatchLocation:" + project.projectDir.getAbsolutePath()
+                //options.errorprone.errorproneArgs << "-XepPatchChecks:PreferSafeLoggableExceptions"
+                options.errorprone.errorproneArgs << "-XepPatchChecks:PreferCollectionTransform,PreferListsPartition"
+            }
             options.errorprone.errorproneArgs += [
                 '-XepDisableWarningsInGeneratedCode',
                 '-XepExcludedPaths:.*(generated|Immutable).*',
+                '-Xep:PreferCollectionTransform:ERROR',
+                '-Xep:PreferListsPartition:ERROR',
             ]
         }
 
