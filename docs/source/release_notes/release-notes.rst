@@ -50,10 +50,18 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3971>`__)
+
     *    - |metrics| |changed|
          - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
            Previously, they used an exponentially decaying reservoir.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3937>`__)
 
     *    - |improved|
          - Coordination service now only initiates one request to perpetuate the bound forward at a time.
