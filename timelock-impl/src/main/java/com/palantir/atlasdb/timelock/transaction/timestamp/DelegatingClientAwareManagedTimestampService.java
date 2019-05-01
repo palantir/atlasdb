@@ -22,13 +22,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.timelock.paxos.AutoDelegate_ManagedTimestampService;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.client.CachingPartitionAllocator;
 import com.palantir.atlasdb.timelock.transaction.client.NumericPartitionAllocator;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.timestamp.AutoDelegate_ManagedTimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampRanges;
 

@@ -32,7 +32,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.versions.AtlasDbVersion;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 @AutoService(AtlasDbFactory.class)
 public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
@@ -56,7 +56,7 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(
+    public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
             Optional<TableReference> unused,
             boolean initializeAsync) {

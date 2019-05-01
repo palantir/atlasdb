@@ -45,7 +45,7 @@ public class InMemoryAtlasDbFactoryTest {
 
     @Test
     public void syncInitTimestampServiceSynchronous() {
-        TimestampService timestampService = factory.createTimestampService(null, Optional.empty(), false);
+        TimestampService timestampService = factory.createManagedTimestampService(null, Optional.empty(), false);
         assertThat(timestampService.isInitialized()).isTrue();
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }
@@ -53,7 +53,7 @@ public class InMemoryAtlasDbFactoryTest {
     @Test
     public void asyncInitTimestampServiceSynchronous() {
         KeyValueService kvs = createRawKeyValueService(true);
-        TimestampService timestampService = factory.createTimestampService(kvs, Optional.empty(), true);
+        TimestampService timestampService = factory.createManagedTimestampService(kvs, Optional.empty(), true);
         assertThat(timestampService.isInitialized()).isTrue();
         assertThat(timestampService.getFreshTimestamp()).isEqualTo(1L);
     }

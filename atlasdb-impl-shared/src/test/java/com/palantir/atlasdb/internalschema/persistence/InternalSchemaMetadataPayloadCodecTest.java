@@ -68,7 +68,7 @@ public class InternalSchemaMetadataPayloadCodecTest {
 
     @Test
     public void canDeserializeV1Metadata() throws URISyntaxException, IOException {
-        String resourcePath = getResourcePath("internalschema-persistence/metadata-v1-1.json");
+        String resourcePath = getResourcePath("internalschema-persistence/versioned-metadata-v1-1.json");
         byte[] bytes = Files.readAllBytes(Paths.get(resourcePath));
         VersionedInternalSchemaMetadata versionedInternalSchemaMetadata
                 = ObjectMappers.newServerObjectMapper().readValue(bytes, VersionedInternalSchemaMetadata.class);

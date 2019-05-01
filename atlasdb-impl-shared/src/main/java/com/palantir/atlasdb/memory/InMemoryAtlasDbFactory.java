@@ -63,7 +63,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.timestamp.InMemoryTimestampService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 
 /**
  * This is the easiest way to try out AtlasDB with your schema.  It runs entirely in memory but has
@@ -129,7 +129,7 @@ public class InMemoryAtlasDbFactory implements AtlasDbFactory {
     }
 
     @Override
-    public TimestampService createTimestampService(
+    public ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs,
             Optional<TableReference> unused,
             boolean initializeAsync) {

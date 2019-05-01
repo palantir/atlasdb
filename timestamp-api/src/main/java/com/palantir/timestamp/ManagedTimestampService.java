@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.clock;
 
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+package com.palantir.timestamp;
 
-@Path("/clock")
-public interface ClockService {
-    @POST
-    @Path("system-time")
-    @Produces(MediaType.APPLICATION_JSON)
-    IdentifiedSystemTime getSystemTime();
+import com.palantir.processors.AutoDelegate;
+
+@AutoDelegate
+public interface ManagedTimestampService extends TimestampService, TimestampManagementService {
 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.clock;
 
-import java.util.UUID;
+package com.palantir.util;
 
-public class ClockServiceImpl implements ClockService {
-    private static final UUID SYSTEM_ID = UUID.randomUUID();
+import org.immutables.value.Value;
 
-    @Override
-    public IdentifiedSystemTime getSystemTime() {
-        return IdentifiedSystemTime.of(System.nanoTime(), SYSTEM_ID);
+@Value.Immutable
+public interface Ownable<R> {
+    R resource();
+    boolean isOwned();
+
+    static <R> Ownable<R> owned(R ownedResource) {
+        return ImmutableOwnable.<R>builder().resource(ownedResource).isOwned(true).build();
+    }
+
+    static <R> Ownable<R> notOwned(R injectedResource) {
+        return ImmutableOwnable.<R>builder().resource(injectedResource).isOwned(false).build();
     }
 }

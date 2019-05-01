@@ -21,7 +21,7 @@ import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.TimeLockAgent;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
@@ -44,8 +44,8 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
-        TimeLockAgent.create(
-                MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry()),
+        TimeLockAgent agent = TimeLockAgent.create(
+                MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload
                 CombinedTimeLockServerConfiguration.threadPoolSize(),
