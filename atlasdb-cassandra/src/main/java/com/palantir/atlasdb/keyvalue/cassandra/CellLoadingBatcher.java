@@ -20,7 +20,6 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
@@ -28,7 +27,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.cassandra.CassandraCellLoadingConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -105,13 +103,9 @@ final class CellLoadingBatcher {
         ListMultimap<byte[], Cell> cellsByColumn = MultimapBuilder.treeKeys(UnsignedBytes.lexicographicalComparator())
                 .arrayListValues()
                 .build();
-        Set<Cell> addedCells = Sets.newHashSetWithExpectedSize(cells.size());
-        for (Cell cell : cells) {
-            if (!addedCells.contains(cell)) {
-                cellsByColumn.put(cell.getColumnName(), cell);
-                addedCells.add(cell);
-            }
-        }
+        cells.stream()
+                .distinct()
+                .forEach(cell -> cellsByColumn.put(cell.getColumnName(), cell));
         return cellsByColumn;
     }
 
