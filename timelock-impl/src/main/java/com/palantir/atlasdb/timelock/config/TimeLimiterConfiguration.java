@@ -61,7 +61,7 @@ public abstract class TimeLimiterConfiguration {
      */
     public static TimeLimiterConfiguration getDefaultConfiguration() {
         return ImmutableTimeLimiterConfiguration.builder()
-                .enableTimeLimiting(false)
+                .enableTimeLimiting(true)
                 .build();
     }
 }
