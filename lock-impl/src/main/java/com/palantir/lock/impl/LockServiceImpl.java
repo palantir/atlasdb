@@ -56,6 +56,7 @@ import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -102,8 +103,8 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
-import com.palantir.util.Ownable;
 import com.palantir.util.JMXUtils;
+import com.palantir.util.Ownable;
 
 /**
  * Implementation of the Lock Server.
@@ -669,7 +670,7 @@ public final class LockServiceImpl
         }
         ImmutableSet<HeldLocksToken> tokenSet = tokens.build();
         if (log.isTraceEnabled()) {
-            log.trace(".getTokens({}) returns {}", client, Iterables.transform(tokenSet, TOKEN_TO_ID));
+            log.trace(".getTokens({}) returns {}", client, Collections2.transform(tokenSet, TOKEN_TO_ID));
         }
         return tokenSet;
     }
@@ -687,7 +688,7 @@ public final class LockServiceImpl
         Set<HeldLocksToken> refreshedTokenSet = refreshedTokens.build();
         if (log.isTraceEnabled()) {
             log.trace(".refreshTokens({}) returns {}",
-                    Iterables.transform(tokens, TOKEN_TO_ID), Iterables.transform(refreshedTokenSet, TOKEN_TO_ID));
+                    Iterables.transform(tokens, TOKEN_TO_ID), Collections2.transform(refreshedTokenSet, TOKEN_TO_ID));
         }
         return refreshedTokenSet;
     }
@@ -708,7 +709,7 @@ public final class LockServiceImpl
                     0L,
                     "UnknownThread-refreshLockRefreshTokens"));
         }
-        return ImmutableSet.copyOf(Iterables.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
+        return ImmutableSet.copyOf(Collections2.transform(refreshTokens(fakeTokens), HeldLocksTokens.getRefreshTokenFun()));
     }
 
     @Nullable private HeldLocksToken refreshToken(HeldLocksToken token) {

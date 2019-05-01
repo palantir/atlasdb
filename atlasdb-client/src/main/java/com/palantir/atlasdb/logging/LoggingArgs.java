@@ -25,6 +25,7 @@ import org.immutables.value.Value;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -95,7 +96,7 @@ public final class LoggingArgs {
 
     public static Iterable<TableReference> safeTablesOrPlaceholder(Collection<TableReference> tables) {
         //noinspection StaticPseudoFunctionalStyleMethod - Use lazy iterator.
-        return Iterables.transform(tables, LoggingArgs::safeTableOrPlaceholder);
+        return Collections2.transform(tables, LoggingArgs::safeTableOrPlaceholder);
     }
 
     /**

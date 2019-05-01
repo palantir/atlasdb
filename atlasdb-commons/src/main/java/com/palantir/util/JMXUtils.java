@@ -26,6 +26,7 @@ import java.net.Socket;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.RMISocketFactory;
+import java.util.Set;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -51,7 +52,7 @@ import javax.management.remote.JMXServiceURL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Collections2;
 
 /**
  */
@@ -283,8 +284,9 @@ public final class JMXUtils {
      * @return proxy interfaces to all beans registered to the server implementing the class mbeanClazz.
      */
     public static <T> Iterable<T> getInstanceBeanProxies(final Class<T> mbeanClazz){
-        return Iterables.transform(
-                ManagementFactory.getPlatformMBeanServer().queryNames(ObjectName.WILDCARD, Query.isInstanceOf(new StringValueExp(mbeanClazz.getName())))
-                , obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
+        Set<ObjectName> names = ManagementFactory.getPlatformMBeanServer().queryNames(ObjectName.WILDCARD,
+                Query.isInstanceOf(new StringValueExp(mbeanClazz.getName())));
+        return Collections2.transform(names,
+                obj -> JMXUtils.newMBeanProxy(ManagementFactory.getPlatformMBeanServer(), obj, mbeanClazz));
     }
 }
