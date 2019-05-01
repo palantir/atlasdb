@@ -28,7 +28,6 @@ import com.google.common.cache.Cache;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
-import com.palantir.tritium.event.metrics.MetricsInvocationEventHandler;
 import com.palantir.tritium.metrics.MetricRegistries;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -47,7 +46,7 @@ public final class AtlasDbMetrics {
     public static <T, U extends T> T instrument(
             MetricRegistry metricRegistry, Class<T> serviceInterface, U service, String name) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new MetricsInvocationEventHandler(metricRegistry, name))
+                .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
                 .withLogging(
                         LoggerFactory.getLogger("performance." + name),
                         LoggingLevel.TRACE,

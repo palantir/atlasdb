@@ -21,10 +21,13 @@ import java.util.function.LongSupplier;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.timestamp.TimestampService;
 
@@ -33,33 +36,63 @@ public final class CoordinationServices {
         // factory
     }
 
-    public static CoordinationService<InternalSchemaMetadata> wrapHidingVersionSerialization(
-            CoordinationService<VersionedInternalSchemaMetadata> rawCoordinationService) {
-        return new TransformingCoordinationService<>(
-                rawCoordinationService,
-                InternalSchemaMetadataPayloadCodec::decode,
-                InternalSchemaMetadataPayloadCodec::encode);
-    }
-
     public static CoordinationService<InternalSchemaMetadata> createDefault(
             KeyValueService keyValueService,
             TimestampService timestampService,
+            MetricsManager metricsManager,
             boolean initializeAsync) {
-        return createDefault(keyValueService, timestampService::getFreshTimestamp, initializeAsync);
+        return createDefault(keyValueService, timestampService::getFreshTimestamp, metricsManager, initializeAsync);
     }
 
     public static CoordinationService<InternalSchemaMetadata> createDefault(
                 KeyValueService keyValueService,
                 LongSupplier timestampSupplier,
+                MetricsManager metricsManager,
                 boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
-                KeyValueServiceCoordinationStore.create(
-                        ObjectMappers.newServerObjectMapper(),
-                        keyValueService,
-                        AtlasDbConstants.DEFAULT_METADATA_COORDINATION_KEY,
-                        timestampSupplier,
-                        VersionedInternalSchemaMetadata.class,
-                        initializeAsync));
-        return wrapHidingVersionSerialization(versionedService);
+                createCoordinationStore(keyValueService, timestampSupplier, metricsManager, initializeAsync));
+
+        @SuppressWarnings("unchecked") // The service has the same type as the version-hiding service.
+        CoordinationService<InternalSchemaMetadata> instrumentedService = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationService.class,
+                wrapHidingVersionSerialization(versionedService));
+        return instrumentedService;
+    }
+
+    private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(
+            KeyValueService keyValueService,
+            LongSupplier timestampSupplier,
+            MetricsManager metricsManager,
+            boolean initializeAsync) {
+        CoordinationStore<VersionedInternalSchemaMetadata> rawCoordinationStore
+                = createRawCoordinationStore(keyValueService, timestampSupplier, initializeAsync);
+
+        @SuppressWarnings("unchecked") // The store has the same type as the rawCoordinationStore.
+        CoordinationStore<VersionedInternalSchemaMetadata> store = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                CoordinationStore.class,
+                rawCoordinationStore);
+        return store;
+    }
+
+    private static CoordinationStore<VersionedInternalSchemaMetadata> createRawCoordinationStore(
+            KeyValueService keyValueService, LongSupplier timestampSupplier, boolean initializeAsync) {
+        return KeyValueServiceCoordinationStore.create(
+                ObjectMappers.newServerObjectMapper(),
+                keyValueService,
+                AtlasDbConstants.DEFAULT_METADATA_COORDINATION_KEY,
+                timestampSupplier,
+                VersionedInternalSchemaMetadata::knowablySemanticallyEquivalent,
+                VersionedInternalSchemaMetadata.class,
+                initializeAsync);
+    }
+
+    private static CoordinationService<InternalSchemaMetadata> wrapHidingVersionSerialization(
+            CoordinationService<VersionedInternalSchemaMetadata> rawCoordinationService) {
+        return new TransformingCoordinationService<>(
+                rawCoordinationService,
+                InternalSchemaMetadataPayloadCodec::decode,
+                InternalSchemaMetadataPayloadCodec::encode);
     }
 }

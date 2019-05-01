@@ -40,6 +40,14 @@ import com.palantir.logsafe.UnsafeArg;
 public final class PaxosProposerImpl implements PaxosProposer {
     private static final Logger log = LoggerFactory.getLogger(PaxosProposerImpl.class);
 
+    private final PaxosLearner localLearner;
+    private final ImmutableList<PaxosAcceptor> acceptors;
+    private final ImmutableList<PaxosLearner> learners;
+    private final int quorumSize;
+    private final String uuid;
+    private final ExecutorService executor;
+    private final AtomicLong proposalNumber;
+
     /**
      * @deprecated use {@link #newProposer(PaxosLearner, List, List, int, UUID, ExecutorService)}.
      */
@@ -66,41 +74,32 @@ public final class PaxosProposerImpl implements PaxosProposer {
             List<PaxosLearner> allLearners,
             int quorumSize,
             UUID leaderUuid,
-            ExecutorService executor) {
+            ExecutorService singleExecutorService) {
         return new PaxosProposerImpl(
                 localLearner,
                 allAcceptors,
                 allLearners,
                 quorumSize,
                 leaderUuid.toString(),
-                executor);
+                singleExecutorService);
     }
 
-    final ImmutableList<PaxosAcceptor> allAcceptors;
-    final ImmutableList<PaxosLearner> allLearners;
-    final PaxosLearner localLearner;
-    final int quorumSize;
-    final String uuid;
-    final AtomicLong proposalNumber;
-
-    private final ExecutorService executor;
-
     private PaxosProposerImpl(PaxosLearner localLearner,
-                              List<PaxosAcceptor> acceptors,
-                              List<PaxosLearner> learners,
-                              int quorumSize,
-                              String uuid,
-                              ExecutorService executor) {
+            List<PaxosAcceptor> acceptors,
+            List<PaxosLearner> learners,
+            int quorumSize,
+            String uuid,
+            ExecutorService executor) {
         Preconditions.checkState(
                 quorumSize > acceptors.size() / 2,
                 "quorum size needs to be at least the majority of acceptors");
         this.localLearner = localLearner;
-        this.allAcceptors = ImmutableList.copyOf(acceptors);
-        this.allLearners = ImmutableList.copyOf(learners);
+        this.acceptors = ImmutableList.copyOf(acceptors);
+        this.learners = ImmutableList.copyOf(learners);
         this.quorumSize = quorumSize;
         this.uuid = uuid;
-        this.proposalNumber = new AtomicLong();
         this.executor = executor;
+        this.proposalNumber = new AtomicLong();
     }
 
     @Override
@@ -115,7 +114,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
         phaseTwo(seq, proposalId, finalValue);
 
         // broadcast learned value
-        for (final PaxosLearner learner : allLearners) {
+        for (final PaxosLearner learner : learners) {
             // local learner is forced to update later
             if (localLearner == learner) {
                 continue;
@@ -152,7 +151,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
     private PaxosValue phaseOne(final long seq, final PaxosProposalId proposalId, PaxosValue proposalValue)
             throws PaxosRoundFailureException {
         PaxosResponses<PaxosPromise> receivedPromises = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
+                acceptors,
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
                 executor,
@@ -188,7 +187,7 @@ public final class PaxosProposerImpl implements PaxosProposer {
             throws PaxosRoundFailureException {
         final PaxosProposal proposal = new PaxosProposal(proposalId, proposalValue);
         PaxosResponses<PaxosResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
-                allAcceptors,
+                acceptors,
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
                 executor,

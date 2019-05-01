@@ -20,19 +20,19 @@ import java.util.Set;
 
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
-import com.palantir.atlasdb.timelock.paxos.ManagedTimestampService;
 import com.palantir.lock.client.IdentifiedLockRequest;
-import com.palantir.lock.v2.StartTransactionResponseV4;
-import com.palantir.lock.v2.StartTransactionRequestV4;
-import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
-import com.palantir.lock.v2.RefreshLockResponseV2;
-import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
+import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.RefreshLockResponseV2;
 import com.palantir.lock.v2.StartAtlasDbTransactionResponse;
+import com.palantir.lock.v2.StartAtlasDbTransactionResponseV3;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionRequest;
+import com.palantir.lock.v2.StartTransactionRequestV4;
+import com.palantir.lock.v2.StartTransactionResponseV4;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.timestamp.ManagedTimestampService;
 
 public interface AsyncTimelockService extends ManagedTimestampService, Closeable {
 

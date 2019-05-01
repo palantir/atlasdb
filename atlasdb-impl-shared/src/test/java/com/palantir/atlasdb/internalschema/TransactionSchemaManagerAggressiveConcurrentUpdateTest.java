@@ -41,6 +41,7 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampService;
 
@@ -64,7 +65,7 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
 
     private void scheduleTasksAndValidateSnapshots(int numRequests, int numManagers) {
         List<TransactionSchemaManager> managers = IntStream.range(0, numManagers)
-                .mapToObj(this::createTransactionSchemaManager)
+                .mapToObj(unused -> createTransactionSchemaManager())
                 .collect(Collectors.toList());
 
         List<Future> futures = Lists.newArrayList();
@@ -77,8 +78,13 @@ public class TransactionSchemaManagerAggressiveConcurrentUpdateTest {
         validateSnapshots(snapshots);
     }
 
-    private TransactionSchemaManager createTransactionSchemaManager(int unused) {
-        return new TransactionSchemaManager(CoordinationServices.createDefault(kvs, timestampService, false));
+    private TransactionSchemaManager createTransactionSchemaManager() {
+        return new TransactionSchemaManager(
+                CoordinationServices.createDefault(
+                        kvs,
+                        timestampService,
+                        MetricsManagers.createForTests(),
+                        false));
     }
 
     private static TransactionSchemaManager getRandomManager(List<TransactionSchemaManager> managers) {

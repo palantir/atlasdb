@@ -30,6 +30,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.autobatch.ProfilingAutobatchers;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
@@ -58,8 +59,8 @@ final class TransactionStarter implements AutoCloseable {
     }
 
     static TransactionStarter create(LockLeaseService lockLeaseService) {
-        return new TransactionStarter(DisruptorAutobatcher.create(
-                consumer(lockLeaseService)),
+        return new TransactionStarter(ProfilingAutobatchers.create(
+                TransactionStarter.class.getSimpleName(), consumer(lockLeaseService)),
                 lockLeaseService);
     }
 
