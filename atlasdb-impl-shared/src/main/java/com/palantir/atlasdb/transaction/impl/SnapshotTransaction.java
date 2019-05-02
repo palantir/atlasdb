@@ -402,8 +402,21 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                         Ordering.from(UnsignedBytes.lexicographicalComparator())
                                 .onResultOf(entry -> entry.getKey().getColumnName()),
                         from -> from.getLhSide());
-        // Filter empty columns.
-        return Iterators.filter(mergedIterator, entry -> entry.getValue().length > 0);
+
+        return filterDeletedValues(mergedIterator, tableRef);
+    }
+
+    private Iterator<Map.Entry<Cell, byte[]>> filterDeletedValues(
+            Iterator<Map.Entry<Cell, byte[]>> unfiltered,
+            TableReference tableReference) {
+        Meter emptyValueMeter = getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference);
+        return Iterators.filter(unfiltered, entry -> {
+            if (entry.getValue().length == 0) {
+                emptyValueMeter.mark();
+                return false;
+            }
+            return true;
+        });
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
@@ -510,7 +523,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   Map<Cell, Value> rawResults,
                                                                   ImmutableMap.Builder<Cell, byte[]> result) {
         getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
+        Map<Cell, byte[]> withDeletedValues = result.build();
         Map<Cell, byte[]> filterDeletedValues = Maps.filterValues(result.build(), Predicates.not(Value.IS_EMPTY));
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef)
+                .mark(withDeletedValues.size() - filterDeletedValues.size());
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
 
@@ -567,7 +583,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     tableRef, cells.size(), result.size(), getMillis);
         }
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
+        Map<Cell, byte[]> filteredResult = Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef)
+                .mark(result.size() - filteredResult.size());
+        return filteredResult;
     }
 
     @Override
@@ -830,7 +849,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(
                     getLocalWritesForRange(tableRef, range.getStartInclusive(), range.getEndExclusive()).entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
-                    mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse());
+                    mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
             return BatchingVisitableFromIterable.create(mergeIterators).batchAccept(userRequestedSize, visitor);
         } finally {
             postFilterIterator.close();
@@ -852,16 +871,30 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         return preFilterBatchSize;
     }
 
-    private static Iterator<RowResult<byte[]>> mergeInLocalWritesRows(
+    private Iterator<RowResult<byte[]>> mergeInLocalWritesRows(
             Iterator<RowResult<byte[]>> postFilterIterator,
             Iterator<RowResult<byte[]>> localWritesInRange,
-            boolean isReverse) {
+            boolean isReverse,
+            TableReference tableReference) {
         Ordering<RowResult<byte[]>> ordering = RowResult.getOrderingByRowName();
         Iterator<RowResult<byte[]>> mergeIterators = IteratorUtils.mergeIterators(
                 postFilterIterator, localWritesInRange,
                 isReverse ? ordering.reverse() : ordering,
                 from -> RowResults.merge(from.lhSide, from.rhSide)); // prefer local writes
-        return RowResults.filterDeletedColumnsAndEmptyRows(mergeIterators);
+
+        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(mergeIterators,
+                createFilterColumnValues(tableReference));
+        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
+    }
+
+    private Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(TableReference tableReference) {
+        return unfilteredRow -> {
+            SortedMap<byte[], byte[]> filteredColumns =
+                    Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value.IS_EMPTY));
+            getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                    .mark(unfilteredRow.getColumns().size() - filteredColumns.size());
+            return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
+        };
     }
 
     private List<Entry<Cell, byte[]>> mergeInLocalWrites(
