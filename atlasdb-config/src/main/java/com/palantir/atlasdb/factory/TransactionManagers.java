@@ -456,14 +456,11 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService keyValueService) {
-        @SuppressWarnings("unchecked") // Coordination service clearly has this type.
-        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                CoordinationService.class,
-                CoordinationServices.createDefault(
-                        keyValueService,
-                        lockAndTimestampServices.timestamp(),
-                        config().initializeAsync()));
+        CoordinationService<InternalSchemaMetadata> metadataCoordinationService = CoordinationServices.createDefault(
+                keyValueService,
+                lockAndTimestampServices.timestamp(),
+                metricsManager,
+                config().initializeAsync());
         MetadataCoordinationServiceMetrics.registerMetrics(
                 metricsManager,
                 metadataCoordinationService,

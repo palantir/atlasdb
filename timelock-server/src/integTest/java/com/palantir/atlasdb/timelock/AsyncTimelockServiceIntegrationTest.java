@@ -28,10 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.BadRequestException;
-
-import org.assertj.core.api.ThrowableAssert;
-import org.eclipse.jetty.http.HttpStatus;
 import org.junit.After;
 import org.junit.Test;
 
@@ -39,7 +35,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.lock.HeldLocksGrant;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -449,18 +444,6 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
         } catch (Throwable t) {
             throw new RuntimeException(t);
         }
-    }
-
-    private static void assertBadRequest(ThrowableAssert.ThrowingCallable throwingCallable) {
-        assertThatThrownBy(throwingCallable)
-                .isInstanceOf(AtlasDbRemoteException.class)
-                .satisfies(remoteException -> {
-                    AtlasDbRemoteException atlasDbRemoteException = (AtlasDbRemoteException) remoteException;
-                    assertThat(atlasDbRemoteException.getErrorName())
-                            .isEqualTo(BadRequestException.class.getCanonicalName());
-                    assertThat(atlasDbRemoteException.getStatus())
-                            .isEqualTo(HttpStatus.BAD_REQUEST_400);
-                });
     }
 
     private void unlock(HeldLocksToken... tokens) {

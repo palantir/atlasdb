@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,36 +28,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
 import com.palantir.tritium.event.DefaultInvocationContext;
 import com.palantir.tritium.event.InvocationContext;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 /**
- * A simplified and yet extended version of Tritium's MetricsInvocationEventHandler. This class supports augmenting
- * metric data with tags, possibly as a function of the method's invocation context.
- *
- * Note that this class does not yet offer support for processing of specific metric groups, unlike
- * MetricsInvocationEventHandler.
+ * A modified version of {@link com.palantir.tritium.event.metrics.MetricsInvocationEventHandler} that uses a
+ * {@link SlidingTimeWindowArrayReservoir} for the timer's reservoir.
  */
-public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEventHandler<InvocationContext> {
-    private static final Logger logger = LoggerFactory.getLogger(TaggedMetricsInvocationEventHandler.class);
+public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocationEventHandler<InvocationContext> {
+    private static final Logger logger = LoggerFactory.getLogger(SlidingWindowMetricsInvocationHandler.class);
 
-    private final TaggedMetricRegistry taggedMetricRegistry;
+    private final MetricRegistry metricRegistry;
     private final String serviceName;
 
-    private final Function<InvocationContext, Map<String, String>> tagFunction;
-
-    public TaggedMetricsInvocationEventHandler(
-            TaggedMetricRegistry taggedMetricRegistry,
-            String serviceName,
-            Function<InvocationContext, Map<String, String>> tagFunction) {
+    public SlidingWindowMetricsInvocationHandler(MetricRegistry metricRegistry, String serviceName) {
         super(InstrumentationUtils.getEnabledSupplier(serviceName));
-        this.taggedMetricRegistry = checkNotNull(taggedMetricRegistry, "metricRegistry");
+        this.metricRegistry = checkNotNull(metricRegistry, "metricRegistry");
         this.serviceName = checkNotNull(serviceName, "serviceName");
-        this.tagFunction = tagFunction;
     }
 
     @Override
@@ -74,11 +63,9 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         }
 
         long nanos = System.nanoTime() - context.getStartTimeNanos();
-        MetricName finalMetricName = MetricName.builder()
-                .safeName(MetricRegistry.name(serviceName, context.getMethod().getName()))
-                .putAllSafeTags(tagFunction.apply(context))
-                .build();
-        taggedMetricRegistry.timer(finalMetricName).update(nanos, TimeUnit.NANOSECONDS);
+        metricRegistry.timer(InstrumentationUtils.getBaseMetricName(context, serviceName),
+                InstrumentationUtils::createNewTimer)
+                .update(nanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -86,23 +73,17 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
         markGlobalFailure();
         if (context == null) {
             logger.debug("Encountered null metric context likely due to exception in preInvocation: {}",
-                    UnsafeArg.of("exception", cause),
+                    UnsafeArg.of("cause", cause),
                     cause);
             return;
         }
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
-        taggedMetricRegistry.meter(MetricName.builder().safeName(failuresMetricName).build()).mark();
-        taggedMetricRegistry.meter(MetricName.builder().safeName(
-                MetricRegistry.name(failuresMetricName, cause.getClass().getName())).build())
-                .mark();
-
+        metricRegistry.meter(failuresMetricName).mark();
+        metricRegistry.meter(MetricRegistry.name(failuresMetricName, cause.getClass().getName())).mark();
     }
 
     private void markGlobalFailure() {
-        taggedMetricRegistry.meter(MetricName.builder()
-                .safeName(InstrumentationUtils.FAILURES_METRIC_NAME)
-                .build())
-                .mark();
+        metricRegistry.meter(InstrumentationUtils.FAILURES_METRIC_NAME).mark();
     }
 }

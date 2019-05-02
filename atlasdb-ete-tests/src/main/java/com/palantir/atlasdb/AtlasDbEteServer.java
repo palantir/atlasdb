@@ -63,7 +63,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 import io.dropwizard.Application;
@@ -96,7 +96,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
 
     @Override
     public void run(AtlasDbEteConfiguration config, final Environment environment) throws Exception {
-        TaggedMetricRegistry taggedMetrics = new DefaultTaggedMetricRegistry();
+        TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() ->
                 getSweepTaskRunner(txManager, environment.metrics(), taggedMetrics));

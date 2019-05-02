@@ -46,6 +46,7 @@ import com.palantir.atlasdb.transaction.encoding.TimestampEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -53,8 +54,11 @@ import com.palantir.timestamp.TimestampService;
 public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
     private final TimestampService timestampService = new InMemoryTimestampService();
-    private final CoordinationService<InternalSchemaMetadata> coordinationService
-            = CoordinationServices.createDefault(keyValueService, timestampService, false);
+    private final CoordinationService<InternalSchemaMetadata> coordinationService = CoordinationServices.createDefault(
+            keyValueService,
+            timestampService,
+            MetricsManagers.createForTests(),
+            false);
     private final TransactionService transactionService = TransactionServices.createTransactionService(
             keyValueService, new TransactionSchemaManager(coordinationService));
 

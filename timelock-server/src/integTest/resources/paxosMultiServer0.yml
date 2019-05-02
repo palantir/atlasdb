@@ -1,23 +1,25 @@
-algorithm:
-  type: paxos
-  leaderPingResponseWaitMs: 1000
-  paxosDataDir: <TEMP_DATA_DIR>
-  sslConfiguration:
-    keyStorePath: var/security/keyStore.jks
-    keyStorePassword: keystore
-    trustStorePath: var/security/trustStore.jks
+install:
+  paxos:
+    data-directory: "<TEMP_DATA_DIR>"
+    is-new-service: false
+  cluster:
+    cluster:
+      security:
+        trustStorePath: "var/security/trustStore.jks"
+        trustStoreType: "JKS"
+        keyStorePath: "var/security/keyStore.jks"
+        keyStorePassword: "keystore"
+        keyStoreType: "JKS"
+      uris:
+      - "localhost:9080"
+      - "localhost:9081"
+      - "localhost:9082"
+    local-server: "localhost:9080"
+  timestampBoundPersistence:
 
-cluster:
-  localServer: localhost:9080
-  servers:
-    - localhost:9080
-    - localhost:9081
-    - localhost:9082
-
-clients:
-  - test
-  - test2
-  - test3
+runtime:
+  paxos:
+    leader-ping-response-wait-in-ms: 1000
 
 server:
   applicationConnectors:
