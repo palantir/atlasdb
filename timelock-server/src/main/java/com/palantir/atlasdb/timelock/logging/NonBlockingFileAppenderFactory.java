@@ -18,17 +18,16 @@ package com.palantir.atlasdb.timelock.logging;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
 
+// CHECKSTYLE:OFF
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.AsyncAppenderBase;
 import ch.qos.logback.core.spi.DeferredProcessingAware;
+// CHECKSTYLE:ON
 import io.dropwizard.logging.FileAppenderFactory;
 import io.dropwizard.logging.async.AsyncAppenderFactory;
 import io.dropwizard.logging.filter.LevelFilterFactory;
 import io.dropwizard.logging.layout.LayoutFactory;
-
-// CHECKSTYLE:OFF
-// CHECKSTYLE:ON
 
 /**
  * A wrapper around the default Dropwizard file appender factory, which sets the neverBlock property to true on the
