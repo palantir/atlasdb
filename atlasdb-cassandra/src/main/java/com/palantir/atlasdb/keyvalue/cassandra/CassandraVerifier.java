@@ -205,8 +205,7 @@ public final class CassandraVerifier {
     // swallows the expected TException subtype NotFoundException, throws connection problem related ones
     private static boolean keyspaceAlreadyExists(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        try {
-            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
             client.describe_keyspace(config.getKeyspaceOrThrow());
             CassandraKeyValueServices.waitForSchemaVersions(config, client,
                     "while checking if schemas diverged on startup");
@@ -218,8 +217,7 @@ public final class CassandraVerifier {
 
     private static boolean attemptToCreateKeyspaceOnHost(InetSocketAddress host, CassandraKeyValueServiceConfig config)
             throws TException {
-        try {
-            CassandraClient client = CassandraClientFactory.getClientInternal(host, config);
+        try (CassandraClient client = CassandraClientFactory.getClientInternal(host, config)) {
             KsDef ksDef = createKsDefForFresh(client, config);
             client.system_add_keyspace(ksDef);
             log.info("Created keyspace: {}", SafeArg.of("keyspace", config.getKeyspaceOrThrow()));

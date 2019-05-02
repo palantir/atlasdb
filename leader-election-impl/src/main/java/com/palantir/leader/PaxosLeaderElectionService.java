@@ -304,9 +304,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         // collect responses
         boolean interrupted = false;
         try {
-            long deadline = System.nanoTime()
-                    + TimeUnit.MILLISECONDS.toNanos(leaderPingResponseWaitMs);
-            for (;;) {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(leaderPingResponseWaitMs);
+            for (int i = 0; i < allFutures.size(); i++) {
                 try {
                     Future<Entry<String, PingableLeader>> pingFuture = pingService.poll(
                             deadline - System.nanoTime(),
@@ -317,9 +316,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
                     // cache remote leader uuid
                     Entry<String, PingableLeader> cacheEntry = pingFuture.get();
-                    PingableLeader service = uuidToServiceCache.putIfAbsent(
-                            cacheEntry.getKey(),
-                            cacheEntry.getValue());
+                    PingableLeader service = uuidToServiceCache.putIfAbsent(cacheEntry.getKey(), cacheEntry.getValue());
                     throwIfInvalidSetup(service, cacheEntry.getValue(), cacheEntry.getKey());
 
                     // return the leader if it matches
@@ -334,22 +331,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                     log.warn("unable to get uuid from server", e);
                 }
             }
-
-            // poll for extra completed futures
-            Future<Entry<String, PingableLeader>> future;
-            while ((future = pingService.poll()) != null) {
-                try {
-                    Entry<String, PingableLeader> cacheEntry = future.get();
-                    uuidToServiceCache.putIfAbsent(cacheEntry.getKey(), cacheEntry.getValue());
-                } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
-                    interrupted = true;
-                    break;
-                } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
-                }
-            }
-
         } finally {
             // cancel pending futures
             for (Future<Entry<String, PingableLeader>> future : allFutures) {
@@ -417,7 +398,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 return;
             }
 
-            long seq = value.map(val -> val.getRound()).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+            long seq = value.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
 
             eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
@@ -484,10 +465,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         } else if (status == StillLeadingStatus.NOT_LEADING) {
             eventRecorder.recordNotLeading(token.value);
         }
-    }
-
-    private long latestRoundLearnedLocally() {
-        return getGreatestLearnedPaxosValue().map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY);
     }
 
     private boolean isThisNodeTheLeaderFor(PaxosValue value) {

@@ -129,15 +129,15 @@ public class TimeLockServerConfigurationTest {
     }
 
     @Test
-    public void shouldNotUseClientRequestLimitIfNotIncluded() {
+    public void shouldUseClientRequestLimitIfNotIncluded() {
         TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
-        assertThat(configuration.useClientRequestLimit()).isFalse();
+        assertThat(configuration.useClientRequestLimit()).isTrue();
     }
 
     @Test
-    public void shouldNotEnableTimeLimiterIfNotSpecified() {
+    public void shouldEnableTimeLimiterIfNotSpecified() {
         TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
-        assertThat(configuration.timeLimiterConfiguration().enableTimeLimiting()).isFalse();
+        assertThat(configuration.timeLimiterConfiguration().enableTimeLimiting()).isTrue();
     }
 
     @Test
