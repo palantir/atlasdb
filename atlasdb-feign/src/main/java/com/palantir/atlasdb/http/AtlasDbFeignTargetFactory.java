@@ -37,6 +37,7 @@ import feign.Client;
 import feign.Contract;
 import feign.Feign;
 import feign.Request;
+import feign.Retryer;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
@@ -58,6 +59,22 @@ public final class AtlasDbFeignTargetFactory {
 
     private AtlasDbFeignTargetFactory() {
         // factory
+    }
+
+    public static <T> T createProxyWithoutRetrying(
+            Optional<TrustContext> trustContext,
+            String uri,
+            Class<T> type,
+            String userAgent,
+            boolean limitPayloadSize) {
+        return Feign.builder()
+                .contract(contract)
+                .encoder(encoder)
+                .decoder(decoder)
+                .errorDecoder(errorDecoder)
+                .retryer(Retryer.NEVER_RETRY)
+                .client(createClient(trustContext, userAgent, limitPayloadSize))
+                .target(type, uri);
     }
 
     public static <T> T createProxy(
