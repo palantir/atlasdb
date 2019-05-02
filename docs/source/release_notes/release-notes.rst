@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Replaced all usages of guava Supplier by java Supplier.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
+
     *    - |improved|
          - Changed the default values in ``PaxosConfiguration``.
            ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
