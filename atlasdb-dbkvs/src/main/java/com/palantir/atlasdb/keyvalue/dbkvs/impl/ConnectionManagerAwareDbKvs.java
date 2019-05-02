@@ -17,7 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.Connection;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;

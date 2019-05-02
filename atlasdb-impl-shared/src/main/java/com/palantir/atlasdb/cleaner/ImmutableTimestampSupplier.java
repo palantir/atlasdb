@@ -17,7 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.lock.v2.TimelockService;
 

@@ -18,7 +18,7 @@ package com.palantir.nexus.db;
 import java.io.Closeable;
 import java.sql.Connection;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.palantir.exception.PalantirSqlException;
 
 public interface ConnectionSupplier extends Supplier<Connection>, Closeable {

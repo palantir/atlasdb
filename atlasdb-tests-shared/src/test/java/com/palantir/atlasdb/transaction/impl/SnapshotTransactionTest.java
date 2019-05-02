@@ -70,7 +70,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;

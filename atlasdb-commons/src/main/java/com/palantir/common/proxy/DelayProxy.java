@@ -19,7 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.common.base.Throwables;
 

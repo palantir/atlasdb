@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 import java.io.File;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.OptionalType;

@@ -40,7 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.Uninterruptibles;

@@ -17,7 +17,7 @@ package com.palantir.atlasdb.cleaner;
 
 import java.util.List;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;

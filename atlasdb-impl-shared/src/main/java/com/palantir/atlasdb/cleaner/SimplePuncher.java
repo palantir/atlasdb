@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.palantir.common.time.Clock;
 
 /**

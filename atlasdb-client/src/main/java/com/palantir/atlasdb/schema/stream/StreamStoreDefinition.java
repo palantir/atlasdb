@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema.stream;
 
 import java.util.Map;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.api.OnCleanupTask;

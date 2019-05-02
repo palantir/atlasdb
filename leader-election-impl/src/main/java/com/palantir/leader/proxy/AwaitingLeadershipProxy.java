@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep;
 import org.awaitility.Awaitility;
 import org.awaitility.Duration;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
