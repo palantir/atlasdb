@@ -766,5 +766,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "nLl28oDHfbNzyKxXdgdZ7Q==";
+    static String __CLASS_HASH = "MhNj3HxZmOZNNoqQgJXPtA==";
 }

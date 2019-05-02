@@ -1214,5 +1214,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SQZh8Tiuo9hisseHEHNpnA==";
+    static String __CLASS_HASH = "P4pMrqwez6sbaQ8bCukCWA==";
 }

@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.cas.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class CheckAndSetSchemaTableFactory {
@@ -19,18 +18,21 @@ public final class CheckAndSetSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private CheckAndSetSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private CheckAndSetSchemaTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static CheckAndSetSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new CheckAndSetSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static CheckAndSetSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new CheckAndSetSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -52,7 +54,8 @@ public final class CheckAndSetSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putCheckAndSet(Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
+        public void putCheckAndSet(
+                Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

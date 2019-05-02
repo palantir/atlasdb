@@ -684,5 +684,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mDGfypIqrVWc1GEkvuAc2g==";
+    static String __CLASS_HASH = "JtRTFoI5vtIMnD3283JE2g==";
 }

@@ -3200,5 +3200,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "i1/fSbC65yELf1GNvIGF5Q==";
+    static String __CLASS_HASH = "90glu+qbIyo2vFb/CB2wWw==";
 }

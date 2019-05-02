@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.todo.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class TodoSchemaTableFactory {
@@ -19,18 +18,21 @@ public final class TodoSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private TodoSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private TodoSchemaTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static TodoSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static TodoSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new TodoSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static TodoSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static TodoSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new TodoSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -81,37 +83,44 @@ public final class TodoSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putLatestSnapshot(Multimap<LatestSnapshotTable.LatestSnapshotRow, ? extends LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>> newRows) {
+        public void putLatestSnapshot(
+                Multimap<LatestSnapshotTable.LatestSnapshotRow, ? extends LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putNamespacedTodo(Multimap<NamespacedTodoTable.NamespacedTodoRow, ? extends NamespacedTodoTable.NamespacedTodoColumnValue> newRows) {
+        public void putNamespacedTodo(
+                Multimap<NamespacedTodoTable.NamespacedTodoRow, ? extends NamespacedTodoTable.NamespacedTodoColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putSnapshotsStreamHashAidx(Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue> newRows) {
+        public void putSnapshotsStreamHashAidx(
+                Multimap<SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxRow, ? extends SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putSnapshotsStreamIdx(Multimap<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, ? extends SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue> newRows) {
+        public void putSnapshotsStreamIdx(
+                Multimap<SnapshotsStreamIdxTable.SnapshotsStreamIdxRow, ? extends SnapshotsStreamIdxTable.SnapshotsStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putSnapshotsStreamMetadata(Multimap<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, ? extends SnapshotsStreamMetadataTable.SnapshotsStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putSnapshotsStreamMetadata(
+                Multimap<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow, ? extends SnapshotsStreamMetadataTable.SnapshotsStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putSnapshotsStreamValue(Multimap<SnapshotsStreamValueTable.SnapshotsStreamValueRow, ? extends SnapshotsStreamValueTable.SnapshotsStreamValueNamedColumnValue<?>> newRows) {
+        public void putSnapshotsStreamValue(
+                Multimap<SnapshotsStreamValueTable.SnapshotsStreamValueRow, ? extends SnapshotsStreamValueTable.SnapshotsStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTodo(Multimap<TodoTable.TodoRow, ? extends TodoTable.TodoNamedColumnValue<?>> newRows) {
+        public void putTodo(
+                Multimap<TodoTable.TodoRow, ? extends TodoTable.TodoNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

@@ -669,5 +669,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "w2Kv2zKptBlrmL07xKxTRg==";
+    static String __CLASS_HASH = "LtSr8KW84jJ1kASsEGryAA==";
 }

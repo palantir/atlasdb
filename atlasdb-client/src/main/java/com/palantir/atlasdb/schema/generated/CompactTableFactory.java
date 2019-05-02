@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.schema.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class CompactTableFactory {
@@ -25,12 +24,14 @@ public final class CompactTableFactory {
         this.namespace = namespace;
     }
 
-    public static CompactTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static CompactTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new CompactTableFactory(sharedTriggers, namespace);
     }
 
-    public static CompactTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static CompactTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new CompactTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -52,7 +53,8 @@ public final class CompactTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putCompactMetadata(Multimap<CompactMetadataTable.CompactMetadataRow, ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>> newRows) {
+        public void putCompactMetadata(
+                Multimap<CompactMetadataTable.CompactMetadataRow, ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

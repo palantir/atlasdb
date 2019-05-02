@@ -713,5 +713,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "02INLh3XG7XrmmPfLsx4KQ==";
+    static String __CLASS_HASH = "Vm1XC0scjjk1KU1gGw0Ubg==";
 }

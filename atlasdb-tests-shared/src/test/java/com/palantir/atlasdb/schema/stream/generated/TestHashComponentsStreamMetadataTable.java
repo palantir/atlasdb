@@ -695,5 +695,5 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Kab3YlNRdYChKU+cEiku0w==";
+    static String __CLASS_HASH = "eo/+y7JSgtyMLp1rlM2fjA==";
 }

@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.table.description.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class GenericTestSchemaTableFactory {
@@ -19,18 +18,21 @@ public final class GenericTestSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private GenericTestSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private GenericTestSchemaTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static GenericTestSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new GenericTestSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static GenericTestSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static GenericTestSchemaTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new GenericTestSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -57,12 +59,14 @@ public final class GenericTestSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putGenericRangeScanTest(Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
+        public void putGenericRangeScanTest(
+                Multimap<GenericRangeScanTestTable.GenericRangeScanTestRow, ? extends GenericRangeScanTestTable.GenericRangeScanTestColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putRangeScanTest(Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
+        public void putRangeScanTest(
+                Multimap<RangeScanTestTable.RangeScanTestRow, ? extends RangeScanTestTable.RangeScanTestNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

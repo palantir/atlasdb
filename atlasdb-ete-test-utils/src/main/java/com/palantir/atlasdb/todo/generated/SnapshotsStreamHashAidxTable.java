@@ -713,5 +713,5 @@ public final class SnapshotsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "oS3B0uQRP5UTheSmeHU/1Q==";
+    static String __CLASS_HASH = "IwRcER9r6kzFtVSwR6OPBQ==";
 }

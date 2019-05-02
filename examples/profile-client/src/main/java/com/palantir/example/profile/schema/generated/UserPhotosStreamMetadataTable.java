@@ -681,5 +681,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dzgGQC/ADP1dlAWGQYQKXg==";
+    static String __CLASS_HASH = "0MdVS+7yNGBENdW0vcRR4g==";
 }

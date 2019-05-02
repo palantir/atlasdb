@@ -695,5 +695,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "R8htd1SMhNPTnF3yuJ+Htg==";
+    static String __CLASS_HASH = "QSzAZuyzoZhM3sBPyaiD8w==";
 }

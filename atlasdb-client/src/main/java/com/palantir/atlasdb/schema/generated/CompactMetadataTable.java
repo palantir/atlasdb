@@ -657,5 +657,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0WtSpbMMOvlM3AribPiPxQ==";
+    static String __CLASS_HASH = "vX96N598CtO5B/gkmgCmsg==";
 }

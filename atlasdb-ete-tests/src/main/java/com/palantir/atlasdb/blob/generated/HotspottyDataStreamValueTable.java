@@ -669,5 +669,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SbxZ2fy8SdPXh+5D339tnQ==";
+    static String __CLASS_HASH = "6vh3X5Z+N1hyCKtBTfePog==";
 }

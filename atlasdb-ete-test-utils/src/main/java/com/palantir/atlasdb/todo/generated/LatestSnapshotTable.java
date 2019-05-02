@@ -657,5 +657,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "W1wwimLI6PCSvWYMupoGKg==";
+    static String __CLASS_HASH = "G425LkwW0GRVAmmRAB+j7w==";
 }

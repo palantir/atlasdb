@@ -657,5 +657,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "q9Ur/tVv9Zy8v6wnnmNG6A==";
+    static String __CLASS_HASH = "6Nc5O+7Y+IxfjkHR4bjHiw==";
 }

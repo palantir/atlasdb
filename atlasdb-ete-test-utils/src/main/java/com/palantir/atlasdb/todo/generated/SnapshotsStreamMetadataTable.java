@@ -681,5 +681,5 @@ public final class SnapshotsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1zvuS46tqORldVBQiL1/uw==";
+    static String __CLASS_HASH = "IFrSLv7Usr5bzgm/WPZoCA==";
 }

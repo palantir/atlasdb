@@ -727,5 +727,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "akfc3RwqwCN9ne8saSTh2A==";
+    static String __CLASS_HASH = "qvfFqIXEUvtHLzK6komRzQ==";
 }

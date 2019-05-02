@@ -713,5 +713,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "OUopFBahCh4GfAJWIg453g==";
+    static String __CLASS_HASH = "e/3fKcHrTJALXUFmSPfhiQ==";
 }

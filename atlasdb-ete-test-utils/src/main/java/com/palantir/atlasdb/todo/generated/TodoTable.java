@@ -657,5 +657,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "WZNsYRJNFU3f5r1AQ65yrw==";
+    static String __CLASS_HASH = "W4nZk/S4/IXkgnEvSLR5ZA==";
 }

@@ -2126,5 +2126,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JnmKvbbyrrxBYn7NjaLlMQ==";
+    static String __CLASS_HASH = "VuZV92tdhOJktDN2j4RtrA==";
 }

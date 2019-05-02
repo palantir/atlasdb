@@ -681,5 +681,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qha2HckQObFa2UMd3U5jvg==";
+    static String __CLASS_HASH = "g1cGlMObiaMACzqGog6FmA==";
 }

@@ -669,5 +669,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "xlZF1W8D8pUOTe2VGEmOMg==";
+    static String __CLASS_HASH = "4uXsWYBZ/v654Q8MmVT4qQ==";
 }
