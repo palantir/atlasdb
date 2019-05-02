@@ -193,7 +193,7 @@ public class PaxosTimeLockServerIntegrationTest {
             for (int i = 0; i < numRequestsPerClient; i++) {
                 int currentTrial = i;
                 futures.add(executorService.submit(() ->
-                        lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
+                        lockService.lock(CLIENT_2 + currentTrial, REQUEST_LOCK_WITH_LONG_TIMEOUT))
                 );
             }
         }
@@ -207,6 +207,7 @@ public class PaxosTimeLockServerIntegrationTest {
                 assertThat(future.get()).isNull();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
+                e.printStackTrace();
                 assertThat(cause.getClass().getName()).contains("RetryableException");
                 assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
                 exceptionCounter.getAndIncrement();
