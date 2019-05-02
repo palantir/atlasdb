@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -33,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import java.util.function.Supplier;
 import com.google.common.net.HostAndPort;
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.common.concurrent.PTExecutors;

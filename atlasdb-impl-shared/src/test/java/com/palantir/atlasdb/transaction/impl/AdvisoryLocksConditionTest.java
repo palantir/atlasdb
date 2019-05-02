@@ -25,11 +25,11 @@ import static org.mockito.Mockito.when;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.function.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;

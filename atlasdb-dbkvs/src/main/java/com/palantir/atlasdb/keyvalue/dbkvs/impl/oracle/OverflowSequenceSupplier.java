@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import java.util.function.Supplier;
+
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 

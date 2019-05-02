@@ -1,5 +1,17 @@
 package com.palantir.atlasdb.table.description.generated;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Generated;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -18,20 +30,6 @@ import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.persist.Persistables;
-import java.lang.Iterable;
-import java.lang.Long;
-import java.lang.String;
-import java.lang.SuppressWarnings;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRendererV2")
 @SuppressWarnings("all")
