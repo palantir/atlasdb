@@ -50,6 +50,14 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - Changed the default values in ``PaxosConfiguration``.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3943>`__)
+
     *    - |devbreak|
          - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
            Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
