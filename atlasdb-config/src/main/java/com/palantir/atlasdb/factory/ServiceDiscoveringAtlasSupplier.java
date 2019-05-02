@@ -60,7 +60,7 @@ public class ServiceDiscoveringAtlasSupplier {
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
