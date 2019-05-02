@@ -2107,5 +2107,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7ICgYboWGmlASXKikUY+zQ==";
+    static String __CLASS_HASH = "r4GAOsoxikdmFU+sqUQzQA==";
 }

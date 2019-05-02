@@ -833,5 +833,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "gJjGs7nehodvK83lsXBdyA==";
+    static String __CLASS_HASH = "h9whmxJpFX2yqVXafsa5AQ==";
 }
