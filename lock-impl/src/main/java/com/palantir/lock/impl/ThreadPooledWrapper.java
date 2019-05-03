@@ -17,9 +17,13 @@ package com.palantir.lock.impl;
 
 import java.util.concurrent.Semaphore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.common.base.FunctionCheckedException;
 
 public class ThreadPooledWrapper<F> {
+    private static final Logger log = LoggerFactory.getLogger(ThreadPooledWrapper.class);
     private final Semaphore localThreadPool;
     private final Semaphore sharedThreadPool;
     private final F delegate;
@@ -39,6 +43,7 @@ public class ThreadPooledWrapper<F> {
             return applyAndRelease(localThreadPool, function);
         }
         if (sharedThreadPool.tryAcquire()) {
+            log.info("Acquired permit, {} remaining.", sharedThreadPool.availablePermits());
             return applyAndRelease(sharedThreadPool, function);
         }
         throw new TooManyRequestsException(
@@ -51,6 +56,7 @@ public class ThreadPooledWrapper<F> {
             return function.apply(delegate);
         } finally {
             semaphore.release();
+            log.info("Released permit, {} remaining.", sharedThreadPool.availablePermits());
         }
     }
 }
