@@ -44,7 +44,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -215,8 +214,6 @@ public class PaxosTimeLockServerIntegrationTest {
             try {
                 assertNull(future.get());
             } catch (ExecutionException e) {
-                LoggerFactory.getLogger("qqq").warn("exception", e);
-                e.printStackTrace();
                 Throwable cause = e.getCause();
                 assertThat(cause.getClass().getName()).contains("RetryableException");
                 assertRemoteExceptionWithStatus(cause.getCause(), HttpStatus.TOO_MANY_REQUESTS_429);
