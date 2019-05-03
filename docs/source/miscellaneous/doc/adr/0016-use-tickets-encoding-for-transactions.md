@@ -253,7 +253,34 @@ performance would be poor for services with many nodes.
 
 ### Cassandra Table Tuning
 
+When creating a table in Cassandra, one may specify table properties, which tune the way data is handled. We have
+knowledge of the access patterns and data layout of the ``_transactions2`` table, and can use this to improve the
+performance Cassandra is able to provide for our specific use cases.
+
 #### Bloom Filters
+
+Cassandra keeps track of bloom filters for each SSTable in memory to avoid having to read all SSTable data files. These
+bloom filters keep track of whether an SSTable contains data for a specific row, and thus allows Cassandra to determine
+without performing I/O operations whether a given SSTable
+
+- probably contains data for that row, or
+- definitely does not contain data for that row
+
+The probability a bloom filter returns a false positive is configurable via ``bloom_filter_fp_chance``, though more
+accurate bloom filters require more RAM. Cassandra documentation suggests that typical values lie between 0.01 and 0.1.
+Typically, within AtlasDB, the false positive rate is set depending on whether a table is append heavy and read light
+(which means it is given the size tiered compaction strategy), and whether negative lookups are expected to be
+frequent. This is determined by user schemas.
+
+```
+static final double DEFAULT_LEVELED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.1;
+static final double DEFAULT_SIZE_TIERED_COMPACTION_BLOOM_FILTER_FP_CHANCE = 0.01;
+static final double NEGATIVE_LOOKUPS_BLOOM_FILTER_FP_CHANCE = 0.01;
+static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001;
+```
+
+As far as transactions2 is concerned, we observe that the number of partitions is very small, and thus we can go with
+a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001.
 
 #### Index Intervals
 
