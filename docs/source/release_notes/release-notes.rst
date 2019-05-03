@@ -90,6 +90,10 @@ develop
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
 
+    *    - |improved|
+         - Upgraded gradle-baseline to improve compile time static analysis checks.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3974>`__)
+
 ========
 v0.133.0
 ========
