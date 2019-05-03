@@ -75,7 +75,7 @@ public class TimeLockAgent {
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             int threadPoolSize,
-            long blockingTimeoutMs,
+            Optional<Long> blockingTimeoutMs,
             Consumer<Object> registrar) {
         ExecutorService executor = createSharedExecutor(metricsManager);
         TimeLockAgent agent = new TimeLockAgent(metricsManager, install, runtime, threadPoolSize, blockingTimeoutMs,
@@ -88,7 +88,7 @@ public class TimeLockAgent {
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
             int threadPoolSize,
-            long blockingTimeoutMs,
+            Optional<Long> blockingTimeoutMs,
             Consumer<Object> registrar,
             ExecutorService sharedExecutor) {
         this.metricsManager = metricsManager;

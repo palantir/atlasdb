@@ -44,7 +44,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment) throws Exception {
         FeignOkHttpClients.globalClientSettings = client -> client.hostnameVerifier((ig, nored) -> true);
 
-        TimeLockAgent agent = TimeLockAgent.create(
+        TimeLockAgent.create(
                 MetricsManagers.of(environment.metrics(), SharedTaggedMetricRegistries.getSingleton()),
                 configuration.install(),
                 configuration::runtime, // this won't actually live reload

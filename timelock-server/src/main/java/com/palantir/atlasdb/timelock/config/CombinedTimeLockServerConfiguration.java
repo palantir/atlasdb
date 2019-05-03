@@ -15,8 +15,9 @@
  */
 package com.palantir.atlasdb.timelock.config;
 
+import java.util.Optional;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
@@ -45,7 +46,7 @@ public class CombinedTimeLockServerConfiguration extends Configuration {
         return 128;
     }
 
-    public static long blockingTimeoutMs() {
-        return (long) (HumanReadableDuration.minutes(1).toMilliseconds() * 0.8);
+    public static Optional<Long> blockingTimeoutMs() {
+        return Optional.empty();
     }
 }
