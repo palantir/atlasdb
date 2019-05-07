@@ -29,31 +29,31 @@ import com.palantir.timelock.TimeLockStatus;
 public class LeaderPingHealthCheckTest {
 
     @Test
-    public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, true);
         assertEquals(TimeLockStatus.MULTIPLE_LEADERS, new LeaderPingHealthCheck(leaders).getStatus());
     }
 
     @Test
-    public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, false);
         assertEquals(TimeLockStatus.MULTIPLE_LEADERS, new LeaderPingHealthCheck(leaders).getStatus());
     }
 
     @Test
-    public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() throws Exception {
+    public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, false, false);
         assertEquals(TimeLockStatus.ONE_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
     }
 
     @Test
-    public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(false, false, false);
         assertEquals(TimeLockStatus.NO_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
     }
 
     @Test
-    public void shouldBeHealthyIfQuorumNodesUpAndOnePingedSuccessfully() throws Exception {
+    public void shouldBeHealthyIfQuorumNodesUpAndOnePingedSuccessfully() {
         PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(true);
         PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
@@ -62,7 +62,7 @@ public class LeaderPingHealthCheckTest {
     }
 
     @Test
-    public void shouldBeUnhealthyIfQuorumNodesAreUpAndNoNodePingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfQuorumNodesAreUpAndNoNodePingedSuccessfully() {
         PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
@@ -71,7 +71,7 @@ public class LeaderPingHealthCheckTest {
     }
 
     @Test
-    public void shouldBeUnhealthyIfQuorumNodesAreNotUpAndOnePingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfQuorumNodesAreNotUpAndOnePingedSuccessfully() {
         PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(true);
         PingableLeader leader2 = getMockOfPingableLeaderWherePingThrows();
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
@@ -80,7 +80,7 @@ public class LeaderPingHealthCheckTest {
     }
 
     @Test
-    public void shouldBeUnhealthyIfQuorumNodesAreNotUpAndNoNodePingedSuccessfully() throws Exception {
+    public void shouldBeUnhealthyIfQuorumNodesAreNotUpAndNoNodePingedSuccessfully() {
         PingableLeader leader1 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader2 = getMockOfPingableLeaderWherePingThrows();
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
@@ -88,7 +88,7 @@ public class LeaderPingHealthCheckTest {
         assertEquals(TimeLockStatus.NO_QUORUM, new LeaderPingHealthCheck(leaders).getStatus());
     }
 
-    private ImmutableSet<PingableLeader> getPingableLeaders(
+    private static ImmutableSet<PingableLeader> getPingableLeaders(
             boolean pingResultForLeader1,
             boolean pingResultForLeader2,
             boolean pingResultForLeader3) {
@@ -98,13 +98,13 @@ public class LeaderPingHealthCheckTest {
         return ImmutableSet.of(leader1, leader2, leader3);
     }
 
-    private PingableLeader getMockOfPingableLeaderWherePingReturns(boolean pingResult) {
+    private static PingableLeader getMockOfPingableLeaderWherePingReturns(boolean pingResult) {
         PingableLeader mockLeader = mock(PingableLeader.class);
         when(mockLeader.ping()).thenReturn(pingResult);
         return mockLeader;
     }
 
-    private PingableLeader getMockOfPingableLeaderWherePingThrows() {
+    private static PingableLeader getMockOfPingableLeaderWherePingThrows() {
         PingableLeader mockLeader = mock(PingableLeader.class);
         when(mockLeader.ping()).thenThrow(mock(AtlasDbRemoteException.class));
         return mockLeader;
