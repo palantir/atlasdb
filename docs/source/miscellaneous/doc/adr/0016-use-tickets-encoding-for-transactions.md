@@ -284,7 +284,20 @@ a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001.
 
 #### Index Intervals
 
+In Cassandra, a partition index is an on-disk file that stores mappings from partition keys to their offset within
+an SSTable. Cassandra maintains a partition summary for each SSTable in memory, which samples the partition index every
+N keys and stores an offset for the location of the mapping for a given key within the file. The value of N may be
+tuned; smaller values of N require more memory, but improve performance as seeks within the partition index will
+be shorter.
+
+For transactions2, the number of partitions is expected to be very small, so we set the ``min_index_interval`` and
+``max_index_interval`` to 1, forcing the partition index to be perfect.
+
 #### Compression Chunk Length
+
+Cassandra compresses SSTables by blocks on disk. This
+
+#### Benchmarking of Cassandra Table Parameters
 
 ### Cell Loader V2
 
