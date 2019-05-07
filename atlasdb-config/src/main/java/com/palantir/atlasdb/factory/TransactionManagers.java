@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -108,6 +110,8 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -184,6 +188,11 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean validateLocksOnReads() {
         return true;
+    }
+
+    @Value.Default
+    boolean lockImmutableTsOnReadOnlyTransactions() {
+        return false;
     }
 
     abstract String userAgent();
@@ -373,6 +382,15 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
+        LoadingCache<TransactionConfig, TransactionConfig> transactionConfigLoadingCache = Caffeine.newBuilder()
+                .maximumSize(1)
+                .build(this::withOverwrittenGrabImmutableTsLockFlag);
+
+        com.google.common.base.Supplier<TransactionConfig> transactionConfigSupplier = () -> {
+                TransactionConfig transactionConfig = runtimeConfigSupplier.get().transaction();
+                return transactionConfigLoadingCache.get(transactionConfig);
+        };
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         metricsManager,
@@ -397,7 +415,7 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
-                        () -> runtimeConfigSupplier.get().transaction()),
+                        transactionConfigSupplier),
                 closeables);
 
         TransactionManager instrumentedTransactionManager =
@@ -437,6 +455,13 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private TransactionConfig withOverwrittenGrabImmutableTsLockFlag(TransactionConfig transactionConfig) {
+        return ImmutableTransactionConfig.copyOf(transactionConfig)
+                .withLockImmutableTsOnReadOnlyTransactions(lockImmutableTsOnReadOnlyTransactions()
+                        || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
+
     }
 
     private boolean targetedSweepIsFullyEnabled() {
