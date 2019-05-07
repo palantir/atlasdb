@@ -86,8 +86,6 @@ public final class Value implements Serializable {
 
     public static final Function<Value, byte[]> GET_VALUE = Value::getContents;
 
-    public static final Predicate<byte[]> IS_EMPTY = input -> input.length == 0;
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -113,6 +111,4 @@ public final class Value implements Serializable {
                 + ", contentsLength=" + contents.length
                 + ", timestamp=" + timestamp + "]";
     }
-
-
 }

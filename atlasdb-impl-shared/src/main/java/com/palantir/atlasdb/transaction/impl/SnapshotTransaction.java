@@ -523,11 +523,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                                                                   Map<Cell, Value> rawResults,
                                                                   ImmutableMap.Builder<Cell, byte[]> result) {
         getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
-        Map<Cell, byte[]> withDeletedValues = result.build();
-        Map<Cell, byte[]> filterDeletedValues = Maps.filterValues(result.build(), Predicates.not(Value.IS_EMPTY));
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef)
-                .mark(withDeletedValues.size() - filterDeletedValues.size());
+        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(result.build(), tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
+    }
+
+    private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
+        Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                .mark(unfiltered.size() - filtered.size());
+        return filtered;
     }
 
     /**
@@ -583,10 +587,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     tableRef, cells.size(), result.size(), getMillis);
         }
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
-        Map<Cell, byte[]> filteredResult = Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
-        getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableRef)
-                .mark(result.size() - filteredResult.size());
-        return filteredResult;
+        return removeEmptyColumns(result, tableRef);
     }
 
     @Override
@@ -600,7 +601,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, byte[]> result = getFromKeyValueService(tableRef, cells);
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
 
-        return Maps.filterValues(result, Predicates.not(Value.IS_EMPTY));
+        return Maps.filterValues(result, Predicates.not(Value::isTombstone));
     }
 
     /**
@@ -882,19 +883,19 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 isReverse ? ordering.reverse() : ordering,
                 from -> RowResults.merge(from.lhSide, from.rhSide)); // prefer local writes
 
-        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(mergeIterators,
-                createFilterColumnValues(tableReference));
+        Iterator<RowResult<byte[]>> purgeDeleted = filterEmptyColumnsFromRows(mergeIterators, tableReference);
         return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
     }
 
-    private Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(TableReference tableReference) {
-        return unfilteredRow -> {
+    private Iterator<RowResult<byte[]>> filterEmptyColumnsFromRows(
+            Iterator<RowResult<byte[]>> unfilteredRows, TableReference tableReference) {
+        return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
-                    Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value.IS_EMPTY));
+                    Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
             getMeter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
                     .mark(unfilteredRow.getColumns().size() - filteredColumns.size());
             return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
-        };
+        });
     }
 
     private List<Entry<Cell, byte[]>> mergeInLocalWrites(
@@ -915,7 +916,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterator<Entry<Cell, byte[]>> mergeIterators) {
         List<Entry<Cell, byte[]>> mergedWritesWithoutEmptyValues = new ArrayList<>();
-        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value.IS_EMPTY),
+        Predicate<Entry<Cell, byte[]>> nonEmptyValuePredicate = Predicates.compose(Predicates.not(Value::isTombstone),
                 MapEntries.getValueFunction());
         long numEmptyValues = 0;
         while (mergeIterators.hasNext()) {
