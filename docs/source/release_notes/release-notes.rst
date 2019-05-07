@@ -98,6 +98,10 @@ develop
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
 
+    *    - |metrics| |improved|
+         - Client side tombstone filtering is now instrumented more exhaustively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3977>`__)
+
 ========
 v0.133.0
 ========
