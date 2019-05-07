@@ -15,7 +15,7 @@
  */
 package com.palantir.timelock.paxos;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -31,25 +31,25 @@ public class LeaderPingHealthCheckTest {
     @Test
     public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, true);
-        assertEquals(TimeLockStatus.MULTIPLE_LEADERS, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.MULTIPLE_LEADERS);
     }
 
     @Test
     public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, false);
-        assertEquals(TimeLockStatus.MULTIPLE_LEADERS, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.MULTIPLE_LEADERS);
     }
 
     @Test
     public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, false, false);
-        assertEquals(TimeLockStatus.ONE_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.ONE_LEADER);
     }
 
     @Test
     public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() {
         ImmutableSet<PingableLeader> leaders = getPingableLeaders(false, false, false);
-        assertEquals(TimeLockStatus.NO_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_LEADER);
     }
 
     @Test
@@ -58,7 +58,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-        assertEquals(TimeLockStatus.ONE_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.ONE_LEADER);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader2 = getMockOfPingableLeaderWherePingReturns(false);
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-        assertEquals(TimeLockStatus.NO_LEADER, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_LEADER);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader2 = getMockOfPingableLeaderWherePingThrows();
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-        assertEquals(TimeLockStatus.NO_QUORUM, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_QUORUM);
     }
 
     @Test
@@ -85,7 +85,7 @@ public class LeaderPingHealthCheckTest {
         PingableLeader leader2 = getMockOfPingableLeaderWherePingThrows();
         PingableLeader leader3 = getMockOfPingableLeaderWherePingThrows();
         ImmutableSet<PingableLeader> leaders = ImmutableSet.of(leader1, leader2, leader3);
-        assertEquals(TimeLockStatus.NO_QUORUM, new LeaderPingHealthCheck(leaders).getStatus());
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_QUORUM);
     }
 
     private static ImmutableSet<PingableLeader> getPingableLeaders(
