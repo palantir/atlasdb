@@ -387,8 +387,8 @@ public abstract class TransactionManagers {
                 .build(this::withOverwrittenGrabImmutableTsLockFlag);
 
         com.google.common.base.Supplier<TransactionConfig> transactionConfigSupplier = () -> {
-                TransactionConfig transactionConfig = runtimeConfigSupplier.get().transaction();
-                return transactionConfigLoadingCache.get(transactionConfig);
+            TransactionConfig transactionConfig = runtimeConfigSupplier.get().transaction();
+            return transactionConfigLoadingCache.get(transactionConfig);
         };
 
         TransactionManager transactionManager = initializeCloseable(
