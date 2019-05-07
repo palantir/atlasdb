@@ -61,7 +61,7 @@ public class TimeLockServerConfiguration extends Configuration {
         this.algorithm = MoreObjects.firstNonNull(algorithm, PaxosConfiguration.DEFAULT);
         this.cluster = cluster;
         this.clients = clients;
-        this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, false);
+        this.useClientRequestLimit = MoreObjects.firstNonNull(useClientRequestLimit, true);
         this.timeLimiterConfiguration =
                 MoreObjects.firstNonNull(timeLimiterConfiguration, TimeLimiterConfiguration.getDefaultConfiguration());
         this.tsBoundPersisterConfiguration = MoreObjects.firstNonNull(tsBoundPersisterConfiguration,
@@ -139,8 +139,8 @@ public class TimeLockServerConfiguration extends Configuration {
         Preconditions.checkState(serverFactory.getApplicationConnectors().get(0) instanceof HttpConnectorFactory,
                 "applicationConnectors of TimeLockServerConfiguration must have a HttpConnectorFactory instance.");
         HttpConnectorFactory connectorFactory = (HttpConnectorFactory) serverFactory.getApplicationConnectors().get(0);
-        int selectorThreads = connectorFactory.getSelectorThreads();
-        int acceptorThreads = connectorFactory.getAcceptorThreads();
+        int selectorThreads = connectorFactory.getSelectorThreads().orElse(1);
+        int acceptorThreads = connectorFactory.getAcceptorThreads().orElse(1);
 
         // TODO(gmaretic): consider reserving numClients more threads or something similar for unlocks
         return maxServerThreads - selectorThreads - acceptorThreads - 1;
