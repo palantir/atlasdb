@@ -193,6 +193,11 @@
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3978">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The Timelock Availability Health check should not timeout if we can’t reach other nodes. This should stop
+the health check firing erroneously.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3988">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosConfiguration</span></code>.
 <code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
 <code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
@@ -200,7 +205,7 @@
 These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">TimelockDeprecatedConfig</span></code> and <code class="docutils literal notranslate"><span class="pre">TimeLockServerConfiguration</span></code> have been removed.
 Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
 Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
@@ -208,39 +213,39 @@ Note that this requires converting your existing <code class="docutils literal n
 For an example of this conversion, refer to the PR below.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3971">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-changed">CHANGED</span></td>
 <td>All instrumentation AtlasDB metrics now use a <code class="docutils literal notranslate"><span class="pre">SlidingTimeWindowArrayReservoir</span></code>.
 Previously, they used an exponentially decaying reservoir.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3937">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Coordination service now only initiates one request to perpetuate the bound forward at a time.
 This should avoid unnecessarily many CAS operations taking place when we need to do this.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3953">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Coordination service now checks for semantic equality of <code class="docutils literal notranslate"><span class="pre">VersionedInternalSchemaMetadata</span></code> payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
 Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3954">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>We now close Cassandra clients properly when verifying that one’s Cassandra configuration makes sense.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3944">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>lock-api now declares a minimum dependency on timelock-server 0.59.0.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Usage metrics for the coordination store have been added.
 Users should provide a MetricsRegistry when creating their coordination services.
 Also, <code class="docutils literal notranslate"><span class="pre">CoordinationService.createDefault()</span></code> now handles instrumentation of both the coordination service and store.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Client side tombstone filtering is now instrumented more exhaustively.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3977">Pull Request</a>)</td>
 </tr>
