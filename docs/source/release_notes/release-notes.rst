@@ -61,6 +61,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3990>`__)
 
     *    - |improved|
+         - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
+           the health check firing erroneously.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3988>`__)
+
+    *    - |improved|
          - Changed the default values in ``PaxosConfiguration``.
            ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
            ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.

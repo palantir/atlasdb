@@ -15,38 +15,49 @@
  */
 package com.palantir.timelock.paxos;
 
-import java.util.Map;
+import java.time.Duration;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
 
+import com.google.common.collect.ImmutableList;
+import com.palantir.common.concurrent.NamedThreadFactory;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosResponses;
 import com.palantir.timelock.TimeLockStatus;
 
 public class LeaderPingHealthCheck {
-    private enum PingResult {
-        SUCCESS,
-        FAILURE,
-        EXCEPTION
-    }
 
-    private Set<PingableLeader> leaders;
+    private static final Duration HEALTH_CHECK_TIME_LIMIT = Duration.ofSeconds(7);
+
+    private final Set<PingableLeader> leaders;
+    private final ExecutorService executorService;
 
     public LeaderPingHealthCheck(Set<PingableLeader> leaders) {
         this.leaders = leaders;
+        this.executorService = PTExecutors.newFixedThreadPool(
+                leaders.size(),
+                new NamedThreadFactory("leader-ping-healthcheck", true));
     }
 
     public TimeLockStatus getStatus() {
-        Map<PingResult, Long> pingResults = leaders.stream()
-                .map(this::pingRecordingException)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        PaxosResponses<HealthCheckResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
+                ImmutableList.copyOf(leaders),
+                pingable -> new HealthCheckResponse(pingable.ping()),
+                getQuorumSize(),
+                executorService,
+                HEALTH_CHECK_TIME_LIMIT);
 
-        int nonExceptionResponses = leaders.size() - getCountPingResults(PingResult.EXCEPTION, pingResults);
-        if (nonExceptionResponses < getQuorumSize()) {
+        long numLeaders = responses.stream()
+                .filter(response -> response.result)
+                .count();
+
+        if (!responses.hasQuorum()) {
             return TimeLockStatus.NO_QUORUM;
         }
 
-        int numLeaders = getCountPingResults(PingResult.SUCCESS, pingResults);
         if (numLeaders == 1) {
             return TimeLockStatus.ONE_LEADER;
         } else if (numLeaders == 0) {
@@ -60,15 +71,18 @@ public class LeaderPingHealthCheck {
         return PaxosRemotingUtils.getQuorumSize(leaders);
     }
 
-    private int getCountPingResults(PingResult value, Map<PingResult, Long> pingResults) {
-        return Math.toIntExact(pingResults.getOrDefault(value, 0L));
-    }
+    private static final class HealthCheckResponse implements PaxosResponse {
 
-    private PingResult pingRecordingException(PingableLeader leader) {
-        try {
-            return leader.ping() ? PingResult.SUCCESS : PingResult.FAILURE;
-        } catch (Exception ex) {
-            return PingResult.EXCEPTION;
+        private final boolean result;
+
+        private HealthCheckResponse(boolean result) {
+            this.result = result;
+        }
+
+        @Override
+        public boolean isSuccessful() {
+            return true;
         }
     }
+
 }
