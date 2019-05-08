@@ -69,6 +69,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
  * in the sequence.
  */
 // TODO (jkong): Coordination stores should be able to clean up old values.
+// TODO (jkong): Split this class into 2 or more pieces as it's large.
 public final class KeyValueServiceCoordinationStore<T> implements CoordinationStore<T> {
     @VisibleForTesting
     class InitializingWrapper extends AsyncInitializer implements AutoDelegate_CoordinationStore<T> {
@@ -181,19 +182,15 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             if (!coordinationValue.isPresent()) {
                 return Optional.empty();
             }
-
-            // is present
             SequenceAndBound presentCoordinationValue = coordinationValue.get();
-            Optional<T> thing = getValue(presentCoordinationValue.sequence());
-            if (thing.isPresent()) {
+            Optional<T> value = getValue(presentCoordinationValue.sequence());
+            if (value.isPresent()) {
                 CoordinationStoreState<T> coordinationStoreState = CoordinationStoreState.of(
                         presentCoordinationValue.sequence(),
                         presentCoordinationValue.bound(),
-                        thing);
+                        value);
                 return Optional.of(coordinationStoreState);
             }
-
-            // deleted
             log.info("We read a value from the coordination store that seems to have been deleted, for sequence"
                             + " and bound {}. This may happen as a part of sweeping the coordination store. We will"
                             + " retry. This is acceptable, but if it persists and transactions are not making progress,"
@@ -367,7 +364,8 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
         return getCellForSequence(0);
     }
 
-    private Cell getCellForSequence(long sequenceNumber) {
+    @VisibleForTesting
+    Cell getCellForSequence(long sequenceNumber) {
         return Cell.create(coordinationRow, ValueType.VAR_LONG.convertFromJava(sequenceNumber));
     }
 
