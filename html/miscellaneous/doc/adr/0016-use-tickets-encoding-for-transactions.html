@@ -1,0 +1,534 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>16. Use the tickets encoding for the transactions table (_transactions2) &mdash; OSS AtlasDB develop documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/release-notes.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/theme_overrides.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="KeyValueService Status" href="../../kvs-status-check.html" />
+    <link rel="prev" title="15. Batch asynchronous post-transaction unlock calls" href="0015-batch-asynchronous-post-transaction-unlock-calls.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> OSS AtlasDB
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                develop
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../schemas/index.html">Schemas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../transactions/index.html">Transactions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration/index.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cluster_management/index.html">Cluster Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../performance/index.html">Performance Testing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Miscellaneous</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../asynchronous-initialization.html">Asynchronous Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../contributing.html">Contributing to AtlasDB</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Architecture Decision Records</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="0001-record-architecture-decisions.html">1. Record architecture decisions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0002-prevent-tables-from-being-creating-simultaneously-in-cassandra-via-a-locks-table.html">2. Prevent tables from being created simultaneously in cassandra via a locks table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0003-tagging-for-releases-and-long-term-support.html">3. Tagging for releases and long-term support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0004-create-schema-lock-table-via-a-one-off-cli-command.html">4. Create schema lock table via a one off CLI command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0005-stop-allowing-embedded-lock-and-timestamp-services-in-production.html">5. stop allowing embedded lock and timestamp services in production</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0006-create-schema-lock-table-using-configuration.html">6. Create schema lock table using configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0007-use-cql-for-column-paging-for-sweep.html">7. Use CQL for column paging for sweep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0008-add-heartbeat-for-schema-lock-holders.html">8. Adding Heartbeat for Schema Lock Holders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0009-load-and-read-streams-in-same-transaction.html">9. Load and Read Streams in the Same Transaction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0010-use-partial-row-complete-cell-batching-in-gettimestampsbycell.html">10. Use partial row complete cell batching in getTimestampsByCell</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0011-retry-long-running-locks-via-blockingtimeoutexception.html">11. Retry long-running locks via BlockingTimeoutException</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0012-batch-timestamp-requests-on-the-client-side.html">12. Batch timestamp requests on the client side</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0013-write-cassandra-tombstones-and-sentinels-with-a-fresh-cassandra-timestamp.html">13. Write Cassandra tombstones and sentinels with a fresh Cassandra timestamp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0014-targeted-sweep.html">14. Targeted Sweep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="0015-batch-asynchronous-post-transaction-unlock-calls.html">15. Batch asynchronous post-transaction unlock calls</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">16. Use the tickets encoding for the transactions table (_transactions2)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../kvs-status-check.html">KeyValueService Status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../dropwizard-metrics.html">AtlasDB Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting/index.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes/index.html">Releases</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">OSS AtlasDB</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Miscellaneous</a> &raquo;</li>
+        
+          <li><a href="index.html">Architecture Decision Records</a> &raquo;</li>
+        
+      <li>16. Use the tickets encoding for the transactions table (_transactions2)</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            
+              <a href="https://github.com/palantir/atlasdb/blob/develop/docs/source/miscellaneous/doc/adr/0016-use-tickets-encoding-for-transactions.md" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="use-the-tickets-encoding-for-the-transactions-table-transactions2">
+<h1>16. Use the tickets encoding for the transactions table (_transactions2)<a class="headerlink" href="#use-the-tickets-encoding-for-the-transactions-table-transactions2" title="Permalink to this headline">¶</a></h1>
+<p>Date: 05/04/2019</p>
+<div class="section" id="status">
+<h2>Status<a class="headerlink" href="#status" title="Permalink to this headline">¶</a></h2>
+<p>Technical decision has been accepted.
+This architectural decision record is still a work in progress.</p>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="the-transactions-table-in-atlasdb">
+<h3>The Transactions Table in AtlasDB<a class="headerlink" href="#the-transactions-table-in-atlasdb" title="Permalink to this headline">¶</a></h3>
+<p>In AtlasDB, the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> table keeps track of whether a transaction that had started at a given timestamp
+was committed or aborted (and in the case of it being committed, its commit timestamp). Logically, this table is a
+mapping of longs to longs, with a special value of <code class="docutils literal notranslate"><span class="pre">-1</span></code> meaning that the transaction was aborted. Transactions that
+are in-flight and have yet to either commit or abort will not have an entry in the table.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">startTimestamp</span> <span class="o">|</span> <span class="n">commitTimestamp</span> <span class="o">|</span>
+<span class="o">|</span>             <span class="mi">20</span> <span class="o">|</span>              <span class="mi">33</span> <span class="o">|</span>
+<span class="o">|</span>             <span class="mi">28</span> <span class="o">|</span>              <span class="mi">42</span> <span class="o">|</span>
+<span class="o">|</span>             <span class="mi">37</span> <span class="o">|</span>              <span class="o">-</span><span class="mi">1</span> <span class="o">|</span>
+<span class="o">|</span>        <span class="mi">3141592</span> <span class="o">|</span>         <span class="mi">3141595</span> <span class="o">|</span>
+</pre></div>
+</div>
+<p>This table is accessed via the <code class="docutils literal notranslate"><span class="pre">TransactionService</span></code> class in AtlasDB, which offers a simple interface:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">TransactionService</span> <span class="o">{</span>
+    <span class="nd">@CheckForNull</span>
+    <span class="n">Long</span> <span class="nf">get</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">);</span>
+
+    <span class="n">Map</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">,</span> <span class="n">Long</span><span class="o">&gt;</span> <span class="nf">get</span><span class="o">(</span><span class="n">Iterable</span><span class="o">&lt;</span><span class="n">Long</span><span class="o">&gt;</span> <span class="n">startTimestamps</span><span class="o">);</span>
+
+    <span class="kt">void</span> <span class="nf">putUnlessExists</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">,</span> <span class="kt">long</span> <span class="n">commitTimestamp</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">KeyAlreadyExistsException</span><span class="o">;</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>In practice, calling both the single and multi-timestamp versions of <code class="docutils literal notranslate"><span class="pre">get</span></code> may read from this table, though
+non-null results may be cached. <code class="docutils literal notranslate"><span class="pre">putUnlessExists</span></code> performs a put-unless-exists operation to the table - this
+is supported by means of a Thrift <code class="docutils literal notranslate"><span class="pre">cas</span></code> call for Cassandra KVS, and by <code class="docutils literal notranslate"><span class="pre">INSERT</span> <span class="pre">...</span> <span class="pre">IF</span> <span class="pre">NOT</span> <span class="pre">EXISTS</span></code> SQL statements
+in relational KVSes.</p>
+</div>
+<div class="section" id="physical-representation-in-cassandra">
+<h3>Physical Representation in Cassandra<a class="headerlink" href="#physical-representation-in-cassandra" title="Permalink to this headline">¶</a></h3>
+<p>All AtlasDB tables have a similar schema in Cassandra:</p>
+<ul class="simple">
+<li>there is a blob partition key used to store rows, called the <code class="docutils literal notranslate"><span class="pre">key</span></code></li>
+<li>the clustering key has two more components:<ul>
+<li>a blob for columns, called <code class="docutils literal notranslate"><span class="pre">column1</span></code></li>
+<li>a big-integer for the timestamp, called <code class="docutils literal notranslate"><span class="pre">column2</span></code></li>
+</ul>
+</li>
+<li>blob values.</li>
+</ul>
+<p>In the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> table, <code class="docutils literal notranslate"><span class="pre">column1</span></code> is always a single byte corresponding to the string <code class="docutils literal notranslate"><span class="pre">t</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">column2</span></code> is a special value of <code class="docutils literal notranslate"><span class="pre">-1</span></code>. In practice, we don’t pay much attention to these values.
+More interestingly, the <code class="docutils literal notranslate"><span class="pre">key</span></code> is a VAR_LONG encoding of the start timestamp, and the <code class="docutils literal notranslate"><span class="pre">value</span></code>
+is similarly a VAR_LONG encoding of the commit timestamp.</p>
+<p>The Cassandra representation of the <code class="docutils literal notranslate"><span class="pre">_transactions</span></code> table introduced above may look as follows.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>        <span class="n">key</span> <span class="o">|</span> <span class="n">column1</span> <span class="o">|</span> <span class="n">column2</span> <span class="o">|</span>                  <span class="n">value</span> <span class="o">|</span>
+<span class="o">|</span>       <span class="mh">0x14</span> <span class="o">|</span>    <span class="mh">0x74</span> <span class="o">|</span>      <span class="o">-</span><span class="mi">1</span> <span class="o">|</span>                   <span class="mh">0x21</span> <span class="o">|</span>
+<span class="o">|</span>       <span class="mh">0x1c</span> <span class="o">|</span>    <span class="mh">0x74</span> <span class="o">|</span>      <span class="o">-</span><span class="mi">1</span> <span class="o">|</span>                   <span class="mh">0x2a</span> <span class="o">|</span>
+<span class="o">|</span>       <span class="mh">0x25</span> <span class="o">|</span>    <span class="mh">0x74</span> <span class="o">|</span>      <span class="o">-</span><span class="mi">1</span> <span class="o">|</span> <span class="mh">0xff80ffffffffffffffff</span> <span class="o">|</span>
+<span class="o">|</span> <span class="mh">0xe02fefd8</span> <span class="o">|</span>    <span class="mh">0x74</span> <span class="o">|</span>      <span class="o">-</span><span class="mi">1</span> <span class="o">|</span>             <span class="mh">0xe02fefdb</span> <span class="o">|</span>
+</pre></div>
+</div>
+<p>The details of VAR_LONG encoding are fiddly, but it exhibits several desirable properties:</p>
+<ol class="simple">
+<li>VAR_LONG encoding is order-preserving over non-negative numbers; that is, if 0 &lt;= ts1 &lt; ts2
+then VAR_LONG(ts1) &lt; VAR_LONG(ts2) and vice versa. This is significant, because it allows one to perform
+range scans of the transactions table (given that timestamps in Atlas are positive longs) in a straightforward
+way.</li>
+<li>VAR_LONG encoding supports negative numbers, meaning that we can use the same encoding for both positive timestamps
+(for transactions that successfully committed) and <code class="docutils literal notranslate"><span class="pre">-1</span></code> (for transactions that were aborted).</li>
+</ol>
+<p>However, our choice of encoding also has some issues. Two particularly relevant ones are as follows:</p>
+<ol class="simple">
+<li>Under VAR_LONG encoding, numbers that are near to each other numerically will also be very close in byte-space
+(notice that the encoded forms of 3141592 and 3141595 only differ in their three lowest-order bits). Furthermore,
+most writes to the transactions table will take place at numbers that are numerically close, because these
+correspond to actively running transactions, and thus at keys that are close in byte-space. Considering that
+Cassandra uses consistent hashing to handle data partitioning, at any given point in time the majority of writes
+to the cluster will end up going to the same node (‘hot-spotting’). This is undesirable, because we lose
+horizontal scalability; writes are bottlenecked on a single node regardless of the size of the cluster.</li>
+<li>VAR_LONG encoding is not particularly efficient for our purposes in that it fails to exploit some characteristics
+of the distribution of our data. In particular:<ol>
+<li>The special value <code class="docutils literal notranslate"><span class="pre">-1</span></code> is particularly large; under VAR_LONG encoding, negative longs will always encode to 10
+bytes.</li>
+<li>Storing the full value of the commit timestamp is also wasteful, given that we know that it is generally slightly
+higher than the value of the start timestamp.</li>
+</ol>
+</li>
+</ol>
+</div>
+<div class="section" id="principles-for-a-good-transaction-service">
+<h3>Principles for a Good Transaction Service<a class="headerlink" href="#principles-for-a-good-transaction-service" title="Permalink to this headline">¶</a></h3>
+<p>We thus define three principles that we can use to help guide our decisions as to what makes an implementation of
+a transaction service a good one.</p>
+<ol class="simple">
+<li><strong>Horizontal Scalability (HS)</strong>: A good transactions service must be horizontally scalable; that is, it should be
+possible to increase write bandwidth by increasing the number of database nodes and/or service nodes that are
+performing writing.</li>
+<li><strong>Compact Representation (CR)</strong>: A good transactions service does not unnecessarily use excessive disk space.
+In addition to saving on disk usage, having a compact representation also improves the ability for query results to
+be cached in memory, and can improve time taken to execute queries if less data needs to be read through from disk.</li>
+<li><strong>Range Scans (RS)</strong>: A good transactions service supports range scans (without needing to read the entire table
+and post-filter it). This is used in various backup and restore workflows in AtlasDB, and it is important that we
+are able to execute restores in a timely fashion.</li>
+<li><strong>Reasonable Usage Patterns (RUP)</strong>: A good transactions service, if using an underlying service, must follow
+standard principles as to what constitutes a reasonable usage pattern of the underlying service.</li>
+</ol>
+</div>
+</div>
+<div class="section" id="decision">
+<h2>Decision<a class="headerlink" href="#decision" title="Permalink to this headline">¶</a></h2>
+<p>Implement the tickets encoding strategy, along with other features needed to support its efficient operation.
+The strategy and supporting features will be introduced in the following sections.</p>
+<div class="section" id="tickets-encoding-strategy-logical-overview">
+<h3>Tickets Encoding Strategy: Logical Overview<a class="headerlink" href="#tickets-encoding-strategy-logical-overview" title="Permalink to this headline">¶</a></h3>
+<p>We divide the domain of positive longs into disjoint <em>partitions</em> of constant size - we call the size the
+<em>partitioning quantum</em> (PQ). These partitions are contiguous ranges that start at a multiple of PQ - thus, the first
+partition consists of timestamps from 0 to PQ - 1, the second from PQ to 2 * PQ - 1 and so on.</p>
+<p>We assign a constant number of rows to a partition (NP), and seek to distribute start timestamps as evenly as possible
+among these NP rows as numbers increase. In practice, the least significant bits of the timestamp will be used as
+the row number; we would thus store the value associated with the timestamps k, NP + k, 2NP + k and so on in the same
+row, for a given partition and value of k in the interval [0, NP). To disambiguate between these timestamps, we use
+dynamic column keys - we can use a VAR_LONG encoding of the timestamp’s offset relative to the base.</p>
+<p>More formally, for a given timestamp TS, we proceed as follows (where / denotes integer division):</p>
+<ul class="simple">
+<li>we identify which row R TS belongs to; this is given by (TS / PQ) * NP + (TS % PQ) % NP.</li>
+<li>we identify the column C TS belongs to; this is given by (TS % PQ) / NP.</li>
+</ul>
+<p>Notice that given R and C, we can similarly decode the original TS:</p>
+<ul class="simple">
+<li>we identify the relevant partition P; this is given by R / NP.</li>
+<li>we identify the offset from the column key, O1; this is given by C * NP.</li>
+<li>we identify the offset from the second part of the row key, O2; this is given by R % NP.</li>
+<li>the original timestamp is then P * PQ + O1 + O2.</li>
+</ul>
+<p>It may be easier to think of the timestamp being written as a 3-tuple (P, O1, O2), where the row component is the
+pair (P, O2) and the column key is O1; if NP divides PQ, then there is a bijection between such 3-tuples where O2 ranges
+from 0 to NP (exclusive), and O1 ranges from 0 to PQ / NP (exclusive). Furthermore, this bijection is order-preserving
+where ordering over the 3-tuples is interpreted lexicographically.</p>
+<p>This diagram should illustrate more clearly how this works, for PQ = 1,000,000 and NP = 100.</p>
+<p><img alt="../../../_images/0016-tickets-encoding.png" src="../../../_images/0016-tickets-encoding.png" />Illustration of the tickets encoding strategy</p>
+</div>
+<div class="section" id="physical-implementation-of-tickets">
+<h3>Physical Implementation of Tickets<a class="headerlink" href="#physical-implementation-of-tickets" title="Permalink to this headline">¶</a></h3>
+<p>We store information about transactions committed under the new encoding scheme in the <code class="docutils literal notranslate"><span class="pre">_transactions2</span></code> table in
+Cassandra.
+Given that we want to avoid hot-spotting and ensure horizontal scalability, we need to ensure that the rows we may
+be writing data to are distributed differently in byte-space. We thus reverse the bits of each row before encoding it.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kd">private</span> <span class="kd">static</span> <span class="kt">byte</span><span class="o">[]</span> <span class="nf">encodeRowName</span><span class="o">(</span><span class="kt">long</span> <span class="n">startTimestamp</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">long</span> <span class="n">row</span> <span class="o">=</span> <span class="o">(</span><span class="n">startTimestamp</span> <span class="o">/</span> <span class="n">PARTITIONING_QUANTUM</span><span class="o">)</span> <span class="o">*</span> <span class="n">ROWS_PER_QUANTUM</span>
+            <span class="o">+</span> <span class="o">(</span><span class="n">startTimestamp</span> <span class="o">%</span> <span class="n">PARTITIONING_QUANTUM</span><span class="o">)</span> <span class="o">%</span> <span class="n">ROWS_PER_QUANTUM</span><span class="o">;</span>
+    <span class="k">return</span> <span class="n">PtBytes</span><span class="o">.</span><span class="na">toBytes</span><span class="o">(</span><span class="n">Long</span><span class="o">.</span><span class="na">reverse</span><span class="o">(</span><span class="n">row</span><span class="o">));</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+<p>We are using a fixed-long encoding here, which uses a constant 8 bytes (instead of variable between 1 and 9). This was
+chosen to ensure that range scans are supported, as the reversed forms of variable length encodings tend to not be
+amenable to range scans.</p>
+<p>For the dynamic column keys, we simply use VAR_LONG encoding.</p>
+<p>We changed the encoding of values as well. For transactions that successfully committed, we used a delta encoding
+scheme instead, where we take the VAR_LONG of the difference between the commit and start timestamps, which is
+typically a small positive number. This helps to keep the size of the table down. Separately, for transactions that
+were aborted, we store an empty byte array as our special value instead of a negative number, because that is
+unnecessarily large.</p>
+</div>
+<div class="section" id="choosing-pq-and-np">
+<h3>Choosing PQ and NP<a class="headerlink" href="#choosing-pq-and-np" title="Permalink to this headline">¶</a></h3>
+<p>We choose values of PQ and NP based on characteristics of the key-value-service in which we are storing the timestamp
+data, recalling principle RUP. To simplify the discussion in this section, we assume NP divides PQ.</p>
+<p>For Cassandra, following the Atlas team’s recommended Cassandra best practices, we seek to bound the size of an
+individual row by 100 MB. Considering that a VAR_LONG takes at most 9 bytes for positive integers, and we
+can explicitly use an empty byte array to represent a transaction that failed to commit, we can estimate the
+maximum size of a row for a given choice of values of PQ and NP.</p>
+<p>Notice that the number of timestamps we actually need to store is given by PQ / NP (since each of the rows in the
+partition is different). For a given start/commit timestamp pair, the row key occupies 8 bytes; that said, in SSTables
+the row key only needs to be represented once. We thus focus on the column keys and values.</p>
+<p>The column key is a VAR_LONG encoded number that is bounded by PQ / NP, as that’s the largest offset we might actually
+store. The value theoretically could go up to a full 9 bytes for a large positive number, though in practice is likely
+to be considerably smaller.</p>
+<p>We selected values of PQ = 25,000,000 and NP = 16. Under this configuration, each row stores at most 1,562,500
+start-commit timestamp pairs. Thus, the numbers for the rows only go up to 1,562,500, and VAR_LONG encoding is able
+to represent these within 3 bytes. We do need to account for a bit more space as Cassandra needs to create a
+composite buffer to include the <code class="docutils literal notranslate"><span class="pre">column2</span></code> part of our physical row, but this should not take more than an additional
+9 bytes. We thus have 12 bytes for the column key and 9 bytes for the value, leading to a total of 21 bytes per
+start-commit timestamp pair. Each row is then bounded by about 32.04 MB, which leaves us quite a bit of headroom.</p>
+<p>It is worth mentioning that in practice, for implementation reasons it is very unlikely that we have a full 1,562,500
+start-commit timestamp pairs in a single row, and in practice values are likely to be only 2 or 3 bytes rather than
+9 bytes. In any case, even under these adverse circumstances we still avoid generating excessively wide rows.</p>
+</div>
+<div class="section" id="streamlining-putunlessexists">
+<h3>Streamlining putUnlessExists<a class="headerlink" href="#streamlining-putunlessexists" title="Permalink to this headline">¶</a></h3>
+<p>The putUnlessExists operation is performed at a serial consistency level in Cassandra, meaning that reads and writes
+go through Paxos for consensus. Thrift exposes a check-and-set operation on its APIs.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">CASResult</span> <span class="n">cas</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">required</span> <span class="n">binary</span> <span class="n">key</span><span class="p">,</span>
+                <span class="mi">2</span><span class="p">:</span><span class="n">required</span> <span class="n">string</span> <span class="n">column_family</span><span class="p">,</span>
+                <span class="mi">3</span><span class="p">:</span><span class="nb">list</span><span class="o">&lt;</span><span class="n">Column</span><span class="o">&gt;</span> <span class="n">expected</span><span class="p">,</span>
+                <span class="mi">4</span><span class="p">:</span><span class="nb">list</span><span class="o">&lt;</span><span class="n">Column</span><span class="o">&gt;</span> <span class="n">updates</span><span class="p">,</span>
+                <span class="mi">5</span><span class="p">:</span><span class="n">required</span> <span class="n">ConsistencyLevel</span> <span class="n">serial_consistency_level</span><span class="o">=</span><span class="n">ConsistencyLevel</span><span class="o">.</span><span class="n">SERIAL</span><span class="p">,</span>
+                <span class="mi">6</span><span class="p">:</span><span class="n">required</span> <span class="n">ConsistencyLevel</span> <span class="n">commit_consistency_level</span><span class="o">=</span><span class="n">ConsistencyLevel</span><span class="o">.</span><span class="n">QUORUM</span><span class="p">)</span>
+       <span class="n">throws</span> <span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">InvalidRequestException</span> <span class="n">ire</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="n">UnavailableException</span> <span class="n">ue</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="n">TimedOutException</span> <span class="n">te</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This was sufficient in the original transactions schema, because each row key only stores information about one
+start timestamp; a putUnlessExists operation is then a CAS from an empty row to a row that has one column.
+However, notice that this is not sufficient for transactions2, because each row may contain data about multiple start
+timestamps. This API requires us to provide a list of the old columns, and we don’t know that beforehand.</p>
+<p>We considered alternatives of reading the existing row and then adding the new columns, or using the CQL API, because
+the behaviour of INSERT IF NOT EXISTS for columns matches the semantics we want. However, both of these solutions were
+found to have unacceptable performance in benchmarking.</p>
+<p>We thus decided to extend the Thrift interface to add support for a multi-column put-unless-exists operation that
+has the semantics we want. This is different from CAS from an empty list, in that this succeeds as long as any of
+the existing columns in the column family for the provided key do not overlap with the set of columns being added.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>  <span class="n">CASResult</span> <span class="n">put_unless_exists</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">required</span> <span class="n">binary</span> <span class="n">key</span><span class="p">,</span>
+                              <span class="mi">2</span><span class="p">:</span><span class="n">required</span> <span class="n">string</span> <span class="n">column_family</span><span class="p">,</span>
+                              <span class="mi">3</span><span class="p">:</span><span class="nb">list</span><span class="o">&lt;</span><span class="n">Column</span><span class="o">&gt;</span> <span class="n">updates</span><span class="p">,</span>
+                              <span class="mi">4</span><span class="p">:</span><span class="n">required</span> <span class="n">ConsistencyLevel</span> <span class="n">serial_consistency_level</span><span class="o">=</span><span class="n">ConsistencyLevel</span><span class="o">.</span><span class="n">SERIAL</span><span class="p">,</span>
+                              <span class="mi">5</span><span class="p">:</span><span class="n">required</span> <span class="n">ConsistencyLevel</span> <span class="n">commit_consistency_level</span><span class="o">=</span><span class="n">ConsistencyLevel</span><span class="o">.</span><span class="n">QUORUM</span><span class="p">)</span>
+       <span class="n">throws</span> <span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">InvalidRequestException</span> <span class="n">ire</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="n">UnavailableException</span> <span class="n">ue</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="n">TimedOutException</span> <span class="n">te</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="multinode-contention-and-residues">
+<h4>Multinode Contention and Residues<a class="headerlink" href="#multinode-contention-and-residues" title="Permalink to this headline">¶</a></h4>
+<p>This is an improvement, but still runs into issues when clients (whether across multiple service nodes or on the same
+node) issue multiple requests in parallel, because each put_unless_exists request requires a round of Paxos. Cassandra
+maintains Paxos sequences at the level of a partition (key), so these requests would contend as far as Paxos is
+concerned, even if the columns are actually disjoint. Internally, Cassandra nodes are trying to apply updates to the
+partition; whether these updates are applied and the order in which they take place is agreed on using Paxos.
+Although the nodes will be OK with accepting multiple proposals if they don’t conflict, only one round of consensus
+can be committed at a time (since updates are conditional). Also, Cassandra uses a leaderless implementation of
+Paxos, meaning that the ‘dueling proposers’ issue might slow an individual round of the protocol down if multiple nodes
+are trying to concurrently propose values.</p>
+<p>Batching requests on the client side for each partition could be useful, though that is still limited in that
+performance would be poor for services with many nodes.</p>
+</div>
+</div>
+<div class="section" id="cassandra-table-tuning">
+<h3>Cassandra Table Tuning<a class="headerlink" href="#cassandra-table-tuning" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="bloom-filters">
+<h4>Bloom Filters<a class="headerlink" href="#bloom-filters" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="index-intervals">
+<h4>Index Intervals<a class="headerlink" href="#index-intervals" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="compression-chunk-length">
+<h4>Compression Chunk Length<a class="headerlink" href="#compression-chunk-length" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+<div class="section" id="cell-loader-v2">
+<h3>Cell Loader V2<a class="headerlink" href="#cell-loader-v2" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="live-migrations-and-the-coordination-service">
+<h3>Live Migrations and the Coordination Service<a class="headerlink" href="#live-migrations-and-the-coordination-service" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="consequences">
+<h2>Consequences<a class="headerlink" href="#consequences" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="write-performance">
+<h3>Write Performance<a class="headerlink" href="#write-performance" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="read-performance">
+<h3>Read Performance<a class="headerlink" href="#read-performance" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="data-compression">
+<h3>Data Compression<a class="headerlink" href="#data-compression" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="backup-and-restore">
+<h3>Backup and Restore<a class="headerlink" href="#backup-and-restore" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="cassandra-dependencies">
+<h3>Cassandra Dependencies<a class="headerlink" href="#cassandra-dependencies" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="alternatives-considered">
+<h2>Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="use-timelock-other-paxos-mechanism-for-transactions">
+<h3>Use TimeLock / other Paxos mechanism for transactions<a class="headerlink" href="#use-timelock-other-paxos-mechanism-for-transactions" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="the-row-tickets-algorithm">
+<h3>The Row-Tickets Algorithm<a class="headerlink" href="#the-row-tickets-algorithm" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="future-work">
+<h2>Future Work<a class="headerlink" href="#future-work" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="dbkvs-and-transactions2">
+<h3>DbKVS and Transactions2<a class="headerlink" href="#dbkvs-and-transactions2" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../../kvs-status-check.html" class="btn btn-neutral float-right" title="KeyValueService Status" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="0015-batch-asynchronous-post-transaction-unlock-calls.html" class="btn btn-neutral float-left" title="15. Batch asynchronous post-transaction unlock calls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Palantir Technologies
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
