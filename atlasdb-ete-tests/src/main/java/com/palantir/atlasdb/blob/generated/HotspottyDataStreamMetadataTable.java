@@ -15,6 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Generated;
@@ -23,7 +24,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ComparisonChain;
@@ -681,5 +681,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "oe90c1XfQ57B56r5/IE91g==";
+    static String __CLASS_HASH = "QaDIw4TvnUyZVmKnezbWCg==";
 }
