@@ -55,6 +55,12 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
 
     *    - |improved|
+         - The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
+           This is necessary for supporting cleanup of the coordination store.
+           Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3990>`__)
+
+    *    - |improved|
          - Changed the default values in ``PaxosConfiguration``.
            ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
            ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
