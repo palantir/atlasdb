@@ -50,10 +50,30 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Replaced all usages of guava Supplier by java Supplier.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
+
+    *    - |improved|
+         - Changed the default values in ``PaxosConfiguration``.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3943>`__)
+
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3971>`__)
+
     *    - |metrics| |changed|
          - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
            Previously, they used an exponentially decaying reservoir.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/????>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3937>`__)
 
     *    - |improved|
          - Coordination service now only initiates one request to perpetuate the bound forward at a time.
@@ -81,6 +101,10 @@ develop
 
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
+
+    *    - |metrics| |improved|
+         - Client side tombstone filtering is now instrumented more exhaustively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3977>`__)
 
 ========
 v0.133.0

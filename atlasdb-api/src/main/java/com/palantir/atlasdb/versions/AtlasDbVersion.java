@@ -20,8 +20,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.io.CharStreams;
 
@@ -33,7 +33,7 @@ public final class AtlasDbVersion {
 
     private static volatile boolean versionPrinted = false;
 
-    private static final Supplier<String> version = Suppliers.memoize(() -> readVersion());
+    private static final Supplier<String> version = Suppliers.memoize(AtlasDbVersion::readVersion);
 
     private AtlasDbVersion() {
         // static class

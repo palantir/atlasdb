@@ -74,19 +74,8 @@ public class RowResults {
         return row -> RowResult.create(row.getRowName(), Maps.filterKeys(row.getColumns(), keepColumn));
     }
 
-    public static Function<RowResult<byte[]>, RowResult<byte[]>> createFilterColumnValues(
-            final Predicate<byte[]> keepValue) {
-        return row -> RowResult.create(row.getRowName(), Maps.filterValues(row.getColumns(), keepValue));
-    }
-
     public static <T, U> Function<RowResult<T>, RowResult<U>> transformValues(final Function<T, U> transform) {
         return row -> RowResult.create(row.getRowName(), Maps.transformValues(row.getColumns(), transform));
-    }
-
-    public static Iterator<RowResult<byte[]>> filterDeletedColumnsAndEmptyRows(final Iterator<RowResult<byte[]>> it) {
-        Iterator<RowResult<byte[]>> purgeDeleted = Iterators.transform(it,
-                createFilterColumnValues(Predicates.not(Value.IS_EMPTY)));
-        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
     }
 
     public static <T> RowResult<T> merge(RowResult<T> base, RowResult<T> overwrite) {
