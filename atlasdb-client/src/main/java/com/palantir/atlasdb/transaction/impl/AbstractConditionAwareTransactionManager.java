@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
+
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
