@@ -152,9 +152,26 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
     // some caching.
     @Override
     public Optional<ValueAndBound<T>> getAgreedValue() {
-        return getCoordinationValue()
-                .map(sequenceAndBound -> ValueAndBound.of(
-                        getValue(sequenceAndBound.sequence()), sequenceAndBound.bound()));
+        while (true) {
+            Optional<SequenceAndBound> coordinationValue = getCoordinationValue();
+            if (!coordinationValue.isPresent()) {
+                return Optional.empty();
+            }
+
+            // is present
+            SequenceAndBound presentCoordinationValue = coordinationValue.get();
+            Optional<T> thing = getValue(presentCoordinationValue.sequence());
+            if (thing.isPresent()) {
+                return Optional.of(ValueAndBound.of(thing, presentCoordinationValue.bound()));
+            }
+
+            // deleted
+            log.info("We read a value from the coordination store that seems to have been deleted, for sequence"
+                            + " and bound {}. This may happen as a part of sweeping the coordination store. We will"
+                            + " retry. This is acceptable, but if it persists and transactions are not making progress,"
+                            + " please contact support.",
+                    SafeArg.of("sequenceAndBound", presentCoordinationValue));
+        }
     }
 
     /**
