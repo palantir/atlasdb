@@ -116,6 +116,10 @@ develop
            enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature. 
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3987>`__)
 
+    *    - |new|
+         - Setting ``lockImmutableTsOnReadOnlyTransactions()`` to ``true`` disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
+
 ========
 v0.133.0
 ========
