@@ -39,12 +39,12 @@ public class ColumnRangeSelection implements Serializable {
     @JsonCreator
     public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
                                 @JsonProperty("endCol") byte[] endCol) {
-        Preconditions.checkArgument(isValidRange(startCol, endCol),
+        this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
+        this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
+        Preconditions.checkArgument(isValidRange(this.startCol, this.endCol),
                 "Start and end columns (%s, %s respectively) do not form a valid range.",
                 startCol,
                 endCol);
-        this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
-        this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     public byte[] getStartCol() {
