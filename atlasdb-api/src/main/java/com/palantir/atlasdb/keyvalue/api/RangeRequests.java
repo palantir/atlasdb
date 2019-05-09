@@ -202,13 +202,13 @@ public final class RangeRequests {
         }
     }
 
-    static boolean isRangeNonemptyAndContiguous(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
+    public static boolean isValidRange(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
         if (startInclusive.length == 0 || endExclusive.length == 0) {
-            return false;
+            return true;
         }
         if (reverse) {
-            return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) < 0;
+            return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
         }
-        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) > 0;
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) <= 0;
     }
 }

@@ -91,6 +91,6 @@ public class ColumnRangeSelection implements Serializable {
     }
 
     private boolean isValidRange(byte[] startCol, byte[] endCol) {
-        return RangeRequests.isRangeNonemptyAndContiguous(false, startCol, endCol);
+        return RangeRequests.isValidRange(false, startCol, endCol);
     }
 }
