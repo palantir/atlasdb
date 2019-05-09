@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -108,6 +110,8 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
@@ -184,6 +188,11 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean validateLocksOnReads() {
         return true;
+    }
+
+    @Value.Default
+    boolean lockImmutableTsOnReadOnlyTransactions() {
+        return false;
     }
 
     abstract String userAgent();
@@ -373,6 +382,10 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
+        Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
+                () -> runtimeConfigSupplier.get().transaction(),
+                this::withConsolidatedGrabImmutableTsLockFlag);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
                         metricsManager,
@@ -397,7 +410,7 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
-                        () -> runtimeConfigSupplier.get().transaction()),
+                        transactionConfigSupplier),
                 closeables);
 
         TransactionManager instrumentedTransactionManager =
@@ -437,6 +450,14 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    @VisibleForTesting
+    TransactionConfig withConsolidatedGrabImmutableTsLockFlag(TransactionConfig transactionConfig) {
+        return ImmutableTransactionConfig.copyOf(transactionConfig)
+                .withLockImmutableTsOnReadOnlyTransactions(lockImmutableTsOnReadOnlyTransactions()
+                        || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
+
     }
 
     private boolean targetedSweepIsFullyEnabled() {
@@ -1002,6 +1023,34 @@ public abstract class TransactionManagers {
                 config.conservativeThreads(),
                 config.thoroughThreads(),
                 ImmutableList.of(follower));
+    }
+
+    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
+        private final Function<T, R> function;
+        private final Supplier<T> supplier;
+
+        private volatile T lastKey;
+        private R cached;
+
+        MemoizedComposedSupplier(Supplier<T> supplier, Function<T, R> function) {
+            this.function = function;
+            this.supplier = supplier;
+        }
+
+        public R get() {
+            if (!Objects.equals(lastKey, supplier.get())) {
+                recompute();
+            }
+            return cached;
+        }
+
+        private synchronized void recompute() {
+            T freshKey = supplier.get();
+            if (!Objects.equals(lastKey, freshKey)) {
+                lastKey = freshKey;
+                cached = function.apply(lastKey);
+            }
+        }
     }
 
     @Value.Immutable
