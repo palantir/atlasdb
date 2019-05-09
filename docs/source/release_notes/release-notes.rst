@@ -55,6 +55,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
 
     *    - |improved|
+         - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
+           Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
+
+    *    - |improved|
          - The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
            This is necessary for supporting cleanup of the coordination store.
            Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
