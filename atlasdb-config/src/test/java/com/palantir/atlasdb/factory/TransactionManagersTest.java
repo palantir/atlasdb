@@ -373,6 +373,25 @@ public class TransactionManagersTest {
                 .lockImmutableTsOnReadOnlyTransactions(), is(false));
     }
 
+    @Test
+    public void useRuntimeConfigFlagIfBuilderOptionIsSetToFalse() {
+        TransactionConfig transactionConfigLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(true)
+                .build();
+
+        TransactionConfig transactionConfigNotLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(false)
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
     private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
