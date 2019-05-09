@@ -50,10 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |devbreak|
-         - Replaced all usages of guava Supplier by java Supplier.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
-
     *    - |improved|
          - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
            the health check firing erroneously.
