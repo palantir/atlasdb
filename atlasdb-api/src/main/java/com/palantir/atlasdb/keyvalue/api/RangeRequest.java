@@ -358,14 +358,7 @@ public final class RangeRequest implements Serializable {
         }
 
         public boolean isInvalidRange() {
-            if (startInclusive.length == 0 || endExclusive.length == 0) {
-                return false;
-            }
-            if (reverse) {
-                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) < 0;
-            } else {
-                return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) > 0;
-            }
+            return RangeRequests.isRangeNonemptyAndContiguous(false, startInclusive, endExclusive);
         }
 
         public RangeRequest build() {

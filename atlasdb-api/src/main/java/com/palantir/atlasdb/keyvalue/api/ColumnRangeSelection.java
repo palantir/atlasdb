@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 
@@ -38,6 +39,10 @@ public class ColumnRangeSelection implements Serializable {
     @JsonCreator
     public ColumnRangeSelection(@JsonProperty("startCol") byte[] startCol,
                                 @JsonProperty("endCol") byte[] endCol) {
+        Preconditions.checkArgument(isValidRange(startCol, endCol),
+                "Start and end columns (%s, %s respectively) do not form a valid range.",
+                startCol,
+                endCol);
         this.startCol = MoreObjects.firstNonNull(startCol, PtBytes.EMPTY_BYTE_ARRAY);
         this.endCol = MoreObjects.firstNonNull(endCol, PtBytes.EMPTY_BYTE_ARRAY);
     }
@@ -83,5 +88,9 @@ public class ColumnRangeSelection implements Serializable {
         String start = PtBytes.encodeBase64String(startCol);
         String end = PtBytes.encodeBase64String(endCol);
         return Joiner.on(',').join(ImmutableList.of(start, end));
+    }
+
+    private boolean isValidRange(byte[] startCol, byte[] endCol) {
+        return RangeRequests.isRangeNonemptyAndContiguous(false, startCol, endCol);
     }
 }
