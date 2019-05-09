@@ -71,7 +71,7 @@ public class LoggingArgsTest {
     private static final ColumnRangeSelection UNSAFE_COLUMN_RANGE = new ColumnRangeSelection(
             UNSAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES);
     private static final ColumnRangeSelection MIXED_COLUMN_RANGE = new ColumnRangeSelection(
-            SAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES);
+            SAFE_COLUMN_NAME_BYTES, PtBytes.toBytes("zzzzzzz")); // This is unsafe, and later than "saferow"
     private static final BatchColumnRangeSelection SAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             SAFE_COLUMN_RANGE, 1);
     private static final BatchColumnRangeSelection UNSAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
