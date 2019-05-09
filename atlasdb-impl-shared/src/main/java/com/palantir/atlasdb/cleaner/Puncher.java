@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.cleaner;
 
-import java.util.function.Supplier;
+import com.google.common.base.Supplier;
 
 public interface Puncher {
 

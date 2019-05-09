@@ -16,6 +16,8 @@
 package com.palantir.async.initializer;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.base.Throwables;

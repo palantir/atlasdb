@@ -24,14 +24,12 @@ public final class CompactTableFactory {
         this.namespace = namespace;
     }
 
-    public static CompactTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static CompactTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new CompactTableFactory(sharedTriggers, namespace);
     }
 
-    public static CompactTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static CompactTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new CompactTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -53,8 +51,7 @@ public final class CompactTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putCompactMetadata(
-                Multimap<CompactMetadataTable.CompactMetadataRow, ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>> newRows) {
+        public void putCompactMetadata(Multimap<CompactMetadataTable.CompactMetadataRow, ? extends CompactMetadataTable.CompactMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

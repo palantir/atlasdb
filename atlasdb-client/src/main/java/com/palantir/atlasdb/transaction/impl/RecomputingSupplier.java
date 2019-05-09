@@ -17,7 +17,8 @@ package com.palantir.atlasdb.transaction.impl;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
+
+import com.google.common.base.Supplier;
 
 public class RecomputingSupplier<T> implements Supplier<T> {
     final Supplier<? extends T> supplier;
