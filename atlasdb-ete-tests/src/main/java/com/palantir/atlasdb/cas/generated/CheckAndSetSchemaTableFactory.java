@@ -18,21 +18,18 @@ public final class CheckAndSetSchemaTableFactory {
 
     private final Namespace namespace;
 
-    private CheckAndSetSchemaTableFactory(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private CheckAndSetSchemaTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static CheckAndSetSchemaTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new CheckAndSetSchemaTableFactory(sharedTriggers, namespace);
     }
 
-    public static CheckAndSetSchemaTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static CheckAndSetSchemaTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new CheckAndSetSchemaTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -54,8 +51,7 @@ public final class CheckAndSetSchemaTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putCheckAndSet(
-                Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
+        public void putCheckAndSet(Multimap<CheckAndSetTable.CheckAndSetRow, ? extends CheckAndSetTable.CheckAndSetNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

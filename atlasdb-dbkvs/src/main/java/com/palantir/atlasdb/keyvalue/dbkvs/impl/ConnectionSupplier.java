@@ -16,11 +16,11 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import java.sql.SQLException;
-import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Supplier;
 import com.palantir.nexus.db.sql.SqlConnection;
 
 public class ConnectionSupplier implements SqlConnectionSupplier {

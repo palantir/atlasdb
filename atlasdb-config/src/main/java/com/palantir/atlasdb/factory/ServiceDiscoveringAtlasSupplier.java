@@ -26,13 +26,13 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -60,7 +60,7 @@ public class ServiceDiscoveringAtlasSupplier {
     public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,

@@ -18,21 +18,18 @@ public final class StreamTestTableFactory {
 
     private final Namespace namespace;
 
-    private StreamTestTableFactory(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private StreamTestTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static StreamTestTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static StreamTestTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new StreamTestTableFactory(sharedTriggers, namespace);
     }
 
-    public static StreamTestTableFactory of(
-            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static StreamTestTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new StreamTestTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -89,8 +86,7 @@ public final class StreamTestTableFactory {
         return StreamTestStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public StreamTestWithHashStreamHashAidxTable getStreamTestWithHashStreamHashAidxTable(
-            Transaction t,
+    public StreamTestWithHashStreamHashAidxTable getStreamTestWithHashStreamHashAidxTable(Transaction t,
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxTrigger... triggers) {
         return StreamTestWithHashStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -100,8 +96,7 @@ public final class StreamTestTableFactory {
         return StreamTestWithHashStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public StreamTestWithHashStreamMetadataTable getStreamTestWithHashStreamMetadataTable(
-            Transaction t,
+    public StreamTestWithHashStreamMetadataTable getStreamTestWithHashStreamMetadataTable(Transaction t,
             StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataTrigger... triggers) {
         return StreamTestWithHashStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -111,8 +106,7 @@ public final class StreamTestTableFactory {
         return StreamTestWithHashStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamHashAidxTable getTestHashComponentsStreamHashAidxTable(
-            Transaction t,
+    public TestHashComponentsStreamHashAidxTable getTestHashComponentsStreamHashAidxTable(Transaction t,
             TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxTrigger... triggers) {
         return TestHashComponentsStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -122,8 +116,7 @@ public final class StreamTestTableFactory {
         return TestHashComponentsStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public TestHashComponentsStreamMetadataTable getTestHashComponentsStreamMetadataTable(
-            Transaction t,
+    public TestHashComponentsStreamMetadataTable getTestHashComponentsStreamMetadataTable(Transaction t,
             TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataTrigger... triggers) {
         return TestHashComponentsStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
@@ -138,104 +131,87 @@ public final class StreamTestTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putKeyValue(
-                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+        public void putKeyValue(Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestMaxMemStreamHashAidx(
-                Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> newRows) {
+        public void putStreamTestMaxMemStreamHashAidx(Multimap<StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxRow, ? extends StreamTestMaxMemStreamHashAidxTable.StreamTestMaxMemStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestMaxMemStreamIdx(
-                Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, ? extends StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> newRows) {
+        public void putStreamTestMaxMemStreamIdx(Multimap<StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxRow, ? extends StreamTestMaxMemStreamIdxTable.StreamTestMaxMemStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestMaxMemStreamMetadata(
-                Multimap<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, ? extends StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putStreamTestMaxMemStreamMetadata(Multimap<StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataRow, ? extends StreamTestMaxMemStreamMetadataTable.StreamTestMaxMemStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestMaxMemStreamValue(
-                Multimap<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow, ? extends StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>> newRows) {
+        public void putStreamTestMaxMemStreamValue(Multimap<StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueRow, ? extends StreamTestMaxMemStreamValueTable.StreamTestMaxMemStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestStreamHashAidx(
-                Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> newRows) {
+        public void putStreamTestStreamHashAidx(Multimap<StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow, ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestStreamIdx(
-                Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, ? extends StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> newRows) {
+        public void putStreamTestStreamIdx(Multimap<StreamTestStreamIdxTable.StreamTestStreamIdxRow, ? extends StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestStreamMetadata(
-                Multimap<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, ? extends StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putStreamTestStreamMetadata(Multimap<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow, ? extends StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestStreamValue(
-                Multimap<StreamTestStreamValueTable.StreamTestStreamValueRow, ? extends StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>> newRows) {
+        public void putStreamTestStreamValue(Multimap<StreamTestStreamValueTable.StreamTestStreamValueRow, ? extends StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestWithHashStreamHashAidx(
-                Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue> newRows) {
+        public void putStreamTestWithHashStreamHashAidx(Multimap<StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow, ? extends StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestWithHashStreamIdx(
-                Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, ? extends StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue> newRows) {
+        public void putStreamTestWithHashStreamIdx(Multimap<StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxRow, ? extends StreamTestWithHashStreamIdxTable.StreamTestWithHashStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestWithHashStreamMetadata(
-                Multimap<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putStreamTestWithHashStreamMetadata(Multimap<StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow, ? extends StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putStreamTestWithHashStreamValue(
-                Multimap<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>> newRows) {
+        public void putStreamTestWithHashStreamValue(Multimap<StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow, ? extends StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTestHashComponentsStreamHashAidx(
-                Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, ? extends TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> newRows) {
+        public void putTestHashComponentsStreamHashAidx(Multimap<TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxRow, ? extends TestHashComponentsStreamHashAidxTable.TestHashComponentsStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTestHashComponentsStreamIdx(
-                Multimap<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, ? extends TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue> newRows) {
+        public void putTestHashComponentsStreamIdx(Multimap<TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxRow, ? extends TestHashComponentsStreamIdxTable.TestHashComponentsStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTestHashComponentsStreamMetadata(
-                Multimap<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putTestHashComponentsStreamMetadata(Multimap<TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataRow, ? extends TestHashComponentsStreamMetadataTable.TestHashComponentsStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putTestHashComponentsStreamValue(
-                Multimap<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>> newRows) {
+        public void putTestHashComponentsStreamValue(Multimap<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow, ? extends TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

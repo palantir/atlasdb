@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.concurrent.CoalescingSupplier;
 
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;

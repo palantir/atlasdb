@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import java.util.function.Supplier;
-
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;

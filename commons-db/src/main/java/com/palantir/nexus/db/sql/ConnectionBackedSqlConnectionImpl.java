@@ -17,8 +17,8 @@ package com.palantir.nexus.db.sql;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.util.function.Supplier;
 
+import com.google.common.base.Supplier;
 import com.palantir.exception.PalantirInterruptedException;
 import com.palantir.exception.PalantirSqlException;
 import com.palantir.nexus.db.sql.SQLString.RegisteredSQLString;

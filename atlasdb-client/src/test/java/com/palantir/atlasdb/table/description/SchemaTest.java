@@ -49,8 +49,10 @@ public class SchemaTest {
 
     private static final String TEST_PACKAGE = "package";
     private static final String TEST_TABLE_NAME = "TestTable";
+    private static final String TEST_INDEX_NAME = TEST_TABLE_NAME + IndexDefinition.IndexType.ADDITIVE.getIndexSuffix();
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
+    private static final TableReference INDEX_TABLE_REF = TableReference.createWithEmptyNamespace(TEST_INDEX_NAME);
     private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
 
     @Test

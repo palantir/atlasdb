@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 package com.palantir.atlasdb.jdbc;
-
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 
 public class JdbcKeyValueSharedTest extends AbstractKeyValueServiceTest {
