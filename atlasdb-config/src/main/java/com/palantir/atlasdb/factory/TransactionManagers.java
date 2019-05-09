@@ -382,7 +382,7 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
-        Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
+        com.google.common.base.Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
                 () -> runtimeConfigSupplier.get().transaction(),
                 this::withConsolidatedGrabImmutableTsLockFlag);
 
@@ -1041,7 +1041,7 @@ public abstract class TransactionManagers {
                 ImmutableList.of(follower));
     }
 
-    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
+    private static class MemoizedComposedSupplier<T, R> implements com.google.common.base.Supplier<R> {
         private final Function<T, R> function;
         private final Supplier<T> supplier;
 
