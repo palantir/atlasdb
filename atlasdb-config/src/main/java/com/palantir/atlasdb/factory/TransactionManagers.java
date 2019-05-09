@@ -439,7 +439,7 @@ public abstract class TransactionManagers {
                         follower,
                         instrumentedTransactionManager,
                         persistentLockManager,
-                        runBackgroundSweep()),
+                        runBackgroundSweepProcess()),
                 closeables);
         initializeCloseable(
                 initializeCompactBackgroundProcess(
@@ -453,7 +453,14 @@ public abstract class TransactionManagers {
         return instrumentedTransactionManager;
     }
 
-    private boolean runBackgroundSweep() {
+    /**
+     * If we decide to move a service to use thorough sweep; we need to make sure that background sweep won't cause any
+     * trouble by deleting large number of empty values at once - causing Cassandra OOMs.
+     *
+     * lockImmutableTsOnReadOnlyTransaction flag is used to decide on disabling background sweep, as this flag is used
+     * as an intermediate step for migrating to thorough sweep.
+     */
+    private boolean runBackgroundSweepProcess() {
         return !lockImmutableTsOnReadOnlyTransactions();
     }
 
