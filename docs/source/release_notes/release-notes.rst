@@ -57,7 +57,7 @@ develop
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3993>`__)
 
     *    - |improved|
          - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
