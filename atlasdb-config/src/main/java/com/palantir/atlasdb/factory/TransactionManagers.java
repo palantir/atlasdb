@@ -438,7 +438,8 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         follower,
                         instrumentedTransactionManager,
-                        persistentLockManager),
+                        persistentLockManager,
+                        runBackgroundSweep()),
                 closeables);
         initializeCloseable(
                 initializeCompactBackgroundProcess(
@@ -450,6 +451,10 @@ public abstract class TransactionManagers {
                 closeables);
 
         return instrumentedTransactionManager;
+    }
+
+    private boolean runBackgroundSweep() {
+        return !lockImmutableTsOnReadOnlyTransactions();
     }
 
     @VisibleForTesting
@@ -543,7 +548,8 @@ public abstract class TransactionManagers {
             SweepStrategyManager sweepStrategyManager,
             CleanupFollower follower,
             TransactionManager transactionManager,
-            PersistentLockManager persistentLockManager) {
+            PersistentLockManager persistentLockManager,
+            boolean runInBackground) {
         CellsSweeper cellsSweeper = new CellsSweeper(
                 transactionManager,
                 kvs,
@@ -586,7 +592,10 @@ public abstract class TransactionManagers {
                 specificTableSweeper);
 
         transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
-        backgroundSweeper.runInBackground();
+
+        if (runInBackground) {
+            backgroundSweeper.runInBackground();
+        }
 
         return backgroundSweeper;
     }
