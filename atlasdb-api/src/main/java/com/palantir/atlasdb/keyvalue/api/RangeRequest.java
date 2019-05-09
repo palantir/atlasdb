@@ -358,7 +358,7 @@ public final class RangeRequest implements Serializable {
         }
 
         public boolean isInvalidRange() {
-            return RangeRequests.isRangeNonemptyAndContiguous(false, startInclusive, endExclusive);
+            return !RangeRequests.isValidRange(false, startInclusive, endExclusive);
         }
 
         public RangeRequest build() {
