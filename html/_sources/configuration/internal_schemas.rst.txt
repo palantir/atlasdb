@@ -34,8 +34,8 @@ run with whatever version is already installed (1 by default).
 New versions can be specified in a live fashion without downtime, though there are two caveats to be aware of:
 
 - The ``TransactionSchemaInstaller`` which installs new versions of transactions schemas only reads the configuration once every 10 minutes.
-  If a faster installation is required, you can (rolling) bounce your services, as we do read this on startup.
-  After installation is done, a log message of the following form will be logged:
+  If a faster installation is required, you can bounce one service node, as this is read on startup. In HA configurations, this will not
+  require any downtime. After installation is done, a log message of the following form will be logged:
 
 .. code-block:: none
 
@@ -51,3 +51,10 @@ metrics are available:
 - ``eventualTransactionsSchemaVersion`` which should change to the target version after the intention to upgrade the
   transactions schema version has been installed by the coordination service. Note that the AtlasDB timestamp
   still needs to progress to the point where the new version actually comes into effect.
+- ``currentTransactionsSchemaVersion`` which, at the time the metric measurement was taken, yields the schema version at
+  a fresh timestamp. Note that this value may be cached (by default for up to 10 seconds) and metrics readings may only
+  be taken at an interval, so it may be slightly out of sync, though it should be close.
+
+The AtlasDB ``CoordinationStore``, ``CoordinationService`` and ``TransactionService`` interfaces are also instrumented with 
+standard histograms for endpoint call rates and service times. Also, if using Cassandra KVS, it may be useful to 
+consider Cassandra metrics for the ``_coordination`` table.

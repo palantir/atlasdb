@@ -249,6 +249,11 @@ Also, <code class="docutils literal notranslate"><span class="pre">CoordinationS
 <td>Client side tombstone filtering is now instrumented more exhaustively.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3977">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> now has a new builder option <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code>. If it is set to <code class="docutils literal notranslate"><span class="pre">true</span></code> all transactions (including read-only ones) will grab immutable ts lock,
+enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3987">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

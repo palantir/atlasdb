@@ -111,6 +111,11 @@ develop
          - Client side tombstone filtering is now instrumented more exhaustively.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3977>`__)
 
+    *    - |new|
+         - ``TransactionManagers`` now has a new builder option ``lockImmutableTsOnReadOnlyTransactions()``. If it is set to ``true`` all transactions (including read-only ones) will grab immutable ts lock,
+           enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature. 
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3987>`__)
+
 ========
 v0.133.0
 ========
