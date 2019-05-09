@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -33,8 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
@@ -382,14 +382,9 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
-        LoadingCache<TransactionConfig, TransactionConfig> transactionConfigLoadingCache = Caffeine.newBuilder()
-                .maximumSize(1)
-                .build(this::withOverwrittenGrabImmutableTsLockFlag);
-
-        com.google.common.base.Supplier<TransactionConfig> transactionConfigSupplier = () -> {
-            TransactionConfig transactionConfig = runtimeConfigSupplier.get().transaction();
-            return transactionConfigLoadingCache.get(transactionConfig);
-        };
+        Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
+                () -> runtimeConfigSupplier.get().transaction(),
+                this::withConsolidatedGrabImmutableTsLockFlag);
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
@@ -457,7 +452,8 @@ public abstract class TransactionManagers {
         return instrumentedTransactionManager;
     }
 
-    private TransactionConfig withOverwrittenGrabImmutableTsLockFlag(TransactionConfig transactionConfig) {
+    @VisibleForTesting
+    TransactionConfig withConsolidatedGrabImmutableTsLockFlag(TransactionConfig transactionConfig) {
         return ImmutableTransactionConfig.copyOf(transactionConfig)
                 .withLockImmutableTsOnReadOnlyTransactions(lockImmutableTsOnReadOnlyTransactions()
                         || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
@@ -1027,6 +1023,34 @@ public abstract class TransactionManagers {
                 config.conservativeThreads(),
                 config.thoroughThreads(),
                 ImmutableList.of(follower));
+    }
+
+    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
+        private final Function<T, R> function;
+        private final Supplier<T> supplier;
+
+        private volatile T lastKey;
+        private R cached;
+
+        MemoizedComposedSupplier(Supplier<T> supplier, Function<T, R> function) {
+            this.function = function;
+            this.supplier = supplier;
+        }
+
+        public R get() {
+            if (!Objects.equals(lastKey, supplier.get())) {
+                recompute();
+            }
+            return cached;
+        }
+
+        private synchronized void recompute() {
+            T freshKey = supplier.get();
+            if (!Objects.equals(lastKey, freshKey)) {
+                lastKey = freshKey;
+                cached = function.apply(lastKey);
+            }
+        }
     }
 
     @Value.Immutable

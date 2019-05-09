@@ -88,6 +88,8 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -355,6 +357,35 @@ public class TransactionManagersTest {
                 .serializable();
         assertThat(metrics.getNames().stream()
                 .anyMatch(metricName -> metricName.contains(USER_AGENT_NAME)), is(false));
+    }
+
+    @Test
+    public void grabImmutableTsLockIsConfiguredWithBuilderOption() {
+        TransactionConfig transactionConfig = ImmutableTransactionConfig.builder()
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
+    private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        return TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent("test")
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .lockImmutableTsOnReadOnlyTransactions(option)
+                .build();
     }
 
     @Test
