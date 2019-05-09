@@ -43,18 +43,17 @@ public class LeaderPingHealthCheck {
     }
 
     public TimeLockStatus getStatus() {
-        PaxosResponses<HealthCheckResponse> responses = PaxosQuorumChecker.collectQuorumResponses(
+        PaxosResponses<HealthCheckResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
                 ImmutableList.copyOf(leaders),
                 pingable -> new HealthCheckResponse(pingable.ping()),
-                getQuorumSize(),
                 executorService,
                 HEALTH_CHECK_TIME_LIMIT);
 
         long numLeaders = responses.stream()
-                .filter(response -> response.result)
+                .filter(response -> response.isLeader)
                 .count();
 
-        if (!responses.hasQuorum()) {
+        if (responses.numberOfResponses() < getQuorumSize()) {
             return TimeLockStatus.NO_QUORUM;
         }
 
@@ -73,10 +72,10 @@ public class LeaderPingHealthCheck {
 
     private static final class HealthCheckResponse implements PaxosResponse {
 
-        private final boolean result;
+        private final boolean isLeader;
 
-        private HealthCheckResponse(boolean result) {
-            this.result = result;
+        private HealthCheckResponse(boolean isLeader) {
+            this.isLeader = isLeader;
         }
 
         @Override
