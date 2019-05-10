@@ -254,6 +254,10 @@ enabling migrating to thorough sweep without downtime. Please contact to Atlas t
 <td>Setting <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3992">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">AtlasDbHttpClients.createProxyWithFailover()</span></code> now requires <code class="docutils literal notranslate"><span class="pre">UserAgent</span></code> parameter.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3996">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
