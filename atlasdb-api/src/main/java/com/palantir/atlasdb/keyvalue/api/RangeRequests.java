@@ -202,7 +202,7 @@ public final class RangeRequests {
         }
     }
 
-    public static boolean isValidRange(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
+    public static boolean isContiguousRange(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
         if (startInclusive.length == 0 || endExclusive.length == 0) {
             return true;
         }
@@ -210,5 +210,12 @@ public final class RangeRequests {
             return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
         }
         return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) <= 0;
+    }
+
+    public static boolean isExactlyEmptyRange(byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return false;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) == 0;
     }
 }

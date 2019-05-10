@@ -90,7 +90,8 @@ public class ColumnRangeSelection implements Serializable {
         return Joiner.on(',').join(ImmutableList.of(start, end));
     }
 
-    private static boolean isValidRange(byte[] startCol, byte[] endCol) {
-        return RangeRequests.isValidRange(false, startCol, endCol);
+    public static boolean isValidRange(byte[] startCol, byte[] endCol) {
+        return RangeRequests.isContiguousRange(false, startCol, endCol) &&
+                !RangeRequests.isExactlyEmptyRange(startCol, endCol);
     }
 }

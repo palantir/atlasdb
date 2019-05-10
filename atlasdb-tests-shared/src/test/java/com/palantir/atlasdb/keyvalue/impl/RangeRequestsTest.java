@@ -44,37 +44,60 @@ public class RangeRequestsTest {
     }
 
     @Test
-    public void unboundedRangeBothEndsIsValid() {
-        assertThat(RangeRequests.isValidRange(
+    public void unboundedRangeBothEndsIsContiguous() {
+        assertThat(RangeRequests.isContiguousRange(
                 true, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isValidRange(
+        assertThat(RangeRequests.isContiguousRange(
                 false, PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
     }
 
     @Test
-    public void forwardRangeShouldStartBeforeEnd() {
-        assertThat(RangeRequests.isValidRange(false, BYTES_1, BYTES_2)).isTrue();
-        assertThat(RangeRequests.isValidRange(false, BYTES_2, BYTES_1)).isFalse();
+    public void forwardContiguousRangeShouldStartBeforeEnd() {
+        assertThat(RangeRequests.isContiguousRange(false, BYTES_1, BYTES_2)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(false, BYTES_2, BYTES_1)).isFalse();
     }
 
     @Test
-    public void reverseRangeShouldEndBeforeStart() {
-        assertThat(RangeRequests.isValidRange(true, BYTES_1, BYTES_2)).isFalse();
-        assertThat(RangeRequests.isValidRange(true, BYTES_2, BYTES_1)).isTrue();
+    public void reverseContiguousRangeShouldEndBeforeStart() {
+        assertThat(RangeRequests.isContiguousRange(true, BYTES_1, BYTES_2)).isFalse();
+        assertThat(RangeRequests.isContiguousRange(true, BYTES_2, BYTES_1)).isTrue();
     }
 
     @Test
-    public void emptyRangesAreValid() {
-        assertThat(RangeRequests.isValidRange(false, BYTES_1, BYTES_1)).isTrue();
-        assertThat(RangeRequests.isValidRange(true, BYTES_1, BYTES_1)).isTrue();
+    public void emptyRangesAreContiguous() {
+        assertThat(RangeRequests.isContiguousRange(false, BYTES_1, BYTES_1)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, BYTES_1, BYTES_1)).isTrue();
     }
 
     @Test
-    public void rangesUnboundedOnOneEndAreValid() {
-        assertThat(RangeRequests.isValidRange(false, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isValidRange(true, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
-        assertThat(RangeRequests.isValidRange(false, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
-        assertThat(RangeRequests.isValidRange(true, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
+    public void rangesUnboundedOnOneEndAreContiguous() {
+        assertThat(RangeRequests.isContiguousRange(false, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, BYTES_1, PtBytes.EMPTY_BYTE_ARRAY)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(false, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
+        assertThat(RangeRequests.isContiguousRange(true, PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isTrue();
+    }
+
+    @Test
+    public void unboundedRangeBothEndsIsNotEmpty() {
+        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY)).isFalse();
+    }
+
+    @Test
+    public void unboundedRangeOneEndIsNotEmpty() {
+        assertThat(RangeRequests.isExactlyEmptyRange(PtBytes.EMPTY_BYTE_ARRAY, BYTES_1)).isFalse();
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, PtBytes.EMPTY_BYTE_ARRAY)).isFalse();
+    }
+
+    @Test
+    public void rangeWithDifferentBoundsNotEmpty() {
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_1, BYTES_2)).isFalse();
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, BYTES_1)).isFalse();
+    }
+
+    @Test
+    public void rangeWithSameBoundIsEmpty() {
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_1, BYTES_1)).isTrue();
+        assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, BYTES_2)).isTrue();
     }
 
     private byte[] generateRandomWithFreqLogLen() {

@@ -55,6 +55,8 @@ public class ColumnRangeSelectionTest {
 
     @Test
     public void canCreateEmptyRange() {
-        assertThatCode(() -> new ColumnRangeSelection(BYTES_1, BYTES_1)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> new ColumnRangeSelection(BYTES_1, BYTES_1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("do not form a valid range");
     }
 }
