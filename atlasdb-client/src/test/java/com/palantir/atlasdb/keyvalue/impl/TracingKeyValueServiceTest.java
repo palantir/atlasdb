@@ -45,6 +45,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
@@ -311,7 +312,7 @@ public class TracingKeyValueServiceTest {
         RowColumnRangeIterator rowColumnIterator = mock(RowColumnRangeIterator.class);
         List<byte[]> rows = ImmutableList.of(ROW_NAME);
         Map<byte[], RowColumnRangeIterator> expectedResult = ImmutableMap.of(ROW_NAME, rowColumnIterator);
-        BatchColumnRangeSelection range = BatchColumnRangeSelection.create(COL_NAME, COL_NAME, 2);
+        BatchColumnRangeSelection range = BatchColumnRangeSelection.create(COL_NAME, PtBytes.EMPTY_BYTE_ARRAY, 2);
         when(delegate.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP)).thenReturn(expectedResult);
 
         Map<byte[], RowColumnRangeIterator> result = kvs.getRowsColumnRange(TABLE_REF, rows, range, TIMESTAMP);
