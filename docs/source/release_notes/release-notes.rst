@@ -116,6 +116,9 @@ develop
          - Setting ``lockImmutableTsOnReadOnlyTransactions()`` to ``true`` disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
 
+    *    - |devbreak|
+         - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3???>`__)
 ========
 v0.133.0
 ========

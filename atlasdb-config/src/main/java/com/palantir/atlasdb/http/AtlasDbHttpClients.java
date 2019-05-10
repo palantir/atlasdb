@@ -96,6 +96,7 @@ public final class AtlasDbHttpClients {
             Optional<TrustContext> trustContext,
             Optional<ProxySelector> proxySelector,
             Collection<String> endpointUris,
+            String userAgent,
             Class<T> type) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
@@ -108,7 +109,7 @@ public final class AtlasDbHttpClients {
                         DEFAULT_READ_TIMEOUT_MILLIS,
                         FailoverFeignTarget.DEFAULT_MAX_BACKOFF.toMillis(),
                         type,
-                        UserAgents.DEFAULT_USER_AGENT,
+                        userAgent,
                         false),
                 MetricRegistry.name(type));
     }
