@@ -51,6 +51,13 @@ develop
          - Change
 
     *    - |improved|
+         - The default configuration for the number of targeted sweep shards has been increased to 8.
+           This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
+           Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
+
+
+    *    - |improved|
          - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
            the health check firing erroneously.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3988>`__)
