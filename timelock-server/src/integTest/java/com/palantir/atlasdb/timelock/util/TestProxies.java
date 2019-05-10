@@ -25,6 +25,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
@@ -78,6 +79,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 Optional.empty(),
                 uris,
+                UserAgents.DEFAULT_USER_AGENT,
                 serviceInterface));
     }
 
