@@ -118,7 +118,8 @@ develop
 
     *    - |devbreak|
          - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3???>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3996>`__)
+
 ========
 v0.133.0
 ========
