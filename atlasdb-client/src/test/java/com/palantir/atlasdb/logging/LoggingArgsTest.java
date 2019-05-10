@@ -52,12 +52,16 @@ public class LoggingArgsTest {
     private static final String SAFE_ROW_NAME = "saferow";
     private static final String UNSAFE_ROW_NAME = "row";
     private static final String SAFE_COLUMN_NAME = "safecolumn";
+    private static final String SAFE_COLUMN_NAME_2 = "safecolumn2";
     private static final String UNSAFE_COLUMN_NAME = "column";
+    private static final String UNSAFE_COLUMN_NAME_2 = "column2";
 
     private static final byte[] SAFE_ROW_NAME_BYTES = PtBytes.toBytes(SAFE_ROW_NAME);
     private static final byte[] UNSAFE_ROW_NAME_BYTES = PtBytes.toBytes(UNSAFE_ROW_NAME);
     private static final byte[] SAFE_COLUMN_NAME_BYTES = PtBytes.toBytes(SAFE_COLUMN_NAME);
     private static final byte[] UNSAFE_COLUMN_NAME_BYTES = PtBytes.toBytes(UNSAFE_COLUMN_NAME);
+    private static final byte[] SAFE_COLUMN_NAME_BYTES_2 = PtBytes.toBytes(SAFE_COLUMN_NAME_2);
+    private static final byte[] UNSAFE_COLUMN_NAME_BYTES_2 = PtBytes.toBytes(UNSAFE_COLUMN_NAME_2);
 
     private static final RangeRequest SAFE_RANGE_REQUEST = RangeRequest.builder()
             .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES)).build();
@@ -67,11 +71,11 @@ public class LoggingArgsTest {
             .retainColumns(ImmutableList.of(SAFE_ROW_NAME_BYTES, UNSAFE_ROW_NAME_BYTES)).build();
 
     private static final ColumnRangeSelection SAFE_COLUMN_RANGE = new ColumnRangeSelection(
-            SAFE_COLUMN_NAME_BYTES, SAFE_COLUMN_NAME_BYTES);
+            SAFE_COLUMN_NAME_BYTES, SAFE_COLUMN_NAME_BYTES_2);
     private static final ColumnRangeSelection UNSAFE_COLUMN_RANGE = new ColumnRangeSelection(
-            UNSAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES);
+            UNSAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES_2);
     private static final ColumnRangeSelection MIXED_COLUMN_RANGE = new ColumnRangeSelection(
-            SAFE_COLUMN_NAME_BYTES, UNSAFE_COLUMN_NAME_BYTES);
+            SAFE_COLUMN_NAME_BYTES, PtBytes.toBytes("zzzzzzz")); // This is unsafe, and later than "saferow"
     private static final BatchColumnRangeSelection SAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
             SAFE_COLUMN_RANGE, 1);
     private static final BatchColumnRangeSelection UNSAFE_BATCH_COLUMN_RANGE = BatchColumnRangeSelection.create(
