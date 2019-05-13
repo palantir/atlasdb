@@ -42,9 +42,9 @@ public final class MetadataCoordinationServiceMetrics {
 
     /**
      * Registers metrics that may be useful for diagnosing the status of a {@link CoordinationService}.
-     *
-     * Only one coordination service should be registered to a single metrics manager - if multiple are registered,
-     * then it is non-deterministic as to which coordination service the metrics being reported are referring to.
+     * <p>
+     * Only one coordination service should be registered to a single metrics manager - if multiple are registered, then
+     * it is non-deterministic as to which coordination service the metrics being reported are referring to.
      *
      * @param metricsManager metrics manager to register the
      * @param metadataCoordinationService metadata coordination service that should be tracked
@@ -93,7 +93,7 @@ public final class MetadataCoordinationServiceMetrics {
     private static void registerTransactionsSchemaVersionMetrics(MetricsManager metricsManager,
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService,
             TimestampService timestampService) {
-        Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> valueAndBoundSupplier =
+        Supplier<Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>> valueAndBoundSupplier =
                 () -> MetadataCoordinationServiceMetrics.getTimestampToTransactionsTableSchemaVersionMap(
                         metadataCoordinationService);
         registerMetricForTransactionsSchemaVersionAtTimestamp(metricsManager,
@@ -106,7 +106,8 @@ public final class MetadataCoordinationServiceMetrics {
                 unused -> timestampService.getFreshTimestamp());
     }
 
-    private static ValueAndBound<TimestampPartitioningMap<Integer>> getTimestampToTransactionsTableSchemaVersionMap(
+    private static Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>
+    getTimestampToTransactionsTableSchemaVersionMap(
             CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
                 = metadataCoordinationService.getLastKnownLocalValue();
@@ -114,13 +115,12 @@ public final class MetadataCoordinationServiceMetrics {
                 .map(ValueAndBound::value)
                 .flatMap(Function.identity())
                 .map(InternalSchemaMetadata::timestampToTransactionsTableSchemaVersion)
-                .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()))
-                .orElse(null);
+                .map(partitioningMap -> ValueAndBound.of(partitioningMap, latestValue.get().bound()));
     }
 
     private static void registerMetricForTransactionsSchemaVersionAtTimestamp(MetricsManager metricsManager,
             String metricName,
-            Supplier<ValueAndBound<TimestampPartitioningMap<Integer>>> timestampMapSupplier,
+            Supplier<Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>> timestampMapSupplier,
             Function<ValueAndBound<TimestampPartitioningMap<Integer>>, Long> timestampQuery) {
         metricsManager.registerMetric(
                 MetadataCoordinationServiceMetrics.class,
@@ -129,10 +129,10 @@ public final class MetadataCoordinationServiceMetrics {
                         log,
                         Clock.defaultClock(),
                         metricName,
-                        () -> {
-                            ValueAndBound<TimestampPartitioningMap<Integer>> mapAndBound = timestampMapSupplier.get();
-                            return getVersionAtTimestamp(mapAndBound.value(), timestampQuery.apply(mapAndBound));
-                        }));
+                        () -> timestampMapSupplier.get()
+                                .map(mapAndBound -> getVersionAtTimestamp(
+                                        mapAndBound.value(), timestampQuery.apply(mapAndBound)))
+                                .orElse(null)));
     }
 
     private static Integer getVersionAtTimestamp(Optional<TimestampPartitioningMap<Integer>> timestampMap, long bound) {
