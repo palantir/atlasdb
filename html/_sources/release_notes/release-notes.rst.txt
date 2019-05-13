@@ -51,6 +51,12 @@ develop
          - Change
 
     *    - |improved|
+         - The default configuration for the number of targeted sweep shards has been increased to 8.
+           This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
+           Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
+
+    *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3993>`__)
