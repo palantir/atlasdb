@@ -56,6 +56,10 @@ develop
            Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
 
+    *    - |fixed|
+         - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/QQQQ>`__)
+
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
