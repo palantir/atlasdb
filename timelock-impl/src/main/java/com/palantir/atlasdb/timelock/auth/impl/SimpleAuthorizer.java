@@ -43,7 +43,7 @@ public class SimpleAuthorizer implements Authorizer {
             return true;
         }
 
-        return privileges.getOrDefault(client, NamespaceMatcher.ALWAYS_DENY).matches(namespace);
+        return privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
     }
 
     private boolean isAuthorizationRequired(Namespace namespace) {

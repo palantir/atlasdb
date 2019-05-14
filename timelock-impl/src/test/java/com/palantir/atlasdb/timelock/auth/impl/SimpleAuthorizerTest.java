@@ -99,7 +99,7 @@ public class SimpleAuthorizerTest {
     }
 
     private void withPrivilege(Client client, Namespace namespace) {
-        NamespaceMatcher existingMatcher = privileges.getOrDefault(client, NamespaceMatcher.ALWAYS_DENY);
+        NamespaceMatcher existingMatcher = privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH);
         privileges.put(client, n -> existingMatcher.matches(n) || n.equals(namespace));
     }
 }
