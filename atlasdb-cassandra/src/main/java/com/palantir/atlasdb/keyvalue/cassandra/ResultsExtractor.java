@@ -110,4 +110,8 @@ public abstract class ResultsExtractor<T> {
         // TODO(hsaraogi): add table names as a tag
         return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
     }
+
+    protected Meter futureValueCellFilterMeter(Class clazz) {
+        return metricsManager.registerOrGetMeter(clazz, AtlasDbMetricNames.CellFilterMetrics.FUTURE_VALUE);
+    }
 }

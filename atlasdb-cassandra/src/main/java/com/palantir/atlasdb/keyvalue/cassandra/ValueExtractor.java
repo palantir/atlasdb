@@ -28,6 +28,8 @@ class ValueExtractor extends ResultsExtractor<Value> {
     private final Map<Cell, Value> collector;
     private final Meter notLatestVisibleValueCellFilterMeter =
             getNotlatestVisibleValueCellFilterMeter(ValueExtractor.class);
+    private final Meter futureValueCellFilterMeter =
+            futureValueCellFilterMeter(ValueExtractor.class);
 
     ValueExtractor(MetricsManager metricsManager, Map<Cell, Value> collector) {
         super(metricsManager);
@@ -53,7 +55,7 @@ class ValueExtractor extends ResultsExtractor<Value> {
                 notLatestVisibleValueCellFilterMeter.mark();
             }
         } else {
-            notLatestVisibleValueCellFilterMeter.mark();
+            futureValueCellFilterMeter.mark();
         }
     }
 
