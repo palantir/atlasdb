@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.timelock.auth.api;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.TimelockNamespace;
 
 public interface NamespaceMatcher {
     NamespaceMatcher NEVER_MATCH = ignored -> false;
-    boolean matches(Namespace namespace);
+    boolean matches(TimelockNamespace namespace);
 }

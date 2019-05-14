@@ -14,28 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.api;
+package com.palantir.atlasdb.timelock;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface Client {
-    Client ANONYMOUS = Client.regular("anonymous");
+public interface TimelockNamespace {
+    String namespace();
 
-    String name();
-    boolean isAdmin();
-
-    static Client regular(String clientName) {
-        return ImmutableClient.builder()
-                .name(clientName)
-                .isAdmin(false)
-                .build();
-    }
-
-    static Client admin(String clientName) {
-        return ImmutableClient.builder()
-                .name(clientName)
-                .isAdmin(true)
+    static TimelockNamespace of(String namespace) {
+        return ImmutableTimelockNamespace.builder()
+                .namespace(namespace)
                 .build();
     }
 }

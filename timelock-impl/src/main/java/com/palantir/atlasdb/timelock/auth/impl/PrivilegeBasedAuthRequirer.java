@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
@@ -32,7 +32,7 @@ public class PrivilegeBasedAuthRequirer implements AuthRequirer {
     }
 
     @Override
-    public boolean requiresAuth(Namespace namespace) {
+    public boolean requiresAuth(TimelockNamespace namespace) {
         return authorizedNamespaces.stream().anyMatch(namespaceMatcher -> namespaceMatcher.matches(namespace));
     }
 }

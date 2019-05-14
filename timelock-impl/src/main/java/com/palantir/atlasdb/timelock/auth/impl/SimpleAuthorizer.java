@@ -19,7 +19,7 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 import com.palantir.atlasdb.timelock.auth.api.Client;
@@ -38,12 +38,12 @@ public class SimpleAuthorizer implements Authorizer {
     }
 
     @Override
-    public boolean isAuthorized(Client client, Namespace namespace) {
+    public boolean isAuthorized(Client client, TimelockNamespace namespace) {
         return !isAuthorizationRequired(namespace) || client.isAdmin()
                 || privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
     }
 
-    private boolean isAuthorizationRequired(Namespace namespace) {
+    private boolean isAuthorizationRequired(TimelockNamespace namespace) {
         return authRequirer.requiresAuth(namespace);
     }
 }
