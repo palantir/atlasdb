@@ -107,8 +107,8 @@ public final class MetadataCoordinationServiceMetrics {
     }
 
     private static Optional<ValueAndBound<TimestampPartitioningMap<Integer>>>
-    getTimestampToTransactionsTableSchemaVersionMap(
-            CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
+            getTimestampToTransactionsTableSchemaVersionMap(
+                    CoordinationService<InternalSchemaMetadata> metadataCoordinationService) {
         Optional<ValueAndBound<InternalSchemaMetadata>> latestValue
                 = metadataCoordinationService.getLastKnownLocalValue();
         return latestValue
