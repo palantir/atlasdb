@@ -255,11 +255,12 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     public Client wrapClient(final Client client)  {
         return (request, options) -> {
-            Response response = client.execute(request, options);
-            if (response.status() >= 200 && response.status() < 300) {
-                successfulCall();
+            try (Response response = client.execute(request, options)) {
+                if (response.status() >= 200 && response.status() < 300) {
+                    successfulCall();
+                }
+                return response;
             }
-            return response;
         };
     }
 
