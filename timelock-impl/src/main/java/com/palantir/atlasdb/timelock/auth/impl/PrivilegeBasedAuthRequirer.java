@@ -16,10 +16,10 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
@@ -28,7 +28,7 @@ public class PrivilegeBasedAuthRequirer implements AuthRequirer {
     private List<NamespaceMatcher> authorizedNamespaces;
 
     PrivilegeBasedAuthRequirer(Map<Client, NamespaceMatcher> privileges) {
-        this.authorizedNamespaces = new ArrayList<>(privileges.values());
+        this.authorizedNamespaces = ImmutableList.copyOf(privileges.values());
     }
 
     @Override

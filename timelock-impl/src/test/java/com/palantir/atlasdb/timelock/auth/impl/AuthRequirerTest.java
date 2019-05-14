@@ -23,15 +23,15 @@ import java.util.Map;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 public class AuthRequirerTest {
     private static final Client CLIENT = Client.regular("user");
 
-    private static final Namespace NAMESPACE_1 = Namespace.create("namespace_1");
-    private static final Namespace NAMESPACE_2 = Namespace.create("namespace_2");
+    private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
+    private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
     @Test
     public void shouldRequireAuthIfPrivilegeIsSpecified() {
@@ -58,7 +58,7 @@ public class AuthRequirerTest {
         assertThat(authRequirer.requiresAuth(NAMESPACE_2)).isFalse();
     }
 
-    private NamespaceMatcher createMatcherFor(Namespace namespace) {
+    private NamespaceMatcher createMatcherFor(TimelockNamespace namespace) {
         return otherNamespace -> otherNamespace.equals(namespace);
     }
 }

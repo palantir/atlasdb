@@ -27,14 +27,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleAuthorizerTest {
-    private static final Namespace NAMESPACE_1 = Namespace.create("namespace_1");
-    private static final Namespace NAMESPACE_2 = Namespace.create("namespace_2");
+    private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
+    private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
     private static final Client CLIENT_1 = Client.regular("user_1");
     private static final Client CLIENT_2 = Client.regular("user_2");
@@ -82,23 +82,23 @@ public class SimpleAuthorizerTest {
         assertUnauthorized(CLIENT_2, NAMESPACE_1);
     }
 
-    private void assertAuthorized(Client client, Namespace namespace) {
+    private void assertAuthorized(Client client, TimelockNamespace namespace) {
         assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isTrue();
     }
 
-    private void assertUnauthorized(Client client, Namespace namespace) {
+    private void assertUnauthorized(Client client, TimelockNamespace namespace) {
         assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isFalse();
     }
 
-    private void withUnlockedNamespace(Namespace namespace) {
+    private void withUnlockedNamespace(TimelockNamespace namespace) {
         when(authRequirer.requiresAuth(namespace)).thenReturn(false);
     }
 
-    private void withLockedNamespace(Namespace namespace) {
+    private void withLockedNamespace(TimelockNamespace namespace) {
         when(authRequirer.requiresAuth(namespace)).thenReturn(true);
     }
 
-    private void withPrivilege(Client client, Namespace namespace) {
+    private void withPrivilege(Client client, TimelockNamespace namespace) {
         NamespaceMatcher existingMatcher = privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH);
         privileges.put(client, n -> existingMatcher.matches(n) || n.equals(namespace));
     }

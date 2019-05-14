@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.timelock.auth.impl;
 
-import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
@@ -34,7 +34,7 @@ public class SimpleAuthorizer implements Authorizer {
     }
 
     public static Authorizer of(Map<Client, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
-        return new SimpleAuthorizer(new HashMap<>(privileges), authRequirer);
+        return new SimpleAuthorizer(ImmutableMap.copyOf(privileges), authRequirer);
     }
 
     @Override
