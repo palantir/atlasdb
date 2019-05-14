@@ -19,7 +19,7 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.timelock.TimelockNamespace;
+import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 import com.palantir.atlasdb.timelock.auth.api.Client;

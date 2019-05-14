@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.Map;
 
-import com.palantir.atlasdb.timelock.TimelockNamespace;
+import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
