@@ -19,5 +19,5 @@ package com.palantir.atlasdb.timelock.auth.api;
 import com.palantir.tokens.auth.BearerToken;
 
 public interface Authenticator {
-    User authenticate(BearerToken token);
+    Client authenticate(BearerToken token);
 }

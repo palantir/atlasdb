@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Map;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
-import com.palantir.atlasdb.timelock.auth.api.User;
 
 public class PrivilegeBasedAuthRequirer implements AuthRequirer {
     private List<NamespaceMatcher> authorizedNamespaces;
 
-    PrivilegeBasedAuthRequirer(Map<User, NamespaceMatcher> privileges) {
+    PrivilegeBasedAuthRequirer(Map<Client, NamespaceMatcher> privileges) {
         this.authorizedNamespaces = new ArrayList<>(privileges.values());
     }
 

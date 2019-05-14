@@ -24,18 +24,18 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
-import com.palantir.atlasdb.timelock.auth.api.User;
 
 public class AuthRequirerTest {
-    private static final User USER = User.of("user");
+    private static final Client CLIENT = Client.of("user");
 
     private static final Namespace NAMESPACE_1 = Namespace.create("namespace_1");
     private static final Namespace NAMESPACE_2 = Namespace.create("namespace_2");
 
     @Test
     public void shouldRequireAuthIfPrivilegeIsSpecified() {
-        Map<User, NamespaceMatcher> privilege = ImmutableMap.of(USER, createMatcherFor(NAMESPACE_1));
+        Map<Client, NamespaceMatcher> privilege = ImmutableMap.of(CLIENT, createMatcherFor(NAMESPACE_1));
         AuthRequirer authRequirer = AuthRequirer.deriveFromPrivileges(privilege);
 
         assertThat(authRequirer.requiresAuth(NAMESPACE_1)).isTrue();

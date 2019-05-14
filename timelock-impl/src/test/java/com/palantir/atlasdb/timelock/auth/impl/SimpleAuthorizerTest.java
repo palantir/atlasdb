@@ -28,21 +28,21 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
-import com.palantir.atlasdb.timelock.auth.api.User;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleAuthorizerTest {
     private static final Namespace NAMESPACE_1 = Namespace.create("namespace_1");
     private static final Namespace NAMESPACE_2 = Namespace.create("namespace_2");
 
-    private static final User USER_1 = User.of("user_1");
-    private static final User USER_2 = User.of("user_2");
-    private static final User ADMIN = User.createAdmin("admin");
+    private static final Client CLIENT_1 = Client.of("user_1");
+    private static final Client CLIENT_2 = Client.of("user_2");
+    private static final Client ADMIN = Client.createAdmin("admin");
 
     @Mock
     private AuthRequirer authRequirer;
-    private Map<User, NamespaceMatcher> privileges = new HashMap<>();
+    private Map<Client, NamespaceMatcher> privileges = new HashMap<>();
 
     @Test
     public void adminIsAlwaysAuthorized() {
@@ -54,40 +54,40 @@ public class SimpleAuthorizerTest {
     public void authorizesUsersIfNamespaceDoesNotRequireAuth() {
         withUnlockedNamespace(NAMESPACE_1);
 
-        assertAuthorized(User.ANONYMOUS, NAMESPACE_1);
-        assertAuthorized(USER_1, NAMESPACE_1);
+        assertAuthorized(Client.ANONYMOUS, NAMESPACE_1);
+        assertAuthorized(CLIENT_1, NAMESPACE_1);
     }
 
     @Test
     public void onlyAllowAuthorizedUsersIfNamespaceRequiresAuth() {
         withLockedNamespace(NAMESPACE_1);
-        withPrivilege(USER_1, NAMESPACE_1);
+        withPrivilege(CLIENT_1, NAMESPACE_1);
 
-        assertAuthorized(USER_1, NAMESPACE_1);
-        assertUnauthorized(USER_2, NAMESPACE_1);
-        assertUnauthorized(User.ANONYMOUS, NAMESPACE_1);
+        assertAuthorized(CLIENT_1, NAMESPACE_1);
+        assertUnauthorized(CLIENT_2, NAMESPACE_1);
+        assertUnauthorized(Client.ANONYMOUS, NAMESPACE_1);
     }
 
     @Test
     public void usersOnlyHaveAccessToTheirNamespaces() {
         withLockedNamespace(NAMESPACE_1);
         withLockedNamespace(NAMESPACE_2);
-        withPrivilege(USER_1, NAMESPACE_1);
-        withPrivilege(USER_2, NAMESPACE_2);
+        withPrivilege(CLIENT_1, NAMESPACE_1);
+        withPrivilege(CLIENT_2, NAMESPACE_2);
 
-        assertAuthorized(USER_1, NAMESPACE_1);
-        assertAuthorized(USER_2, NAMESPACE_2);
+        assertAuthorized(CLIENT_1, NAMESPACE_1);
+        assertAuthorized(CLIENT_2, NAMESPACE_2);
 
-        assertUnauthorized(USER_1, NAMESPACE_2);
-        assertUnauthorized(USER_2, NAMESPACE_1);
+        assertUnauthorized(CLIENT_1, NAMESPACE_2);
+        assertUnauthorized(CLIENT_2, NAMESPACE_1);
     }
 
-    private void assertAuthorized(User user, Namespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(user, namespace)).isTrue();
+    private void assertAuthorized(Client client, Namespace namespace) {
+        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isTrue();
     }
 
-    private void assertUnauthorized(User user, Namespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(user, namespace)).isFalse();
+    private void assertUnauthorized(Client client, Namespace namespace) {
+        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(Namespace namespace) {
@@ -98,8 +98,8 @@ public class SimpleAuthorizerTest {
         when(authRequirer.requiresAuth(namespace)).thenReturn(true);
     }
 
-    private void withPrivilege(User user, Namespace namespace) {
-        NamespaceMatcher existingMatcher = privileges.getOrDefault(user, NamespaceMatcher.ALWAYS_DENY);
-        privileges.put(user, n -> existingMatcher.matches(n) || n.equals(namespace));
+    private void withPrivilege(Client client, Namespace namespace) {
+        NamespaceMatcher existingMatcher = privileges.getOrDefault(client, NamespaceMatcher.ALWAYS_DENY);
+        privileges.put(client, n -> existingMatcher.matches(n) || n.equals(namespace));
     }
 }

@@ -22,28 +22,28 @@ import java.util.Map;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
-import com.palantir.atlasdb.timelock.auth.api.User;
+import com.palantir.atlasdb.timelock.auth.api.Client;
 
 public class SimpleAuthorizer implements Authorizer {
-    private final Map<User, NamespaceMatcher> privileges;
+    private final Map<Client, NamespaceMatcher> privileges;
     private final AuthRequirer authRequirer;
 
-    SimpleAuthorizer(Map<User, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
+    SimpleAuthorizer(Map<Client, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
         this.privileges = privileges;
         this.authRequirer = authRequirer;
     }
 
-    public static Authorizer of(Map<User, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
+    public static Authorizer of(Map<Client, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
         return new SimpleAuthorizer(new HashMap<>(privileges), authRequirer);
     }
 
     @Override
-    public boolean isAuthorized(User user, Namespace namespace) {
-        if (!isAuthorizationRequired(namespace) || user.isAdmin()) {
+    public boolean isAuthorized(Client client, Namespace namespace) {
+        if (!isAuthorizationRequired(namespace) || client.isAdmin()) {
             return true;
         }
 
-        return privileges.getOrDefault(user, NamespaceMatcher.ALWAYS_DENY).matches(namespace);
+        return privileges.getOrDefault(client, NamespaceMatcher.ALWAYS_DENY).matches(namespace);
     }
 
     private boolean isAuthorizationRequired(Namespace namespace) {

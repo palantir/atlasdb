@@ -19,5 +19,5 @@ package com.palantir.atlasdb.timelock.auth.api;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 
 public interface Authorizer {
-    boolean isAuthorized(User user, Namespace namespace);
+    boolean isAuthorized(Client client, Namespace namespace);
 }
