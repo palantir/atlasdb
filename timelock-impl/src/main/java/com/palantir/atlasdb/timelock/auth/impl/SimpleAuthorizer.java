@@ -39,11 +39,8 @@ public class SimpleAuthorizer implements Authorizer {
 
     @Override
     public boolean isAuthorized(Client client, Namespace namespace) {
-        if (!isAuthorizationRequired(namespace) || client.isAdmin()) {
-            return true;
-        }
-
-        return privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
+        return !isAuthorizationRequired(namespace) || client.isAdmin()
+                || privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
     }
 
     private boolean isAuthorizationRequired(Namespace namespace) {

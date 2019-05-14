@@ -36,9 +36,9 @@ public class SimpleAuthorizerTest {
     private static final Namespace NAMESPACE_1 = Namespace.create("namespace_1");
     private static final Namespace NAMESPACE_2 = Namespace.create("namespace_2");
 
-    private static final Client CLIENT_1 = Client.of("user_1");
-    private static final Client CLIENT_2 = Client.of("user_2");
-    private static final Client ADMIN = Client.createAdmin("admin");
+    private static final Client CLIENT_1 = Client.regular("user_1");
+    private static final Client CLIENT_2 = Client.regular("user_2");
+    private static final Client ADMIN = Client.admin("admin");
 
     @Mock
     private AuthRequirer authRequirer;
