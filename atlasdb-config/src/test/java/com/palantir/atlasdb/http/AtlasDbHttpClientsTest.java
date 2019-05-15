@@ -140,7 +140,7 @@ public class AtlasDbHttpClientsTest {
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(new MetricRegistry(),
                 NO_SSL,
-                Optional.empty(), bothUris, TestResource.class);
+                Optional.empty(), bothUris, UserAgents.DEFAULT_USER_AGENT, TestResource.class);
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));
@@ -164,8 +164,12 @@ public class AtlasDbHttpClientsTest {
         Optional<ProxySelector> directProxySelector = Optional.of(
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
-                new MetricRegistry(), NO_SSL,
-                directProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
+                new MetricRegistry(),
+                NO_SSL,
+                directProxySelector,
+                ImmutableSet.of(getUriForPort(availablePort)),
+                UserAgents.DEFAULT_USER_AGENT,
+                TestResource.class);
         clientWithDirectCall.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 
@@ -180,7 +184,10 @@ public class AtlasDbHttpClientsTest {
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 NO_SSL,
-                httpProxySelector, ImmutableSet.of(getUriForPort(availablePort)), TestResource.class);
+                httpProxySelector,
+                ImmutableSet.of(getUriForPort(availablePort)),
+                UserAgents.DEFAULT_USER_AGENT,
+                TestResource.class);
         clientWithHttpProxy.getTestNumber();
         String defaultUserAgent = UserAgents.fromStrings(UserAgents.DEFAULT_VALUE, UserAgents.DEFAULT_VALUE);
 

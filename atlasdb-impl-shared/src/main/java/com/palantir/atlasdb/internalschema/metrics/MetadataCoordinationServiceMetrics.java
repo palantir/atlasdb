@@ -60,7 +60,7 @@ public final class MetadataCoordinationServiceMetrics {
 
     /**
      * Registers a gauge which tracks the current value of the validity bound. Under normal operation and within the
-     * lifetiem of a single JVM, this should not decrease.
+     * lifetime of a single JVM, this should not decrease.
      *
      * @param metricsManager metrics manager to register the gauge on
      * @param metadataCoordinationService metadata coordination service that should be tracked

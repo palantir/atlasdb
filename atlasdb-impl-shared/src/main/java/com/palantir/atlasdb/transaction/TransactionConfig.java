@@ -42,6 +42,10 @@ public abstract class TransactionConfig {
         return TransactionRetryStrategy.Strategies.LEGACY.get();
     }
 
+    /**
+     * This value is ignored if {@link com.palantir.atlasdb.transaction.api.TransactionManager} is configured to lock
+     * immutable ts by using TransactionManagers builder option.
+     */
     @Value.Default
     public boolean lockImmutableTsOnReadOnlyTransactions() {
         return false;

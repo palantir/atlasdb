@@ -3,7 +3,7 @@ apply plugin: 'org.inferred.processors'
 
 apply from: "../gradle/publish-dists.gradle"
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/timelock.gradle"
+apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {

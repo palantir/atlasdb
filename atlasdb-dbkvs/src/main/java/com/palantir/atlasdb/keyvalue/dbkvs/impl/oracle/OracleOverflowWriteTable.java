@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -157,7 +156,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
     public void putSentinels(Iterable<Cell> cells) {
         byte[] value = new byte[0];
         long ts = Value.INVALID_VALUE_TIMESTAMP;
-        for (List<Cell> batch : Iterables.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
+        for (List<Cell> batch : Lists.partition(Ordering.natural().immutableSortedCopy(cells), 1000)) {
             List<Object[]> args = Lists.newArrayListWithCapacity(batch.size());
             for (Cell cell : batch) {
                 args.add(new Object[] {cell.getRowName(), cell.getColumnName(), ts, value, null,

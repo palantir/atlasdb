@@ -185,6 +185,7 @@ public class KeyValueServiceCoordinationStoreTest {
                 keyValueService,
                 otherCoordinationKey,
                 timestampSequence::incrementAndGet,
+                String::equals,
                 String.class,
                 false);
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
@@ -231,6 +232,7 @@ public class KeyValueServiceCoordinationStoreTest {
                 kvs,
                 COORDINATION_ROW,
                 timestampSequence::incrementAndGet,
+                String::equals,
                 String.class,
                 false);
     }
