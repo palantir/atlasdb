@@ -277,7 +277,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                PTExecutors.newSingleThreadExecutor(true),
+                DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig);
 
@@ -320,7 +320,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                PTExecutors.newSingleThreadExecutor(true),
+                DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
                 () -> ImmutableTransactionConfig.builder().build());
     }
