@@ -26,7 +26,7 @@ public interface Client {
 
     static Client create(String clientName) {
         return ImmutableClient.builder()
-                .name(clientName)
+                .id(clientName)
                 .build();
     }
 }

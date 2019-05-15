@@ -52,13 +52,13 @@ public class CachingAuthenticator implements Authenticator {
                 .orElseThrow(() -> new NotAuthorizedException("Client id and/or password are incorrect"));
     }
 
-    private Optional<Client> authenticateInternal(ClientCredentials client) {
-        BCryptedSecret secret = credentials.get(client.id());
+    private Optional<Client> authenticateInternal(ClientCredentials clientCredentials) {
+        BCryptedSecret secret = credentials.get(clientCredentials.id());
         if (secret != null) {
             return Optional.of(Client.ANONYMOUS);
         }
-        return secret.check(client.password())
-                ? Optional.of(Client.regular(client.id()))
+        return secret.check(clientCredentials.password())
+                ? Optional.of(Client.create(clientCredentials.id()))
                 : Optional.empty();
     }
 
