@@ -22,6 +22,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 
@@ -29,7 +30,8 @@ final class DefaultTaskExecutors {
     private static final Duration DEFAULT_IDLE_TIMEOUT = Duration.ofSeconds(5);
     private static final int SINGLE_THREAD = 1;
 
-    private static final int DEFAULT_QUEUE_CAPACITY = 10_000;
+    @VisibleForTesting
+    static final int DEFAULT_QUEUE_CAPACITY = 50_000;
 
     private DefaultTaskExecutors() {
         // factory
@@ -43,6 +45,6 @@ final class DefaultTaskExecutors {
                 TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>(DEFAULT_QUEUE_CAPACITY),
                 new NamedThreadFactory("atlas-delete-executor", true),
-                new ThreadPoolExecutor.DiscardPolicy()); // Delete executor isn't required for correctness
+                new ThreadPoolExecutor.AbortPolicy());
     }
 }
