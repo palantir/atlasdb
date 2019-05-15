@@ -22,7 +22,7 @@ import org.immutables.value.Value;
 public interface Client {
     Client ANONYMOUS = Client.create("anonymous");
 
-    String name();
+    String id();
 
     static Client create(String clientName) {
         return ImmutableClient.builder()
