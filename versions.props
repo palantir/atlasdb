@@ -66,6 +66,7 @@ org.immutables:* = 2.7.3
 org.javassist:javassist = 3.18.2-GA
 org.mockito:mockito-* = 2.23.4
 org.mortbay.jetty.alpn:jetty-alpn-agent = 2.0.9
+org.mindrot:jbcrypt = 0.3m
 org.objenesis:objenesis = 3.0.1
 org.ow2.asm:asm = 7.0
 org.slf4j:* = 1.7.25
