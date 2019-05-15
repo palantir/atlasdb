@@ -220,6 +220,7 @@ class CassandraRequestExceptionHandler {
     static boolean isIndicativeOfCassandraLoad(Throwable ex) {
         // TODO (jkong): Make NoSuchElementException its own thing - that is NOT necessarily indicative of C* load.
         return ex != null
+                // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
                 // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
                 || ex instanceof TimedOutException
@@ -238,7 +239,10 @@ class CassandraRequestExceptionHandler {
     }
 
     static boolean isExceptionNotImplicatingThisParticularNode(Throwable ex) {
+        // client pool has no more elements to give, so this service node has too many requests in flight.
         return ex instanceof NoSuchElementException
+                // Other nodes are down. Technically this node might be isolated from a functional quorum via a network
+                // partition but we consider that to be an edge case.
                 || ex instanceof InsufficientConsistencyException
                 || isIndicativeOfCassandraLoad(ex.getCause());
     }
