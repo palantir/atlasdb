@@ -21,4 +21,10 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface Password {
     String value();
+
+    static Password of(String value) {
+        return ImmutablePassword.builder()
+                .value(value)
+                .build();
+    }
 }
