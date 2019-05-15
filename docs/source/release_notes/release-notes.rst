@@ -64,6 +64,11 @@ develop
          - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
 
+    *    - |fixed|
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
+
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
