@@ -145,7 +145,9 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
+        return isConnectionException(ex)
+                && numberOfAttempts >= maxTriesSameHost.get()
+                && !isExceptionNotImplicatingThisParticularNode(ex);
     }
 
     private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
@@ -218,7 +220,6 @@ class CassandraRequestExceptionHandler {
     static boolean isIndicativeOfCassandraLoad(Throwable ex) {
         // TODO (jkong): Make NoSuchElementException its own thing - that is NOT necessarily indicative of C* load.
         return ex != null
-                // pool for this node is fully in use
                 && (ex instanceof NoSuchElementException
                 // Cassandra timeout. Maybe took too long to CAS, or Cassandra is under load.
                 || ex instanceof TimedOutException
@@ -234,6 +235,12 @@ class CassandraRequestExceptionHandler {
                 // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
                 && (ex instanceof InvalidRequestException
                 || isFastFailoverException(ex.getCause()));
+    }
+
+    static boolean isExceptionNotImplicatingThisParticularNode(Throwable ex) {
+        return ex instanceof NoSuchElementException
+                || ex instanceof InsufficientConsistencyException
+                || isIndicativeOfCassandraLoad(ex.getCause());
     }
 
     @VisibleForTesting
