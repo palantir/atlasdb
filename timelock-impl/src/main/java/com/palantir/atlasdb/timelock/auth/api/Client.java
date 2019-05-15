@@ -20,22 +20,13 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface Client {
-    Client ANONYMOUS = Client.regular("anonymous");
+    Client ANONYMOUS = Client.create("anonymous");
 
     String name();
-    boolean isAdmin();
 
-    static Client regular(String clientName) {
+    static Client create(String clientName) {
         return ImmutableClient.builder()
                 .name(clientName)
-                .isAdmin(false)
-                .build();
-    }
-
-    static Client admin(String clientName) {
-        return ImmutableClient.builder()
-                .name(clientName)
-                .isAdmin(true)
                 .build();
     }
 }
