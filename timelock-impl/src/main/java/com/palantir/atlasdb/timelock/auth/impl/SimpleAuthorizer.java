@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
@@ -26,24 +28,34 @@ import com.palantir.atlasdb.timelock.auth.api.Client;
 
 public class SimpleAuthorizer implements Authorizer {
     private final Map<Client, NamespaceMatcher> privileges;
+    private final Set<Client> admins;
     private final AuthRequirer authRequirer;
 
-    SimpleAuthorizer(Map<Client, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
+    SimpleAuthorizer(Map<Client, NamespaceMatcher> privileges, Set<Client> admins, AuthRequirer authRequirer) {
         this.privileges = privileges;
+        this.admins = admins;
         this.authRequirer = authRequirer;
     }
 
-    public static Authorizer of(Map<Client, NamespaceMatcher> privileges, AuthRequirer authRequirer) {
-        return new SimpleAuthorizer(ImmutableMap.copyOf(privileges), authRequirer);
+    public static Authorizer of(Map<Client, NamespaceMatcher> privileges, Set<Client> admins,
+            AuthRequirer authRequirer) {
+        return new SimpleAuthorizer(
+                ImmutableMap.copyOf(privileges),
+                ImmutableSet.copyOf(admins),
+                authRequirer);
     }
 
     @Override
     public boolean isAuthorized(Client client, TimelockNamespace namespace) {
-        return !isAuthorizationRequired(namespace) || client.isAdmin()
+        return !isAuthorizationRequired(namespace) || isAdmin(client)
                 || privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
     }
 
     private boolean isAuthorizationRequired(TimelockNamespace namespace) {
         return authRequirer.requiresAuth(namespace);
+    }
+
+    private boolean isAdmin(Client client) {
+        return admins.contains(client);
     }
 }

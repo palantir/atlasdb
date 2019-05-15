@@ -21,12 +21,14 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
@@ -36,13 +38,14 @@ public class SimpleAuthorizerTest {
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
     private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
-    private static final Client CLIENT_1 = Client.regular("user_1");
-    private static final Client CLIENT_2 = Client.regular("user_2");
-    private static final Client ADMIN = Client.admin("admin");
+    private static final Client CLIENT_1 = Client.create("user_1");
+    private static final Client CLIENT_2 = Client.create("user_2");
+    private static final Client ADMIN = Client.create("admin");
 
     @Mock
     private AuthRequirer authRequirer;
     private Map<Client, NamespaceMatcher> privileges = new HashMap<>();
+    private Set<Client> admins = ImmutableSet.of(ADMIN);
 
     @Test
     public void adminIsAlwaysAuthorized() {
@@ -83,11 +86,11 @@ public class SimpleAuthorizerTest {
     }
 
     private void assertAuthorized(Client client, TimelockNamespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isTrue();
+        assertThat(SimpleAuthorizer.of(privileges, admins, authRequirer).isAuthorized(client, namespace)).isTrue();
     }
 
     private void assertUnauthorized(Client client, TimelockNamespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, authRequirer).isAuthorized(client, namespace)).isFalse();
+        assertThat(SimpleAuthorizer.of(privileges, admins, authRequirer).isAuthorized(client, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {

@@ -28,7 +28,7 @@ import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 public class AuthRequirerTest {
-    private static final Client CLIENT = Client.regular("user");
+    private static final Client CLIENT = Client.create("user");
 
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
     private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
