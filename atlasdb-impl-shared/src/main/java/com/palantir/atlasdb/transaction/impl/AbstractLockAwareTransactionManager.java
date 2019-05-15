@@ -15,7 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import com.google.common.base.Supplier;
+import java.util.function.Supplier;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cache.TimestampCache;

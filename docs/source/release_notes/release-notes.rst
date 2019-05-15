@@ -50,16 +50,30 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Replaced all usages of guava Supplier by java Supplier.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
+
     *    - |improved|
          - The default configuration for the number of targeted sweep shards has been increased to 8.
            This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
            Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
 
+    *    - |fixed|
+         - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
+
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3993>`__)
+
+    *    - |improved|
+         - The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
+           This is necessary for supporting cleanup of the coordination store.
+           Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3990>`__)
 
     *    - |improved|
          - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
@@ -282,6 +296,7 @@ v0.129.0
     *    - |userbreak| |fixed|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
            We do not want to stay on an RC version now that a full release is available.
+           Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3872>`__)
 
 
@@ -302,6 +317,7 @@ v0.128.0
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
            This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
+           Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3849>`__)
 
     *    - |fixed| |devbreak|
@@ -526,6 +542,7 @@ v0.118.0
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
            This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
            The Cassandra KVS putUnlessExists method has been updated to use the above call.
+           Note that this means that you must use sls-cassandra server 3.27.0 if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
 
     *    - |devbreak| |improved|
