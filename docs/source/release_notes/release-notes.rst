@@ -145,6 +145,10 @@ develop
          - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3996>`__)
 
+    *    - |metrics| |improved|
+         - A new metric `futureValueCellFilterCount` is added to track number of cells filtered on client side after retrieved from C* as a result of having a timestamp bigger than start timestamp of the transaction.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4032>`__)
+
 ========
 v0.133.0
 ========
