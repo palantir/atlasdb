@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotAuthorizedException;
 
 import org.immutables.value.Value;
@@ -49,12 +50,12 @@ public class CachingAuthenticator implements Authenticator {
     @Override
     public Client authenticate(String id, Password password) {
         return cache.get(ClientCredentials.of(id, password))
-                .orElseThrow(() -> new NotAuthorizedException("Client id and/or password are incorrect"));
+                .orElseThrow(ForbiddenException::new);
     }
 
     private Optional<Client> authenticateInternal(ClientCredentials clientCredentials) {
         BCryptedSecret secret = credentials.get(clientCredentials.id());
-        if (secret != null) {
+        if (secret == null) {
             return Optional.of(Client.ANONYMOUS);
         }
         return secret.check(clientCredentials.password())
