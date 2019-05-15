@@ -266,7 +266,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     public static CassandraKeyValueService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
-            java.util.function.Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Supplier<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             boolean initializeAsync) {
         return create(metricsManager,
