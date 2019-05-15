@@ -40,7 +40,9 @@ public abstract class BCryptedSecret {
 
     @JsonCreator
     public static BCryptedSecret of(String hashedSecret) {
-        return ImmutableBCryptedSecret.of(hashedSecret);
+        return ImmutableBCryptedSecret.builder()
+                .hashedSecret(hashedSecret)
+                .build();
     }
 
     public static BCryptedSecret forPassword(Password password) {

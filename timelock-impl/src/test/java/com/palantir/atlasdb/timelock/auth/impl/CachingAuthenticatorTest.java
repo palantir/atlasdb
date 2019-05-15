@@ -17,9 +17,13 @@
 package com.palantir.atlasdb.timelock.auth.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
+import javax.ws.rs.ForbiddenException;
+
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -38,11 +42,30 @@ public class CachingAuthenticatorTest {
     private static final Password PASSWORD_1 = Password.of("password_1");
     private static final Password PASSWORD_2 = Password.of("password_2");
 
+    @Test
     public void returnsAnonymousClientIfUnaware() {
-        Map<String, BCryptedSecret> credentials = ImmutableMap.of();
-        Authenticator cachingAuthenticator = CachingAuthenticator.create(credentials);
-
+        Authenticator cachingAuthenticator = CachingAuthenticator.create(ImmutableMap.of());
         assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).isEqualTo(Client.ANONYMOUS);
+    }
+
+    @Test
+    public void authenticatesClientIfExistsInCredentials() {
+        Authenticator cachingAuthenticator = CachingAuthenticator.create(ImmutableMap.of(
+                CLIENT_1, bcrypted(PASSWORD_1),
+                CLIENT_2, bcrypted(PASSWORD_2)));
+
+        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).
+                isEqualTo(Client.create(CLIENT_1));
+    }
+
+    @Test
+    public void throwsForbiddenExceptionIfPasswordDoesNotMatch() {
+        Authenticator cachingAuthenticator = CachingAuthenticator.create(ImmutableMap.of(
+                CLIENT_1, bcrypted(PASSWORD_1),
+                CLIENT_2, bcrypted(PASSWORD_2)));
+
+        assertThatThrownBy(() -> cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_2))
+                .isInstanceOf(ForbiddenException.class);
     }
 
     private static BCryptedSecret bcrypted(Password password) {
