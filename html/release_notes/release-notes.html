@@ -449,6 +449,7 @@ Internal benchmarks reflect a 4-5x improvement in read p99s for such workflows (
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span> <span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
 We do not want to stay on an RC version now that a full release is available.
+Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3872">Pull Request</a>)</td>
 </tr>
 </tbody>
@@ -471,6 +472,7 @@ We do not want to stay on an RC version now that a full release is available.
 <tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
 <td>AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
 This version of Cassandra KVS supports a <code class="docutils literal notranslate"><span class="pre">multiget_multislice</span></code> operation which retrieves different columns across different rows in a single query.
+Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3849">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
@@ -727,6 +729,7 @@ Instead it waits until creating each individual learner or acceptor log director
 <td>AtlasDB Cassandra KVS now depends on <code class="docutils literal notranslate"><span class="pre">com.palantir.cassandra</span></code> instead of <code class="docutils literal notranslate"><span class="pre">org.apache.cassandra</span></code>.
 This version of Cassandra thrift client supports a <code class="docutils literal notranslate"><span class="pre">put_unless_exists</span></code> operation that can update multiple columns in the same row simultaneously.
 The Cassandra KVS putUnlessExists method has been updated to use the above call.
+Note that this means that you must use sls-cassandra server 3.27.0 if you want to use Cassandra KVS.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3726">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span> <span class="changetype changetype-improved">IMPROVED</span></td>

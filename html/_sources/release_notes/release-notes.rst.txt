@@ -292,6 +292,7 @@ v0.129.0
     *    - |userbreak| |fixed|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0 (was 3.31.0-rc3).
            We do not want to stay on an RC version now that a full release is available.
+           Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3872>`__)
 
 
@@ -312,6 +313,7 @@ v0.128.0
     *    - |userbreak|
          - AtlasDB Cassandra KVS now depends on sls-cassandra 3.31.0-rc3 (was 3.27.0).
            This version of Cassandra KVS supports a ``multiget_multislice`` operation which retrieves different columns across different rows in a single query.
+           Note that this means that you must use this version of the sls-cassandra server if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3849>`__)
 
     *    - |fixed| |devbreak|
@@ -536,6 +538,7 @@ v0.118.0
          - AtlasDB Cassandra KVS now depends on ``com.palantir.cassandra`` instead of ``org.apache.cassandra``.
            This version of Cassandra thrift client supports a ``put_unless_exists`` operation that can update multiple columns in the same row simultaneously.
            The Cassandra KVS putUnlessExists method has been updated to use the above call.
+           Note that this means that you must use sls-cassandra server 3.27.0 if you want to use Cassandra KVS.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3726>`__)
 
     *    - |devbreak| |improved|
