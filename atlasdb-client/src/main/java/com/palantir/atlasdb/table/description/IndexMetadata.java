@@ -28,7 +28,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.CachePriority;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.IndexDefinition.IndexType;
-import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 
 public class IndexMetadata {

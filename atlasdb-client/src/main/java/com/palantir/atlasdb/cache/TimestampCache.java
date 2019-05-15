@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.cache;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nullable;
 
 import com.codahale.metrics.MetricRegistry;
@@ -22,7 +24,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 
 public class TimestampCache {

@@ -16,13 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.api.LockAcquisitionException;
 import com.palantir.lock.HeldLocksToken;
