@@ -36,7 +36,7 @@ public interface TransactionManager extends AutoCloseable {
      * If an attempt is made to execute a transaction when this method returns {@code false}, a
      * {@link NotInitializedException} will be thrown.
      *
-     * This method is used for TransactionManagers that can be initialized asynchronously (i.e. those extending
+     * This method is used for TransactionManagers that can be initializeppd asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
      * implementation, and return true (they're trivially fully initialized).
      *
