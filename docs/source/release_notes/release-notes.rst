@@ -65,6 +65,11 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
 
     *    - |fixed|
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
+
+    *    - |fixed|
          - AtlasDB now maintains a finite length for the delete executor's work queue, to avoid OOMs on services with high conflict rates for transactions.
            In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
            Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
