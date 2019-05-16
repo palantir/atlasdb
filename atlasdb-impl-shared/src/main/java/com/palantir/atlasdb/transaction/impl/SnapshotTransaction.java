@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1736,7 +1737,15 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             }
         }
 
-        deleteExecutor.submit(() -> deleteCells(tableRef, keysToDelete));
+        try {
+            deleteExecutor.submit(() -> deleteCells(tableRef, keysToDelete));
+        } catch (RejectedExecutionException rejected) {
+            log.info("Could not delete keys {} for table {}, because the delete executor's queue was full."
+                    + " Sweep should eventually clean these values.",
+                    UnsafeArg.of("keysToDelete", keysToDelete),
+                    LoggingArgs.tableRef(tableRef),
+                    rejected);
+        }
         return true;
     }
 
@@ -1751,7 +1760,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
                     + " instead of just talking to a quorum of nodes. "
                     + "Failed to delete keys for table: {} from an uncommitted transaction; "
-                    + " sweep should eventually clean this when it processes this table.";
+                    + " sweep should eventually clean these values.";
             if (log.isDebugEnabled()) {
                 log.warn(msg + " The keys that failed to be deleted during rollback were {}",
                         LoggingArgs.tableRef(tableRef),
