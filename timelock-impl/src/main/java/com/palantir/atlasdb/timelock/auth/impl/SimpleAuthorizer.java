@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.TimelockNamespace;
@@ -31,6 +32,7 @@ public class SimpleAuthorizer implements Authorizer {
     private final Set<Client> admins;
     private final AuthRequirer authRequirer;
 
+    @VisibleForTesting
     SimpleAuthorizer(Map<Client, NamespaceMatcher> privileges, Set<Client> admins, AuthRequirer authRequirer) {
         this.privileges = privileges;
         this.admins = admins;
@@ -38,7 +40,8 @@ public class SimpleAuthorizer implements Authorizer {
     }
 
     public static Authorizer of(Map<Client, NamespaceMatcher> privileges, Set<Client> admins,
-            AuthRequirer authRequirer) {
+            AuthRequirement authRequirement) {
+        AuthRequirer authRequirer = getAuthRequirer(authRequirement, privileges);
         return new SimpleAuthorizer(
                 ImmutableMap.copyOf(privileges),
                 ImmutableSet.copyOf(admins),
@@ -49,6 +52,19 @@ public class SimpleAuthorizer implements Authorizer {
     public boolean isAuthorized(Client client, TimelockNamespace namespace) {
         return !isAuthorizationRequired(namespace) || isAdmin(client)
                 || privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
+    }
+
+    private static AuthRequirer getAuthRequirer(AuthRequirement authRequirement, Map<Client, NamespaceMatcher> privileges) {
+        switch (authRequirement) {
+            case NEVER:
+                return AuthRequirer.NEVER_REQUIRE;
+            case ALWAYS:
+                return AuthRequirer.ALWAYS_REQUIRE;
+            case PRIVILEGE_BASED:
+                return AuthRequirer.deriveFromPrivileges(privileges);
+            default:
+                throw new IllegalStateException("unknown auth requirement option " + authRequirement);
+        }
     }
 
     private boolean isAuthorizationRequired(TimelockNamespace namespace) {
