@@ -20,11 +20,11 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface TimelockNamespace {
-    String namespace();
+    String value();
 
     static TimelockNamespace of(String namespace) {
         return ImmutableTimelockNamespace.builder()
-                .namespace(namespace)
+                .value(namespace)
                 .build();
     }
 }

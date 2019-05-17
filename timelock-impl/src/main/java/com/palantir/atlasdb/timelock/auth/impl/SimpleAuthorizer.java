@@ -36,7 +36,7 @@ public class SimpleAuthorizer implements Authorizer {
     }
 
     public static Authorizer of(Map<Client, Privileges> privileges, AuthRequirement authRequirement) {
-        NamespaceLocker namespaceLocker = getAuthRequirer(authRequirement, privileges);
+        NamespaceLocker namespaceLocker = createNamespaceLocker(authRequirement, privileges);
         return new SimpleAuthorizer(
                 ImmutableMap.copyOf(privileges),
                 namespaceLocker);
@@ -48,11 +48,13 @@ public class SimpleAuthorizer implements Authorizer {
                 || privileges.getOrDefault(client, Privileges.EMPTY).hasPrivilege(namespace);
     }
 
-    private static NamespaceLocker getAuthRequirer(AuthRequirement authRequirement, Map<Client, Privileges> privileges) {
+    private static NamespaceLocker createNamespaceLocker(
+            AuthRequirement authRequirement,
+            Map<Client, Privileges> privileges) {
         switch (authRequirement) {
-            case NEVER:
+            case NEVER_REQUIRE:
                 return NamespaceLocker.NONE_LOCKED;
-            case ALWAYS:
+            case ALWAYS_REQUIRE:
                 return NamespaceLocker.ALL_LOCKED;
             case PRIVILEGE_BASED:
                 return NamespaceLocker.deriveFromPrivileges(privileges);

@@ -20,12 +20,12 @@ public enum AuthRequirement {
     /**
      * All namespaces are locked, only privileged clients have access.
      */
-    ALWAYS,
+    ALWAYS_REQUIRE,
 
     /**
-     * None of the namespaces are locked
+     * None of the namespaces requires auth. All clients have access to all namespaces.
      */
-    NEVER,
+    NEVER_REQUIRE,
 
     /**
      * A namespace is locked only if a client claimed exclusive privileges for that namespace. Only privileged
