@@ -64,6 +64,18 @@ develop
          - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
 
+    *    - |fixed|
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
+
+    *    - |fixed|
+         - AtlasDB now maintains a finite length for the delete executor's work queue, to avoid OOMs on services with high conflict rates for transactions.
+           In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
+           Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
+           Previously, this queue was unbounded, meaning that service nodes could end up using lots of memory.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4037>`__)
+
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
            Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
@@ -148,6 +160,10 @@ develop
     *    - |metrics| |improved|
          - A new metric `futureValueCellFilterCount` is added to track number of cells filtered on client side after retrieved from C* as a result of having a timestamp bigger than start timestamp of the transaction.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4032>`__)
+
+    *    - |fixed|
+         - Removed the DB username from the Hikari connection pool name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
 
 ========
 v0.133.0

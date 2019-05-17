@@ -24,12 +24,9 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
-@SuppressWarnings("DangerousJsonTypeInfoUsage")
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 public interface ClosableIterator<T> extends Iterator<T>, Closeable {
     @Override
     default void close() { }

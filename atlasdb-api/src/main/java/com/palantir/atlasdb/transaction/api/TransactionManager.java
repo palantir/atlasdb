@@ -25,11 +25,9 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
@@ -38,7 +36,7 @@ public interface TransactionManager extends AutoCloseable {
      * If an attempt is made to execute a transaction when this method returns {@code false}, a
      * {@link NotInitializedException} will be thrown.
      *
-     * This method is used for TransactionManagers that can be initialized asynchronously (i.e. those extending
+     * This method is used for TransactionManagers that can be initializeppd asynchronously (i.e. those extending
      * {@link com.palantir.async.initializer.AsyncInitializer}; other TransactionManagers can keep the default
      * implementation, and return true (they're trivially fully initialized).
      *
@@ -138,6 +136,13 @@ public interface TransactionManager extends AutoCloseable {
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
+    default <T, E extends Exception> T runTaskWithLocksWithRetry(
+            com.google.common.base.Supplier<LockRequest> guavaSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
+        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+        return runTaskWithLocksWithRetry(javaSupplier, task);
+    }
+
     /**
      * This method is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}
      * but it will also ensure that the existing lock tokens passed are still valid before committing.
@@ -154,6 +159,14 @@ public interface TransactionManager extends AutoCloseable {
             Iterable<HeldLocksToken> lockTokens,
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
+
+    default <T, E extends Exception> T runTaskWithLocksWithRetry(
+            Iterable<HeldLocksToken> lockTokens,
+            com.google.common.base.Supplier<LockRequest> guavaSupplier,
+            LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException {
+        Supplier<LockRequest> javaSupplier = guavaSupplier::get;
+        return runTaskWithLocksWithRetry(lockTokens, javaSupplier, task);
+    }
 
     /**
      * This method is the same as {@link #runTaskThrowOnConflict(TransactionTask)} except the created transaction
@@ -186,6 +199,12 @@ public interface TransactionManager extends AutoCloseable {
      */
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
+
+    default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
+            com.google.common.base.Supplier<C> guavaSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E {
+        Supplier<C> javaSupplier = guavaSupplier::get;
+        return runTaskWithConditionWithRetry(javaSupplier, task);
+    }
 
     /**
      * This method is basically the same as {@link #runTaskThrowOnConflict(TransactionTask)}, but it takes
