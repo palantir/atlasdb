@@ -21,14 +21,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
@@ -43,7 +41,7 @@ public class SimpleAuthorizerTest {
     private static final Client ADMIN = Client.create("admin");
 
     @Mock
-    private AuthRequirer authRequirer;
+    private NamespaceLocker namespaceLocker;
     private Map<Client, Privileges> privileges = new HashMap<>();
 
     @Test
@@ -87,19 +85,19 @@ public class SimpleAuthorizerTest {
     }
 
     private void assertAuthorized(Client client, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, authRequirer).isAuthorized(client, namespace)).isTrue();
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(client, namespace)).isTrue();
     }
 
     private void assertUnauthorized(Client client, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, authRequirer).isAuthorized(client, namespace)).isFalse();
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(client, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {
-        when(authRequirer.requiresAuth(namespace)).thenReturn(false);
+        when(namespaceLocker.isLocked(namespace)).thenReturn(false);
     }
 
     private void withLockedNamespace(TimelockNamespace namespace) {
-        when(authRequirer.requiresAuth(namespace)).thenReturn(true);
+        when(namespaceLocker.isLocked(namespace)).thenReturn(true);
     }
 
     private void withAdmin(Client client) {

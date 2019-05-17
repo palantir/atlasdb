@@ -24,17 +24,17 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 
-public class PrivilegeBasedAuthRequirer implements AuthRequirer {
+public class PrivilegeBasedNamespaceLocker implements NamespaceLocker {
     private List<Privileges> privileges;
 
-    PrivilegeBasedAuthRequirer(Map<Client, Privileges> privileges) {
+    PrivilegeBasedNamespaceLocker(Map<Client, Privileges> privileges) {
         this.privileges = privileges.values().stream()
                 .filter(privilege -> privilege != Privileges.ADMIN)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public boolean requiresAuth(TimelockNamespace namespace) {
+    public boolean isLocked(TimelockNamespace namespace) {
         return privileges.stream().anyMatch(privilege -> privilege.hasPrivilege(namespace));
     }
 }

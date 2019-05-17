@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 
-public class AuthRequirerTest {
+public class PrivilegeBasedNamespaceLockerTest {
     private static final Client CLIENT = Client.create("user");
 
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
@@ -35,30 +35,14 @@ public class AuthRequirerTest {
 
     @Test
     public void shouldRequireAuthIfPrivilegeIsSpecified() {
-        Map<Client, Privileges> privilege = ImmutableMap.of(CLIENT, createMatcherFor(NAMESPACE_1));
-        AuthRequirer authRequirer = AuthRequirer.deriveFromPrivileges(privilege);
+        Map<Client, Privileges> privilege = ImmutableMap.of(CLIENT, createPrivilegesFor(NAMESPACE_1));
+        NamespaceLocker namespaceLocker = NamespaceLocker.deriveFromPrivileges(privilege);
 
-        assertThat(authRequirer.requiresAuth(NAMESPACE_1)).isTrue();
-        assertThat(authRequirer.requiresAuth(NAMESPACE_2)).isFalse();
+        assertThat(namespaceLocker.isLocked(NAMESPACE_1)).isTrue();
+        assertThat(namespaceLocker.isLocked(NAMESPACE_2)).isFalse();
     }
 
-    @Test
-    public void ALWAYS_REQUIRE_shouldAlwaysRequireAuth() {
-        AuthRequirer authRequirer = AuthRequirer.ALWAYS_REQUIRE;
-
-        assertThat(authRequirer.requiresAuth(NAMESPACE_1)).isTrue();
-        assertThat(authRequirer.requiresAuth(NAMESPACE_2)).isTrue();
-    }
-
-    @Test
-    public void NEVER_REQUIRE_shouldNeverRequireAuth() {
-        AuthRequirer authRequirer = AuthRequirer.NEVER_REQUIRE;
-
-        assertThat(authRequirer.requiresAuth(NAMESPACE_1)).isFalse();
-        assertThat(authRequirer.requiresAuth(NAMESPACE_2)).isFalse();
-    }
-
-    private Privileges createMatcherFor(TimelockNamespace namespace) {
+    private Privileges createPrivilegesFor(TimelockNamespace namespace) {
         return otherNamespace -> otherNamespace.equals(namespace);
     }
 }

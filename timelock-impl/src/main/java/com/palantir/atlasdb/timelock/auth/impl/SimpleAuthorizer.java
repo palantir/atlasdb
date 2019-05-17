@@ -27,41 +27,37 @@ import com.palantir.atlasdb.timelock.auth.api.Client;
 
 public class SimpleAuthorizer implements Authorizer {
     private final Map<Client, Privileges> privileges;
-    private final AuthRequirer authRequirer;
+    private final NamespaceLocker namespaceLocker;
 
     @VisibleForTesting
-    SimpleAuthorizer(Map<Client, Privileges> privileges, AuthRequirer authRequirer) {
+    SimpleAuthorizer(Map<Client, Privileges> privileges, NamespaceLocker namespaceLocker) {
         this.privileges = privileges;
-        this.authRequirer = authRequirer;
+        this.namespaceLocker = namespaceLocker;
     }
 
     public static Authorizer of(Map<Client, Privileges> privileges, AuthRequirement authRequirement) {
-        AuthRequirer authRequirer = getAuthRequirer(authRequirement, privileges);
+        NamespaceLocker namespaceLocker = getAuthRequirer(authRequirement, privileges);
         return new SimpleAuthorizer(
                 ImmutableMap.copyOf(privileges),
-                authRequirer);
+                namespaceLocker);
     }
 
     @Override
     public boolean isAuthorized(Client client, TimelockNamespace namespace) {
-        return !isAuthorizationRequired(namespace)
+        return !namespaceLocker.isLocked(namespace)
                 || privileges.getOrDefault(client, Privileges.EMPTY).hasPrivilege(namespace);
     }
 
-    private static AuthRequirer getAuthRequirer(AuthRequirement authRequirement, Map<Client, Privileges> privileges) {
+    private static NamespaceLocker getAuthRequirer(AuthRequirement authRequirement, Map<Client, Privileges> privileges) {
         switch (authRequirement) {
             case NEVER:
-                return AuthRequirer.NEVER_REQUIRE;
+                return NamespaceLocker.NONE_LOCKED;
             case ALWAYS:
-                return AuthRequirer.ALWAYS_REQUIRE;
+                return NamespaceLocker.ALL_LOCKED;
             case PRIVILEGE_BASED:
-                return AuthRequirer.deriveFromPrivileges(privileges);
+                return NamespaceLocker.deriveFromPrivileges(privileges);
             default:
                 throw new IllegalStateException("unknown auth requirement option " + authRequirement);
         }
-    }
-
-    private boolean isAuthorizationRequired(TimelockNamespace namespace) {
-        return authRequirer.requiresAuth(namespace);
     }
 }

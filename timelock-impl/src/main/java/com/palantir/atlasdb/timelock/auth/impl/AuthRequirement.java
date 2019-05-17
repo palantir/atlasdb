@@ -23,7 +23,7 @@ public enum AuthRequirement {
     ALWAYS,
 
     /**
-     * Non of the namespaces are locked
+     * None of the namespaces are locked
      */
     NEVER,
 

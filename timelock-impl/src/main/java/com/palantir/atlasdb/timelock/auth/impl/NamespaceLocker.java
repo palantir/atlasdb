@@ -22,13 +22,13 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 
-interface AuthRequirer {
-    AuthRequirer ALWAYS_REQUIRE = ignored -> true;
-    AuthRequirer NEVER_REQUIRE = ignored -> false;
+interface NamespaceLocker {
+    NamespaceLocker ALL_LOCKED = ignored -> true;
+    NamespaceLocker NONE_LOCKED = ignored -> false;
 
-    boolean requiresAuth(TimelockNamespace namespace);
+    boolean isLocked(TimelockNamespace namespace);
 
-    static AuthRequirer deriveFromPrivileges(Map<Client, Privileges> privileges) {
-        return new PrivilegeBasedAuthRequirer(privileges);
+    static NamespaceLocker deriveFromPrivileges(Map<Client, Privileges> privileges) {
+        return new PrivilegeBasedNamespaceLocker(privileges);
     }
 }
