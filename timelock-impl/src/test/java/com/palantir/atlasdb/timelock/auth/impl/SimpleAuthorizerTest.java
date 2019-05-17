@@ -29,9 +29,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
-import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleAuthorizerTest {
@@ -44,12 +44,13 @@ public class SimpleAuthorizerTest {
 
     @Mock
     private AuthRequirer authRequirer;
-    private Map<Client, NamespaceMatcher> privileges = new HashMap<>();
-    private Set<Client> admins = ImmutableSet.of(ADMIN);
+    private Map<Client, Privileges> privileges = new HashMap<>();
 
     @Test
     public void adminIsAlwaysAuthorized() {
         withLockedNamespace(NAMESPACE_1);
+        withAdmin(ADMIN);
+
         assertAuthorized(ADMIN, NAMESPACE_1);
     }
 
@@ -86,11 +87,11 @@ public class SimpleAuthorizerTest {
     }
 
     private void assertAuthorized(Client client, TimelockNamespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, admins, authRequirer).isAuthorized(client, namespace)).isTrue();
+        assertThat(new SimpleAuthorizer(privileges, authRequirer).isAuthorized(client, namespace)).isTrue();
     }
 
     private void assertUnauthorized(Client client, TimelockNamespace namespace) {
-        assertThat(SimpleAuthorizer.of(privileges, admins, authRequirer).isAuthorized(client, namespace)).isFalse();
+        assertThat(new SimpleAuthorizer(privileges, authRequirer).isAuthorized(client, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {
@@ -101,8 +102,12 @@ public class SimpleAuthorizerTest {
         when(authRequirer.requiresAuth(namespace)).thenReturn(true);
     }
 
+    private void withAdmin(Client client) {
+        privileges.put(client, Privileges.ADMIN);
+    }
+
     private void withPrivilege(Client client, TimelockNamespace namespace) {
-        NamespaceMatcher existingMatcher = privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH);
-        privileges.put(client, n -> existingMatcher.matches(n) || n.equals(namespace));
+        Privileges existingMatcher = privileges.getOrDefault(client, Privileges.EMPTY);
+        privileges.put(client, n -> existingMatcher.hasPrivilege(n) || n.equals(namespace));
     }
 }

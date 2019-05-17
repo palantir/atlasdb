@@ -18,21 +18,23 @@ package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
-import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 public class PrivilegeBasedAuthRequirer implements AuthRequirer {
-    private List<NamespaceMatcher> authorizedNamespaces;
+    private List<Privileges> privileges;
 
-    PrivilegeBasedAuthRequirer(Map<Client, NamespaceMatcher> privileges) {
-        this.authorizedNamespaces = ImmutableList.copyOf(privileges.values());
+    PrivilegeBasedAuthRequirer(Map<Client, Privileges> privileges) {
+        this.privileges = privileges.values().stream()
+                .filter(privilege -> privilege != Privileges.ADMIN)
+                .collect(Collectors.toList());
     }
 
     @Override
     public boolean requiresAuth(TimelockNamespace namespace) {
-        return authorizedNamespaces.stream().anyMatch(namespaceMatcher -> namespaceMatcher.matches(namespace));
+        return privileges.stream().anyMatch(privilege -> privilege.hasPrivilege(namespace));
     }
 }

@@ -23,6 +23,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
@@ -35,7 +36,7 @@ public class AuthRequirerTest {
 
     @Test
     public void shouldRequireAuthIfPrivilegeIsSpecified() {
-        Map<Client, NamespaceMatcher> privilege = ImmutableMap.of(CLIENT, createMatcherFor(NAMESPACE_1));
+        Map<Client, Privileges> privilege = ImmutableMap.of(CLIENT, createMatcherFor(NAMESPACE_1));
         AuthRequirer authRequirer = AuthRequirer.deriveFromPrivileges(privilege);
 
         assertThat(authRequirer.requiresAuth(NAMESPACE_1)).isTrue();
@@ -58,7 +59,7 @@ public class AuthRequirerTest {
         assertThat(authRequirer.requiresAuth(NAMESPACE_2)).isFalse();
     }
 
-    private NamespaceMatcher createMatcherFor(TimelockNamespace namespace) {
+    private Privileges createMatcherFor(TimelockNamespace namespace) {
         return otherNamespace -> otherNamespace.equals(namespace);
     }
 }

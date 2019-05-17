@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.auth.api;
 import com.palantir.lock.TimelockNamespace;
 
 public interface Privileges {
+    Privileges EMPTY = namespace -> false;
     Privileges ADMIN = namespace -> true;
+
     boolean hasPrivilege(TimelockNamespace namespace);
 }

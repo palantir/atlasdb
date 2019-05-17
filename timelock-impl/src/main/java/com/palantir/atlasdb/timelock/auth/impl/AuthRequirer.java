@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.Map;
 
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Client;
-import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
 interface AuthRequirer {
     AuthRequirer ALWAYS_REQUIRE = ignored -> true;
@@ -28,7 +28,7 @@ interface AuthRequirer {
 
     boolean requiresAuth(TimelockNamespace namespace);
 
-    static AuthRequirer deriveFromPrivileges(Map<Client, NamespaceMatcher> privileges) {
+    static AuthRequirer deriveFromPrivileges(Map<Client, Privileges> privileges) {
         return new PrivilegeBasedAuthRequirer(privileges);
     }
 }
