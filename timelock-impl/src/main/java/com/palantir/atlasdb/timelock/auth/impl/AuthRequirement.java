@@ -14,11 +14,22 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.api;
+package com.palantir.atlasdb.timelock.auth.impl;
 
-import com.palantir.lock.TimelockNamespace;
+public enum AuthRequirement {
+    /**
+     * All namespaces are locked, only privileged clients have access.
+     */
+    ALWAYS_REQUIRE,
 
-public interface NamespaceMatcher {
-    NamespaceMatcher NEVER_MATCH = ignored -> false;
-    boolean matches(TimelockNamespace namespace);
+    /**
+     * None of the namespaces requires auth. All clients have access to all namespaces.
+     */
+    NEVER_REQUIRE,
+
+    /**
+     * A namespace is locked only if a client claimed exclusive privileges for that namespace. Only privileged
+     * clients have access to locked namespaces.
+     */
+    PRIVILEGE_BASED
 }

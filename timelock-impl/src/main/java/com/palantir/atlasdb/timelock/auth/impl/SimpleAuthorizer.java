@@ -17,45 +17,49 @@
 package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.Map;
-import java.util.Set;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
-import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 import com.palantir.atlasdb.timelock.auth.api.Client;
 
 public class SimpleAuthorizer implements Authorizer {
-    private final Map<Client, NamespaceMatcher> privileges;
-    private final Set<Client> admins;
-    private final AuthRequirer authRequirer;
+    private final Map<Client, Privileges> privileges;
+    private final NamespaceLocker namespaceLocker;
 
-    SimpleAuthorizer(Map<Client, NamespaceMatcher> privileges, Set<Client> admins, AuthRequirer authRequirer) {
+    @VisibleForTesting
+    SimpleAuthorizer(Map<Client, Privileges> privileges, NamespaceLocker namespaceLocker) {
         this.privileges = privileges;
-        this.admins = admins;
-        this.authRequirer = authRequirer;
+        this.namespaceLocker = namespaceLocker;
     }
 
-    public static Authorizer of(Map<Client, NamespaceMatcher> privileges, Set<Client> admins,
-            AuthRequirer authRequirer) {
+    public static Authorizer of(Map<Client, Privileges> privileges, AuthRequirement authRequirement) {
+        NamespaceLocker namespaceLocker = createNamespaceLocker(authRequirement, privileges);
         return new SimpleAuthorizer(
                 ImmutableMap.copyOf(privileges),
-                ImmutableSet.copyOf(admins),
-                authRequirer);
+                namespaceLocker);
     }
 
     @Override
     public boolean isAuthorized(Client client, TimelockNamespace namespace) {
-        return !isAuthorizationRequired(namespace) || isAdmin(client)
-                || privileges.getOrDefault(client, NamespaceMatcher.NEVER_MATCH).matches(namespace);
+        return !namespaceLocker.isLocked(namespace)
+                || privileges.getOrDefault(client, Privileges.EMPTY).hasPrivilege(namespace);
     }
 
-    private boolean isAuthorizationRequired(TimelockNamespace namespace) {
-        return authRequirer.requiresAuth(namespace);
-    }
-
-    private boolean isAdmin(Client client) {
-        return admins.contains(client);
+    private static NamespaceLocker createNamespaceLocker(
+            AuthRequirement authRequirement,
+            Map<Client, Privileges> privileges) {
+        switch (authRequirement) {
+            case NEVER_REQUIRE:
+                return NamespaceLocker.NONE_LOCKED;
+            case ALWAYS_REQUIRE:
+                return NamespaceLocker.ALL_LOCKED;
+            case PRIVILEGE_BASED:
+                return NamespaceLocker.deriveFromPrivileges(privileges);
+            default:
+                throw new IllegalStateException("unknown auth requirement option " + authRequirement);
+        }
     }
 }

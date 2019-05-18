@@ -14,21 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.impl;
-
-import java.util.Map;
+package com.palantir.atlasdb.timelock.auth.api;
 
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
-import com.palantir.atlasdb.timelock.auth.api.NamespaceMatcher;
 
-interface AuthRequirer {
-    AuthRequirer ALWAYS_REQUIRE = ignored -> true;
-    AuthRequirer NEVER_REQUIRE = ignored -> false;
+public interface Privileges {
+    Privileges EMPTY = namespace -> false;
+    Privileges ADMIN = namespace -> true;
 
-    boolean requiresAuth(TimelockNamespace namespace);
-
-    static AuthRequirer deriveFromPrivileges(Map<Client, NamespaceMatcher> privileges) {
-        return new PrivilegeBasedAuthRequirer(privileges);
-    }
+    boolean hasPrivilege(TimelockNamespace namespace);
 }

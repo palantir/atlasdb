@@ -14,17 +14,21 @@
  * limitations under the License.
  */
 
-package com.palantir.lock;
+package com.palantir.atlasdb.timelock.auth.impl;
 
-import org.immutables.value.Value;
+import java.util.Map;
 
-@Value.Immutable
-public interface TimelockNamespace {
-    String value();
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
+import com.palantir.lock.TimelockNamespace;
+import com.palantir.atlasdb.timelock.auth.api.Client;
 
-    static TimelockNamespace of(String namespace) {
-        return ImmutableTimelockNamespace.builder()
-                .value(namespace)
-                .build();
+interface NamespaceLocker {
+    NamespaceLocker ALL_LOCKED = ignored -> true;
+    NamespaceLocker NONE_LOCKED = ignored -> false;
+
+    boolean isLocked(TimelockNamespace namespace);
+
+    static NamespaceLocker deriveFromPrivileges(Map<Client, Privileges> privileges) {
+        return new PrivilegeBasedNamespaceLocker(privileges);
     }
 }
