@@ -44,8 +44,4 @@ public abstract class BCryptedSecret {
                 .hashedSecret(hashedSecret)
                 .build();
     }
-
-    public static BCryptedSecret forPassword(Password password) {
-        return of(BCrypt.hashpw(password.value(), BCrypt.gensalt()));
-    }
 }

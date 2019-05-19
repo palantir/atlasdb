@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mindrot.jbcrypt.BCrypt;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,6 +64,6 @@ public class CachingAuthenticatorTest {
     }
 
     private static BCryptedSecret bcrypted(Password password) {
-        return BCryptedSecret.forPassword(password);
+        return BCryptedSecret.of(BCrypt.hashpw(password.value(), BCrypt.gensalt()));
     }
 }
