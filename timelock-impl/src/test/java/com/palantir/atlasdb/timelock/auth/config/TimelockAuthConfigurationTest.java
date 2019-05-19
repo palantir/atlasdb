@@ -1,0 +1,51 @@
+/*
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.palantir.atlasdb.timelock.auth.config;
+
+import static org.junit.Assert.*;
+
+import java.io.File;
+import java.io.IOException;
+
+import org.junit.Test;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+
+public class TimelockAuthConfigurationTest {
+    private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";
+
+    private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory())
+            .registerModule(new Jdk8Module())
+            .registerModule(new GuavaModule());
+
+    @Test
+    public void canDeserializeTimelockAuthConfig() throws IOException {
+        TimelockAuthConfiguration timelockAuthConfiguration = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
+    }
+
+    private static TimelockAuthConfiguration deserialize(File configFile) throws IOException {
+        return mapper.readValue(configFile, TimelockAuthConfiguration.class);
+    }
+
+    private static File getConfigFile(String configFile) {
+        return new File(PrivilegesConfigurationTest.class.getResource(
+                String.format("/%s.yml", configFile)).getPath());
+    }
+}
