@@ -1,0 +1,5 @@
+type: client
+id: client-1
+namespaces:
+  - namespace-1
+  - namespace-2

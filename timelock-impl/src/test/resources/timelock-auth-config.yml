@@ -1,0 +1,14 @@
+use-auth: true
+privileges:
+  - type: admin
+    id: admin-user-1
+  - type: client
+    id: client-1
+    namespaces:
+      - namespace-1
+      - namespace-2
+credentials:
+  - id: client-1
+    password: hashed-client-secret
+  - id: admin-user-1
+    password: hashed-admin-secret

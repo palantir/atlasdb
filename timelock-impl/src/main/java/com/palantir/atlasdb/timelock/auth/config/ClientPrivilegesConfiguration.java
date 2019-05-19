@@ -20,12 +20,14 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
-@JsonSerialize(as = ImmutableAdminPrivilegesConfiguration.class)
-@JsonDeserialize(as = ImmutableAdminPrivilegesConfiguration.class)
+@JsonSerialize(as = ImmutableClientPrivilegesConfiguration.class)
+@JsonDeserialize(as = ImmutableClientPrivilegesConfiguration.class)
+@JsonTypeName(ClientPrivilegesConfiguration.TYPE)
 @Value.Immutable
 public abstract class ClientPrivilegesConfiguration implements PrivilegesConfiguration {
     static final String TYPE = "client";

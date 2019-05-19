@@ -18,12 +18,14 @@ package com.palantir.atlasdb.timelock.auth.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
 @JsonSerialize(as = ImmutableAdminPrivilegesConfiguration.class)
 @JsonDeserialize(as = ImmutableAdminPrivilegesConfiguration.class)
+@JsonTypeName(AdminPrivilegesConfiguration.TYPE)
 @Value.Immutable
 public abstract class AdminPrivilegesConfiguration implements PrivilegesConfiguration {
     static final String TYPE = "admin";
