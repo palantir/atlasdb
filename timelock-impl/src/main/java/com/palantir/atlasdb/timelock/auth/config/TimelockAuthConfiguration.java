@@ -31,8 +31,7 @@ import com.palantir.atlasdb.timelock.auth.api.Credentials;
 public interface TimelockAuthConfiguration {
     List<PrivilegesConfiguration> privileges();
 
-    @JsonProperty("credentials")
-    List<Credentials> clientAuthCredentials();
+    List<Credentials> credentials();
 
     @JsonProperty("use-auth")
     boolean useAuth();

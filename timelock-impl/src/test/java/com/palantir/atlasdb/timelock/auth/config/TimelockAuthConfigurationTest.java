@@ -67,7 +67,7 @@ public class TimelockAuthConfigurationTest {
     public void credentialsAreDeserialized() throws IOException {
         TimelockAuthConfiguration timelockAuthConfiguration = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
 
-        List<Credentials> credentials = timelockAuthConfiguration.clientAuthCredentials();
+        List<Credentials> credentials = timelockAuthConfiguration.credentials();
         assertThat(credentials).containsExactly(CLIENT_CREDENTIALS, ADMIN_CREDENTIALS);
     }
 
