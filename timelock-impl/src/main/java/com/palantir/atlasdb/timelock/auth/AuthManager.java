@@ -17,16 +17,17 @@
 package com.palantir.atlasdb.timelock.auth;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.ForbiddenException;
 
 import com.palantir.atlasdb.http.PollingRefreshable;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.Password;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
@@ -77,8 +78,8 @@ public class AuthManager implements AutoCloseable {
             return;
         }
 
-        Client client = authenticator.authenticate(clientId, password);
-        if (!authorizer.isAuthorized(client, timelockNamespace)) {
+        Optional<AuthenticatedClient> client = authenticator.authenticate(clientId, password);
+        if (!client.isPresent() || !authorizer.isAuthorized(client.get(), timelockNamespace)) {
             throw new ForbiddenException();
         }
     }
@@ -99,8 +100,8 @@ public class AuthManager implements AutoCloseable {
     }
 
     private static Authorizer getAuthorizer(TimelockAuthConfiguration authConfiguration) {
-        Map<Client, Privileges> privilegesMap = authConfiguration.privileges().stream()
-                .collect(Collectors.toMap(p -> Client.create(p.id()), PrivilegesConfiguration::privileges));
+        Map<AuthenticatedClient, Privileges> privilegesMap = authConfiguration.privileges().stream()
+                .collect(Collectors.toMap(p -> AuthenticatedClient.create(p.id()), PrivilegesConfiguration::privileges));
         return SimpleAuthorizer.of(privilegesMap, AuthRequirement.PRIVILEGE_BASED);
     }
 
