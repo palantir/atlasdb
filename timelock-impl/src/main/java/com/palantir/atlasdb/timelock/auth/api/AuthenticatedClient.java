@@ -19,13 +19,13 @@ package com.palantir.atlasdb.timelock.auth.api;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface Client {
-    Client ANONYMOUS = Client.create("anonymous");
+public interface AuthenticatedClient {
+    AuthenticatedClient ANONYMOUS = AuthenticatedClient.create("anonymous");
 
     String id();
 
-    static Client create(String clientName) {
-        return ImmutableClient.builder()
+    static AuthenticatedClient create(String clientName) {
+        return ImmutableAuthenticatedClient.builder()
                 .id(clientName)
                 .build();
     }

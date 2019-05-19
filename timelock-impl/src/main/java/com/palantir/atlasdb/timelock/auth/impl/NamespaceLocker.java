@@ -18,9 +18,9 @@ package com.palantir.atlasdb.timelock.auth.impl;
 
 import java.util.Map;
 
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 
 interface NamespaceLocker {
     NamespaceLocker ALL_LOCKED = ignored -> true;
@@ -28,7 +28,7 @@ interface NamespaceLocker {
 
     boolean isLocked(TimelockNamespace namespace);
 
-    static NamespaceLocker deriveFromPrivileges(Map<Client, Privileges> privileges) {
+    static NamespaceLocker deriveFromPrivileges(Map<AuthenticatedClient, Privileges> privileges) {
         return new PrivilegeBasedNamespaceLocker(privileges);
     }
 }

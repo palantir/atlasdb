@@ -23,9 +23,9 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.Password;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -40,7 +40,7 @@ public class CachingAuthenticatorTest {
     @Test
     public void returnsAnonymousClientIfUnaware() {
         Authenticator cachingAuthenticator = CachingAuthenticator.create(ImmutableMap.of());
-        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).contains(Client.ANONYMOUS);
+        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).contains(AuthenticatedClient.ANONYMOUS);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class CachingAuthenticatorTest {
                 CLIENT_2, bcrypted(PASSWORD_2)));
 
         assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).
-                contains(Client.create(CLIENT_1));
+                contains(AuthenticatedClient.create(CLIENT_1));
     }
 
     @Test

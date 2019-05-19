@@ -19,5 +19,5 @@ package com.palantir.atlasdb.timelock.auth.api;
 import java.util.Optional;
 
 public interface Authenticator {
-    Optional<Client> authenticate(String id, Password password);
+    Optional<AuthenticatedClient> authenticate(String id, Password password);
 }

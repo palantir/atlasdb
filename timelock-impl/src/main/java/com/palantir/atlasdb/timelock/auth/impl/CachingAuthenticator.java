@@ -19,22 +19,19 @@ package com.palantir.atlasdb.timelock.auth.impl;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.ws.rs.ForbiddenException;
-import javax.ws.rs.NotAuthorizedException;
-
 import org.immutables.value.Value;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 import com.palantir.atlasdb.timelock.auth.api.Password;
 
 public class CachingAuthenticator implements Authenticator {
     private final Map<String, BCryptedSecret> credentials;
 
-    private final LoadingCache<ClientCredentials, Optional<Client>> cache;
+    private final LoadingCache<ClientCredentials, Optional<AuthenticatedClient>> cache;
 
     CachingAuthenticator(Map<String, BCryptedSecret> credentials) {
         this.credentials = credentials;
@@ -48,17 +45,17 @@ public class CachingAuthenticator implements Authenticator {
     }
 
     @Override
-    public Optional<Client> authenticate(String id, Password password) {
+    public Optional<AuthenticatedClient> authenticate(String id, Password password) {
         return cache.get(ClientCredentials.of(id, password));
     }
 
-    private Optional<Client> authenticateInternal(ClientCredentials clientCredentials) {
+    private Optional<AuthenticatedClient> authenticateInternal(ClientCredentials clientCredentials) {
         BCryptedSecret secret = credentials.get(clientCredentials.id());
         if (secret == null) {
-            return Optional.of(Client.ANONYMOUS);
+            return Optional.of(AuthenticatedClient.ANONYMOUS);
         }
         return secret.check(clientCredentials.password())
-                ? Optional.of(Client.create(clientCredentials.id()))
+                ? Optional.of(AuthenticatedClient.create(clientCredentials.id()))
                 : Optional.empty();
     }
 

@@ -22,12 +22,12 @@ import java.util.stream.Collectors;
 
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 
 public class PrivilegeBasedNamespaceLocker implements NamespaceLocker {
     private List<Privileges> nonAdminPrivileges;
 
-    PrivilegeBasedNamespaceLocker(Map<Client, Privileges> privileges) {
+    PrivilegeBasedNamespaceLocker(Map<AuthenticatedClient, Privileges> privileges) {
         this.nonAdminPrivileges = privileges.values().stream()
                 .filter(privilege -> privilege != Privileges.ADMIN)
                 .collect(Collectors.toList());

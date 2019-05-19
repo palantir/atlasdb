@@ -25,17 +25,17 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 
 public class PrivilegeBasedNamespaceLockerTest {
-    private static final Client CLIENT = Client.create("user");
+    private static final AuthenticatedClient AUTHENTICATED_CLIENT = AuthenticatedClient.create("user");
 
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
     private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
     @Test
     public void shouldRequireAuthIfPrivilegeIsSpecified() {
-        Map<Client, Privileges> privilege = ImmutableMap.of(CLIENT, createPrivilegesFor(NAMESPACE_1));
+        Map<AuthenticatedClient, Privileges> privilege = ImmutableMap.of(AUTHENTICATED_CLIENT, createPrivilegesFor(NAMESPACE_1));
         NamespaceLocker namespaceLocker = NamespaceLocker.deriveFromPrivileges(privilege);
 
         assertThat(namespaceLocker.isLocked(NAMESPACE_1)).isTrue();
