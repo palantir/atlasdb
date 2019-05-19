@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
@@ -29,6 +30,10 @@ import com.palantir.atlasdb.timelock.auth.api.Credentials;
 @Value.Immutable
 public interface TimelockAuthConfiguration {
     List<PrivilegesConfiguration> privileges();
+
+    @JsonProperty("credentials")
     List<Credentials> clientAuthCredentials();
+
+    @JsonProperty("use-auth")
     boolean useAuth();
 }
