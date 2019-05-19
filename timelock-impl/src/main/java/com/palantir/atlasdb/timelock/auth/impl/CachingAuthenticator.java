@@ -48,9 +48,8 @@ public class CachingAuthenticator implements Authenticator {
     }
 
     @Override
-    public Client authenticate(String id, Password password) {
-        return cache.get(ClientCredentials.of(id, password))
-                .orElseThrow(ForbiddenException::new);
+    public Optional<Client> authenticate(String id, Password password) {
+        return cache.get(ClientCredentials.of(id, password));
     }
 
     private Optional<Client> authenticateInternal(ClientCredentials clientCredentials) {

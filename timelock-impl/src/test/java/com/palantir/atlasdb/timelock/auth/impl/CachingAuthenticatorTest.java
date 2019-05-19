@@ -17,11 +17,6 @@
 package com.palantir.atlasdb.timelock.auth.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.Map;
-
-import javax.ws.rs.ForbiddenException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +40,7 @@ public class CachingAuthenticatorTest {
     @Test
     public void returnsAnonymousClientIfUnaware() {
         Authenticator cachingAuthenticator = CachingAuthenticator.create(ImmutableMap.of());
-        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).isEqualTo(Client.ANONYMOUS);
+        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).contains(Client.ANONYMOUS);
     }
 
     @Test
@@ -55,7 +50,7 @@ public class CachingAuthenticatorTest {
                 CLIENT_2, bcrypted(PASSWORD_2)));
 
         assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_1)).
-                isEqualTo(Client.create(CLIENT_1));
+                contains(Client.create(CLIENT_1));
     }
 
     @Test
@@ -64,8 +59,7 @@ public class CachingAuthenticatorTest {
                 CLIENT_1, bcrypted(PASSWORD_1),
                 CLIENT_2, bcrypted(PASSWORD_2)));
 
-        assertThatThrownBy(() -> cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_2))
-                .isInstanceOf(ForbiddenException.class);
+        assertThat(cachingAuthenticator.authenticate(CLIENT_1, PASSWORD_2)).isEmpty();
     }
 
     private static BCryptedSecret bcrypted(Password password) {
