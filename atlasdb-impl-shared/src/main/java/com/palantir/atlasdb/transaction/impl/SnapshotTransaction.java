@@ -885,7 +885,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 from -> RowResults.merge(from.lhSide, from.rhSide)); // prefer local writes
 
         Iterator<RowResult<byte[]>> purgeDeleted = filterEmptyColumnsFromRows(mergeIterators, tableReference);
-        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
+        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.createIsEmptyPredicate()));
     }
 
     private Iterator<RowResult<byte[]>> filterEmptyColumnsFromRows(
@@ -1517,7 +1517,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
         Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
-            final String baseMsg = "Required locks are no longer valid. ";
+            final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
             log.error(baseMsg + "{}", expiredLocksErrorString, ex);
