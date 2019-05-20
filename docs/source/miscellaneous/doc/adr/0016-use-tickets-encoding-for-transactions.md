@@ -17,6 +17,7 @@ mapping of longs to longs, with a special value of ``-1`` meaning that the trans
 are in-flight and have yet to either commit or abort will not have an entry in the table.
 
     | startTimestamp | commitTimestamp |
+    |---------------:|----------------:|
     |             20 |              33 |
     |             28 |              42 |
     |             37 |              -1 |
