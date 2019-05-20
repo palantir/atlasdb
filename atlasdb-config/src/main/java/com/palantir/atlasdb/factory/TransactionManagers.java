@@ -151,6 +151,7 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.MemoizedComposedSupplier;
 import com.palantir.util.OptionalResolver;
 
 @Value.Immutable
@@ -1039,34 +1040,6 @@ public abstract class TransactionManagers {
                 config.conservativeThreads(),
                 config.thoroughThreads(),
                 ImmutableList.of(follower));
-    }
-
-    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
-        private final Function<T, R> function;
-        private final Supplier<T> supplier;
-
-        private volatile T lastKey;
-        private R cached;
-
-        MemoizedComposedSupplier(Supplier<T> supplier, Function<T, R> function) {
-            this.function = function;
-            this.supplier = supplier;
-        }
-
-        public R get() {
-            if (!Objects.equals(lastKey, supplier.get())) {
-                recompute();
-            }
-            return cached;
-        }
-
-        private synchronized void recompute() {
-            T freshKey = supplier.get();
-            if (!Objects.equals(lastKey, freshKey)) {
-                lastKey = freshKey;
-                cached = function.apply(lastKey);
-            }
-        }
     }
 
     @Value.Immutable
