@@ -161,6 +161,10 @@ develop
          - Removed the DB username from the Hikari connection pool name.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
 
+    *    - |fixed|
+         - Fixed a bug in ``TransactionManagers`` introduced by a recently added caching layer, causing NPE's.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044`__)
+
 ========
 v0.133.0
 ========
