@@ -334,16 +334,20 @@ will try to roll back the transaction by inserting a -1 entry into the transacti
 
 | Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
 |------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
-|         100 |    p50 |  2.263 |  2.549 |    2.733 |      2.705 |            2.702 |            2.362 |
-|         100 |    p95 |  9.161 |  9.742 |    8.092 |      9.404 |            8.495 |            9.020 |
-|         100 |    p99 | 15.687 | 16.424 |   15.502 |     15.850 |           15.096 |           15.983 |
-|         250 |    p50 |  4.722 |  5.243 |    5.221 |      4.986 |            4.897 |            4.771 |
-|         250 |    p95 | 21.538 | 20.365 |   19.167 |      18.15 |           21.634 |           19.999 |
-|         250 |    p99 | 37.190 | 33.597 |   27.177 |     31.870 |           34.593 |           36.446 |
+|         100 |    p50 |  2.319 |  3.386 |    3.456 |      3.548 |            3.685 |            3.383 |
+|         100 |    p95 | 10.667 | 10.093 |    9.170 |      9.124 |            8.607 |           10.247 |
+|         100 |    p99 | 16.652 | 16.886 |   15.235 |     15.374 |           14.337 |           15.926 |
+|         250 |    p50 |  5.166 |  7.728 |    7.436 |      7.643 |            7.761 |            7.308 |
+|         250 |    p95 | 18.917 | 22.379 |   20.847 |     20.801 |           20.192 |           20.215 |
+|         250 |    p99 | 35.315 | 35.510 |   32.391 |     32.369 |           31.115 |           32.746 |
 
 We determined that our final choice of settings (BFIICK[64]) brought transactions2 read performance mostly in line with
-that of transactions1. Also notice that there is a clear regression in un-optimised transactions2, so it seems that our
-optimisations have been useful.
+that of transactions1 for a 100% hit rate. Also notice that there seems to be some regression in un-optimised
+transactions2, so our optimisations have probably been useful.
+
+It seems that there is a performance hit at lower percentiles for the 50% hit rate test, though we deem this to not
+be too bad as each read of a miss will make future reads of the same value (modulo race conditions) be a hit, meaning
+that this is unlikely to be a steady state.
 
 ### Cell Loader V2
 
