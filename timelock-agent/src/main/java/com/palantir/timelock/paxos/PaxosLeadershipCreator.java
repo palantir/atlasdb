@@ -40,7 +40,7 @@ import com.palantir.timelock.config.PaxosRuntimeConfiguration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 
-public class PaxosLeadershipCreator {
+class PaxosLeadershipCreator {
     private final MetricsManager metricsManager;
     private final TimeLockInstallConfiguration install;
     private final Supplier<PaxosRuntimeConfiguration> runtime;
@@ -49,8 +49,9 @@ public class PaxosLeadershipCreator {
     private PingableLeader localPingableLeader;
     private LeaderElectionService leaderElectionService;
     private LeadershipObserver leadershipObserver;
+    private Supplier<Boolean> isCurrentSuspectedLeader;
 
-    public PaxosLeadershipCreator(
+    PaxosLeadershipCreator(
             MetricsManager metricsManager,
             TimeLockInstallConfiguration install,
             Supplier<TimeLockRuntimeConfiguration> runtime,
@@ -61,7 +62,7 @@ public class PaxosLeadershipCreator {
         this.registrar = registrar;
     }
 
-    public void registerLeaderElectionService() {
+    void registerLeaderElectionService() {
         Set<String> remoteServers = PaxosRemotingUtils.getRemoteServerPaths(install);
 
         LeaderConfig leaderConfig = getLeaderConfig();
@@ -81,6 +82,7 @@ public class PaxosLeadershipCreator {
         localPingableLeader = localPaxosServices.pingableLeader();
         leaderElectionService = localPaxosServices.leaderElectionService();
         leadershipObserver = localPaxosServices.leadershipObserver();
+        isCurrentSuspectedLeader = localPaxosServices.isCurrentSuspectedLeader();
 
         registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
@@ -88,10 +90,10 @@ public class PaxosLeadershipCreator {
                 localPaxosServices.ourLearner()));
     }
 
-    public <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz) {
+    <T> T wrapInLeadershipProxy(Supplier<T> delegateSupplier, Class<T> clazz) {
         return AwaitingLeadershipProxy.newProxyInstance(
                 clazz,
-                delegateSupplier::get,
+                delegateSupplier,
                 leaderElectionService);
     }
 
@@ -121,19 +123,19 @@ public class PaxosLeadershipCreator {
                     .onlyLogOnQuorumFailure(config.onlyLogOnQuorumFailure())
                     .build();
 
-    public Supplier<LeaderPingHealthCheck> getHealthCheck() {
+    Supplier<LeaderPingHealthCheck> getHealthCheck() {
         return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
     }
 
-    public void executeWhenGainedLeadership(Runnable task) {
+    void executeWhenGainedLeadership(Runnable task) {
         leadershipObserver.executeWhenGainedLeadership(task);
     }
 
-    public void executeWhenLostLeadership(Runnable task) {
+    void executeWhenLostLeadership(Runnable task) {
         leadershipObserver.executeWhenLostLeadership(task);
     }
 
-    public boolean isCurrentSuspectedLeader() {
-        return localPingableLeader.ping();
+    boolean isCurrentSuspectedLeader() {
+        return isCurrentSuspectedLeader.get();
     }
 }

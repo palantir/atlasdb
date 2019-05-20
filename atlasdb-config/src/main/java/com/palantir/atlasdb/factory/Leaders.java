@@ -96,8 +96,11 @@ public final class Leaders {
         return localPaxosServices;
     }
 
-    public static LocalPaxosServices createInstrumentedLocalServices(MetricsManager metricsManager,
-            LeaderConfig config, Supplier<LeaderRuntimeConfig> runtime, String userAgent) {
+    public static LocalPaxosServices createInstrumentedLocalServices(
+            MetricsManager metricsManager,
+            LeaderConfig config,
+            Supplier<LeaderRuntimeConfig> runtime,
+            String userAgent) {
         Set<String> remoteLeaderUris = Sets.newHashSet(config.leaders());
         remoteLeaderUris.remove(config.localServer());
 
@@ -192,6 +195,7 @@ public final class Leaders {
                 .leaderElectionService(new BatchingLeaderElectionService(leaderElectionService))
                 .pingableLeader(pingableLeader)
                 .leadershipObserver(leadershipObserver)
+                .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
                 .build();
     }
 
@@ -244,6 +248,7 @@ public final class Leaders {
         LeaderElectionService leaderElectionService();
         PingableLeader pingableLeader();
         LeadershipObserver leadershipObserver();
+        Supplier<Boolean> isCurrentSuspectedLeader();
     }
 
     @Value.Immutable
