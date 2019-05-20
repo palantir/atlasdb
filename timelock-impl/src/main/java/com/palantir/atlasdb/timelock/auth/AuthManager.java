@@ -48,37 +48,34 @@ public class AuthManager implements AutoCloseable {
     private volatile AuthServices authServices;
 
     AuthManager(Refreshable<TimelockAuthConfiguration> authConfigurationRefreshable,
-            Authorizer authorizer,
-            Authenticator authenticator,
-            Runnable closingCallback) {
+            Runnable closingCallback,
+            AuthServices authServices) {
         this.authConfigurationRefreshable = authConfigurationRefreshable;
         this.closingCallback = closingCallback;
-        this.authorizer = authorizer;
-        this.authenticator = authenticator;
+        this.authServices = authServices;
     }
 
     public static AuthManager of(Supplier<TimelockAuthConfiguration> timelockAuthConfigurationSupplier) {
         PollingRefreshable<TimelockAuthConfiguration> configPollingRefreshable = PollingRefreshable
                 .create(timelockAuthConfigurationSupplier);
 
-        TimelockAuthConfiguration configuration = timelockAuthConfigurationSupplier.get();
+        AuthServices authServices = getAuthServices(timelockAuthConfigurationSupplier.get());
 
         return new AuthManager(
                 configPollingRefreshable.getRefreshable(),
-                getAuthorizer(configuration),
-                getAuthenticator(configuration),
-                configPollingRefreshable::close);
+                configPollingRefreshable::close,
+                authServices);
     }
 
     public void checkAuthorized(String clientId, Password password, TimelockNamespace timelockNamespace) {
         update();
 
-        if (!useAuth) {
+        if (!authServices.useAuth()) {
             return;
         }
 
-        Optional<AuthenticatedClient> client = authenticator.authenticate(clientId, password);
-        if (!client.isPresent() || !authorizer.isAuthorized(client.get(), timelockNamespace)) {
+        Optional<AuthenticatedClient> client = authServices.authenticator().authenticate(clientId, password);
+        if (!client.isPresent() || !authServices.authorizer().isAuthorized(client.get(), timelockNamespace)) {
             throw new ForbiddenException();
         }
     }
