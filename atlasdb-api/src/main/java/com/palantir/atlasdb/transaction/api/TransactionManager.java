@@ -25,11 +25,9 @@ import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.processors.AutoDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
-@AutoDelegate
 public interface TransactionManager extends AutoCloseable {
     /**
      * Whether this transaction manager has established a connection to the backing store and timestamp/lock services,
