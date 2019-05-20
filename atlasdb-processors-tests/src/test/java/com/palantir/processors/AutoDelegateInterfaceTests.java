@@ -103,9 +103,28 @@ public class AutoDelegateInterfaceTests {
     @Test
     public void generatedInterfaceCallsMethodOnDelegate() {
         TestInterfaceImpl mockImpl = mock(TestInterfaceImpl.class);
-        AutoDelegate_TestInterface instanceOfInterface = () -> mockImpl;
+        AutoDelegate_TestInterface instanceOfInterface = new AnImpl(mockImpl);
 
         instanceOfInterface.methodWithReturnType();
         verify(mockImpl, times(1)).methodWithReturnType();
+    }
+
+    static class AnImpl implements AutoDelegate_TestInterface {
+
+        private final TestInterface delegate;
+
+        AnImpl(TestInterface delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public TestInterface delegate() {
+            return delegate;
+        }
+
+        @Override
+        public void methodThatMustBeImplemented() {
+
+        }
     }
 }
