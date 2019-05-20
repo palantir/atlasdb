@@ -16,12 +16,12 @@ was committed or aborted (and in the case of it being committed, its commit time
 mapping of longs to longs, with a special value of ``-1`` meaning that the transaction was aborted. Transactions that
 are in-flight and have yet to either commit or abort will not have an entry in the table.
 
-    | startTimestamp | commitTimestamp |
-    |---------------:|----------------:|
-    |             20 |              33 |
-    |             28 |              42 |
-    |             37 |              -1 |
-    |        3141592 |         3141595 |
+| startTimestamp | commitTimestamp |
+|---------------:|----------------:|
+|             20 |              33 |
+|             28 |              42 |
+|             37 |              -1 |
+|        3141592 |         3141595 |
 
 This table is accessed via the ``TransactionService`` class in AtlasDB, which offers a simple interface:
 
