@@ -161,6 +161,10 @@ develop
          - Removed the DB username from the Hikari connection pool name.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
 
+    *    - |devbreak|
+         - ``AutoDelegate`` only works on interfaces now.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4045>`__)
+
 ========
 v0.133.0
 ========
