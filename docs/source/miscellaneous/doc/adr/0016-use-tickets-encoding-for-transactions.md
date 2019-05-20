@@ -295,7 +295,14 @@ For transactions2, the number of partitions is expected to be very small, so we 
 
 #### Compression Chunk Length
 
-Cassandra compresses SSTables by blocks on disk. This
+Cassandra compresses SSTables by blocks on disk. These blocks are of configurable size; choosing larger blocks may
+enable better compression (since similarities between columns or values may be exploited) at the expense of needing
+to read more data from disk when a read occurs. Typically in Atlas, this is set to 4 KB to reduce the amount of I/O
+we need to do.
+
+For transactions2, we expect that some users will often be reading data from a relatively smaller working set. In this
+case, using a larger chunk size enables better compression and increases the proportion of said working set that can be
+maintained in memory. We experimented with several settings and found 64 KB to be a good balance.
 
 #### Benchmarking of Cassandra Table Parameters
 
