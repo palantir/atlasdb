@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.sweep.queue.config;
 
 import org.immutables.value.Value;
 
@@ -49,6 +49,11 @@ public abstract class TargetedSweepRuntimeConfig {
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
                 "Shard number must be between 1 and 256 inclusive, but it is %s.", shards());
+    }
+
+    @Value.Default
+    public long pauseMillis() {
+        return 500L;
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {

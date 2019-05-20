@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration ``pauseMillis``.
+           The default value has also changed from 5000 milliseconds to 500.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4046>`__)
+
     *    - |devbreak|
          - Replaced all usages of guava Supplier by java Supplier.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)

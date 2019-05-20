@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -75,6 +76,10 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
@@ -101,7 +106,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Before
     public void setup() {
         super.setup();
-        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, () -> enabled, () -> DEFAULT_SHARDS);
+        Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
+                .enabled(enabled)
+                .shards(DEFAULT_SHARDS)
+                .build();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
         mockFollower = mock(TargetedSweepFollower.class);
 
         timelockService = mock(TimelockService.class);
@@ -1148,9 +1157,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
             TimelockService stickyLockService) throws InterruptedException {
+        TargetedSweepRuntimeConfig runtime = ImmutableTargetedSweepRuntimeConfig.builder()
+                .shards(shards)
+                .pauseMillis(5000)
+                .build();
+        TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
+                .conservativeThreads(threads)
+                .thoroughThreads(0)
+                .build();
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper sweeperInstance = TargetedSweeper
-                    .createUninitialized(metricsManager, () -> true, () -> shards, threads, 0, ImmutableList.of());
+                    .createUninitialized(metricsManager, () -> runtime, install, ImmutableList.of());
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier,
                     stickyLockService,
@@ -1159,11 +1176,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                     mockFollower);
             sweeperInstance.runInBackground();
         }
-        waitUntilBackgroundSweepRunsOneIteration();
+        waitUntilSweepRunsOneIteration();
     }
 
-    private void waitUntilBackgroundSweepRunsOneIteration() throws InterruptedException {
-        Thread.sleep(3_000);
+    private void waitUntilSweepRunsOneIteration() throws InterruptedException {
+        Thread.sleep(3000L);
     }
 
     private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
