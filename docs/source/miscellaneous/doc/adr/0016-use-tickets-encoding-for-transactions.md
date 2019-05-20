@@ -207,13 +207,13 @@ The putUnlessExists operation is performed at a serial consistency level in Cass
 go through Paxos for consensus. Thrift exposes a check-and-set operation on its APIs.
 
 ```
-  CASResult cas(1:required binary key,
-                2:required string column_family,
-                3:list<Column> expected,
-                4:list<Column> updates,
-                5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
-                6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
-       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+CASResult cas(1:required binary key,
+            2:required string column_family,
+            3:list<Column> expected,
+            4:list<Column> updates,
+            5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+            6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 This was sufficient in the original transactions schema, because each row key only stores information about one
@@ -230,12 +230,12 @@ has the semantics we want. This is different from CAS from an empty list, in tha
 the existing columns in the column family for the provided key do not overlap with the set of columns being added.
 
 ```
-  CASResult put_unless_exists(1:required binary key,
-                              2:required string column_family,
-                              3:list<Column> updates,
-                              4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
-                              5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
-       throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+CASResult put_unless_exists(1:required binary key,
+                          2:required string column_family,
+                          3:list<Column> updates,
+                          4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+                          5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 #### Multinode Contention and Residues
@@ -356,11 +356,11 @@ that this is unlikely to be a steady state.
 AtlasDB loads most of its data through the ``multiget_slice`` Cassandra endpoint.
 
 ```
-  map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
-                                                       2:required ColumnParent column_parent,
-                                                       3:required SlicePredicate predicate,
-                                                       4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
-                                        throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
+                                                   2:required ColumnParent column_parent,
+                                                   3:required SlicePredicate predicate,
+                                                   4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+                                    throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 A ``SlicePredicate`` is a Cassandra struct that allows clients to specify which columns they want to read - these
@@ -381,7 +381,38 @@ timestamps, and the latest timestamp at which our cell existed isn't something w
 
 #### Multiget Multislice
 
-The above model does not work well for transactions2. Transactions2
+The above model does not work well for transactions2. Transactions2 cells end up being distributed reasonably evenly
+among the columns 0 through PQ / NP (which, in our case, is 312,500). Thus, when attempting to determine whether some
+Atlas values had been committed, we will perform many requests in parallel. These requests will end up using many
+resources from the Cassandra connection pool; they also incur a lot of overhead in terms of scheduling and network I/O.
+
+We want to be able to batch these calls together. To do this, we added another endpoint to the Thrift interface that
+Palantir's fork of Cassandra provides:
+
+```
+struct KeyPredicate {
+    1: optional binary key,
+    2: optional SlicePredicate predicate,
+}
+
+map<binary,list<list<ColumnOrSuperColumn>>> multiget_multislice(1:required list<KeyPredicate> request,
+                                                              2:required ColumnParent column_parent,
+                                                              3:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+                                    throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
+
+Implementing this endpoint on the Cassandra side was not too difficult. It may seem a little wasteful in that this may
+require keys and predicates to be specified more than once, but for transactions2 these would likely be mostly
+distinct.
+
+While this improved performance, we still faced significant regressions relative to the v1 cell loader. We determined
+that this was because Cassandra has a worker pool for loading values to satisfy a ``ReadCommand``, but the calling
+thread in requests is also allowed to participate. Thus, creating large batches would turn out to likely be detrimental
+to read performance, even when the Cassandra nodes are actually able to handle higher concurrency safely.
+
+#### Selective Batching
+
+
 
 ### Live Migrations and the Coordination Service
 
