@@ -885,7 +885,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                 from -> RowResults.merge(from.lhSide, from.rhSide)); // prefer local writes
 
         Iterator<RowResult<byte[]>> purgeDeleted = filterEmptyColumnsFromRows(mergeIterators, tableReference);
-        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.<byte[]>createIsEmptyPredicate()));
+        return Iterators.filter(purgeDeleted, Predicates.not(RowResults.createIsEmptyPredicate()));
     }
 
     private Iterator<RowResult<byte[]>> filterEmptyColumnsFromRows(
@@ -1520,7 +1520,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             final String baseMsg = "Required locks are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
+            log.info(baseMsg + "{}", expiredLocksErrorString, ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
