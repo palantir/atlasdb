@@ -58,11 +58,12 @@ is similarly a VAR_LONG encoding of the commit timestamp.
 
 The Cassandra representation of the ``_transactions`` table introduced above may look as follows.
 
-    |        key | column1 | column2 |                  value |
-    |       0x14 |    0x74 |      -1 |                   0x21 |
-    |       0x1c |    0x74 |      -1 |                   0x2a |
-    |       0x25 |    0x74 |      -1 | 0xff80ffffffffffffffff |
-    | 0xe02fefd8 |    0x74 |      -1 |             0xe02fefdb |
+|        key | column1 | column2 |                  value |
+|-----------:|--------:|--------:|-----------------------:|
+|       0x14 |    0x74 |      -1 |                   0x21 |
+|       0x1c |    0x74 |      -1 |                   0x2a |
+|       0x25 |    0x74 |      -1 | 0xff80ffffffffffffffff |
+| 0xe02fefd8 |    0x74 |      -1 |             0xe02fefdb |
 
 The details of VAR_LONG encoding are fiddly, but it exhibits several desirable properties:
 
