@@ -1517,10 +1517,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
         Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
         if (!expiredLocks.isEmpty()) {
-            final String baseMsg = "Required locks are no longer valid. ";
+            final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
-            log.info(baseMsg + "{}", expiredLocksErrorString, ex);
+            log.error(baseMsg + "{}", expiredLocksErrorString, ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
