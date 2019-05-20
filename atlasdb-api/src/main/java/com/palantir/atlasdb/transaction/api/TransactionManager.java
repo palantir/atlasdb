@@ -139,6 +139,13 @@ public interface TransactionManager extends AutoCloseable {
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
+    /**
+     * This is the same as {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)} instead.
+     * @see #runTaskWithLocksWithRetry(Supplier, LockAwareTransactionTask)
+     */
     @DoNotDelegate
     @Deprecated
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -165,6 +172,13 @@ public interface TransactionManager extends AutoCloseable {
             Supplier<LockRequest> lockSupplier,
             LockAwareTransactionTask<T, E> task) throws E, InterruptedException, LockAcquisitionException;
 
+    /**
+     * This is the same as {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)} instead.
+     * @see #runTaskWithLocksWithRetry(Iterable, Supplier, LockAwareTransactionTask)
+     */
     @DoNotDelegate
     @Deprecated
     default <T, E extends Exception> T runTaskWithLocksWithRetry(
@@ -207,6 +221,13 @@ public interface TransactionManager extends AutoCloseable {
     <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
             Supplier<C> conditionSupplier, ConditionAwareTransactionTask<T, C, E> task) throws E;
 
+    /**
+     * This is the same as {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)}, but instead
+     * takes in a Guava supplier. This is deprecated in favour of the aforementioned method.
+     *
+     * @deprecated use {@link #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)} instead.
+     * @see #runTaskWithConditionWithRetry(Supplier, ConditionAwareTransactionTask)
+     */
     @DoNotDelegate
     @Deprecated
     default <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionWithRetry(
