@@ -282,7 +282,9 @@ static final double NEGATIVE_LOOKUPS_SIZE_TIERED_BLOOM_FILTER_FP_CHANCE = 0.0001
 ```
 
 As far as transactions2 is concerned, we observe that the number of partitions is very small, and thus we can go with
-a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001.
+a very low setting. We thus set ``bloom_filter_fp_chance`` to 0.0001. Empirically, we observed that for 1,000,000,000
+timestamps, the bloom filter we had for the ``_transactions2`` table even with this setting was about 15 KB, while that
+for ``_transactions`` was about 580 MB.
 
 #### Index Intervals
 
@@ -306,7 +308,42 @@ For transactions2, we expect that some users will often be reading data from a r
 case, using a larger chunk size enables better compression and increases the proportion of said working set that can be
 maintained in memory. We experimented with several settings and found 64 KB to be a good balance.
 
-#### Benchmarking of Cassandra Table Parameters
+#### Empirical Evaluation of Cassandra Table Parameters
+
+We ran several benchmarks on an internal testing stack, with different levels of concurrency and different hit rates
+for the transactions table. For these benchmarks, we ensured that we actually performed disk operations to evaluate
+performance. This was done by using ``sstableloader`` to ingest billions of timestamp pairs into the test stack, and
+the ``stress`` tool to consume almost all of the free memory outside of Cassandra's heap (to avoid operating system
+page caches). We also had to create fresh ``TransactionService``s on each benchmark run to circumvent application-level
+caching.
+
+These benchmarks were run with a 100% hit rate (every timestamp queried for corresponded to an existing transaction).
+We attempted to run the tests using various configurations of the optimisations discussed above.
+
+| Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
+|------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
+|         100 |    p50 |  2.263 |  2.549 |    2.733 |      2.705 |            2.702 |            2.362 |
+|         100 |    p95 |  9.161 |  9.742 |    8.092 |      9.404 |            8.495 |            9.020 |
+|         100 |    p99 | 15.687 | 16.424 |   15.502 |     15.850 |           15.096 |           15.983 |
+|         250 |    p50 |  4.722 |  5.243 |    5.221 |      4.986 |            4.897 |            4.771 |
+|         250 |    p95 | 21.538 | 20.365 |   19.167 |      18.15 |           21.634 |           19.999 |
+|         250 |    p99 | 37.190 | 33.597 |   27.177 |     31.870 |           34.593 |           36.446 |
+
+These benchmarks were run with a 50% hit rate. Note that this is rare in practice, as in practice after each miss we
+will try to roll back the transaction by inserting a -1 entry into the transactions table.
+
+| Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
+|------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
+|         100 |    p50 |  2.263 |  2.549 |    2.733 |      2.705 |            2.702 |            2.362 |
+|         100 |    p95 |  9.161 |  9.742 |    8.092 |      9.404 |            8.495 |            9.020 |
+|         100 |    p99 | 15.687 | 16.424 |   15.502 |     15.850 |           15.096 |           15.983 |
+|         250 |    p50 |  4.722 |  5.243 |    5.221 |      4.986 |            4.897 |            4.771 |
+|         250 |    p95 | 21.538 | 20.365 |   19.167 |      18.15 |           21.634 |           19.999 |
+|         250 |    p99 | 37.190 | 33.597 |   27.177 |     31.870 |           34.593 |           36.446 |
+
+We determined that our final choice of settings (BFIICK[64]) brought transactions2 read performance mostly in line with
+that of transactions1. Also notice that there is a clear regression in un-optimised transactions2, so it seems that our
+optimisations have been useful.
 
 ### Cell Loader V2
 
