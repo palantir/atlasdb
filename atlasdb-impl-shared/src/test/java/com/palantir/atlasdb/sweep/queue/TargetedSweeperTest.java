@@ -1157,7 +1157,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     private void createAndInitializeSweepersAndWaitForOneBackgroundIteration(int sweepers, int shards, int threads,
             TimelockService stickyLockService) throws InterruptedException {
-        TargetedSweepRuntimeConfig runtime = ImmutableTargetedSweepRuntimeConfig.builder().shards(shards).build();
+        TargetedSweepRuntimeConfig runtime = ImmutableTargetedSweepRuntimeConfig.builder()
+                .shards(shards)
+                .pauseMillis(5000)
+                .build();
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(threads)
                 .thoroughThreads(0)
@@ -1173,11 +1176,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                     mockFollower);
             sweeperInstance.runInBackground();
         }
-        waitUntilSweepRunsOneIteration(runtime);
+        waitUntilSweepRunsOneIteration();
     }
 
-    private void waitUntilSweepRunsOneIteration(TargetedSweepRuntimeConfig runtime) throws InterruptedException {
-        Thread.sleep(runtime.pauseMillis() / 2);
+    private void waitUntilSweepRunsOneIteration() throws InterruptedException {
+        Thread.sleep(3000L);
     }
 
     private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
