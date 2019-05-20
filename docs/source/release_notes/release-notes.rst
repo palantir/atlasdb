@@ -163,7 +163,7 @@ develop
 
     *    - |fixed|
          - Fixed a bug in ``TransactionManagers`` introduced by a recently added caching layer, causing NPE's.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044>`__)
 
 ========
 v0.133.0
