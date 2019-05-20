@@ -16,13 +16,11 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -382,9 +380,9 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
-        Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
-                () -> runtimeConfigSupplier.get().transaction(),
-                this::withConsolidatedGrabImmutableTsLockFlag);
+        Supplier<TransactionConfig> transactionConfigSupplier = Suppliers.compose(
+                this::withConsolidatedGrabImmutableTsLockFlag,
+                () -> runtimeConfigSupplier.get().transaction());
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
@@ -1039,34 +1037,6 @@ public abstract class TransactionManagers {
                 config.conservativeThreads(),
                 config.thoroughThreads(),
                 ImmutableList.of(follower));
-    }
-
-    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
-        private final Function<T, R> function;
-        private final Supplier<T> supplier;
-
-        private volatile T lastKey;
-        private R cached;
-
-        MemoizedComposedSupplier(Supplier<T> supplier, Function<T, R> function) {
-            this.function = function;
-            this.supplier = supplier;
-        }
-
-        public R get() {
-            if (!Objects.equals(lastKey, supplier.get())) {
-                recompute();
-            }
-            return cached;
-        }
-
-        private synchronized void recompute() {
-            T freshKey = supplier.get();
-            if (!Objects.equals(lastKey, freshKey)) {
-                lastKey = freshKey;
-                cached = function.apply(lastKey);
-            }
-        }
     }
 
     @Value.Immutable
