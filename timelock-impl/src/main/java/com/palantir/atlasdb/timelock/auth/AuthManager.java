@@ -18,10 +18,13 @@ package com.palantir.atlasdb.timelock.auth;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.ForbiddenException;
+
+import org.immutables.value.Value;
 
 import com.palantir.atlasdb.http.PollingRefreshable;
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
@@ -42,11 +45,7 @@ import com.palantir.lock.TimelockNamespace;
 public class AuthManager implements AutoCloseable {
     private final Refreshable<TimelockAuthConfiguration> authConfigurationRefreshable;
     private final Runnable closingCallback;
-
-    private Authorizer authorizer;
-    private Authenticator authenticator;
-
-    private boolean useAuth = true;
+    private volatile AuthServices authServices;
 
     AuthManager(Refreshable<TimelockAuthConfiguration> authConfigurationRefreshable,
             Authorizer authorizer,
@@ -94,9 +93,18 @@ public class AuthManager implements AutoCloseable {
     }
 
     private synchronized void updateInternal(TimelockAuthConfiguration authConfiguration) {
-        authorizer = getAuthorizer(authConfiguration);
-        authenticator = getAuthenticator(authConfiguration);
-        useAuth = authConfiguration.useAuth();
+        authServices = getAuthServices(authConfiguration);
+    }
+
+    private static AuthServices getAuthServices(TimelockAuthConfiguration authConfiguration) {
+        Authorizer newAuthorizer = getAuthorizer(authConfiguration);
+        Authenticator newAuthenticator = getAuthenticator(authConfiguration);
+
+        return ImmutableAuthServices.builder()
+                .authenticator(newAuthenticator)
+                .authorizer(newAuthorizer)
+                .useAuth(authConfiguration.useAuth())
+                .build();
     }
 
     private static Authorizer getAuthorizer(TimelockAuthConfiguration authConfiguration) {
@@ -109,5 +117,12 @@ public class AuthManager implements AutoCloseable {
         Map<String, BCryptedSecret> secretMap = authConfiguration.credentials().stream()
                 .collect(Collectors.toMap(Credentials::id, Credentials::password));
         return CachingAuthenticator.create(secretMap);
+    }
+
+    @Value.Immutable
+    interface AuthServices {
+        Authenticator authenticator();
+        Authorizer authorizer();
+        boolean useAuth();
     }
 }
