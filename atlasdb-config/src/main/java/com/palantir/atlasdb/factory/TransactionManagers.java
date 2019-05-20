@@ -66,8 +66,6 @@ import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
-import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
-import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
@@ -109,6 +107,8 @@ import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -1026,19 +1026,13 @@ public abstract class TransactionManagers {
 
     private static MultiTableSweepQueueWriter uninitializedTargetedSweeper(
             MetricsManager metricsManager,
-            TargetedSweepInstallConfig config,
+            TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
-        if (!config.enableSweepQueueWrites()) {
+        if (!install.enableSweepQueueWrites()) {
             return MultiTableSweepQueueWriter.NO_OP;
         }
-        return TargetedSweeper.createUninitialized(
-                metricsManager,
-                Suppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime::get),
-                Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
-                config.conservativeThreads(),
-                config.thoroughThreads(),
-                ImmutableList.of(follower));
+        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
     }
 
     private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {

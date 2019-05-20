@@ -27,6 +27,7 @@ import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 

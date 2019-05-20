@@ -31,6 +31,7 @@ import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
