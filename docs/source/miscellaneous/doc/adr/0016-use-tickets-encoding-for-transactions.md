@@ -351,6 +351,38 @@ that this is unlikely to be a steady state.
 
 ### Cell Loader V2
 
+#### Background on Cell Loading
+
+AtlasDB loads most of its data through the ``multiget_slice`` Cassandra endpoint.
+
+```
+  map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
+                                                       2:required ColumnParent column_parent,
+                                                       3:required SlicePredicate predicate,
+                                                       4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+                                        throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
+
+A ``SlicePredicate`` is a Cassandra struct that allows clients to specify which columns they want to read - these
+columns are loaded for each of the keys presented. Notice that this method supports multiple keys but just one
+predicate.
+
+Thus, in Atlas when we try and perform a get of a collection of cells (which are row-column pairs), we first
+group the pairs by column and then, in parallel, dispatch requests to Cassandra for each row that is relevant.
+For example, if one's cells were ``(A, 1), (A, 2), (B, 1), (C, 2), (C, 3), (D, 3)``, then Atlas would send three
+requests:
+
+- column ``1`` and keys ``[A, B]``
+- column ``2`` and keys ``[A, C]``
+- column ``3`` and keys ``[C, D]``
+
+Note that in practice, the requests we make have to use a range predicate on Cassandra, because cells don't include
+timestamps, and the latest timestamp at which our cell existed isn't something we know a priori.
+
+#### Multiget Multislice
+
+The above model does not work well for transactions2. Transactions2
+
 ### Live Migrations and the Coordination Service
 
 ## Consequences
@@ -361,15 +393,21 @@ that this is unlikely to be a steady state.
 
 ### Data Compression
 
-### Backup and Restore
+### Operational Concerns
 
-### Cassandra Dependencies
+#### Backup and Restore
+
+#### Cassandra Dependencies
+
+#### Safe Installation
 
 ## Alternatives Considered
 
 ### Use TimeLock / other Paxos mechanism for transactions
 
 ### The Row-Tickets Algorithm
+
+### Multiget Multislice Exactly
 
 ## Future Work
 
