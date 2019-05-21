@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.URI;
-
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -34,11 +32,11 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
+        Response response = ExceptionMappers.encode503ResponseWithRetryAfter(exception);
         if (exception.getServiceHint().isPresent()) {
-            return Response.status(308)
-                    .location(URI.create(exception.getServiceHint().get().toString()))
-                    .build();
+            response.getStringHeaders().add("XXX-LeaderHint", exception.getServiceHint().get().getHost() + ":"
+                    + exception.getServiceHint().get().getPort());
         }
-        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+        return response;
     }
 }
