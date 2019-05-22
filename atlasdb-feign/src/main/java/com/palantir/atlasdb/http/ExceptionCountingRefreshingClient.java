@@ -55,10 +55,15 @@ public class ExceptionCountingRefreshingClient implements Client {
 
     @Override
     public Response execute(Request request, Request.Options options) throws IOException {
-        try (Response response = delegate().execute(request, options)) {
+        Response response = null;
+        try {
+            response = delegate().execute(request, options);
             counter.set(0);
             return response;
         } catch (Exception e) {
+            if (response != null) {
+                response.close();
+            }
             counter.incrementAndGet();
             throw e;
         }
