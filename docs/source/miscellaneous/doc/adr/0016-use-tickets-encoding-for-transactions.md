@@ -412,7 +412,10 @@ to read performance, even when the Cassandra nodes are actually able to handle h
 
 #### Selective Batching
 
+We thus settled on a compromise between sending large singular requests and inundating Cassandra with smaller ones.
+We still partition requests to load cells by column first
 
+#### Benchmarking
 
 ### Live Migrations and the Coordination Service
 
