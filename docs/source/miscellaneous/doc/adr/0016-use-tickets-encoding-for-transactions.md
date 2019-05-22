@@ -412,8 +412,29 @@ to read performance, even when the Cassandra nodes are actually able to handle h
 
 #### Selective Batching
 
-We thus settled on a compromise between sending large singular requests and inundating Cassandra with smaller ones.
-We still partition requests to load cells by column first
+We thus settled on a compromise between sending large singular requests and inundating Cassandra with smaller ones;
+unlike in the original ``CellLoader``, we make the batch parameters configurable. There are two parameters:
+
+- cross column load batch limit (CC); we may combine requests for different columns in one call to the DB, but merged
+  calls will not exceed this size.
+- single query load batch limit (SQ); a single request should never be larger than this size. We expect SQ >= CC.
+
+We still partition requests to load cells by column first. Thereafter,
+
+- if for a given column the number of cells is at least CC, then the cells for that column will exclusively take up
+  one or more batches, with no batch having size greater than SQ.
+- otherwise, the cells may be combined with cells in other columns, in batches of size up to CC. There is no guarantee
+  that all cells for a given column will be in the same batch.
+
+In terms of implementation, we simply maintain a list of cells eligible for cross-column batching, and partition this
+list into contiguous groups of size CC. In this way, no row key will be included more than twice. It may be possible
+to reduce the amount of data sent over the wire to Cassandra and possibly some of the internal read bandwidth by
+solving the underlying bin-packing problem to ensure that each row-key only occurs once; consider that we duplicate
+many keys if we want to load CC - 1 cells from many columns. This may be worth considering in the future (while
+bin-packing is NP-complete, an algorithm like first-fit decreasing will give us a good approximation), but we have not
+implemented it yet as the overhead is only a constant factor, and in many cases with transactions2 we expect the
+number of cells per column to be small. Consider that assuming a uniform distribution, even if a single transaction 
+reads 1,000,000 values with PQ / NP = 312,500, the maximum batch size will probably not exceed 20.
 
 #### Benchmarking
 
