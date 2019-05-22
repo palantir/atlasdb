@@ -38,7 +38,7 @@ Optional parameters:
            This parameter configures the maximum time a client request can be made to wait by the rate limiter.
            This should definitely be less than the server idle timeout or jetty will cause the request to timeout and potentially retry.
            The default value is 10 seconds.
-           This is of type `HumanReadableDuration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/HumanReadableDuration.java>`__.
+           This is of type `HumanReadableDuration <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/HumanReadableDuration.java>`__.
 
     *    - limits::readBytesPerSecond
          - The maximum number of bytes to read from Cassandra per second (specified as a long).
@@ -51,4 +51,4 @@ Optional parameters:
 
     *    - qosService
          - The config for the QoS Service.
-           This is of type `ServiceConfiguration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ServiceConfiguration.java>`__.
+           This is of type `ServiceConfiguration <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ServiceConfiguration.java>`__.
