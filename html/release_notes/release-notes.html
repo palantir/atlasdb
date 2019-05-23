@@ -316,6 +316,14 @@ enabling migrating to thorough sweep without downtime. Please contact to Atlas t
 <td>Fixed a bug causing connection leaks to timelock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4052">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosRuntimeConfiguration</span></code> as (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">#3943</a>) changed it on test configs only.
+<code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
+<code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
+<code class="docutils literal notranslate"><span class="pre">ping-rate-in-ms</span></code> was reduced to 50 ms from 5000 ms.
+These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4055">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
