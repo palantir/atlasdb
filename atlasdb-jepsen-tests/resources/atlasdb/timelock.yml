@@ -9,6 +9,3 @@ cluster:
     - n3:8080
     - n4:8080
     - n5:8080
-
-algorithm:
-  type: paxos

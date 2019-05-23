@@ -29,19 +29,19 @@ public interface PaxosRuntimeConfiguration {
     @JsonProperty("ping-rate-in-ms")
     @Value.Default
     default long pingRateMs() {
-        return 5000L;
+        return 50L;
     }
 
     @JsonProperty("maximum-wait-before-proposal-in-ms")
     @Value.Default
     default long maximumWaitBeforeProposalMs() {
-        return 1000L;
+        return 300L;
     }
 
     @JsonProperty("leader-ping-response-wait-in-ms")
     @Value.Default
     default long leaderPingResponseWaitMs() {
-        return 5000L;
+        return 2000L;
     }
 
     @JsonProperty("only-log-on-quorum-failure")
