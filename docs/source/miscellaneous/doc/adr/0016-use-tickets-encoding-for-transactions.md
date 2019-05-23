@@ -438,6 +438,57 @@ reads 1,000,000 values with PQ / NP = 312,500, the maximum batch size will proba
 
 #### Benchmarking
 
+We tested the selective batching cell loader against the original algorithm ("CL1") and a full-batching algorithm that
+always batches cells up to CC, regardless of what rows or columns they are from.
+
+We first ran the benchmarks with a single thread, with various configurations of rows and columns. Note that the third
+workload (16 rows, 500 dynamic columns) is intended to resemble workflows involving transactions2. In our tests,
+CC = 50,000 and SQ = 200. Dynamic columns are random and are unlikely to have overlaps.
+
+| Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
+|  100 |  100 static |    p50 |        124.2 |          164.4 |        118.9 |
+|  100 |  100 static |    p95 |        169.7 |            204 |        163.5 |
+|  100 |  100 static |    p99 |        204.1 |          237.2 |        195.2 |
+| 1000 |   10 static |    p50 |        122.6 |          169.4 |        118.6 |
+| 1000 |   10 static |    p95 |        164.3 |          222.7 |        161.5 |
+| 1000 |   10 static |    p99 |        170.9 |          269.1 |        188.0 |
+|   16 | 500 dynamic |    p50 |        328.5 |          144.6 |        102.7 |
+|   16 | 500 dynamic |    p95 |        432.3 |          195.5 |        143.8 |
+|   16 | 500 dynamic |    p99 |        473.3 |          254.8 |        162.1 |
+
+Notice that for the 100 rows test, CellLoader 2 performs marginally better than CellLoader 1, probably because it is
+able to make 50 RPCs instead of 100 (recall that SQ = 200). The full batching algorithm performs the worst, probably
+owing to Cassandra latency as there is only one requestor thread apart from the worker pool executing the request.
+
+For the 1000 rows test, CellLoader 1 and 2 performance is very similar. This is expected, as the underlying calls to
+the Cassandra cluster are the same (for each column, there is a single RPC). As before, the full batching algorithm
+performs poorly.
+
+However, for the 16 rows / 500 dynamic columns test, CellLoader 1 performance is very poor, as it may need to make as
+many as 8,000 distinct RPCs owing to the different column keys. The full batching algorithm still suffers from having
+just one requestor thread. CellLoader 2 is able to divide this into approximately 40 parallel RPCs, and performs
+best overall.
+
+We also ran the benchmarks with 10 concurrent readers on the same workflows:
+
+| Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
+|  100 |  100 static |    p50 |       1042.0 |         1248.5 |       1027.4 |
+|  100 |  100 static |    p95 |       1355.2 |         1636.1 |       1365.1 |
+|  100 |  100 static |    p99 |       1530.6 |         1783.2 |       1530.8 |
+| 1000 |   10 static |    p50 |       1205.9 |         1172.5 |       1199.7 |
+| 1000 |   10 static |    p95 |       1515.1 |         1656.9 |       1502.8 |
+| 1000 |   10 static |    p99 |       1595.8 |         1928.3 |       1618.6 |
+|   16 | 500 dynamic |    p50 |       3141.8 |          899.2 |        888.4 |
+|   16 | 500 dynamic |    p95 |       3390.1 |         1350.6 |       1189.0 |
+|   16 | 500 dynamic |    p99 |       3497.2 |         1635.8 |       1307.2 |
+
+The magnitude by which full batching does not perform as well as CellLoader 2 is also much less, possibly because
+the worker pool has a finite size and even with the full batching algorithm in this case, each reader contributes
+one requesting thread, and although CellLoader2 also spins up many more requesting threads on the Cassandra side,
+the Cassandra cluster was unable to actually have these therads all do work concurrently.
+
 ### Live Migrations and the Coordination Service
 
 ## Consequences
