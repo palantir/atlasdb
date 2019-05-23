@@ -218,7 +218,7 @@ next request hits the server and knowledge of the previous rate-limiting will be
 This parameter configures the maximum time a client request can be made to wait by the rate limiter.
 This should definitely be less than the server idle timeout or jetty will cause the request to timeout and potentially retry.
 The default value is 10 seconds.
-This is of type <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/HumanReadableDuration.java">HumanReadableDuration</a>.</td>
+This is of type <a class="reference external" href="https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/HumanReadableDuration.java">HumanReadableDuration</a>.</td>
 </tr>
 <tr class="row-odd"><td>limits::readBytesPerSecond</td>
 <td>The maximum number of bytes to read from Cassandra per second (specified as a long).
@@ -230,7 +230,7 @@ The default value is <code class="docutils literal notranslate"><span class="pre
 </tr>
 <tr class="row-odd"><td>qosService</td>
 <td>The config for the QoS Service.
-This is of type <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ServiceConfiguration.java">ServiceConfiguration</a>.</td>
+This is of type <a class="reference external" href="https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ServiceConfiguration.java">ServiceConfiguration</a>.</td>
 </tr>
 </tbody>
 </table>

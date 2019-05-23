@@ -312,6 +312,10 @@ enabling migrating to thorough sweep without downtime. Please contact to Atlas t
 <td>Fixed a bug in <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> introduced by a recently added caching layer, causing NPE’s.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4044">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug causing connection leaks to timelock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4052">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -4217,7 +4221,7 @@ We now throw the actual cause for the invocation exception.
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Allow passing a <a class="reference external" href="https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java">ProxyConfiguration</a> to allow setting custom proxy on the TimeLock clients.
+<td>Allow passing a <a class="reference external" href="https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ProxyConfiguration.java">ProxyConfiguration</a> to allow setting custom proxy on the TimeLock clients.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/2393">Pull Request</a>)</td>
 </tr>
 </tbody>
