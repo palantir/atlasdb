@@ -178,6 +178,14 @@ develop
          - Fixed a bug causing connection leaks to timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
 
+    *    - |improved|
+         - Changed the default values in ``PaxosRuntimeConfiguration`` as (`#3943 <https://github.com/palantir/atlasdb/pull/3943>`__) changed it on test configs only.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
+
 ========
 v0.133.0
 ========
