@@ -208,12 +208,12 @@ go through Paxos for consensus. Thrift exposes a check-and-set operation on its 
 
 ```
 CASResult cas(1:required binary key,
-            2:required string column_family,
-            3:list<Column> expected,
-            4:list<Column> updates,
-            5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
-            6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
-   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+              2:required string column_family,
+              3:list<Column> expected,
+              4:list<Column> updates,
+              5:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+              6:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 This was sufficient in the original transactions schema, because each row key only stores information about one
@@ -231,11 +231,11 @@ the existing columns in the column family for the provided key do not overlap wi
 
 ```
 CASResult put_unless_exists(1:required binary key,
-                          2:required string column_family,
-                          3:list<Column> updates,
-                          4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
-                          5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
-   throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+                            2:required string column_family,
+                            3:list<Column> updates,
+                            4:required ConsistencyLevel serial_consistency_level=ConsistencyLevel.SERIAL,
+                            5:required ConsistencyLevel commit_consistency_level=ConsistencyLevel.QUORUM)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 #### Multinode Contention and Residues
@@ -357,10 +357,10 @@ AtlasDB loads most of its data through the ``multiget_slice`` Cassandra endpoint
 
 ```
 map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
-                                                   2:required ColumnParent column_parent,
-                                                   3:required SlicePredicate predicate,
-                                                   4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
-                                    throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+                                                     2:required ColumnParent column_parent,
+                                                     3:required SlicePredicate predicate,
+                                                     4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 A ``SlicePredicate`` is a Cassandra struct that allows clients to specify which columns they want to read - these
@@ -396,9 +396,9 @@ struct KeyPredicate {
 }
 
 map<binary,list<list<ColumnOrSuperColumn>>> multiget_multislice(1:required list<KeyPredicate> request,
-                                                              2:required ColumnParent column_parent,
-                                                              3:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
-                                    throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+                                                                2:required ColumnParent column_parent,
+                                                                3:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
 ```
 
 Implementing this endpoint on the Cassandra side was not too difficult. It may seem a little wasteful in that this may
