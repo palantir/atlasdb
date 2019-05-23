@@ -26,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 /**
@@ -86,8 +85,6 @@ public final class Value implements Serializable {
 
     public static final Function<Value, byte[]> GET_VALUE = Value::getContents;
 
-    public static final Predicate<byte[]> IS_EMPTY = input -> input.length == 0;
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -113,6 +110,4 @@ public final class Value implements Serializable {
                 + ", contentsLength=" + contents.length
                 + ", timestamp=" + timestamp + "]";
     }
-
-
 }

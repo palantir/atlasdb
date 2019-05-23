@@ -282,7 +282,8 @@ public class PaxosTimestampBoundStoreTest {
                 learners.get(nodeIndex),
                 ImmutableList.copyOf(acceptors),
                 ImmutableList.copyOf(learners),
-                1000L);
+                1000L,
+                executor);
     }
 
     private PaxosProposer createPaxosProposer(int nodeIndex) {

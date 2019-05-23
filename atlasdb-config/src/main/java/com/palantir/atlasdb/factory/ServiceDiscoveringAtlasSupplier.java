@@ -26,15 +26,14 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -42,8 +41,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampService;
+import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.debug.ThreadDumps;
 
@@ -56,62 +54,18 @@ public class ServiceDiscoveringAtlasSupplier {
     private final KeyValueServiceConfig config;
     private final Optional<LeaderConfig> leaderConfig;
     private final Supplier<KeyValueService> keyValueService;
-    private final Supplier<TimestampService> timestampService;
+    private final Supplier<ManagedTimestampService> timestampService;
     private final Supplier<TimestampStoreInvalidator> timestampStoreInvalidator;
 
     public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager, KeyValueServiceConfig config, Optional<LeaderConfig> leaderConfig) {
-        this(metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                Optional.empty(),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
             MetricsManager metricsManager,
             KeyValueServiceConfig config,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            Optional<TableReference> timestampTable) {
-        this(metricsManager,
-                config,
-                Optional::empty,
-                leaderConfig,
-                namespace,
-                timestampTable,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            Optional<LeaderConfig> leaderConfig,
-            Optional<String> namespace,
-            boolean initializeAsync) {
-        this(metricsManager,
-                config,
-                runtimeConfig,
-                leaderConfig,
-                namespace,
-                Optional.empty(),
-                initializeAsync,
-                AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
-    }
-
-    public ServiceDiscoveringAtlasSupplier(
-            MetricsManager metricsManager,
-            KeyValueServiceConfig config,
-            java.util.function.Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<LeaderConfig> leaderConfig,
             Optional<String> namespace,
             Optional<TableReference> timestampTable,
             boolean initializeAsync,
             LongSupplier timestampSupplier) {
-        // TODO (jkong): Remove some duplication between the above constructor and this
         this.config = config;
         this.leaderConfig = leaderConfig;
 
@@ -126,7 +80,7 @@ public class ServiceDiscoveringAtlasSupplier {
                         timestampSupplier,
                         initializeAsync));
         timestampService = () ->
-                atlasFactory.createTimestampService(getKeyValueService(), timestampTable, initializeAsync);
+                atlasFactory.createManagedTimestampService(getKeyValueService(), timestampTable, initializeAsync);
         timestampStoreInvalidator = () -> atlasFactory.createTimestampStoreInvalidator(getKeyValueService());
     }
 
@@ -134,7 +88,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return keyValueService.get();
     }
 
-    public synchronized TimestampService getTimestampService() {
+    public synchronized ManagedTimestampService getManagedTimestampService() {
         log.info("[timestamp-service-creation] Fetching timestamp service from "
                         + "thread {}. This should only happen once.", Thread.currentThread().getName());
 
@@ -145,10 +99,6 @@ public class ServiceDiscoveringAtlasSupplier {
         }
 
         return timestampService.get();
-    }
-
-    public synchronized TimestampManagementService getTimestampManagementService(TimestampService timestamp) {
-        return AtlasDbFactory.createTimestampManagementService(timestamp);
     }
 
     public synchronized TimestampStoreInvalidator getTimestampStoreInvalidator() {
@@ -176,7 +126,7 @@ public class ServiceDiscoveringAtlasSupplier {
     }
 
     @VisibleForTesting
-    String saveThreadDumps() throws IOException {
+    static String saveThreadDumps() throws IOException {
         File file = getTempFile();
         return saveThreadDumpsToFile(file);
     }
@@ -190,7 +140,7 @@ public class ServiceDiscoveringAtlasSupplier {
         return path.toFile();
     }
 
-    private String saveThreadDumpsToFile(File file) throws IOException {
+    private static String saveThreadDumpsToFile(File file) throws IOException {
         try (FileOutputStream outputStream = new FileOutputStream(file)) {
             writeStringToStream(outputStream,
                     "This file contains thread dumps that will be useful for the AtlasDB Dev team, in case you hit a "
@@ -219,7 +169,7 @@ public class ServiceDiscoveringAtlasSupplier {
         }
     }
 
-    private void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
+    private static void writeStringToStream(FileOutputStream outputStream, String stringToWrite) throws IOException {
         outputStream.write(stringToWrite.getBytes(StandardCharsets.UTF_8));
     }
 

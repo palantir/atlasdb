@@ -23,6 +23,8 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -31,6 +33,8 @@ import java.util.function.Function;
 
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -60,6 +64,7 @@ public class KeyValueServiceCoordinationStoreTest {
     private static final Function<ValueAndBound<String>, String> VALUE_PRESERVING_FUNCTION
             = valueAndBound -> valueAndBound.value()
             .orElseThrow(() -> new IllegalStateException("Can only preserve a present value"));
+    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
     private final AtomicLong timestampSequence = new AtomicLong();
@@ -185,6 +190,7 @@ public class KeyValueServiceCoordinationStoreTest {
                 keyValueService,
                 otherCoordinationKey,
                 timestampSequence::incrementAndGet,
+                String::equals,
                 String.class,
                 false);
         coordinationStore.transformAgreedValue(unused -> VALUE_1);
@@ -223,6 +229,66 @@ public class KeyValueServiceCoordinationStoreTest {
                 .hasMessageContaining("Failed to check and set coordination value");
     }
 
+    @Test
+    public void retriesOnKeyValueServiceWhenValuesDeletedInGets() throws JsonProcessingException {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
+        setupOnceFailingMockKvs(mockKvs, store);
+
+        assertThat(store.getAgreedValue()).isPresent()
+                .contains(ValueAndBound.of(VALUE_2, SEQUENCE_AND_BOUND_2.bound()));
+
+        verifyReadsOnOnceFailingMockKvs(mockKvs, store);
+    }
+
+    @Test
+    public void retriesOnKeyValueServiceWhenValuesDeletedInTransforms() throws JsonProcessingException {
+        KeyValueService mockKvs = mock(KeyValueService.class);
+        KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
+        setupOnceFailingMockKvs(mockKvs, store);
+
+        CheckAndSetResult<ValueAndBound<String>> casResult = store.transformAgreedValue(value ->
+                value.value().orElseThrow(() -> new RuntimeException("unexpected absent value")) + ".");
+        assertThat(casResult.successful()).isTrue();
+        assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_2 + ".");
+
+        verifyReadsOnOnceFailingMockKvs(mockKvs, store);
+    }
+
+    private void setupOnceFailingMockKvs(KeyValueService mockKvs, KeyValueServiceCoordinationStore<String> store)
+            throws JsonProcessingException {
+        when(mockKvs.get(
+                eq(AtlasDbConstants.COORDINATION_TABLE),
+                eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE))))
+                .thenReturn(ImmutableMap.of(
+                        store.getCoordinationValueCell(),
+                        Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_1), 0L)))
+                .thenReturn(ImmutableMap.of(
+                        store.getCoordinationValueCell(),
+                        Value.create(store.serializeSequenceAndBound(SEQUENCE_AND_BOUND_2), 0L)));
+        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), eq(ImmutableMap.of(
+                store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE))))
+                .thenReturn(ImmutableMap.of());
+        when(mockKvs.get(eq(AtlasDbConstants.COORDINATION_TABLE), eq(ImmutableMap.of(
+                store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE))))
+                .thenReturn(ImmutableMap.of(
+                        store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()),
+                        Value.create(OBJECT_MAPPER.writeValueAsBytes(VALUE_2), 0L)));
+    }
+
+    private void verifyReadsOnOnceFailingMockKvs(KeyValueService mockKvs,
+            KeyValueServiceCoordinationStore<String> store) {
+        verify(mockKvs, times(2)).get(
+                eq(AtlasDbConstants.COORDINATION_TABLE),
+                eq(ImmutableMap.of(store.getCoordinationValueCell(), Long.MAX_VALUE)));
+        verify(mockKvs).get(
+                eq(AtlasDbConstants.COORDINATION_TABLE),
+                eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_1.sequence()), Long.MAX_VALUE)));
+        verify(mockKvs).get(
+                eq(AtlasDbConstants.COORDINATION_TABLE),
+                eq(ImmutableMap.of(store.getCellForSequence(SEQUENCE_AND_BOUND_2.sequence()), Long.MAX_VALUE)));
+    }
+
     private KeyValueServiceCoordinationStore<String> coordinationStoreForKvs(KeyValueService kvs) {
         // Casting is reasonable because we initialize with false. We need the precise typing for some of the
         // tests that hit the store directly.
@@ -231,6 +297,7 @@ public class KeyValueServiceCoordinationStoreTest {
                 kvs,
                 COORDINATION_ROW,
                 timestampSequence::incrementAndGet,
+                String::equals,
                 String.class,
                 false);
     }

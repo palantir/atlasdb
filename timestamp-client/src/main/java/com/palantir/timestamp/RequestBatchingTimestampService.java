@@ -29,6 +29,7 @@ import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.autobatch.ProfilingAutobatchers;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.proxy.TimingProxy;
 import com.palantir.util.jmx.OperationTimer;
@@ -85,7 +86,9 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
 
     public static RequestBatchingTimestampService create(TimestampService untimedDelegate) {
         TimestampService delegate = TimingProxy.newProxyInstance(TimestampService.class, untimedDelegate, timer);
-        DisruptorAutobatcher<Integer, TimestampRange> autobatcher = DisruptorAutobatcher.create(consumer(delegate));
+        DisruptorAutobatcher<Integer, TimestampRange> autobatcher = ProfilingAutobatchers.create(
+                RequestBatchingTimestampService.class.getSimpleName(),
+                consumer(delegate));
         return new RequestBatchingTimestampService(delegate, autobatcher);
     }
 

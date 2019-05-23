@@ -38,7 +38,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.lock.v2.LockToken;
@@ -84,7 +83,7 @@ public class AsyncTimeLockUnlockerTest {
     public void enqueueingTokensEnqueuedInGroupsAllEventuallyCaptured() {
         setupTokenCollectingTimeLock();
 
-        Iterables.partition(tokenList, 7).forEach(tokens -> unlocker.enqueue(ImmutableSet.copyOf(tokens)));
+        Lists.partition(tokenList, 7).forEach(tokens -> unlocker.enqueue(ImmutableSet.copyOf(tokens)));
 
         verifyTryUnlockAttemptedAtLeastOnce();
         assertAllTokensEventuallyUnlocked();

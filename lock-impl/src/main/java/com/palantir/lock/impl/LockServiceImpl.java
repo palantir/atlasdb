@@ -37,6 +37,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -52,7 +53,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -103,6 +103,7 @@ import com.palantir.lock.logger.LockServiceStateLogger;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.util.JMXUtils;
+import com.palantir.util.Ownable;
 
 /**
  * Implementation of the Lock Server.
@@ -127,10 +128,6 @@ public final class LockServiceImpl
 
     @VisibleForTesting
     static final long DEBUG_SLOW_LOG_TRIGGER_MILLIS = 100;
-
-    /** Executor for the reaper threads. */
-    private final ExecutorService executor = PTExecutors.newCachedThreadPool(
-            new NamedThreadFactory(LockServiceImpl.class.getName(), true));
 
     private static final Function<HeldLocksToken, String> TOKEN_TO_ID =
             from -> from.getTokenId().toString(Character.MAX_RADIX);
@@ -167,12 +164,13 @@ public final class LockServiceImpl
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
+    private final Ownable<ExecutorService> executor;
+    private final Runnable callOnClose;
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
     private final SimpleTimeDuration maxAllowedLockTimeout;
     private final SimpleTimeDuration maxAllowedClockDrift;
     private final SimpleTimeDuration maxNormalLockAge;
-    private final Runnable callOnClose;
     private final AtomicBoolean isShutDown = new AtomicBoolean(false);
     private final String lockStateLoggerDir;
 
@@ -198,11 +196,11 @@ public final class LockServiceImpl
 
     /** The priority queue of lock tokens waiting to be reaped. */
     private final BlockingQueue<HeldLocksToken> lockTokenReaperQueue =
-            new PriorityBlockingQueue<HeldLocksToken>(1, ExpiringToken.COMPARATOR);
+            new PriorityBlockingQueue<>(1, ExpiringToken.COMPARATOR);
 
     /** The priority queue of lock grants waiting to be reaped. */
     private final BlockingQueue<HeldLocksGrant> lockGrantReaperQueue =
-            new PriorityBlockingQueue<HeldLocksGrant>(1, ExpiringToken.COMPARATOR);
+            new PriorityBlockingQueue<>(1, ExpiringToken.COMPARATOR);
 
     /** The mapping from lock client to the set of tokens held by that client. */
     private final SetMultimap<LockClient, HeldLocksToken> lockClientMultimap =
@@ -215,7 +213,7 @@ public final class LockServiceImpl
             Sets.newConcurrentHashSet();
 
     private final Multimap<LockClient, Long> versionIdMap = Multimaps.synchronizedMultimap(
-            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), () -> TreeMultiset.create()));
+            Multimaps.newMultimap(Maps.<LockClient, Collection<Long>>newHashMap(), TreeMultiset::create));
 
     private static final AtomicInteger instanceCount = new AtomicInteger();
     private static final int MAX_FAILED_LOCKS_TO_LOG = 20;
@@ -228,31 +226,43 @@ public final class LockServiceImpl
 
     /** Creates a new lock server instance with the given options. */
     public static LockServiceImpl create(LockServerOptions options) {
+        Preconditions.checkNotNull(options);
+        ExecutorService newExecutor = PTExecutors
+                .newCachedThreadPool(new NamedThreadFactory(LockServiceImpl.class.getName(), true));
+        return create(options, Ownable.owned(newExecutor));
+    }
+
+    public static LockServiceImpl create(LockServerOptions options, ExecutorService injectedExecutor) {
+        Preconditions.checkNotNull(options);
+        return create(options, Ownable.notOwned(injectedExecutor));
+    }
+
+    private static LockServiceImpl create(LockServerOptions options, Ownable<ExecutorService> executor) {
         if (log.isTraceEnabled()) {
             log.trace("Creating LockService with options={}", options);
         }
         final String jmxBeanRegistrationName = "com.palantir.lock:type=LockServer_" + instanceCount.getAndIncrement();
         LockServiceImpl lockService = new LockServiceImpl(options,
-                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName));
+                () -> JMXUtils.unregisterMBeanCatchAndLogExceptions(jmxBeanRegistrationName), executor);
         JMXUtils.registerMBeanCatchAndLogExceptions(lockService, jmxBeanRegistrationName);
         return lockService;
     }
 
-    private LockServiceImpl(LockServerOptions options, Runnable callOnClose) {
-        Preconditions.checkNotNull(options);
+    private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
+        this.executor = executor;
         this.callOnClose = callOnClose;
-        isStandaloneServer = options.isStandaloneServer();
-        maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
-        maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
-        maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
-        lockStateLoggerDir = options.getLockStateLoggerDir();
+        this.isStandaloneServer = options.isStandaloneServer();
+        this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
+        this.maxAllowedClockDrift = SimpleTimeDuration.of(options.getMaxAllowedClockDrift());
+        this.maxNormalLockAge = SimpleTimeDuration.of(options.getMaxNormalLockAge());
+        this.lockStateLoggerDir = options.getLockStateLoggerDir();
+        this.slowLogTriggerMillis = options.slowLogTriggerMillis();
 
-        slowLogTriggerMillis = options.slowLogTriggerMillis();
-        executor.execute(() -> {
+        executor.resource().execute(() -> {
             Thread.currentThread().setName("Held Locks Token Reaper");
             reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
         });
-        executor.execute(() -> {
+        executor.resource().execute(() -> {
             Thread.currentThread().setName("Held Locks Grant Reaper");
             reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
         });
@@ -1056,19 +1066,14 @@ public final class LockServiceImpl
         return logString;
     }
 
-
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            executor.shutdownNow();
-            wakeIndefiniteBlockers();
+            if (executor.isOwned()) {
+                executor.resource().shutdownNow();
+            }
+            indefinitelyBlockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
-        }
-    }
-
-    private void wakeIndefiniteBlockers() {
-        for (Thread blocked : indefinitelyBlockingThreads) {
-            blocked.interrupt();
         }
     }
 

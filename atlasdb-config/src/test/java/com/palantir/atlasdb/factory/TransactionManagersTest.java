@@ -73,8 +73,6 @@ import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.ImmutableTargetedSweepInstallConfig;
-import com.palantir.atlasdb.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockClientConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
@@ -85,9 +83,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
 import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -358,6 +360,54 @@ public class TransactionManagersTest {
     }
 
     @Test
+    public void grabImmutableTsLockIsConfiguredWithBuilderOption() {
+        TransactionConfig transactionConfig = ImmutableTransactionConfig.builder()
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(true)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfig)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
+    @Test
+    public void useRuntimeConfigFlagIfBuilderOptionIsSetToFalse() {
+        TransactionConfig transactionConfigLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(true)
+                .build();
+
+        TransactionConfig transactionConfigNotLocking = ImmutableTransactionConfig.builder()
+                .lockImmutableTsOnReadOnlyTransactions(false)
+                .build();
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(true));
+
+        assertThat(withLockImmutableTsOnReadOnlyTransaction(false)
+                .withConsolidatedGrabImmutableTsLockFlag(transactionConfigNotLocking)
+                .lockImmutableTsOnReadOnlyTransactions(), is(false));
+    }
+
+    private TransactionManagers withLockImmutableTsOnReadOnlyTransaction(boolean option) {
+        AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .build();
+
+        return TransactionManagers.builder()
+                .config(atlasDbConfig)
+                .userAgent("test")
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .registrar(environment)
+                .lockImmutableTsOnReadOnlyTransactions(option)
+                .build();
+    }
+
+    @Test
     public void metricsAreReportedExactlyOnceWhenUsingLocalService() throws IOException, InterruptedException {
         setUpForLocalServices();
         setUpLeaderBlockInConfig();
@@ -552,7 +602,7 @@ public class TransactionManagersTest {
         return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
-    private void performTransaction(TransactionManager manager) {
+    private static void performTransaction(TransactionManager manager) {
         RangeScanTestTable.RangeScanTestRow testRow = RangeScanTestTable.RangeScanTestRow.of("foo");
         manager.runTaskWithRetry(tx -> {
             GenericTestSchemaTableFactory.of().getRangeScanTestTable(tx).putColumn1(testRow, 12345L);
@@ -634,7 +684,6 @@ public class TransactionManagersTest {
                 environment,
                 LockServiceImpl::create,
                 () -> ts,
-                () -> ts,
                 invalidator,
                 USER_AGENT);
     }
@@ -661,7 +710,6 @@ public class TransactionManagersTest {
                         () -> runtimeConfig,
                         environment,
                         LockServiceImpl::create,
-                        () -> ts,
                         () -> ts,
                         invalidator,
                         USER_AGENT);
