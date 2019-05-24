@@ -31,6 +31,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.conjure.java.ext.refresh.RefreshableProxyInvocationHandler;
 
 import feign.Client;
@@ -142,12 +143,13 @@ public final class AtlasDbFeignTargetFactory {
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
-        PollingRefreshable<ServerListConfig> configPollingRefreshable =
-                PollingRefreshable.create(serverListConfigSupplier);
+        Refreshable<ServerListConfig> refreshableConfig = PollingRefreshable
+                .create(serverListConfigSupplier)
+                .getRefreshable();
         return Reflection.newProxy(
                 type,
                 RefreshableProxyInvocationHandler.create(
-                        configPollingRefreshable.getRefreshable(),
+                        refreshableConfig,
                         serverListConfig -> {
                             if (serverListConfig.hasAtLeastOneServer()) {
                                 return createProxyWithFailover(
