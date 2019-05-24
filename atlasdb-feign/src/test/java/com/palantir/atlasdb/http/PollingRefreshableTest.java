@@ -107,7 +107,7 @@ public class PollingRefreshableTest {
         AtomicLong atomicLong = new AtomicLong();
 
         Refreshable<Long> refreshable = PollingRefreshable
-                .createWithPoller(atomicLong::incrementAndGet, REFRESH_INTERVAL, this::doubleThrowOnOne, scheduler)
+                .createWithPoller(atomicLong::incrementAndGet, REFRESH_INTERVAL, this::doubleOrThrowOnOne, scheduler)
                 .getRefreshable();
 
         assertThat(refreshable.getAndClear()).isEmpty();
@@ -134,7 +134,7 @@ public class PollingRefreshableTest {
         AtomicLong atomicLong = new AtomicLong(-1L);
 
         Refreshable<Long> refreshable = PollingRefreshable
-                .createWithPoller(atomicLong::incrementAndGet, REFRESH_INTERVAL, this::doubleThrowOnOne, scheduler)
+                .createWithPoller(atomicLong::incrementAndGet, REFRESH_INTERVAL, this::doubleOrThrowOnOne, scheduler)
                 .getRefreshable();
 
         assertRefreshableContainsAndClear(refreshable, 0L);
@@ -241,7 +241,7 @@ public class PollingRefreshableTest {
         return pollingRefreshable.getRefreshable();
     }
 
-    long doubleThrowOnOne(long input) {
+    private long doubleOrThrowOnOne(long input) {
         if (input == 1L) {
             throw new RuntimeException("ONE!!11!!2");
         }
