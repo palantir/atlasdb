@@ -15,8 +15,10 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -27,6 +29,14 @@ import com.palantir.remoting2.errors.SerializableError;
 public final class ExceptionMappers {
     private ExceptionMappers() {
         // utility
+    }
+
+    public static Response encodeAsUnavailable(Exception exception, Optional<Duration> retryAfter) {
+        Response.ResponseBuilder builder = Response.status(503);
+        retryAfter.ifPresent(backoff ->
+                builder.header(com.google.common.net.HttpHeaders.RETRY_AFTER, Long.toString(backoff.toNanos())));
+        builder.entity(exception);
+        return builder.build();
     }
 
     /**

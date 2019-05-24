@@ -15,9 +15,16 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.time.Duration;
+import java.util.Optional;
+
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.net.HttpHeaders;
+import com.palantir.conjure.java.api.errors.SerializableError;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**
@@ -28,10 +35,13 @@ import com.palantir.leader.NotCurrentLeaderException;
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
 
     /**
-     * Returns a 503 response, with body corresponding to the serialized exception.
+     * Returns a response equal to a response when encountering a
+     * {@link com.palantir.conjure.java.api.errors.QosException.Unavailable} exception.
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        return ExceptionMappers.encode503ResponseWithRetryAfter(exception);
+        //// TODO: 23/05/2019 Verify that this is a reasonable heuristic for not being in the middle of leader election
+        return ExceptionMappers.encodeAsUnavailable(exception,
+                Optional.of(exception.getServiceHint().isPresent() ? Duration.ZERO : Duration.ofMillis(100)));
     }
 }

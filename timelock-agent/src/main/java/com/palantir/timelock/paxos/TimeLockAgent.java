@@ -32,9 +32,9 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
-import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -212,7 +212,7 @@ public class TimeLockAgent {
     private void registerExceptionMappers() {
         registrar.accept(new BlockingTimeoutExceptionMapper());
         registrar.accept(new NotCurrentLeaderExceptionMapper());
-        registrar.accept(new TooManyRequestsExceptionMapper());
+        registrar.accept(new NotInitializedExceptionMapper());
     }
 
     /**

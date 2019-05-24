@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.util.Optional;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
@@ -27,6 +29,6 @@ public class NotInitializedExceptionMapper implements ExceptionMapper<NotInitial
 
     @Override
     public Response toResponse(NotInitializedException exception) {
-        return ExceptionMappers.encode503ResponseWithoutRetryAfter(exception);
+        return ExceptionMappers.encodeAsUnavailable(exception, Optional.empty());
     }
 }
