@@ -27,11 +27,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public abstract class BCryptedSecret {
     private static final Logger log = LoggerFactory.getLogger(BCryptedSecret.class);
 
-    abstract String getHashedSecret();
+    abstract String hashedSecret();
 
     public final boolean check(Password password) {
         try {
-            return BCrypt.checkpw(password.value(), getHashedSecret());
+            return BCrypt.checkpw(password.value(), hashedSecret());
         } catch (IllegalArgumentException e) {
             log.warn("BCrypt hash configured is invalid, so denying access", e);
             return false;
