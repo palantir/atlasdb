@@ -19,7 +19,12 @@ package com.palantir.atlasdb.timelock.auth.api;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface Credentials {
-    ClientId id();
-    BCryptedSecret password();
+public interface ClientId {
+    String get();
+
+    static ClientId of(String value) {
+        return ImmutableClientId.builder()
+                .get(value)
+                .build();
+    }
 }

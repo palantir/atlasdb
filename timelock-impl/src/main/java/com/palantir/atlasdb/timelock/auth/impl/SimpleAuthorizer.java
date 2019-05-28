@@ -20,22 +20,23 @@ import java.util.Map;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 
 public class SimpleAuthorizer implements Authorizer {
-    private final Map<AuthenticatedClient, Privileges> privileges;
+    private final Map<ClientId, Privileges> privileges;
     private final NamespaceLocker namespaceLocker;
 
     @VisibleForTesting
-    SimpleAuthorizer(Map<AuthenticatedClient, Privileges> privileges, NamespaceLocker namespaceLocker) {
+    SimpleAuthorizer(Map<ClientId, Privileges> privileges, NamespaceLocker namespaceLocker) {
         this.privileges = privileges;
         this.namespaceLocker = namespaceLocker;
     }
 
-    public static Authorizer of(Map<AuthenticatedClient, Privileges> privileges, AuthRequirement authRequirement) {
+    public static Authorizer of(Map<ClientId, Privileges> privileges, AuthRequirement authRequirement) {
         NamespaceLocker namespaceLocker = createNamespaceLocker(authRequirement, privileges);
         return new SimpleAuthorizer(
                 ImmutableMap.copyOf(privileges),
@@ -45,12 +46,12 @@ public class SimpleAuthorizer implements Authorizer {
     @Override
     public boolean isAuthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
         return !namespaceLocker.isLocked(namespace)
-                || privileges.getOrDefault(authenticatedClient, Privileges.EMPTY).hasPrivilege(namespace);
+                || privileges.getOrDefault(authenticatedClient.id(), Privileges.EMPTY).hasPrivilege(namespace);
     }
 
     private static NamespaceLocker createNamespaceLocker(
             AuthRequirement authRequirement,
-            Map<AuthenticatedClient, Privileges> privileges) {
+            Map<ClientId, Privileges> privileges) {
         switch (authRequirement) {
             case NEVER_REQUIRE:
                 return NamespaceLocker.NONE_LOCKED;

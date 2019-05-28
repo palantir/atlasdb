@@ -27,13 +27,14 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Password;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CachingAuthenticatorTest {
 
-    private static final String CLIENT_1 = "client_1";
-    private static final String CLIENT_2 = "client_2";
+    private static final ClientId CLIENT_1 = ClientId.of("client_1");
+    private static final ClientId CLIENT_2 = ClientId.of("client_2");
 
     private static final Password PASSWORD_1 = Password.of("password_1");
     private static final Password PASSWORD_2 = Password.of("password_2");

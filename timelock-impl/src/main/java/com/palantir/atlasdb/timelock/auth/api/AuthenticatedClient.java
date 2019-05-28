@@ -20,11 +20,11 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface AuthenticatedClient {
-    AuthenticatedClient ANONYMOUS = AuthenticatedClient.create("anonymous");
+    AuthenticatedClient ANONYMOUS = AuthenticatedClient.create(ClientId.of("anonymous"));
 
-    String id();
+    ClientId id();
 
-    static AuthenticatedClient create(String clientName) {
+    static AuthenticatedClient create(ClientId clientName) {
         return ImmutableAuthenticatedClient.builder()
                 .id(clientName)
                 .build();
