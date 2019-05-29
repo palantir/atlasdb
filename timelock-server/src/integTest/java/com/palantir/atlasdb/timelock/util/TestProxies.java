@@ -64,7 +64,7 @@ public class TestProxies {
                 Optional.of(TRUST_CONTEXT),
                 uri,
                 serviceInterface,
-                MultiNodePaxosTimeLockServerIntegrationTest.class.toString(),
+                UserAgents.DEFAULT_USER_AGENT,
                 false));
     }
 

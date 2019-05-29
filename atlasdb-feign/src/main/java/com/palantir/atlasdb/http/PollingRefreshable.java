@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -32,11 +33,13 @@ import com.palantir.logsafe.UnsafeArg;
 
 /**
  * A PollingRefreshable serves as a bridge between a {@link Supplier} and {@link Refreshable}, polling for changes
- * in the value of the Supplier and, if detecting a change, pushing it to the linked Refreshable.
+ * in the value of the Supplier and, if detecting a change, pushing it to the linked Refreshable, after possibly
+ * applying a transform to the value.
  *
- * @param <T> type of the value supplied / pushed to the Refreshable
+ * @param <T> type of the value supplied
+ * @param <U> type of the Refreshable
  */
-public final class PollingRefreshable<T> implements AutoCloseable {
+public final class PollingRefreshable<T, U> implements AutoCloseable {
     @VisibleForTesting
     static final Duration DEFAULT_REFRESH_INTERVAL = Duration.ofSeconds(5L);
 
@@ -46,50 +49,58 @@ public final class PollingRefreshable<T> implements AutoCloseable {
     private final Duration refreshInterval;
     private final ScheduledExecutorService poller;
 
-    private final Refreshable<T> refreshable = Refreshable.empty();
+    private final Function<T, U> transform;
+    private final Refreshable<U> refreshable = Refreshable.empty();
 
-    private T lastSeenValue;
+    private T lastSeenValue = null;
 
     private PollingRefreshable(Supplier<T> supplier,
             Duration refreshInterval,
+            Function<T, U> transform,
             ScheduledExecutorService poller) {
         Preconditions.checkArgument(!refreshInterval.isNegative() && !refreshInterval.isZero(),
                 "Refresh interval must be positive, but found %s", refreshInterval);
 
         this.supplier = supplier;
         this.refreshInterval = refreshInterval;
+        this.transform = transform;
         this.poller = poller;
 
         try {
             lastSeenValue = supplier.get();
-            refreshable.set(lastSeenValue);
+            refreshable.set(transform.apply(lastSeenValue));
         } catch (Exception e) {
             log.info("Exception occurred in supplier when trying to populate the initial value.");
-            lastSeenValue = null;
         }
     }
 
-    public static <T> PollingRefreshable<T> create(Supplier<T> supplier) {
+    public static <T> PollingRefreshable<T, T> create(Supplier<T> supplier) {
         return create(supplier, DEFAULT_REFRESH_INTERVAL);
     }
 
-    public static <T> PollingRefreshable<T> create(Supplier<T> supplier, Duration refreshInterval) {
-        return createWithSpecificPoller(supplier,
-                refreshInterval,
+    public static <T> PollingRefreshable<T, T> create(Supplier<T> supplier, Duration refreshInterval) {
+        return createComposed(supplier, refreshInterval, Function.identity());
+    }
+
+    public static <T, U> PollingRefreshable<T, U> createComposed(Supplier<T> supplier, Duration refreshInterval,
+            Function<T, U> transform) {
+        return createWithPoller(supplier, refreshInterval, transform,
                 PTExecutors.newSingleThreadScheduledExecutor(new NamedThreadFactory("polling-refreshable", true)));
     }
 
     @VisibleForTesting
-    static <T> PollingRefreshable<T> createWithSpecificPoller(
+    static <T, U> PollingRefreshable<T, U> createWithPoller(
             Supplier<T> supplier,
             Duration refreshInterval,
+            Function<T, U> transform,
             ScheduledExecutorService poller) {
-        PollingRefreshable<T> pollingRefreshable = new PollingRefreshable<>(supplier, refreshInterval, poller);
+        PollingRefreshable<T, U> pollingRefreshable = new PollingRefreshable<>(supplier, refreshInterval, transform,
+                poller);
         pollingRefreshable.scheduleUpdates();
         return pollingRefreshable;
     }
 
-    public Refreshable<T> getRefreshable() {
+    public Refreshable<U> getRefreshable() {
         return refreshable;
     }
 
@@ -99,11 +110,11 @@ public final class PollingRefreshable<T> implements AutoCloseable {
                 T value = supplier.get();
                 if (!value.equals(lastSeenValue)) {
                     lastSeenValue = value;
-                    refreshable.set(lastSeenValue);
+                    refreshable.set(transform.apply(lastSeenValue));
                 }
             } catch (Exception e) {
-                log.info("Exception occurred in supplier when polling for a new value in our PollingRefreshable."
-                        + " The last value we saw was {}.",
+                log.info("Exception occurred in supplier when trying to update our PollingRefreshable."
+                                + " The last value we saw was {}.",
                         UnsafeArg.of("currentValue", lastSeenValue),
                         e);
             }

@@ -36,11 +36,7 @@ dependencies {
   toBeShaded group: 'com.palantir.remoting2', name: 'error-handling'
   toBeShaded group: 'com.palantir.remoting2', name: 'jackson-support'
 
-  toBeShaded (group: 'com.netflix.feign', name: 'feign-jaxrs') {
-    exclude module: 'jsr311-api'
-  }
-  toBeShaded group: 'com.netflix.feign', name: 'feign-jackson'
-  toBeShaded group: 'com.netflix.feign', name: 'feign-okhttp'
+  compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
 
   processor group: 'org.immutables', name: 'value'
 
