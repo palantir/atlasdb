@@ -514,14 +514,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         LeadershipState leadershipState = determineLeadershipState();
         StillLeadingStatus status = leadershipState.status();
         if (status == StillLeadingStatus.LEADING) {
-            PaxosProposer fakeProposer = PaxosProposerImpl.newProposer(
-                    knowledge,
-                    acceptors,
-                    learners,
-                    proposer.getQuorumSize(),
-                    UUID.randomUUID(),
-                    PTExecutors.newSingleThreadExecutor(false));
+            ExecutorService singleExecutorService = PTExecutors.newSingleThreadExecutor(false);
             try {
+                PaxosProposer fakeProposer = PaxosProposerImpl.newProposer(
+                        knowledge,
+                        acceptors,
+                        learners,
+                        proposer.getQuorumSize(),
+                        UUID.randomUUID(),
+                        singleExecutorService);
                 fakeProposer.propose(leadershipState.greatestLearnedValue()
                                 .map(PaxosValue::getRound)
                                 .orElse(PaxosAcceptor.NO_LOG_ENTRY),
@@ -533,6 +534,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                         SafeArg.of("leadershipState", leadershipState),
                         e);
                 return StillLeadingStatus.NO_QUORUM;
+            } finally {
+                singleExecutorService.shutdown();
             }
         }
         return status;
