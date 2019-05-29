@@ -318,7 +318,14 @@ page caches). We also had to create fresh ``TransactionService``s on each benchm
 caching.
 
 These benchmarks were run with a 100% hit rate (every timestamp queried for corresponded to an existing transaction).
-We attempted to run the tests using various configurations of the optimisations discussed above.
+We attempted to run the tests using various configurations of the optimisations discussed above:
+
+- ``tx1`` is simply the transactions1 algorithm.
+- ``tx2`` is the transactions2 algorithm, using standard AtlasDB table settings (that is, ``bloom_filter_fp_chance`` of
+  0.01, ``min_index_interval`` and ``max_index_interval`` unspecified, and ``chunk_length_kb`` of 4).
+- ``BF`` refers to explicit configuration of ``bloom_filter_fp_chance`` to 0.0001.
+- ``II`` refers to explicit configuration of ``min_index_interval`` and ``max_index_interval`` to be 1.
+- ``CK[n]`` refers to explicit configuration of ``chunk_length_kb`` to ``n``.
 
 | Concurrency | Metric |    tx1 |    tx2 | tx2 + BF | tx2 + BFII | tx2 + BFIICK[16] | tx2 + BFIICK[64] |
 |------------:|-------:|-------:|-------:|---------:|-----------:|-----------------:|-----------------:|
