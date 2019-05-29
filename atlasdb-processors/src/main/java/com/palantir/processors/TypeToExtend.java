@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.lang.model.element.Element;
@@ -34,10 +33,9 @@ import javax.lang.model.type.TypeMirror;
 import com.google.common.collect.Sets;
 
 final class TypeToExtend {
-    private TypeElement typeToExtend;
-    private PackageElement typePackage;
-    private Set<ExecutableElement> methods;
-    private Set<ExecutableElement> constructors;
+    private final TypeElement typeToExtend;
+    private final PackageElement typePackage;
+    private final Set<ExecutableElement> methods;
 
     TypeToExtend(PackageElement typePackage,
             TypeElement typeToExtend,
@@ -59,61 +57,25 @@ final class TypeToExtend {
                         (methodSignature1, methodSignature2) -> methodSignature1));
 
         methods = Sets.newHashSet(methodSignatureToMethod.values());
-        constructors = extractConstructors(typeToExtend);
     }
 
-    private List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {
-        Predicate<Element> filterForType;
-        if (typeToExtractMethodsFrom.getKind() == ElementKind.INTERFACE) {
-            filterForType = this::interfaceMethodFilter;
-        } else {
-            filterForType = this::classMethodFilter;
-        }
-
+    private static List<ExecutableElement> extractMethods(TypeElement typeToExtractMethodsFrom) {
         return typeToExtractMethodsFrom.getEnclosedElements()
                 .stream()
-                .filter(filterForType)
+                .filter(TypeToExtend::interfaceMethodFilter)
                 .map(element -> (ExecutableElement) element)
                 .collect(Collectors.toList());
     }
 
-    private Boolean interfaceMethodFilter(Element element) {
+    private static boolean interfaceMethodFilter(Element element) {
         return element.getKind() == ElementKind.METHOD
                 && element.getModifiers().contains(Modifier.PUBLIC)
-                && !element.getModifiers().contains(Modifier.STATIC);
-    }
-
-    private Boolean classMethodFilter(Element element) {
-        return element.getKind() == ElementKind.METHOD
-                && element.getModifiers().contains(Modifier.PUBLIC)
-                && !element.getModifiers().contains(Modifier.FINAL)
-                && !element.getModifiers().contains(Modifier.NATIVE)
                 && !element.getModifiers().contains(Modifier.STATIC)
-                && !element.getSimpleName().contentEquals("equals")
-                && !element.getSimpleName().contentEquals("toString")
-                && !element.getSimpleName().contentEquals("hashCode");
+                && element.getAnnotation(DoNotDelegate.class) == null;
     }
 
-    private Set<ExecutableElement> extractConstructors(TypeElement typeToExtractConstructorsFrom) {
-        return typeToExtractConstructorsFrom.getEnclosedElements()
-                .stream()
-                .filter(this::constructorFilter)
-                .map(element -> (ExecutableElement) element)
-                .collect(Collectors.toSet());
-    }
-
-    private Boolean constructorFilter(Element element) {
-        return element.getKind() == ElementKind.CONSTRUCTOR
-                && element.getSimpleName().contentEquals("<init>")
-                && !element.getModifiers().contains(Modifier.PRIVATE);
-    }
-
-    Boolean isPublic() {
+    boolean isPublic() {
         return typeToExtend.getModifiers().contains(Modifier.PUBLIC);
-    }
-
-    Boolean isInterface() {
-        return typeToExtend.getKind() == ElementKind.INTERFACE;
     }
 
     String getCanonicalName() {
@@ -134,10 +96,6 @@ final class TypeToExtend {
 
     Set<ExecutableElement> getMethods() {
         return methods;
-    }
-
-    Set<ExecutableElement> getConstructors() {
-        return constructors;
     }
 
     List<? extends TypeParameterElement> getTypeParameterElements() {

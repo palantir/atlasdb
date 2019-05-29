@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,16 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.processors;
 
-@AutoDelegate
-public class ChildClass extends TestClass {
-    public ChildClass(int overridingParentsConstructor) {}
+package com.palantir.atlasdb.timelock.auth.api;
 
-    public ChildClass(char anotherConstructor) {}
+import org.immutables.value.Value;
 
-    @Override
-    public void methodWithNoParameters() {}
+@Value.Immutable
+public interface Client {
+    Client ANONYMOUS = Client.create("anonymous");
 
-    public void methodNotOnSuperclass() {}
+    String id();
+
+    static Client create(String clientName) {
+        return ImmutableClient.builder()
+                .id(clientName)
+                .build();
+    }
 }

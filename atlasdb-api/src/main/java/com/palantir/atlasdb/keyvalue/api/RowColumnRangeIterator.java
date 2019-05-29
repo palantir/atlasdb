@@ -18,10 +18,6 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-@SuppressWarnings("DangerousJsonTypeInfoUsage")
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "@class")
 public interface RowColumnRangeIterator extends Iterator<Map.Entry<Cell, Value>> {
     //
 }

@@ -50,6 +50,11 @@ develop
     *    - Type
          - Change
 
+    *    - |improved|
+         - The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration ``pauseMillis``.
+           The default value has also changed from 5000 milliseconds to 500.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4046>`__)
+
     *    - |devbreak|
          - Replaced all usages of guava Supplier by java Supplier.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
@@ -63,6 +68,18 @@ develop
     *    - |fixed|
          - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
+
+    *    - |fixed|
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
+
+    *    - |fixed|
+         - AtlasDB now maintains a finite length for the delete executor's work queue, to avoid OOMs on services with high conflict rates for transactions.
+           In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
+           Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
+           Previously, this queue was unbounded, meaning that service nodes could end up using lots of memory.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4037>`__)
 
     *    - |improved|
          - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
@@ -134,7 +151,7 @@ develop
 
     *    - |new|
          - ``TransactionManagers`` now has a new builder option ``lockImmutableTsOnReadOnlyTransactions()``. If it is set to ``true`` all transactions (including read-only ones) will grab immutable ts lock,
-           enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature. 
+           enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3987>`__)
 
     *    - |new|
@@ -144,6 +161,30 @@ develop
     *    - |devbreak|
          - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/3996>`__)
+
+    *    - |fixed|
+         - Removed the DB username from the Hikari connection pool name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
+
+    *    - |devbreak|
+         - ``AutoDelegate`` only works on interfaces now.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4045>`__)
+
+    *    - |fixed|
+         - Fixed a bug in ``TransactionManagers`` introduced by a recently added caching layer, causing NPE's.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044>`__)
+
+    *    - |fixed|
+         - Fixed a bug causing connection leaks to timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
+
+    *    - |improved|
+         - Changed the default values in ``PaxosRuntimeConfiguration`` as (`#3943 <https://github.com/palantir/atlasdb/pull/3943>`__) changed it on test configs only.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
 
 ========
 v0.133.0
@@ -3696,7 +3737,7 @@ v0.59.1
          - Change
 
     *    - |improved|
-         - Allow passing a `ProxyConfiguration <https://github.com/palantir/http-remoting-api/blob/develop/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__ to allow setting custom proxy on the TimeLock clients.
+         - Allow passing a `ProxyConfiguration <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ProxyConfiguration.java>`__ to allow setting custom proxy on the TimeLock clients.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/2393>`__)
 
 .. <<<<------------------------------------------------------------------------------------------------------------->>>>

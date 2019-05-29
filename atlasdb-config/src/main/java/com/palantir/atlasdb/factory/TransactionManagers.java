@@ -16,13 +16,11 @@
 package com.palantir.atlasdb.factory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -66,8 +64,6 @@ import com.palantir.atlasdb.config.LeaderRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.SweepConfig;
-import com.palantir.atlasdb.config.TargetedSweepInstallConfig;
-import com.palantir.atlasdb.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
@@ -109,6 +105,8 @@ import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -382,9 +380,9 @@ public abstract class TransactionManagers {
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());
 
-        Supplier<TransactionConfig> transactionConfigSupplier = new MemoizedComposedSupplier<>(
-                () -> runtimeConfigSupplier.get().transaction(),
-                this::withConsolidatedGrabImmutableTsLockFlag);
+        Supplier<TransactionConfig> transactionConfigSupplier = Suppliers.compose(
+                this::withConsolidatedGrabImmutableTsLockFlag,
+                () -> runtimeConfigSupplier.get().transaction());
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.create(
@@ -1026,47 +1024,13 @@ public abstract class TransactionManagers {
 
     private static MultiTableSweepQueueWriter uninitializedTargetedSweeper(
             MetricsManager metricsManager,
-            TargetedSweepInstallConfig config,
+            TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
-        if (!config.enableSweepQueueWrites()) {
+        if (!install.enableSweepQueueWrites()) {
             return MultiTableSweepQueueWriter.NO_OP;
         }
-        return TargetedSweeper.createUninitialized(
-                metricsManager,
-                Suppliers.compose(TargetedSweepRuntimeConfig::enabled, runtime::get),
-                Suppliers.compose(TargetedSweepRuntimeConfig::shards, runtime::get),
-                config.conservativeThreads(),
-                config.thoroughThreads(),
-                ImmutableList.of(follower));
-    }
-
-    private static class MemoizedComposedSupplier<T, R> implements Supplier<R> {
-        private final Function<T, R> function;
-        private final Supplier<T> supplier;
-
-        private volatile T lastKey;
-        private R cached;
-
-        MemoizedComposedSupplier(Supplier<T> supplier, Function<T, R> function) {
-            this.function = function;
-            this.supplier = supplier;
-        }
-
-        public R get() {
-            if (!Objects.equals(lastKey, supplier.get())) {
-                recompute();
-            }
-            return cached;
-        }
-
-        private synchronized void recompute() {
-            T freshKey = supplier.get();
-            if (!Objects.equals(lastKey, freshKey)) {
-                lastKey = freshKey;
-                cached = function.apply(lastKey);
-            }
-        }
+        return TargetedSweeper.createUninitialized(metricsManager, runtime, install, ImmutableList.of(follower));
     }
 
     @Value.Immutable
