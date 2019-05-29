@@ -31,11 +31,6 @@ public abstract class AdminPrivilegesConfiguration implements PrivilegesConfigur
     static final String TYPE = "admin";
 
     @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
     public abstract String id();
 
     @Override

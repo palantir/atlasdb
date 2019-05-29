@@ -33,11 +33,6 @@ public abstract class ClientPrivilegesConfiguration implements PrivilegesConfigu
     static final String TYPE = "client";
 
     @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
     public abstract String id();
 
     abstract Set<String> namespaces();
