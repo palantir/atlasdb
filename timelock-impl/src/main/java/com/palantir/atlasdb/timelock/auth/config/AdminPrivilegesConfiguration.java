@@ -18,9 +18,11 @@ package com.palantir.atlasdb.timelock.auth.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
 @JsonSerialize(as = ImmutableAdminPrivilegesConfiguration.class)
@@ -30,8 +32,9 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 public abstract class AdminPrivilegesConfiguration implements PrivilegesConfiguration {
     static final String TYPE = "admin";
 
+    @JsonProperty("client-id")
     @Override
-    public abstract String id();
+    public abstract ClientId clientId();
 
     @Override
     public Privileges privileges() {

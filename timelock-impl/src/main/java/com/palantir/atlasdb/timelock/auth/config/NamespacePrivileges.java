@@ -29,11 +29,8 @@ public class NamespacePrivileges implements Privileges {
         this.namespaces = namespaces;
     }
 
-    static Privileges of(Set<String> namespaces) {
-        Set<TimelockNamespace> timelockNamespaces = namespaces.stream()
-                .map(TimelockNamespace::of)
-                .collect(Collectors.toSet());
-        return new NamespacePrivileges(timelockNamespaces);
+    static Privileges of(Set<TimelockNamespace> namespaces) {
+        return new NamespacePrivileges(namespaces);
     }
 
     @Override

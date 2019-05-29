@@ -1,9 +1,9 @@
 use-auth: true
 privileges:
   - type: admin
-    id: admin-user-1
+    client-id: admin-user-1
   - type: client
-    id: client-1
+    client-id: client-1
     namespaces:
       - namespace-1
       - namespace-2

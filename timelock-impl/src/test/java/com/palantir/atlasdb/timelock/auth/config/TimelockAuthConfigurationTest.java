@@ -33,6 +33,7 @@ import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.ImmutableCredentials;
+import com.palantir.lock.TimelockNamespace;
 
 public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";
@@ -47,11 +48,11 @@ public class TimelockAuthConfigurationTest {
             .build();
 
     private static final PrivilegesConfiguration CLIENT_PRIVILEGES_CONFIG = ImmutableClientPrivilegesConfiguration.builder()
-            .id("client-1")
-            .addNamespaces("namespace-1", "namespace-2")
+            .clientId(ClientId.of("client-1"))
+            .addNamespaces(TimelockNamespace.of("namespace-1"), TimelockNamespace.of("namespace-2"))
             .build();
     private static final PrivilegesConfiguration ADMIN_PRIVILEGES_CONFIG = ImmutableAdminPrivilegesConfiguration.builder()
-            .id("admin-user-1")
+            .clientId(ClientId.of("admin-user-1"))
             .build();
 
     private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory())

@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.timelock.auth.config;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ClientPrivilegesConfiguration.class)
@@ -27,6 +29,6 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
         @JsonSubTypes.Type(ClientPrivilegesConfiguration.class)
 })
 public interface PrivilegesConfiguration {
-    String id();
+    ClientId clientId();
     Privileges privileges();
 }
