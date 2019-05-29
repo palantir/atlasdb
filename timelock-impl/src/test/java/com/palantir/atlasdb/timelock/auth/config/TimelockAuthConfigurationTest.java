@@ -30,6 +30,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.ImmutableCredentials;
 
@@ -37,11 +38,11 @@ public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";
 
     private static final Credentials CLIENT_CREDENTIALS = ImmutableCredentials.builder()
-            .id("client-1")
+            .id(ClientId.of("client-1"))
             .password(BCryptedSecret.of("hashed-client-secret"))
             .build();
     private static final Credentials ADMIN_CREDENTIALS = ImmutableCredentials.builder()
-            .id("admin-user-1")
+            .id(ClientId.of("admin-user-1"))
             .password(BCryptedSecret.of("hashed-admin-secret"))
             .build();
 
