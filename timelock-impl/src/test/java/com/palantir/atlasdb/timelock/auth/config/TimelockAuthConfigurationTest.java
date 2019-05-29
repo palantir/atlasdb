@@ -94,7 +94,7 @@ public class TimelockAuthConfigurationTest {
     }
 
     private static File getConfigFile(String configFile) {
-        return new File(PrivilegesConfigurationTest.class.getResource(
+        return new File(TimelockAuthConfiguration.class.getResource(
                 String.format("/%s.yml", configFile)).getPath());
     }
 }
