@@ -41,6 +41,7 @@ public abstract class ClientPrivilegesConfiguration implements PrivilegesConfigu
 
     abstract Set<TimelockNamespace> namespaces();
 
+    @Value.Derived
     @Override
     public Privileges privileges() {
         return NamespacePrivileges.of(namespaces());

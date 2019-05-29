@@ -8,7 +8,7 @@ privileges:
       - namespace-1
       - namespace-2
 credentials:
-  - id: client-1
-    password: hashed-client-secret
   - id: admin-user-1
     password: hashed-admin-secret
+  - id: client-1
+    password: hashed-client-secret

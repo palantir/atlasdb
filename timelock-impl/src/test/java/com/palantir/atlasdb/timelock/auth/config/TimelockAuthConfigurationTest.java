@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.junit.Test;
 
@@ -37,6 +36,8 @@ import com.palantir.lock.TimelockNamespace;
 
 public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";
+
+    private static final boolean USE_AUTH = true;
 
     private static final Credentials CLIENT_CREDENTIALS = ImmutableCredentials.builder()
             .id(ClientId.of("client-1"))
@@ -60,34 +61,16 @@ public class TimelockAuthConfigurationTest {
             .registerModule(new GuavaModule());
 
     @Test
-    public void canDeserializeTimelockAuthConfig() throws IOException {
-        assertThat(deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG)))
-                .isInstanceOf(TimelockAuthConfiguration.class);
-    }
+    public void deserializedAsExpected() throws IOException {
+        TimelockAuthConfiguration expectedConfig = ImmutableTimelockAuthConfiguration.builder()
+                .useAuth(USE_AUTH)
+                .addPrivileges(ADMIN_PRIVILEGES_CONFIG, CLIENT_PRIVILEGES_CONFIG)
+                .addCredentials(ADMIN_CREDENTIALS, CLIENT_CREDENTIALS)
+                .build();
 
-    @Test
-    public void credentialsAreDeserialized() throws IOException {
-        TimelockAuthConfiguration timelockAuthConfiguration = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
+        TimelockAuthConfiguration deserializedConfig = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
 
-        List<Credentials> credentials = timelockAuthConfiguration.credentials();
-        assertThat(credentials).containsExactly(CLIENT_CREDENTIALS, ADMIN_CREDENTIALS);
-    }
-
-    @Test
-    public void privilegesAreDeserialized() throws IOException {
-        TimelockAuthConfiguration timelockAuthConfiguration = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
-
-        List<PrivilegesConfiguration> privilegesConfigurations = timelockAuthConfiguration.privileges();
-        assertThat(privilegesConfigurations).containsExactly(
-                ADMIN_PRIVILEGES_CONFIG,
-                CLIENT_PRIVILEGES_CONFIG);
-    }
-
-    @Test
-    public void useAuthIsConfigured() throws IOException {
-        TimelockAuthConfiguration timelockAuthConfiguration = deserialize(getConfigFile(TIMELOCK_AUTH_CONFIG));
-
-        assertThat(timelockAuthConfiguration.useAuth()).isTrue();
+        assertThat(deserializedConfig).isEqualTo(expectedConfig);
     }
 
     private static TimelockAuthConfiguration deserialize(File configFile) throws IOException {

@@ -36,6 +36,7 @@ public abstract class AdminPrivilegesConfiguration implements PrivilegesConfigur
     @Override
     public abstract ClientId clientId();
 
+    @Value.Derived
     @Override
     public Privileges privileges() {
         return Privileges.ADMIN;

@@ -17,24 +17,24 @@
 package com.palantir.atlasdb.timelock.auth.config;
 
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 
-public class NamespacePrivileges implements Privileges {
-    private Set<TimelockNamespace> namespaces;
-
-    NamespacePrivileges(Set<TimelockNamespace> namespaces) {
-        this.namespaces = namespaces;
-    }
+@Value.Immutable
+public abstract class NamespacePrivileges implements Privileges {
+    abstract Set<TimelockNamespace> namespaces();
 
     static Privileges of(Set<TimelockNamespace> namespaces) {
-        return new NamespacePrivileges(namespaces);
+        return ImmutableNamespacePrivileges.builder()
+                .addAllNamespaces(namespaces)
+                .build();
     }
 
     @Override
     public boolean hasPrivilege(TimelockNamespace namespace) {
-        return namespaces.contains(namespace);
+        return namespaces().contains(namespace);
     }
 }
