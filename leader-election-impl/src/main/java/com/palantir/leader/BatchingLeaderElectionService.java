@@ -71,7 +71,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     }
 
     @Override
-    public StillLeadingStatus stepDown() {
+    public boolean stepDown() {
         return delegate.stepDown();
     }
 

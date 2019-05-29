@@ -104,6 +104,18 @@ public final class PaxosProposerImpl implements PaxosProposer {
 
     @Override
     public byte[] propose(final long seq, @Nullable byte[] bytes) throws PaxosRoundFailureException {
+        return propose(uuid, seq, bytes);
+    }
+
+    @Override
+    public byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
+        return propose(UUID.randomUUID().toString(), seq, proposalValue);
+    }
+
+    private byte[] propose(
+            String uuid,
+            final long seq,
+            @Nullable byte[] bytes) throws PaxosRoundFailureException {
         final PaxosProposalId proposalId = new PaxosProposalId(proposalNumber.incrementAndGet(), uuid);
         PaxosValue toPropose = new PaxosValue(uuid, seq, bytes);
 
