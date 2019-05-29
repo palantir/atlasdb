@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 
 import org.junit.Test;
 
@@ -29,7 +28,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
-import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 
 public class PrivilegesConfigurationTest {
@@ -49,23 +47,25 @@ public class PrivilegesConfigurationTest {
 
     @Test
     public void canDeserializeAdminConfig() throws IOException {
-        PrivilegesConfiguration configuration = deserialize(getConfigFile(ADMIN_PRIVILEGES_CONFIG));
-        assertThat(configuration).isInstanceOf(AdminPrivilegesConfiguration.class);
+        PrivilegesConfiguration deserializedConfiguration = deserialize(getConfigFile(ADMIN_PRIVILEGES_CONFIG));
 
-        assertThat(configuration.clientId()).isEqualTo(ADMIN_ID);
-        assertThat(configuration.privileges()).isEqualTo(Privileges.ADMIN);
+        AdminPrivilegesConfiguration expectedConfiguration = ImmutableAdminPrivilegesConfiguration.builder()
+                .clientId(ADMIN_ID)
+                .build();
+
+        assertThat(deserializedConfiguration).isEqualTo(expectedConfiguration);
     }
 
     @Test
     public void canDeserializeClientConfig() throws IOException {
-        PrivilegesConfiguration configuration = deserialize(getConfigFile(CLIENT_PRIVILEGES_CONFIG));
-        assertThat(configuration).isInstanceOf(ClientPrivilegesConfiguration.class);
+        PrivilegesConfiguration deserializedConfiguration = deserialize(getConfigFile(CLIENT_PRIVILEGES_CONFIG));
 
-        assertThat(configuration.clientId()).isEqualTo(CLIENT_ID);
+        ClientPrivilegesConfiguration expectedConfiguration = ImmutableClientPrivilegesConfiguration.builder()
+                .clientId(CLIENT_ID)
+                .addNamespaces(CLIENT_NAMESPACE_1, CLIENT_NAMESPACE_2)
+                .build();
 
-        Privileges privileges = configuration.privileges();
-        assertThat(privileges.hasPrivilege(CLIENT_NAMESPACE_1)).isTrue();
-        assertThat(privileges.hasPrivilege(CLIENT_NAMESPACE_2)).isTrue();
+        assertThat(deserializedConfiguration).isEqualTo(expectedConfiguration);
     }
 
     private static PrivilegesConfiguration deserialize(File configFile) throws IOException {
