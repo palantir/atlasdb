@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,14 +49,13 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
-import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
-import com.palantir.paxos.PaxosProposerImpl;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosRoundFailureException;
@@ -95,7 +93,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
-    private volatile boolean inStepDownMode;
 
     /**
      * @deprecated Use PaxosLeaderElectionServiceBuilder instead.
@@ -510,35 +507,25 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     @Override
-    public StillLeadingStatus stepDown() {
+    public boolean stepDown() {
         LeadershipState leadershipState = determineLeadershipState();
         StillLeadingStatus status = leadershipState.status();
         if (status == StillLeadingStatus.LEADING) {
-            ExecutorService singleExecutorService = PTExecutors.newSingleThreadExecutor(false);
             try {
-                PaxosProposer fakeProposer = PaxosProposerImpl.newProposer(
-                        knowledge,
-                        acceptors,
-                        learners,
-                        proposer.getQuorumSize(),
-                        UUID.randomUUID(),
-                        singleExecutorService);
-                fakeProposer.propose(leadershipState.greatestLearnedValue()
-                                .map(PaxosValue::getRound)
-                                .orElse(PaxosAcceptor.NO_LOG_ENTRY),
+                proposer.proposeAnonymously(leadershipState.greatestLearnedValue()
+                        .map(PaxosValue::getRound)
+                        .orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1,
                         null);
+                return true;
             } catch (PaxosRoundFailureException e) {
-                // We thought we were the leader, but failed to give up leadership. This should in theory indicate that
-                // a quorum is not available.
-                log.info("Failed to give up leadership in PaxosLeaderElectionService - state was {}",
-                        SafeArg.of("leadershipState", leadershipState),
-                        e);
-                return StillLeadingStatus.NO_QUORUM;
-            } finally {
-                singleExecutorService.shutdown();
+                System.out.println("FAILURE");
+                log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
+                        + " state was {}.",
+                        SafeArg.of("leadershipState", leadershipState));
+                throw new ServiceNotAvailableException("Couldn't relinquish leadership", e);
             }
         }
-        return status;
+        return false;
     }
 
     @Value.Immutable

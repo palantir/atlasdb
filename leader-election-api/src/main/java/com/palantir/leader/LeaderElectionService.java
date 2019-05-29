@@ -81,7 +81,7 @@ public interface LeaderElectionService {
      * Attempts to give up leadership. Note that this does not guarantee that a different node will be elected the
      * leader - it is possible for this node to regain leadership without any other node acquiring it in the interim.
      *
-     * @return the state of this leader election service before it attempted to step down
+     * @return true if and only if this node was able to cause itself to lose leadership
      */
-    StillLeadingStatus stepDown();
+    boolean stepDown();
 }
