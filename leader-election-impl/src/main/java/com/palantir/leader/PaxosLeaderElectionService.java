@@ -512,11 +512,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         StillLeadingStatus status = leadershipState.status();
         if (status == StillLeadingStatus.LEADING) {
             try {
-                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()),
-                        null);
+                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
                 return true;
             } catch (PaxosRoundFailureException e) {
-                System.out.println("FAILURE");
                 log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
                         + " state was {}.",
                         SafeArg.of("leadershipState", leadershipState));
