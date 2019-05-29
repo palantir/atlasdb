@@ -445,12 +445,15 @@ reads 1,000,000 values with PQ / NP = 312,500, the maximum batch size will proba
 
 #### Benchmarking
 
-We tested the selective batching cell loader against the original algorithm ("CL1") and a full-batching algorithm that
-always batches cells up to CC, regardless of what rows or columns they are from.
+We tested the selective batching cell loader ("CL2") against the original algorithm ("CL1") and a full-batching
+algorithm that always batches cells up to CC, regardless of what rows or columns they are from. We tested these loaders
+against both general AtlasDB user workloads (100 rows/100 static columns and 1000 rows/10 static columns), and
+workloads more specific to transactions2 (16 rows/500 dynamic columns). This is important as we would prefer not to
+have to use a separate codepath for transactions2; current behaviour with loading queries on rows with many different
+columns (regardless of table) had also previously been observed to be inefficient.
 
-We first ran the benchmarks with a single thread, with various configurations of rows and columns. Note that the third
-workload (16 rows, 500 dynamic columns) is intended to resemble workflows involving transactions2. In our tests,
-CC = 50,000 and SQ = 200. Dynamic columns are random and are unlikely to have overlaps.
+We first ran the benchmarks with a single thread against the aforementioned workflows. In our tests, CC = 50,000 and
+SQ = 200; the dynamic columns are random and are unlikely to have overlaps.
 
 | Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
 |-----:|------------:|-------:|-------------:|---------------:|-------------:|
