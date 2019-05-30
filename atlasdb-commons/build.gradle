@@ -11,7 +11,8 @@ dependencies {
     }
     compile group: 'net.jpountz.lz4', name: 'lz4'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'junit', name: 'junit'
     testCompile group: 'org.assertj', name: 'assertj-core'

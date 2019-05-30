@@ -17,7 +17,8 @@ dependencies {
     compile group: 'org.mindrot', name: 'jbcrypt'
 
     processor project(":atlasdb-processors")
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile project(path: ":leader-election-impl", configuration: "testArtifacts")
     testCompile project(":atlasdb-tests-shared")

@@ -11,7 +11,8 @@ dependencies {
 
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
-  processor 'com.google.auto.service:auto-service:1.0-rc2'
+  annotationProcessor 'com.google.auto.service:auto-service:1.0-rc2'
+  compileOnly 'com.google.auto.service:auto-service:1.0-rc2'
   processor project(":atlasdb-processors")
 
   testCompile project(":atlasdb-tests-shared")

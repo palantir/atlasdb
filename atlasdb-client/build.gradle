@@ -82,7 +82,8 @@ dependencies {
   compile group: 'com.palantir.common', name: 'streams'
   compile group: 'com.github.rholder', name: 'guava-retrying'
 
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'

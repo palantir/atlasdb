@@ -42,7 +42,8 @@ dependencies {
   toBeShaded group: 'com.netflix.feign', name: 'feign-jackson'
   toBeShaded group: 'com.netflix.feign', name: 'feign-okhttp'
 
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'junit', name: 'junit'
   testCompile group: 'org.mockito', name: 'mockito-core'

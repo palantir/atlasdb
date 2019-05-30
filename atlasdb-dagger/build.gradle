@@ -8,13 +8,10 @@ dependencies {
   compile project(':atlasdb-service')
   compile group: 'com.google.dagger', name: 'dagger'
 
-  processor(group: 'com.google.dagger', name: 'dagger-compiler') {
-      // We need to explicitly exclude these so that intellij does not label them as provided
-      if(gradle.startParameter.taskNames.contains('idea')) {
-          exclude group: 'com.google.dagger', module: 'dagger'
-      }
-  }
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor(group: 'com.google.dagger', name: 'dagger-compiler') {
+  compileOnly 'com.google.dagger:dagger-compiler'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   shadow project(':atlasdb-service')
 }

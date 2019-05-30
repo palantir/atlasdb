@@ -24,7 +24,8 @@ dependencies {
     compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
     processor project(":atlasdb-processors")
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jackson-serialization'
     testCompile group: 'junit', name: 'junit'
