@@ -36,29 +36,30 @@ public interface BatchPaxosLearner {
      * Batch counterpart to {@link PaxosLearner#learn}. For a given {@link Client} on paxos instance {@code seq},
      * the learner learns the given {@link PaxosValue}.
      * <p>
-     * @param paxosValuesByClientAndSeq {@link ClientAndSeq} identifies the client and the instance of paxos that is
-     * being taught; {@link PaxosValue} - for the above {@link ClientAndSeq} - is value being taught.
+     * @param paxosValuesByClient for each {@link Client} and the different {@link PaxosValue}s that are being taught;
+     * {@link PaxosValue} is the value being taught for the sequence number in {@link PaxosValue#getRound}.
      */
     @POST
     @Path("learn")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    void learn(Map<ClientAndSeq, PaxosValue> paxosValuesByClientAndSeq);
+    void learn(SetMultimap<Client, PaxosValue> paxosValuesByClient);
 
     /**
      * Batch counterpart to {@link PaxosLearner#getLearnedValue}. For a given {@link Client} on paxos instance
-     * {@code seq}, it returns the learnt value. Values where nothing has been learnt are included as a separate field.
+     * ({@link WithSeq}), it returns the learnt value. Values where nothing has been learnt are excluded. If for a given
+     * {@link Client} nothing has been learnt, the {@link Client} is also excluded.
      * <p>
-     * @param clientAndSeqs the {@link ClientAndSeq}'s - which identifies the client and the instance of paxos - to
-     * retrieve the learnt values for.
-     * @return for each {@link ClientAndSeq}, the {@link PaxosValue} learnt including {@link ClientAndSeq}'s where
-     * nothing was learnt.
+     * @param clientAndSeqs each {@link Client} with a given paxos instance ({@link WithSeq}) to retrieve the learnt
+     * values for
+     * @return for each {@link Client} the different {@link PaxosValue}s learnt for different
+     * {@link PaxosValue#getRound}s
      */
     @POST
     @Path("learned-values")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    PaxosLearnedValuesResponse getLearnedValues(Set<ClientAndSeq> clientAndSeqs);
+    SetMultimap<Client, PaxosValue> getLearnedValues(Set<WithSeq<Client>> clientAndSeqs);
 
     /**
      * Batch counterpart to {@link PaxosLearner#getLearnedValuesSince}. For a given {@link Client}, returns all learnt
@@ -66,7 +67,7 @@ public interface BatchPaxosLearner {
      * <p>
      * @param seqLowerBoundsByClient for each {@link Client}, the lower bound for the seq-th paxos round to fetch all
      * learnt paxos values since that paxos round.
-     * @return for each {@link Client}, all learnt {@link PaxosValue}'s past the given lower bound
+     * @return for each {@link Client}, all learnt {@link PaxosValue}'s past the given lower bound for the round
      */
     @POST
     @Path("learned-values-since")

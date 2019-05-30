@@ -22,18 +22,18 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @Value.Immutable
-@JsonDeserialize(as = ImmutableClientAndSeq.class)
-@JsonSerialize(as = ImmutableClientAndSeq.class)
-public abstract class ClientAndSeq {
+@JsonDeserialize(as = ImmutableWithSeq.class)
+@JsonSerialize(as = ImmutableWithSeq.class)
+public interface WithSeq<T> {
 
     @Value.Parameter
-    public abstract Client client();
+    long seq();
 
     @Value.Parameter
-    public abstract long seq();
+    T value();
 
-    public static ClientAndSeq of(Client client, long seq) {
-        return ImmutableClientAndSeq.of(client, seq);
+    static <T> WithSeq<T> of(long seq, T value) {
+        return ImmutableWithSeq.of(seq, value);
     }
 
 }
