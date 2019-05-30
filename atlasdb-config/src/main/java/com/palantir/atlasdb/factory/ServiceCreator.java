@@ -23,7 +23,6 @@ import java.net.SocketAddress;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
@@ -74,8 +73,6 @@ public final class ServiceCreator {
         return create(
                 metricsManager,
                 servers,
-                SslSocketFactories::createTrustContext,
-                ServiceCreator::createProxySelector,
                 serviceClass,
                 userAgent,
                 limitPayload);
@@ -92,14 +89,12 @@ public final class ServiceCreator {
     private static <T> T create(
             MetricsManager metricsManager,
             Supplier<ServerListConfig> serverListConfigSupplier,
-            Function<SslConfiguration, TrustContext> trustContextCreator,
-            Function<ProxyConfiguration, ProxySelector> proxySelectorCreator,
             Class<T> type,
             String userAgent,
             boolean limitPayload) {
         return AtlasDbHttpClients.createLiveReloadingProxyWithFailover(
                 metricsManager.getRegistry(),
-                serverListConfigSupplier, trustContextCreator, proxySelectorCreator, type, userAgent, limitPayload);
+                serverListConfigSupplier, type, userAgent, limitPayload);
     }
 
     public static <T> T createInstrumentedService(MetricRegistry metricRegistry, T service, Class<T> serviceClass) {

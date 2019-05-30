@@ -72,6 +72,7 @@ import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.factory.timelock.TimestampCorroboratingTimelockService;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
+import com.palantir.atlasdb.http.ClientOptions;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
@@ -927,9 +928,10 @@ public abstract class TransactionManagers {
 
             PingableLeader localPingableLeader = localPaxosServices.pingableLeader();
             String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createRsProxy(
-                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
-                    Iterables.getOnlyElement(leaderConfig.leaders()),
+            PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createProxy(
+                    ImmutableList.of(Iterables.getOnlyElement(leaderConfig.leaders())),
+                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()).get(),
+                    ClientOptions.DEFAULT_NO_RETRYING,
                     PingableLeader.class,
                     userAgent);
 

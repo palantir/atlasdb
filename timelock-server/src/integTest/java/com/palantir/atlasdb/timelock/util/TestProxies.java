@@ -76,8 +76,7 @@ public class TestProxies {
         List<Object> key = ImmutableList.of(serviceInterface, uris, "failover");
         return (T) proxies.computeIfAbsent(key, ignored -> AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
-                Optional.empty(),
+                TRUST_CONTEXT,
                 uris,
                 UserAgents.DEFAULT_USER_AGENT,
                 serviceInterface));

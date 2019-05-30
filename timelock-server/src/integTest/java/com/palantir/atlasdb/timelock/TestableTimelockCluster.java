@@ -137,7 +137,9 @@ public class TestableTimelockCluster {
     private boolean tryFailoverToNewLeader() {
         TestableTimelockServer leader = currentLeader();
         leader.kill();
+        long time = System.currentTimeMillis();
         waitUntilLeaderIsElected();
+        System.out.println("TOOK " + (System.currentTimeMillis() - time));
         leader.start();
 
         return !currentLeader().equals(leader);

@@ -127,6 +127,7 @@ public class TimeLockMigrationEteTest {
     private void assertNoLongerExposesEmbeddedTimestampService() {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
 
+        // // TODO: 30/05/2019 fix
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions.assertThat(

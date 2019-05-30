@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,8 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.todo.TodoResource;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
@@ -52,6 +55,8 @@ public abstract class EteSetup {
     private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final Gradle TIMELOCK_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
     private static final Optional<TrustContext> NO_SSL = Optional.empty();
+    public static final TrustContext TRUST_CONTEXT =
+            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
 
     private static final short SERVER_PORT = 3828;
 
@@ -185,8 +190,7 @@ public abstract class EteSetup {
 
         return AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                NO_SSL,
-                Optional.empty(),
+                TRUST_CONTEXT,
                 uris,
                 UserAgents.DEFAULT_USER_AGENT,
                 clazz);
