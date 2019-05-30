@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.auth;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -31,6 +30,7 @@ import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Credentials;
 import com.palantir.atlasdb.timelock.auth.api.Password;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
@@ -67,7 +67,7 @@ public class AuthManager implements AutoCloseable {
                 authServices);
     }
 
-    public void checkAuthorized(String clientId, Password password, TimelockNamespace timelockNamespace) {
+    public void checkAuthorized(ClientId clientId, Password password, TimelockNamespace timelockNamespace) {
         update();
 
         if (!authServices.useAuth()) {
@@ -105,13 +105,13 @@ public class AuthManager implements AutoCloseable {
     }
 
     private static Authorizer getAuthorizer(TimelockAuthConfiguration authConfiguration) {
-        Map<AuthenticatedClient, Privileges> privilegesMap = authConfiguration.privileges().stream()
-                .collect(Collectors.toMap(p -> AuthenticatedClient.create(p.id()), PrivilegesConfiguration::privileges));
+        Map<ClientId, Privileges> privilegesMap = authConfiguration.privileges().stream()
+                .collect(Collectors.toMap(PrivilegesConfiguration::clientId, PrivilegesConfiguration::privileges));
         return SimpleAuthorizer.of(privilegesMap, AuthRequirement.PRIVILEGE_BASED);
     }
 
     private static Authenticator getAuthenticator(TimelockAuthConfiguration authConfiguration) {
-        Map<String, BCryptedSecret> secretMap = authConfiguration.credentials().stream()
+        Map<ClientId, BCryptedSecret> secretMap = authConfiguration.credentials().stream()
                 .collect(Collectors.toMap(Credentials::id, Credentials::password));
         return CachingAuthenticator.create(secretMap);
     }
