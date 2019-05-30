@@ -33,7 +33,7 @@ import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SimpleAuthorizerTest {
+public class CachingAuthorizerTest {
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
     private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
@@ -90,11 +90,11 @@ public class SimpleAuthorizerTest {
     }
 
     private void assertAuthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isTrue();
+        assertThat(new CachingAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isTrue();
     }
 
     private void assertUnauthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isFalse();
+        assertThat(new CachingAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {

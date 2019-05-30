@@ -30,13 +30,13 @@ import com.palantir.lock.TimelockNamespace;
 import com.palantir.atlasdb.timelock.auth.api.Authorizer;
 import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
 
-public class SimpleAuthorizer implements Authorizer {
+public class CachingAuthorizer implements Authorizer {
     private final Map<ClientId, Privileges> privileges;
     private final NamespaceLocker namespaceLocker;
     private final LoadingCache<CacheKey, Boolean> cache;
 
     @VisibleForTesting
-    SimpleAuthorizer(Map<ClientId, Privileges> privileges, NamespaceLocker namespaceLocker) {
+    CachingAuthorizer(Map<ClientId, Privileges> privileges, NamespaceLocker namespaceLocker) {
         this.privileges = privileges;
         this.namespaceLocker = namespaceLocker;
         this.cache = Caffeine.newBuilder()
@@ -46,7 +46,7 @@ public class SimpleAuthorizer implements Authorizer {
 
     public static Authorizer of(Map<ClientId, Privileges> privileges, AuthRequirement authRequirement) {
         NamespaceLocker namespaceLocker = createNamespaceLocker(authRequirement, privileges);
-        return new SimpleAuthorizer(
+        return new CachingAuthorizer(
                 ImmutableMap.copyOf(privileges),
                 namespaceLocker);
     }

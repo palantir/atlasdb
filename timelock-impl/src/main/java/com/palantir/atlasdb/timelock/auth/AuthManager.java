@@ -38,7 +38,7 @@ import com.palantir.atlasdb.timelock.auth.config.PrivilegesConfiguration;
 import com.palantir.atlasdb.timelock.auth.config.TimelockAuthConfiguration;
 import com.palantir.atlasdb.timelock.auth.impl.AuthRequirement;
 import com.palantir.atlasdb.timelock.auth.impl.CachingAuthenticator;
-import com.palantir.atlasdb.timelock.auth.impl.SimpleAuthorizer;
+import com.palantir.atlasdb.timelock.auth.impl.CachingAuthorizer;
 import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.lock.TimelockNamespace;
 
@@ -107,7 +107,7 @@ public class AuthManager implements AutoCloseable {
     private static Authorizer getAuthorizer(TimelockAuthConfiguration authConfiguration) {
         Map<ClientId, Privileges> privilegesMap = authConfiguration.privileges().stream()
                 .collect(Collectors.toMap(PrivilegesConfiguration::clientId, PrivilegesConfiguration::privileges));
-        return SimpleAuthorizer.of(privilegesMap, AuthRequirement.PRIVILEGE_BASED);
+        return CachingAuthorizer.of(privilegesMap, AuthRequirement.PRIVILEGE_BASED);
     }
 
     private static Authenticator getAuthenticator(TimelockAuthConfiguration authConfiguration) {
