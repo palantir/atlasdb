@@ -26,15 +26,21 @@ import com.palantir.lock.TimelockNamespace;
 @Value.Immutable
 public abstract class NamespacePrivileges implements Privileges {
     abstract Set<TimelockNamespace> namespaces();
+    abstract Set<String> namespaceSuffixes();
 
-    static Privileges of(Set<TimelockNamespace> namespaces) {
+    static Privileges of(Set<TimelockNamespace> namespaces, Set<String> namespaceSuffixes) {
         return ImmutableNamespacePrivileges.builder()
                 .addAllNamespaces(namespaces)
+                .namespaceSuffixes(namespaceSuffixes)
                 .build();
     }
 
     @Override
     public boolean hasPrivilege(TimelockNamespace namespace) {
-        return namespaces().contains(namespace);
+        return namespaces().contains(namespace) || hasMatchingSuffix(namespace);
+    }
+
+    private boolean hasMatchingSuffix(TimelockNamespace namespace) {
+        return namespaceSuffixes().stream().anyMatch(suffix -> namespace.value().endsWith(suffix));
     }
 }

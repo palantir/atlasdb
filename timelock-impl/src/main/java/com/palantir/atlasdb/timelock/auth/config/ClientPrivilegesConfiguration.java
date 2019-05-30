@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.auth.config;
 
+import java.util.Optional;
 import java.util.Set;
 
 import org.immutables.value.Value;
@@ -24,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
@@ -41,9 +43,12 @@ public abstract class ClientPrivilegesConfiguration implements PrivilegesConfigu
 
     abstract Set<TimelockNamespace> namespaces();
 
+    @JsonProperty("namespace-suffixes")
+    abstract Optional<Set<String>> namespaceSuffixes();
+
     @Value.Derived
     @Override
     public Privileges privileges() {
-        return NamespacePrivileges.of(namespaces());
+        return NamespacePrivileges.of(namespaces(), namespaceSuffixes().orElse(ImmutableSet.of()));
     }
 }

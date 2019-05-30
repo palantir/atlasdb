@@ -27,7 +27,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
+import com.palantir.common.annotation.Immutable;
 import com.palantir.lock.TimelockNamespace;
 
 public class PrivilegesConfigurationTest {
@@ -36,6 +39,10 @@ public class PrivilegesConfigurationTest {
 
     private static final String CLIENT_PRIVILEGES_CONFIG = "client-privileges-config";
     private static final ClientId CLIENT_ID = ClientId.of("client-1");
+
+    private static final String CLIENT_PRIVILEGES_WITH_SUFFIX_CONFIG = "client-privileges-with-suffixes";
+    private static final String SUFFIX_1 = "suffix-1";
+    private static final String SUFFIX_2 = "suffix-2";
 
     private static final TimelockNamespace CLIENT_NAMESPACE_1 = TimelockNamespace.of("namespace-1");
     private static final TimelockNamespace CLIENT_NAMESPACE_2 = TimelockNamespace.of("namespace-2");
@@ -63,6 +70,20 @@ public class PrivilegesConfigurationTest {
         ClientPrivilegesConfiguration expectedConfiguration = ImmutableClientPrivilegesConfiguration.builder()
                 .clientId(CLIENT_ID)
                 .addNamespaces(CLIENT_NAMESPACE_1, CLIENT_NAMESPACE_2)
+                .build();
+
+        assertThat(deserializedConfiguration).isEqualTo(expectedConfiguration);
+    }
+
+    @Test
+    public void canDeserializeClientConfigWithSuffixes() throws IOException {
+        PrivilegesConfiguration deserializedConfiguration =
+                deserialize(getConfigFile(CLIENT_PRIVILEGES_WITH_SUFFIX_CONFIG));
+
+        ClientPrivilegesConfiguration expectedConfiguration = ImmutableClientPrivilegesConfiguration.builder()
+                .clientId(CLIENT_ID)
+                .addNamespaces(CLIENT_NAMESPACE_1, CLIENT_NAMESPACE_2)
+                .namespaceSuffixes(ImmutableSet.of(SUFFIX_1, SUFFIX_2))
                 .build();
 
         assertThat(deserializedConfiguration).isEqualTo(expectedConfiguration);
