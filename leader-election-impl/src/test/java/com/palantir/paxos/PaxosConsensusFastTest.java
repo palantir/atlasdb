@@ -202,6 +202,7 @@ public class PaxosConsensusFastTest {
         assertThat(state.leader(0).stepDown()).isTrue();
 
         LeadershipToken token2 = state.gainLeadership(1);
+        assertThat(state.leader(0).isStillLeading(token)).isEqualTo(StillLeadingStatus.NOT_LEADING);
         assertThat(state.leader(1).isStillLeading(token2)).isEqualTo(StillLeadingStatus.LEADING);
     }
 
