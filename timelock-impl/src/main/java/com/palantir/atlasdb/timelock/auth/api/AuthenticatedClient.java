@@ -16,8 +16,17 @@
 
 package com.palantir.atlasdb.timelock.auth.api;
 
-import com.palantir.lock.TimelockNamespace;
+import org.immutables.value.Value;
 
-public interface Authorizer {
-    boolean isAuthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace);
+@Value.Immutable
+public interface AuthenticatedClient {
+    AuthenticatedClient ANONYMOUS = AuthenticatedClient.create(ClientId.of("anonymous"));
+
+    ClientId id();
+
+    static AuthenticatedClient create(ClientId clientName) {
+        return ImmutableAuthenticatedClient.builder()
+                .id(clientName)
+                .build();
+    }
 }

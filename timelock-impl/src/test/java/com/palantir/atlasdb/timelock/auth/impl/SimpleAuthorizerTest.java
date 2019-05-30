@@ -27,27 +27,32 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.palantir.atlasdb.timelock.auth.api.AuthenticatedClient;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SimpleAuthorizerTest {
     private static final TimelockNamespace NAMESPACE_1 = TimelockNamespace.of("namespace_1");
     private static final TimelockNamespace NAMESPACE_2 = TimelockNamespace.of("namespace_2");
 
-    private static final Client CLIENT_1 = Client.create("user_1");
-    private static final Client CLIENT_2 = Client.create("user_2");
-    private static final Client ADMIN = Client.create("admin");
+    private static final ClientId CLIENT_1 = ClientId.of("user_1");
+    private static final ClientId CLIENT_2 = ClientId.of("user_2");
+    private static final ClientId ADMIN_ID = ClientId.of("admin");
+
+    private static final AuthenticatedClient AUTHENTICATED_CLIENT_1 = AuthenticatedClient.create(CLIENT_1);
+    private static final AuthenticatedClient AUTHENTICATED_CLIENT_2 = AuthenticatedClient.create(CLIENT_2);
+    private static final AuthenticatedClient ADMIN = AuthenticatedClient.create(ADMIN_ID);
 
     @Mock
     private NamespaceLocker namespaceLocker;
-    private Map<Client, Privileges> privileges = new HashMap<>();
+    private Map<ClientId, Privileges> privileges = new HashMap<>();
 
     @Test
     public void adminIsAlwaysAuthorized() {
         withLockedNamespace(NAMESPACE_1);
-        withAdmin(ADMIN);
+        withAdmin(ADMIN_ID);
 
         assertAuthorized(ADMIN, NAMESPACE_1);
     }
@@ -56,8 +61,8 @@ public class SimpleAuthorizerTest {
     public void authorizesUsersIfNamespaceDoesNotRequireAuth() {
         withUnlockedNamespace(NAMESPACE_1);
 
-        assertAuthorized(Client.ANONYMOUS, NAMESPACE_1);
-        assertAuthorized(CLIENT_1, NAMESPACE_1);
+        assertAuthorized(AuthenticatedClient.ANONYMOUS, NAMESPACE_1);
+        assertAuthorized(AUTHENTICATED_CLIENT_1, NAMESPACE_1);
     }
 
     @Test
@@ -65,9 +70,9 @@ public class SimpleAuthorizerTest {
         withLockedNamespace(NAMESPACE_1);
         withPrivilege(CLIENT_1, NAMESPACE_1);
 
-        assertAuthorized(CLIENT_1, NAMESPACE_1);
-        assertUnauthorized(CLIENT_2, NAMESPACE_1);
-        assertUnauthorized(Client.ANONYMOUS, NAMESPACE_1);
+        assertAuthorized(AUTHENTICATED_CLIENT_1, NAMESPACE_1);
+        assertUnauthorized(AUTHENTICATED_CLIENT_2, NAMESPACE_1);
+        assertUnauthorized(AuthenticatedClient.ANONYMOUS, NAMESPACE_1);
     }
 
     @Test
@@ -77,19 +82,19 @@ public class SimpleAuthorizerTest {
         withPrivilege(CLIENT_1, NAMESPACE_1);
         withPrivilege(CLIENT_2, NAMESPACE_2);
 
-        assertAuthorized(CLIENT_1, NAMESPACE_1);
-        assertAuthorized(CLIENT_2, NAMESPACE_2);
+        assertAuthorized(AUTHENTICATED_CLIENT_1, NAMESPACE_1);
+        assertAuthorized(AUTHENTICATED_CLIENT_2, NAMESPACE_2);
 
-        assertUnauthorized(CLIENT_1, NAMESPACE_2);
-        assertUnauthorized(CLIENT_2, NAMESPACE_1);
+        assertUnauthorized(AUTHENTICATED_CLIENT_1, NAMESPACE_2);
+        assertUnauthorized(AUTHENTICATED_CLIENT_2, NAMESPACE_1);
     }
 
-    private void assertAuthorized(Client client, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(client, namespace)).isTrue();
+    private void assertAuthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isTrue();
     }
 
-    private void assertUnauthorized(Client client, TimelockNamespace namespace) {
-        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(client, namespace)).isFalse();
+    private void assertUnauthorized(AuthenticatedClient authenticatedClient, TimelockNamespace namespace) {
+        assertThat(new SimpleAuthorizer(privileges, namespaceLocker).isAuthorized(authenticatedClient, namespace)).isFalse();
     }
 
     private void withUnlockedNamespace(TimelockNamespace namespace) {
@@ -100,12 +105,12 @@ public class SimpleAuthorizerTest {
         when(namespaceLocker.isLocked(namespace)).thenReturn(true);
     }
 
-    private void withAdmin(Client client) {
-        privileges.put(client, Privileges.ADMIN);
+    private void withAdmin(ClientId clientId) {
+        privileges.put(clientId, Privileges.ADMIN);
     }
 
-    private void withPrivilege(Client client, TimelockNamespace namespace) {
-        Privileges existingMatcher = privileges.getOrDefault(client, Privileges.EMPTY);
-        privileges.put(client, n -> existingMatcher.hasPrivilege(n) || n.equals(namespace));
+    private void withPrivilege(ClientId clientId, TimelockNamespace namespace) {
+        Privileges existingMatcher = privileges.getOrDefault(clientId, Privileges.EMPTY);
+        privileges.put(clientId, n -> existingMatcher.hasPrivilege(n) || n.equals(namespace));
     }
 }
