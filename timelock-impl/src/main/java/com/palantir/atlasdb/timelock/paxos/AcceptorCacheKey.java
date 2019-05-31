@@ -37,4 +37,8 @@ public interface AcceptorCacheKey {
         return ImmutableAcceptorCacheKey.of(uuid);
     }
 
+    static AcceptorCacheKey newCacheKey() {
+        return of(UUID.randomUUID());
+    }
+
 }
