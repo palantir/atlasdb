@@ -16,25 +16,16 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.UUID;
+import java.util.Optional;
+import java.util.Set;
 
-import org.immutables.value.Value;
+public interface AcceptorCache {
 
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+    void updateSequenceNumbers(Set<WithSeq<Client>> clientsAndSeqs);
 
-@Value.Immutable
-@JsonDeserialize(as = ImmutableAcceptorCacheKey.class)
-@JsonSerialize(as = ImmutableAcceptorCacheKey.class)
-public interface AcceptorCacheKey {
+    AcceptorCacheDigest getAllUpdates();
 
-    @JsonValue
-    @Value.Parameter
-    UUID value();
-
-    static AcceptorCacheKey of(UUID uuid) {
-        return ImmutableAcceptorCacheKey.of(uuid);
-    }
+    Optional<AcceptorCacheDigest> updatesSinceCacheKey(AcceptorCacheKey cacheKey) throws
+            InvalidAcceptorCacheKeyException;
 
 }
