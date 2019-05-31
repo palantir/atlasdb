@@ -39,7 +39,7 @@ public abstract class ClientOptions {
             .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(100))
             .failedUrlCooldown(Duration.ofMillis(100))
-            .maxNumRetries(10)
+            .maxNumRetries(5)
             .build();
 
     public static final ClientOptions DEFAULT_NO_RETRYING = ImmutableClientOptions.builder()
@@ -76,6 +76,8 @@ public abstract class ClientOptions {
                 .build();
         return ClientConfiguration.builder().from(ClientConfigurations.of(partialConfig))
                 .failedUrlCooldown(failedUrlCooldown())
+                .enableGcmCipherSuites(true)
+                .fallbackToCommonNameVerification(true)
                 .build();
     }
 
@@ -89,6 +91,8 @@ public abstract class ClientOptions {
                 .backoffSlotSize(backoffSlotSize())
                 .failedUrlCooldown(failedUrlCooldown())
                 .maxNumRetries(maxNumRetries())
+                .enableGcmCipherSuites(true)
+                .fallbackToCommonNameVerification(true)
                 .build();
     }
 

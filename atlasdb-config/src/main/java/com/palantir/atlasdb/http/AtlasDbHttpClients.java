@@ -66,7 +66,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory
-                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.DEFAULT_RETRYING, type, userAgent),
+                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, type, userAgent),
                 MetricRegistry.name(type));
     }
 
