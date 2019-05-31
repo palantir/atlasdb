@@ -17,9 +17,8 @@
 package com.palantir.timelock.paxos;
 
 import java.util.Collection;
+import java.util.Optional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -48,19 +47,16 @@ public interface ClientAwarePaxosLearner {
     @Consumes(MediaType.APPLICATION_JSON)
     void learn(@PathParam("client") String client, @PathParam("seq") long seq, PaxosValue val);
 
-    @Nullable
     @GET
     @Path("learned-value/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
+    Optional<PaxosValue> safeGetLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
 
-    @Nullable
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getGreatestLearnedValue(@PathParam("client") String client);
+    Optional<PaxosValue> safeGetGreatestLearnedValue(@PathParam("client") String client);
 
-    @Nonnull
     @GET
     @Path("learned-values-since/{seq}")
     @Produces(MediaType.APPLICATION_JSON)

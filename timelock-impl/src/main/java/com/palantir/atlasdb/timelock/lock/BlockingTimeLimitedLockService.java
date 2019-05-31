@@ -23,7 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
-import javax.ws.rs.PathParam;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -76,14 +75,14 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
 
     @Nullable
     @Override
-    public LockRefreshToken lock(@PathParam("client") String client, LockRequest request) throws InterruptedException {
+    public LockRefreshToken lock(String client, LockRequest request) throws InterruptedException {
         return callWithTimeLimit(
                 () -> delegate.lock(client, request),
                 ImmutableLockRequestSpecification.of("lock", client, request));
     }
 
     @Override
-    public HeldLocksToken lockAndGetHeldLocks(@PathParam("client") String client, LockRequest request)
+    public HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
             throws InterruptedException {
         return callWithTimeLimit(
                 () -> delegate.lockAndGetHeldLocks(client, request),
@@ -161,7 +160,7 @@ public class BlockingTimeLimitedLockService implements CloseableLockService {
 
     @Nullable
     @Override
-    public Long getMinLockedInVersionId(@PathParam("client") String client) {
+    public Long getMinLockedInVersionId(String client) {
         return delegate.getMinLockedInVersionId(client);
     }
 

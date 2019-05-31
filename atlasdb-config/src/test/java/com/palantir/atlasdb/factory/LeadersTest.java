@@ -46,8 +46,8 @@ public class LeadersTest {
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
         PaxosLearner localLearner = mock(PaxosLearner.class);
-        PaxosValue value = mock(PaxosValue.class);
-        when(localLearner.getGreatestLearnedValue()).thenReturn(value);
+        Optional<PaxosValue> value = Optional.of(mock(PaxosValue.class));
+        when(localLearner.safeGetGreatestLearnedValue()).thenReturn(value);
 
         List<PaxosLearner> paxosLearners = Leaders.createProxyAndLocalList(
                 new MetricRegistry(),
@@ -59,8 +59,8 @@ public class LeadersTest {
 
         MatcherAssert.assertThat(paxosLearners.size(), is(REMOTE_SERVICE_ADDRESSES.size() + 1));
         paxosLearners.forEach(object -> MatcherAssert.assertThat(object, not(nullValue())));
-        MatcherAssert.assertThat(Iterables.getLast(paxosLearners).getGreatestLearnedValue(), is(value));
-        verify(localLearner).getGreatestLearnedValue();
+        MatcherAssert.assertThat(Iterables.getLast(paxosLearners).safeGetGreatestLearnedValue(), is(value));
+        verify(localLearner).safeGetGreatestLearnedValue();
         verifyNoMoreInteractions(localLearner);
     }
 
