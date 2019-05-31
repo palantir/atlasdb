@@ -96,8 +96,9 @@ public class TimeLockAgent {
         this.runtime = runtime;
         this.registrar = registrar;
         this.sharedExecutor = sharedExecutor;
-        this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
-                install.paxos().dataDirectory().toString());
+        this.paxosResource = PaxosResource.create(
+                metricsManager.getTaggedRegistry(),
+                install.paxos().dataDirectory().toPath());
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
@@ -182,7 +183,7 @@ public class TimeLockAgent {
         return healthCheckSupplier.get().getStatus();
     }
 
-    @SuppressWarnings("unused") // used by external health checks
+    @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
     public int getNumberOfActiveClients() {
         return resource.getNumberOfActiveClients();
     }
@@ -224,7 +225,7 @@ public class TimeLockAgent {
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
         List<String> uris = install.cluster().clusterMembers();
         ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
-                .addLeaders(uris.toArray(new String[uris.size()]))
+                .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))
