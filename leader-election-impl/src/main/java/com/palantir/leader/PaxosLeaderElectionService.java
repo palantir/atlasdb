@@ -265,13 +265,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Optional<PingableLeader> getSuspectedLeader(boolean useNetwork) {
-        PaxosValue value = knowledge.getGreatestLearnedValue();
-        if (value == null) {
+        Optional<PaxosValue> value = knowledge.safeGetGreatestLearnedValue();
+        if (!value.isPresent()) {
             return Optional.empty();
         }
 
-        // check leader cache
-        String uuid = value.getLeaderUUID();
+         // check leader cache
+        String uuid = value.get().getLeaderUUID();
         if (uuidToServiceCache.containsKey(uuid)) {
             return Optional.of(uuidToServiceCache.get(uuid));
         }
@@ -412,7 +412,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Optional<PaxosValue> getGreatestLearnedPaxosValue() {
-        return Optional.ofNullable(knowledge.getGreatestLearnedValue());
+        return knowledge.safeGetGreatestLearnedValue();
     }
 
     @Override
@@ -495,7 +495,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         for (PaxosUpdate update : updates.get()) {
             ImmutableCollection<PaxosValue> values = update.getValues();
             for (PaxosValue value : values) {
-                if (knowledge.getLearnedValue(value.getRound()) == null) {
+                if (!knowledge.safeGetLearnedValue(value.getRound()).isPresent()) {
                     knowledge.learn(value.getRound(), value);
                     learned = true;
                 }

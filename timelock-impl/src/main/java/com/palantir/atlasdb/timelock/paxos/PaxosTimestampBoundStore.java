@@ -73,7 +73,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         DebugLogger.logger.info("Creating PaxosTimestampBoundStore. The UUID of my proposer is {}. "
                 + "Currently, I believe the timestamp bound is {}.",
                 SafeArg.of("proposerUuid", proposer.getUuid()),
-                SafeArg.of("timestampBound", knowledge.getGreatestLearnedValue()));
+                SafeArg.of("timestampBound", knowledge.safeGetGreatestLearnedValue()));
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.acceptors = acceptors;
@@ -227,11 +227,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws NoSuchElementException if the learner has not learned any value for seq
      */
     private static PaxosLong getLearnedValue(long seq, PaxosLearner learner) {
-        PaxosValue value = learner.getLearnedValue(seq);
-        if (value == null) {
-            throw new NoSuchElementException(
-                    String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq));
-        }
+        PaxosValue value = learner.safeGetLearnedValue(seq).orElseThrow(() ->  new NoSuchElementException(
+                String.format("Tried to get a learned value for sequence number '%d' which didn't exist", seq)));
         return ImmutablePaxosLong.of(PtBytes.toLong(value.getData()));
     }
 
@@ -254,7 +251,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         while (true) {
             try {
                 proposer.propose(newSeq, PtBytes.toBytes(limit));
-                PaxosValue value = knowledge.getLearnedValue(newSeq);
+                PaxosValue value = knowledge.safeGetLearnedValue(newSeq).orElseThrow(() ->
+                        new IllegalStateException("Learned Paxos value for proposed sequence not present. This may "
+                                + "cause SEVERE DATA CORRUPTION! Contact the AtlasDB team for help debugging this."));
                 checkAgreedBoundIsOurs(limit, newSeq, value);
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);

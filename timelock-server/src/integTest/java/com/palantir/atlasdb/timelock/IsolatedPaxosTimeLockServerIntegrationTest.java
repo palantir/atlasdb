@@ -80,7 +80,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
     @Test
     public void canParticipateInPaxosAsLearnerWithoutQuorum() {
         PaxosLearner learner = createProxyForInternalNamespacedTestService(PaxosLearner.class);
-        learner.getGreatestLearnedValue();
+        learner.safeGetGreatestLearnedValue();
     }
 
     private static <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {

@@ -16,8 +16,8 @@
 package com.palantir.paxos;
 
 import java.util.Collection;
+import java.util.Optional;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -47,19 +47,29 @@ public interface PaxosLearner {
      * Returns learned value or null if non-exists.
      */
     @Nullable
+    @Deprecated
+    default PaxosValue getLearnedValue(long seq) {
+        return safeGetLearnedValue(seq).orElse(null);
+    }
+
     @GET
     @Path("learned-value/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getLearnedValue(@PathParam("seq") long seq);
+    Optional<PaxosValue> safeGetLearnedValue(@PathParam("seq") long seq);
 
     /**
      * Returns the learned value for the greatest known round or null if nothing has been learned.
      */
     @Nullable
+    @Deprecated
+    default PaxosValue getGreatestLearnedValue() {
+        return safeGetGreatestLearnedValue().orElse(null);
+    }
+
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    PaxosValue getGreatestLearnedValue();
+    Optional<PaxosValue> safeGetGreatestLearnedValue();
 
     /**
      * Returns some collection of learned values since the seq-th round (inclusive).
@@ -67,7 +77,6 @@ public interface PaxosLearner {
      * @param seq lower round cutoff for returned values
      * @return some set of learned values for rounds since the seq-th round
      */
-    @Nonnull
     @GET
     @Path("learned-values-since/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
