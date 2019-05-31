@@ -32,9 +32,11 @@ import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
+import com.palantir.atlasdb.timelock.AuthorizedTimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.auth.AuthManager;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -68,7 +70,7 @@ public class TimeLockAgent {
     private final ExecutorService sharedExecutor;
 
     private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
-    private TimeLockResource resource;
+    private AuthorizedTimeLockResource resource;
 
     public static TimeLockAgent create(
             MetricsManager metricsManager,
@@ -166,10 +168,13 @@ public class TimeLockAgent {
 
         // Finally, register the health check, and endpoints associated with the clients.
         healthCheckSupplier = leadershipCreator.getHealthCheck();
-        resource = TimeLockResource.create(
+        AuthManager authManager = AuthManager.of(() -> runtime.get().authConfiguration());
+        TimeLockResource authUnawareResource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
                 Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+
+        resource = AuthorizedTimeLockResource.create(authUnawareResource, authManager);
         registrar.accept(resource);
     }
 

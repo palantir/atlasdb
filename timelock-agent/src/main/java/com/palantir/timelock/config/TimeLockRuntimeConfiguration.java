@@ -21,6 +21,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.auth.config.ImmutableTimelockAuthConfiguration;
+import com.palantir.atlasdb.timelock.auth.config.TimelockAuthConfiguration;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.
@@ -53,6 +55,14 @@ public abstract class TimeLockRuntimeConfiguration {
     @Value.Default
     public long slowLockLogTriggerMillis() {
         return 10000;
+    }
+
+    @JsonProperty("auth")
+    @Value.Default
+    public TimelockAuthConfiguration authConfiguration() {
+        return ImmutableTimelockAuthConfiguration.builder()
+                .useAuth(false)
+                .build();
     }
 
     @Value.Check

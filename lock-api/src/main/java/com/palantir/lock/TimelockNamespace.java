@@ -18,7 +18,6 @@ package com.palantir.lock;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
@@ -26,8 +25,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableTimelockNamespace.class)
 @Value.Immutable
 public interface TimelockNamespace {
-    @JsonValue
+    @Value.Parameter
     String value();
+
+    static TimelockNamespace valueOf(String namespace) {
+        return of(namespace);
+    }
 
     static TimelockNamespace of(String namespace) {
         return ImmutableTimelockNamespace.builder()

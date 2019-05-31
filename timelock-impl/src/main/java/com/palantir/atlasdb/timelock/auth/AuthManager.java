@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
 import javax.ws.rs.ForbiddenException;
 
 import org.immutables.value.Value;
@@ -67,14 +68,18 @@ public class AuthManager implements AutoCloseable {
                 authServices);
     }
 
-    public void checkAuthorized(ClientId clientId, Password password, TimelockNamespace timelockNamespace) {
+    public void checkAuthorized(@Nullable ClientId clientId,
+            @Nullable Password password,
+            TimelockNamespace timelockNamespace) {
         update();
 
         if (!authServices.useAuth()) {
             return;
         }
 
-        Optional<AuthenticatedClient> client = authServices.authenticator().authenticate(clientId, password);
+        Optional<AuthenticatedClient> client = clientId == null || password == null
+                ? Optional.of(AuthenticatedClient.ANONYMOUS)
+                : authServices.authenticator().authenticate(clientId, password);
         if (!client.isPresent() || !authServices.authorizer().isAuthorized(client.get(), timelockNamespace)) {
             throw new ForbiddenException();
         }

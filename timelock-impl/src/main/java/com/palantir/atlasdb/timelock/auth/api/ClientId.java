@@ -27,6 +27,10 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 public interface ClientId {
     String get();
 
+    static ClientId valueOf(String value) {
+        return of(value);
+    }
+
     static ClientId of(String value) {
         return ImmutableClientId.builder()
                 .get(value)
