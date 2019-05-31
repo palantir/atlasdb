@@ -18,11 +18,9 @@ package com.palantir.timelock.paxos;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
@@ -41,19 +39,16 @@ final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
         clientAwarePaxosLearner.learn(client, seq, val);
     }
 
-    @Nullable
     @Override
-    public PaxosValue getLearnedValue(long seq) {
-        return clientAwarePaxosLearner.getLearnedValue(client, seq);
+    public Optional<PaxosValue> safeGetLearnedValue(long seq) {
+        return clientAwarePaxosLearner.safeGetLearnedValue(client, seq);
     }
 
-    @Nullable
     @Override
-    public PaxosValue getGreatestLearnedValue() {
-        return clientAwarePaxosLearner.getGreatestLearnedValue(client);
+    public Optional<PaxosValue> safeGetGreatestLearnedValue() {
+        return clientAwarePaxosLearner.safeGetGreatestLearnedValue(client);
     }
 
-    @Nonnull
     @Override
     public Collection<PaxosValue> getLearnedValuesSince(long seq) {
         return clientAwarePaxosLearner.getLearnedValuesSince(client, seq);
