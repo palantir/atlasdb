@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
 import java.net.InetSocketAddress;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -25,6 +26,8 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
@@ -35,10 +38,11 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 
 public class RowGetter {
-    private CassandraClientPool clientPool;
-    private TracingQueryRunner queryRunner;
-    private ConsistencyLevel consistency;
-    private TableReference tableRef;
+    private final CassandraClientPool clientPool;
+    private final TracingQueryRunner queryRunner;
+    private final ConsistencyLevel consistency;
+    private final TableReference tableRef;
+    private final RowGetterBatchingStrategy batchingStrategy;
 
     public RowGetter(
             CassandraClientPool clientPool,
@@ -49,35 +53,46 @@ public class RowGetter {
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
+        this.batchingStrategy = RowGetterBatchingStrategy.NAIVE;
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-        InetSocketAddress host = clientPool.getRandomHostForKey(keyRange.getStart_key());
-        return clientPool.runWithRetryOnHost(
-                host,
-                new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
-                    @Override
-                    public List<KeySlice> apply(CassandraClient client) {
-                        try {
-                            return queryRunner.run(client, tableRef,
-                                    () -> client.get_range_slices(kvsMethodName,
-                                            tableRef,
-                                            slicePredicate,
-                                            keyRange,
-                                            consistency));
-                        } catch (UnavailableException e) {
-                            throw new InsufficientConsistencyException("get_range_slices requires " + consistency
-                                    + " Cassandra nodes to be up and available.", e);
-                        } catch (Exception e) {
-                            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
-                        }
-                    }
+        Optional<KeyRange> queryRange = batchingStrategy.getNextKeyRange(
+                keyRange, Optional.empty(), ImmutableList.of());
+        List<KeySlice> result = Lists.newArrayList();
 
-                    @Override
-                    public String toString() {
-                        return "get_range_slices(" + tableRef + ")";
-                    }
-                });
+        while (queryRange.isPresent()) {
+            KeyRange presentRange = queryRange.get();
+            InetSocketAddress host = clientPool.getRandomHostForKey(presentRange.getStart_key());
+            List<KeySlice> queryResults = clientPool.runWithRetryOnHost(
+                    host,
+                    new FunctionCheckedException<CassandraClient, List<KeySlice>, RuntimeException>() {
+                        @Override
+                        public List<KeySlice> apply(CassandraClient client) {
+                            try {
+                                return queryRunner.run(client, tableRef,
+                                        () -> client.get_range_slices(kvsMethodName,
+                                                tableRef,
+                                                slicePredicate,
+                                                presentRange,
+                                                consistency));
+                            } catch (UnavailableException e) {
+                                throw new InsufficientConsistencyException("get_range_slices requires "
+                                        + consistency + " Cassandra nodes to be up and available.", e);
+                            } catch (Exception e) {
+                                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                            }
+                        }
+
+                        @Override
+                        public String toString() {
+                            return "get_range_slices(" + tableRef + ")";
+                        }
+                    });
+            result.addAll(queryResults);
+            queryRange = batchingStrategy.getNextKeyRange(keyRange, queryRange, queryResults);
+        }
+        return result;
     }
 
     public List<byte[]> getRowKeysInRange(byte[] rangeStart, byte[] rangeEnd, int maxResults) {
