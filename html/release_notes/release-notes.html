@@ -188,41 +188,111 @@
 </tr>
 </thead>
 <tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug causing connection leaks to timelock.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4052">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosRuntimeConfiguration</span></code> as (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">#3943</a>) changed it on test configs only.
+<code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
+<code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
+<code class="docutils literal notranslate"><span class="pre">ping-rate-in-ms</span></code> was reduced to 50 ms from 5000 ms.
+These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4055">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-144-0">
+<h2>v0.144.0<a class="headerlink" href="#v0-144-0" title="Permalink to this headline">¶</a></h2>
+<p>20 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">AutoDelegate</span></code> only works on interfaces now.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4045">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed a bug in <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> introduced by a recently added caching layer, causing NPE’s.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4044">Pull Request</a>)</td>
+</tr>
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration <code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code>.
 The default value has also changed from 5000 milliseconds to 500.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4046">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td>Replaced all usages of guava Supplier by java Supplier.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3978">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-143-1">
+<h2>v0.143.1<a class="headerlink" href="#v0-143-1" title="Permalink to this headline">¶</a></h2>
+<p>16 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>The default configuration for the number of targeted sweep shards has been increased to 8.
-This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
-Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3997">Pull Request</a>)</td>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">InsufficientConsistencyException</span></code> and <code class="docutils literal notranslate"><span class="pre">NoSuchElementException</span></code> will now not cause nodes to be blacklisted from the Cassandra client pool.
+Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4038">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Removed the DB username from the Hikari connection pool name.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3949">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>Fixed incorrect delegation that took place in AutoDelegate transaction managers.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4041">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-143-0">
+<h2>v0.143.0<a class="headerlink" href="#v0-143-0" title="Permalink to this headline">¶</a></h2>
+<p>16 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-deprecated">DEPRECATED</span></td>
+<td>Replaced all usages of Guava Supplier by Java Supplier. Please note that while Guava Supplier endpoints may still exist, they will be removed in a future release.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3978">Pull Request 1</a>,
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3995">Pull Request 2</a> and
+<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4034">Pull Request 3</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Coordination service metrics no longer throw <code class="docutils literal notranslate"><span class="pre">NullPointerException</span></code> when attempting to read the metric value before reading anything from the coordination store.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4031">Pull Request</a>)</td>
 </tr>
 <tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">InsufficientConsistencyException</span></code> and <code class="docutils literal notranslate"><span class="pre">NoSuchElementException</span></code> will now not cause nodes to be blacklisted from the Cassandra client pool.
-Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4QQQ">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>AtlasDB now maintains a finite length for the delete executor’s work queue, to avoid OOMs on services with high conflict rates for transactions.
 In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
 Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
 Previously, this queue was unbounded, meaning that service nodes could end up using lots of memory.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4037">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>AtlasDB now throws an <code class="docutils literal notranslate"><span class="pre">IllegalArgumentException</span></code> when attempting to create a column range selection that is invalid (has end before start).
-Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3993">Pull Request</a>)</td>
 </tr>
 <tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
@@ -230,20 +300,102 @@ This is necessary for supporting cleanup of the coordination store.
 Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3990">Pull Request</a>)</td>
 </tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-142-2">
+<h2>v0.142.2<a class="headerlink" href="#v0-142-2" title="Permalink to this headline">¶</a></h2>
+<p>14 May 2019</p>
+<p>This version is equivalent to v0.142.0, but was re-tagged because of publishing issues.</p>
+</div>
+<div class="section" id="v0-142-1">
+<h2>v0.142.1<a class="headerlink" href="#v0-142-1" title="Permalink to this headline">¶</a></h2>
+<p>14 May 2019</p>
+<p>This version is equivalent to v0.142.0, but was re-tagged because of publishing issues.</p>
+</div>
+<div class="section" id="v0-142-0">
+<h2>v0.142.0<a class="headerlink" href="#v0-142-0" title="Permalink to this headline">¶</a></h2>
+<p>14 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The default configuration for the number of targeted sweep shards has been increased to 8.
+This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
+Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3997">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>AtlasDB now throws an <code class="docutils literal notranslate"><span class="pre">IllegalArgumentException</span></code> when attempting to create a column range selection that is invalid (has end before start).
+Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3993">Pull Request</a>)</td>
+</tr>
+<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">AtlasDbHttpClients.createProxyWithFailover()</span></code> now requires <code class="docutils literal notranslate"><span class="pre">UserAgent</span></code> parameter.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3996">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-141-0">
+<h2>v0.141.0<a class="headerlink" href="#v0-141-0" title="Permalink to this headline">¶</a></h2>
+<p>9 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td><code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> now has a new builder option <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code>.
+If it is set to <code class="docutils literal notranslate"><span class="pre">true</span></code> all transactions (including read-only ones) will grab immutable ts lock, enabling migrating to thorough sweep without downtime.
+Please contact the AtlasDB team before using this feature.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3987">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>The Timelock Availability Health check should not timeout if we can’t reach other nodes. This should stop
 the health check firing erroneously.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3988">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosConfiguration</span></code>.
-<code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
-<code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
-<code class="docutils literal notranslate"><span class="pre">ping-rate-in-ms</span></code> was reduced to 50 ms from 5000 ms.
-These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">Pull Request</a>)</td>
+<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
+<td>Setting <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3992">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-140-0">
+<h2>v0.140.0<a class="headerlink" href="#v0-140-0" title="Permalink to this headline">¶</a></h2>
+<p>8 May 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Client side tombstone filtering is now instrumented more exhaustively.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3977">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">TimelockDeprecatedConfig</span></code> and <code class="docutils literal notranslate"><span class="pre">TimeLockServerConfiguration</span></code> have been removed.
 Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
 Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
@@ -251,78 +403,153 @@ Note that this requires converting your existing <code class="docutils literal n
 For an example of this conversion, refer to the PR below.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3971">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-changed">CHANGED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosConfiguration</span></code>.
+<code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
+<code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
+<code class="docutils literal notranslate"><span class="pre">ping-rate-in-ms</span></code> was reduced to 50 ms from 5000 ms.
+These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-139-0">
+<h2>v0.139.0<a class="headerlink" href="#v0-139-0" title="Permalink to this headline">¶</a></h2>
+<p>30 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-changed">CHANGED</span></td>
 <td>All instrumentation AtlasDB metrics now use a <code class="docutils literal notranslate"><span class="pre">SlidingTimeWindowArrayReservoir</span></code>.
 Previously, they used an exponentially decaying reservoir.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3937">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Coordination service now only initiates one request to perpetuate the bound forward at a time.
-This should avoid unnecessarily many CAS operations taking place when we need to do this.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3953">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-138-0">
+<h2>v0.138.0<a class="headerlink" href="#v0-138-0" title="Permalink to this headline">¶</a></h2>
+<p>25 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
+<td>AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3954">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-137-0">
+<h2>v0.137.0<a class="headerlink" href="#v0-137-0" title="Permalink to this headline">¶</a></h2>
+<p>25 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Coordination service now checks for semantic equality of <code class="docutils literal notranslate"><span class="pre">VersionedInternalSchemaMetadata</span></code> payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
 Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3954">Pull Request</a>)</td>
 </tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>We now close Cassandra clients properly when verifying that one’s Cassandra configuration makes sense.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3944">Pull Request</a>)</td>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-136-1">
+<h2>v0.136.1<a class="headerlink" href="#v0-136-1" title="Permalink to this headline">¶</a></h2>
+<p>23 Apr 2019</p>
+<p>This release is equivalent to v0.136.0 but was re-tagged due to a publishing issue.</p>
+</div>
+<div class="section" id="v0-136-0">
+<h2>v0.136.0<a class="headerlink" href="#v0-136-0" title="Permalink to this headline">¶</a></h2>
+<p>23 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>lock-api now declares a minimum dependency on timelock-server 0.59.0.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
-</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span> <span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td>Usage metrics for the coordination store have been added.
 Users should provide a MetricsRegistry when creating their coordination services.
 Also, <code class="docutils literal notranslate"><span class="pre">CoordinationService.createDefault()</span></code> now handles instrumentation of both the coordination service and store.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">USER BREAK</span></td>
-<td>AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-metrics">METRICS</span> <span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Client side tombstone filtering is now instrumented more exhaustively.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3977">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-new">NEW</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> now has a new builder option <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code>. If it is set to <code class="docutils literal notranslate"><span class="pre">true</span></code> all transactions (including read-only ones) will grab immutable ts lock,
-enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3987">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-new">NEW</span></td>
-<td>Setting <code class="docutils literal notranslate"><span class="pre">lockImmutableTsOnReadOnlyTransactions()</span></code> to <code class="docutils literal notranslate"><span class="pre">true</span></code> disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3992">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">AtlasDbHttpClients.createProxyWithFailover()</span></code> now requires <code class="docutils literal notranslate"><span class="pre">UserAgent</span></code> parameter.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3996">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Removed the DB username from the Hikari connection pool name.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3949">Pull Request</a>)</td>
-</tr>
-<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
-<td><code class="docutils literal notranslate"><span class="pre">AutoDelegate</span></code> only works on interfaces now.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4045">Pull Request</a>)</td>
-</tr>
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a bug in <code class="docutils literal notranslate"><span class="pre">TransactionManagers</span></code> introduced by a recently added caching layer, causing NPE’s.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4044">Pull Request</a>)</td>
-</tr>
 <tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
-<td>Fixed a bug causing connection leaks to timelock.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4052">Pull Request</a>)</td>
+<td>lock-api now declares a minimum dependency on timelock-server 0.59.0.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3894">Pull Request</a>)</td>
 </tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-135-0">
+<h2>v0.135.0<a class="headerlink" href="#v0-135-0" title="Permalink to this headline">¶</a></h2>
+<p>19 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
 <tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
-<td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosRuntimeConfiguration</span></code> as (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">#3943</a>) changed it on test configs only.
-<code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
-<code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
-<code class="docutils literal notranslate"><span class="pre">ping-rate-in-ms</span></code> was reduced to 50 ms from 5000 ms.
-These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
-(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4055">Pull Request</a>)</td>
+<td>Coordination service now only initiates one request to perpetuate the bound forward at a time.
+This should avoid unnecessarily many CAS operations taking place when we need to do this.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3953">Pull Request</a>)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="v0-134-0">
+<h2>v0.134.0<a class="headerlink" href="#v0-134-0" title="Permalink to this headline">¶</a></h2>
+<p>18 Apr 2019</p>
+<table border="1" class="colwidths-given docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Type</th>
+<th class="head">Change</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>We now close Cassandra clients properly when verifying that one’s Cassandra configuration makes sense.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3944">Pull Request</a>)</td>
 </tr>
 </tbody>
 </table>

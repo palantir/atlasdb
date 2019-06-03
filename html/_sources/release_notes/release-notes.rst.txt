@@ -50,130 +50,6 @@ develop
     *    - Type
          - Change
 
-    *    - |improved|
-         - The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration ``pauseMillis``.
-           The default value has also changed from 5000 milliseconds to 500.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4046>`__)
-
-    *    - |devbreak|
-         - Replaced all usages of guava Supplier by java Supplier.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3978>`__)
-
-    *    - |improved|
-         - The default configuration for the number of targeted sweep shards has been increased to 8.
-           This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
-           Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
-
-    *    - |fixed|
-         - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
-
-    *    - |fixed|
-         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
-           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
-
-    *    - |fixed|
-         - AtlasDB now maintains a finite length for the delete executor's work queue, to avoid OOMs on services with high conflict rates for transactions.
-           In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
-           Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
-           Previously, this queue was unbounded, meaning that service nodes could end up using lots of memory.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4037>`__)
-
-    *    - |improved|
-         - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
-           Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3993>`__)
-
-    *    - |improved|
-         - The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
-           This is necessary for supporting cleanup of the coordination store.
-           Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3990>`__)
-
-    *    - |improved|
-         - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
-           the health check firing erroneously.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3988>`__)
-
-    *    - |improved|
-         - Changed the default values in ``PaxosConfiguration``.
-           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
-           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
-           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
-           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3943>`__)
-
-    *    - |devbreak|
-         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
-           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
-           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
-           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
-           For an example of this conversion, refer to the PR below.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3971>`__)
-
-    *    - |metrics| |changed|
-         - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
-           Previously, they used an exponentially decaying reservoir.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3937>`__)
-
-    *    - |improved|
-         - Coordination service now only initiates one request to perpetuate the bound forward at a time.
-           This should avoid unnecessarily many CAS operations taking place when we need to do this.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3953>`__)
-
-    *    - |fixed|
-         - Coordination service now checks for semantic equality of ``VersionedInternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
-           Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3954>`__)
-
-    *    - |fixed|
-         - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
-
-    *    - |fixed|
-         - lock-api now declares a minimum dependency on timelock-server 0.59.0.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
-
-    *    - |improved| |devbreak|
-         - Usage metrics for the coordination store have been added.
-           Users should provide a MetricsRegistry when creating their coordination services.
-           Also, ``CoordinationService.createDefault()`` now handles instrumentation of both the coordination service and store.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
-
-    *    - |userbreak|
-         - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
-
-    *    - |metrics| |improved|
-         - Client side tombstone filtering is now instrumented more exhaustively.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3977>`__)
-
-    *    - |new|
-         - ``TransactionManagers`` now has a new builder option ``lockImmutableTsOnReadOnlyTransactions()``. If it is set to ``true`` all transactions (including read-only ones) will grab immutable ts lock,
-           enabling migrating to thorough sweep without downtime. Please contact to Atlas team before using this feature.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3987>`__)
-
-    *    - |new|
-         - Setting ``lockImmutableTsOnReadOnlyTransactions()`` to ``true`` disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
-
-    *    - |devbreak|
-         - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3996>`__)
-
-    *    - |fixed|
-         - Removed the DB username from the Hikari connection pool name.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
-
-    *    - |devbreak|
-         - ``AutoDelegate`` only works on interfaces now.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4045>`__)
-
-    *    - |fixed|
-         - Fixed a bug in ``TransactionManagers`` introduced by a recently added caching layer, causing NPE's.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044>`__)
-
     *    - |fixed|
          - Fixed a bug causing connection leaks to timelock.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
@@ -185,6 +61,318 @@ develop
            ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
            These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
+
+========
+v0.144.0
+========
+
+20 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - ``AutoDelegate`` only works on interfaces now.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4045>`__)
+
+    *    - |fixed|
+         - Fixed a bug in ``TransactionManagers`` introduced by a recently added caching layer, causing NPE's.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4044>`__)
+
+    *    - |improved|
+         - The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration ``pauseMillis``.
+           The default value has also changed from 5000 milliseconds to 500.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4046>`__)
+
+========
+v0.143.1
+========
+
+16 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - ``InsufficientConsistencyException`` and ``NoSuchElementException`` will now not cause nodes to be blacklisted from the Cassandra client pool.
+           Previously this could happen - even though these exceptions are not reflective of the individual node in question being unable to service requests.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4038>`__)
+
+    *    - |fixed|
+         - Removed the DB username from the Hikari connection pool name.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3949>`__)
+
+    *    - |fixed|
+         - Fixed incorrect delegation that took place in AutoDelegate transaction managers.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4041>`__)
+
+========
+v0.143.0
+========
+
+16 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |deprecated|
+         - Replaced all usages of Guava Supplier by Java Supplier. Please note that while Guava Supplier endpoints may still exist, they will be removed in a future release.
+           (`Pull Request 1 <https://github.com/palantir/atlasdb/pull/3978>`__,
+           `Pull Request 2 <https://github.com/palantir/atlasdb/pull/3995>`__ and
+           `Pull Request 3 <https://github.com/palantir/atlasdb/pull/4034>`__)
+
+    *    - |fixed|
+         - Coordination service metrics no longer throw ``NullPointerException`` when attempting to read the metric value before reading anything from the coordination store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4031>`__)
+
+    *    - |fixed|
+         - AtlasDB now maintains a finite length for the delete executor's work queue, to avoid OOMs on services with high conflict rates for transactions.
+           In the event the queue length is reached, we will not proactively schedule cleanup of values written by a transaction that was rolled back.
+           Note that it is not essential that these deletes are carried out immediately, as targeted sweep will eventually clear them out.
+           Previously, this queue was unbounded, meaning that service nodes could end up using lots of memory.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4037>`__)
+
+    *    - |improved|
+         - The coordination store now retries when reading a value at a given sequence number that no longer exists (as opposed to throwing).
+           This is necessary for supporting cleanup of the coordination store.
+           Note that if one is performing rolling upgrades to a version that sweeps the coordination store, one MUST upgrade from at least this version.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3990>`__)
+
+========
+v0.142.2
+========
+
+14 May 2019
+
+This version is equivalent to v0.142.0, but was re-tagged because of publishing issues.
+
+========
+v0.142.1
+========
+
+14 May 2019
+
+This version is equivalent to v0.142.0, but was re-tagged because of publishing issues.
+
+========
+v0.142.0
+========
+
+14 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - The default configuration for the number of targeted sweep shards has been increased to 8.
+           This enables us to increase the speed of targeted sweep if processing the queue starts falling behind.
+           Previously, we could only increase the speed of processing future entries, as we cannot sweep entries with higher parallelism than the number of shards active when the writes were made.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3997>`__)
+
+    *    - |improved|
+         - AtlasDB now throws an ``IllegalArgumentException`` when attempting to create a column range selection that is invalid (has end before start).
+           Previously, exceptions were thrown from the underlying KVS, but these were implementation-dependent.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3993>`__)
+
+    *    - |devbreak|
+         - ``AtlasDbHttpClients.createProxyWithFailover()`` now requires ``UserAgent`` parameter.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3996>`__)
+
+========
+v0.141.0
+========
+
+9 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |new|
+         - ``TransactionManagers`` now has a new builder option ``lockImmutableTsOnReadOnlyTransactions()``.
+           If it is set to ``true`` all transactions (including read-only ones) will grab immutable ts lock, enabling migrating to thorough sweep without downtime.
+           Please contact the AtlasDB team before using this feature.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3987>`__)
+
+    *    - |improved|
+         - The Timelock Availability Health check should not timeout if we can't reach other nodes. This should stop
+           the health check firing erroneously.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3988>`__)
+
+    *    - |new|
+         - Setting ``lockImmutableTsOnReadOnlyTransactions()`` to ``true`` disables background sweep. This aims to prevent Cassandra load caused by Conservative to Thorough sweep migration.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3992>`__)
+
+========
+v0.140.0
+========
+
+8 May 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |metrics| |improved|
+         - Client side tombstone filtering is now instrumented more exhaustively.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3977>`__)
+
+    *    - |devbreak|
+         - ``TimelockDeprecatedConfig`` and ``TimeLockServerConfiguration`` have been removed.
+           Note that these configurations were only used for the dropwizard timelock server, which should only be used in tests.
+           Now, the dropwizard server launcher uses a similar setup to the use in production, forcing the use of client request limits and lock time limiter.
+           Note that this requires converting your existing ``TimeLockServerConfiguration`` to a ``CombinedTimeLockServerConfiguration``.
+           For an example of this conversion, refer to the PR below.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3971>`__)
+
+    *    - |improved|
+         - Changed the default values in ``PaxosConfiguration``.
+           ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
+           ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
+           ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
+           These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3943>`__)
+
+========
+v0.139.0
+========
+
+30 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |metrics| |changed|
+         - All instrumentation AtlasDB metrics now use a ``SlidingTimeWindowArrayReservoir``.
+           Previously, they used an exponentially decaying reservoir.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3937>`__)
+
+========
+v0.138.0
+========
+
+25 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |userbreak|
+         - AtlasDB Cassandra KVS now depends on rescue 4.4.0 (was previously 3.22.0).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3954>`__)
+
+========
+v0.137.0
+========
+
+25 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Coordination service now checks for semantic equality of ``VersionedInternalSchemaMetadata`` payloads as opposed to byte equality when deciding whether to reuse an existing value agreed on.
+           Previously, using byte equality meant that multi-node clusters could end up spuriously writing the stored value many times, causing unnecessarily wide rows.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3954>`__)
+
+========
+v0.136.1
+========
+
+23 Apr 2019
+
+This release is equivalent to v0.136.0 but was re-tagged due to a publishing issue.
+
+========
+v0.136.0
+========
+
+23 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved| |devbreak|
+         - Usage metrics for the coordination store have been added.
+           Users should provide a MetricsRegistry when creating their coordination services.
+           Also, ``CoordinationService.createDefault()`` now handles instrumentation of both the coordination service and store.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
+    *    - |fixed|
+         - lock-api now declares a minimum dependency on timelock-server 0.59.0.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3894>`__)
+
+========
+v0.135.0
+========
+
+19 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Coordination service now only initiates one request to perpetuate the bound forward at a time.
+           This should avoid unnecessarily many CAS operations taking place when we need to do this.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3953>`__)
+
+========
+v0.134.0
+========
+
+18 Apr 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - We now close Cassandra clients properly when verifying that one's Cassandra configuration makes sense.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/3944>`__)
 
 ========
 v0.133.0
