@@ -229,6 +229,15 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     }
 
     /**
+     * Whether to use 'smart batching' when making range scans to Cassandra. Specifically, this may involve more
+     * individual requests to the Cassandra cluster, while ensuring that the queries we make are relatively safe
+     * (in the general case, unless we detect sparsity, will take place on a local node as it is queried).
+     */
+    default boolean smartBatchingForRangeScans() {
+        return false;
+    }
+
+    /**
      * This is how long we will wait when we first open a socket to the cassandra server.
      * This should be long enough to enough to handle cross data center latency, but short enough
      * that it will fail out quickly if it is clear we can't reach that server.
