@@ -17,56 +17,129 @@
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.SlicePredicate;
 
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeMap;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
-import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 
 class TokenRingAwareBatchingStrategy implements RowGetterBatchingStrategy {
+    // These ranges are always open -> closed (or open-open in the case of the last range).
     private final RangeMap<LightweightOppToken, List<InetSocketAddress>> rangesToHosts;
     private final KeyRange requestedRange;
+    private final int batchSize;
 
     private TokenRingAwareBatchingStrategy(
             RangeMap<LightweightOppToken, List<InetSocketAddress>> rangesToHosts,
-            KeyRange requestedRange) {
-        this.rangesToHosts = rangesToHosts;
+            KeyRange requestedRange,
+            int batchSize) {
+        this.rangesToHosts = classifyUnknownRangesSeparately(rangesToHosts);
         this.requestedRange = requestedRange;
+        this.batchSize = batchSize;
+    }
+
+    private RangeMap<LightweightOppToken, List<InetSocketAddress>> classifyUnknownRangesSeparately(
+            RangeMap<LightweightOppToken, List<InetSocketAddress>> rangesToHosts) {
+        return ImmutableRangeMap.builder()
+                .putAll(rangesToHosts)
+                .build();
     }
 
     static RowGetterBatchingStrategy create(CassandraClientPool cassandraClientPool,
-            KeyRange requestedRange) {
+            KeyRange requestedRange,
+            SlicePredicate predicate) {
         RangeMap<LightweightOppToken, List<InetSocketAddress>> ranges = cassandraClientPool.getTokenMap()
-                .subRangeMap(Range.openClosed(
-                        new LightweightOppToken(requestedRange.getStart_key()),
-                        new LightweightOppToken(requestedRange.getEnd_key())));
-        return new TokenRingAwareBatchingStrategy(ranges, requestedRange);
+                .subRangeMap(convertKeyRangeToRange(requestedRange));
+        if (ranges.asMapOfRanges().isEmpty()) {
+            // cassandra kvs ranges are not available yet
+            return RowGetterBatchingStrategy.naiveStrategy(requestedRange);
+        }
+        return new TokenRingAwareBatchingStrategy(ranges, requestedRange, predicate.slice_range.getCount());
     }
 
     @Override
     public Optional<KeyRange> getNextKeyRange(Optional<KeyRange> previousKeyRange,
             List<KeySlice> previousQueryResults) {
-        byte[] startingPoint = PtBytes.EMPTY_BYTE_ARRAY;
-        if (previousKeyRange.isPresent()) {
-            byte[] completed = previousKeyRange.get().getEnd_key();
-            if (UnsignedBytes.lexicographicalComparator().compare(completed, requestedRange.getEnd_key()) >= 0) {
+        if (!previousKeyRange.isPresent()) {
+            // Make the first query
+            byte[] startingPoint = requestedRange.getStart_key();
+            System.out.println(new LightweightOppToken(startingPoint));
+            System.out.println(rangesToHosts);
+            System.out.println(rangesToHosts.getEntry(new LightweightOppToken(startingPoint)));
+            return Optional.ofNullable(rangesToHosts.getEntry(new LightweightOppToken(startingPoint)))
+                    .map(Map.Entry::getKey)
+                    .map(tokenRange -> copyKeyRangeWithNewBounds(requestedRange, tokenRange.intersection(
+                            convertKeyRangeToRange(requestedRange))));
+        }
+
+        KeyRange presentKeyRange = previousKeyRange.get();
+        if (previousQueryResults.size() >= batchSize && previousQueryResults.size() > 0) {
+            if (Arrays.equals(PtBytes.EMPTY_BYTE_ARRAY, presentKeyRange.getEnd_key())) {
+                // Done with the last range
                 return Optional.empty();
             }
-            startingPoint = RangeRequests.nextLexicographicName(completed);
+            // Maybe more results in the same range, but only test after where we are
+            return Optional.of(copyKeyRangeWithNewBounds(presentKeyRange, Range.range(
+                    new LightweightOppToken(previousQueryResults.get(previousQueryResults.size() - 1).getKey()),
+                    BoundType.OPEN,
+                    new LightweightOppToken(presentKeyRange.getEnd_key()),
+                    BoundType.OPEN)));
         }
-        return Optional.ofNullable(rangesToHosts.getEntry(new LightweightOppToken(startingPoint)))
-                .map(Map.Entry::getKey)
-                .map(tokenRange -> new KeyRange(requestedRange)
-                        .setStart_key(tokenRange.lowerEndpoint().getBytes())
-                        .setEnd_key(tokenRange.upperEndpoint().getBytes()));
+
+        // No more results in this range
+        byte[] nextStartingPoint = presentKeyRange.getEnd_key();
+        if (nextStartingPoint != PtBytes.EMPTY_BYTE_ARRAY) {
+            return Optional.ofNullable(rangesToHosts.getEntry(new LightweightOppToken(
+                    RangeRequests.nextLexicographicName(RangeRequests.nextLexicographicName(nextStartingPoint)))))
+                    .map(Map.Entry::getKey)
+                    .map(tokenRange -> copyKeyRangeWithNewBounds(requestedRange, tokenRange));
+        }
+
+        return Optional.empty();
     }
+
+    private static Range<LightweightOppToken> convertKeyRangeToRange(KeyRange requestedRange) {
+        if (Arrays.equals(requestedRange.getStart_key(), PtBytes.EMPTY_BYTE_ARRAY)
+                && Arrays.equals(requestedRange.getEnd_key(), PtBytes.EMPTY_BYTE_ARRAY)) {
+            return Range.all();
+        }
+        if (Arrays.equals(requestedRange.getEnd_key(), PtBytes.EMPTY_BYTE_ARRAY)) {
+            return Range.atLeast(new LightweightOppToken(requestedRange.getStart_key()));
+        }
+        return Range.openClosed(
+                new LightweightOppToken(requestedRange.getStart_key()),
+                new LightweightOppToken(requestedRange.getEnd_key()));
+    }
+
+    private static KeyRange copyKeyRangeWithNewBounds(KeyRange base, Range<LightweightOppToken> tokenRange) {
+        KeyRange copy = new KeyRange(base);
+        if (tokenRange.hasLowerBound()) {
+            copy.setStart_key(tokenRange.lowerBoundType() == BoundType.CLOSED
+                    ? tokenRange.lowerEndpoint().getBytes()
+                    : RangeRequests.nextLexicographicName(tokenRange.lowerEndpoint().getBytes()));
+        } else {
+            copy.setStart_key(PtBytes.EMPTY_BYTE_ARRAY);
+        }
+        if (tokenRange.hasUpperBound()) {
+            copy.setEnd_key(tokenRange.upperBoundType() == BoundType.CLOSED
+                    ? tokenRange.upperEndpoint().getBytes()
+                    : RangeRequests.previousLexicographicName(tokenRange.upperEndpoint().getBytes()));
+        } else {
+            copy.setEnd_key(PtBytes.EMPTY_BYTE_ARRAY);
+        }
+        return copy;
+    }
+
 }

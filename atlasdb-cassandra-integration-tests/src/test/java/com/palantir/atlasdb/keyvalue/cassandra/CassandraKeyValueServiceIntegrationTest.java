@@ -45,7 +45,6 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 
@@ -104,11 +103,11 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
         return false;
     }
 
-    @Override
-    @Ignore
-    public void testGetAllTableNames() {
-        // this test class creates a number of tables
-    }
+//    @Override
+//    @Ignore
+//    public void testGetAllTableNames() {
+//        // this test class creates a number of tables
+//    }
 
     @Test
     public void testCreateTableCaseInsensitive() {

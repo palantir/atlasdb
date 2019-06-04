@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
@@ -192,15 +191,15 @@ public abstract class AbstractKeyValueServiceTest {
     private Map<Cell, Value> getValuesForRow(Map<byte[], RowColumnRangeIterator> values, byte[] row, int number) {
         Map<Cell, Value> results = Maps.newHashMap();
 
-        Iterator<Entry<Cell, Value>> it = values.entrySet().stream()
+        Iterator<Map.Entry<Cell, Value>> it = values.entrySet().stream()
                 .filter(entry -> Arrays.equals(row, entry.getKey()))
                 .findFirst()
-                .map(Entry::getValue)
+                .map(Map.Entry::getValue)
                 .map(value -> Iterators.limit(value, number))
                 .orElse(Collections.emptyIterator());
 
         while (it.hasNext()) {
-            Entry<Cell, Value> result = it.next();
+            Map.Entry<Cell, Value> result = it.next();
             results.put(result.getKey(), result.getValue());
         }
         return results;
@@ -1070,213 +1069,213 @@ public abstract class AbstractKeyValueServiceTest {
         checkThatTableIsNowOnly(row(1), row(2));
     }
 
-    @Test
-    public void testDeleteRangeAll() {
-        putTestDataForRowsZeroOneAndTwo();
-        keyValueService.deleteRange(TEST_TABLE, RangeRequest.all());
-        checkThatTableIsNowOnly();
-    }
-
-    @Test
-    public void testDeleteRangeNone() {
-        setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("a"),
-                PtBytes.toBytes("a"));
-        checkThatTableIsNowOnly(row(0), row(1), row(2));
-    }
-
-    @Test
-    public void deleteTimestampRangesIgnoresEmptyMap() {
-        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of());
-    }
-
-    @Test
-    public void deleteTimestampRangesDeletesForSingleColumn() {
-        long ts1 = 5L;
-        long ts2 = 10L;
-        long latestTs = 15L;
-
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
-                TEST_CELL, Value.create(val(0, 5), ts1),
-                TEST_CELL, Value.create(val(0, 7), ts2),
-                TEST_CELL, Value.create(val(0, 9), latestTs)));
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
-
-        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
-                equalTo(Value.create(val(0, 9), latestTs)));
-    }
-
-    @Test
-    public void deleteTimestampRangesDeletesMultipleColumnsAcrossMultipleRows() {
-        Cell row0col0 = Cell.create(row(0), column(0));
-        Cell row0col1 = Cell.create(row(0), column(1));
-        Cell row1col0 = Cell.create(row(1), column(0));
-
-        long ts1Col0 = 5L;
-        long ts2Col0 = 10L;
-        long latestTsCol0 = 15L;
-
-        long ts1Col1 = 2L;
-        long ts2Col1 = 3L;
-        long latestTsCol1 = 4L;
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 0)), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 1)), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(1, 0)), latestTsCol0);
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 0)), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 1)), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(1, 0)), latestTsCol0);
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 0)), ts1Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
-
-        legacyDeleteAllTimestamps(TEST_TABLE,
-                ImmutableMap.of(row0col0, latestTsCol0, row0col1, latestTsCol1, row1col0, latestTsCol0),
-                false);
-
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
-                row0col0), contains(latestTsCol0));
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col1), Long.MAX_VALUE).asMap().get(
-                row0col1), contains(latestTsCol1));
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row1col0), Long.MAX_VALUE).asMap().get(
-                row1col0), contains(latestTsCol0));
-
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)).get(row0col0),
-                equalTo(Value.create(val(1, 0), latestTsCol0)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)).get(row0col1),
-                equalTo(Value.create(val(1, 0), latestTsCol1)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)).get(row1col0),
-                equalTo(Value.create(val(1, 0), latestTsCol0)));
-    }
-
-    @Test
-    public void deleteTimestampRangesIncludingSentinelsIgnoresEmptyMap() {
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), true);
-    }
-
-    @Test
-    public void deleteTimestampRangesIncludingSentinelsDeletesForSingleColumn() {
-        long ts1 = 5L;
-        long ts2 = 10L;
-        long latestTs = 15L;
-
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
-                TEST_CELL, Value.create(val(0, 5), ts1),
-                TEST_CELL, Value.create(val(0, 7), ts2),
-                TEST_CELL, Value.create(val(0, 9), latestTs)));
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
-
-        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
-                equalTo(Value.create(val(0, 9), latestTs)));
-    }
-
-    @Test
-    public void deleteTimestampRangesIncludingSentinelsDeletesMultipleColumnsAcrossMultipleRows() {
-        Cell row0col0 = Cell.create(row(0), column(0));
-        Cell row0col1 = Cell.create(row(0), column(1));
-        Cell row1col0 = Cell.create(row(1), column(0));
-
-        long ts1Col0 = 5L;
-        long ts2Col0 = 10L;
-        long latestTsCol0 = 15L;
-
-        long ts1Col1 = 2L;
-        long ts2Col1 = 3L;
-        long latestTsCol1 = 4L;
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 0)), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 1)), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(1, 0)), latestTsCol0);
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 0)), ts1Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 1)), ts2Col0);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(1, 0)), latestTsCol0);
-
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 0)), ts1Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
-                row0col0, latestTsCol0,
-                row0col1, latestTsCol1,
-                row1col0, latestTsCol0), true);
-
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
-                row0col0), contains(latestTsCol0));
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col1), Long.MAX_VALUE).asMap().get(
-                row0col1), contains(latestTsCol1));
-        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row1col0), Long.MAX_VALUE).asMap().get(
-                row1col0), contains(latestTsCol0));
-
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)).get(row0col0),
-                equalTo(Value.create(val(1, 0), latestTsCol0)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)).get(row0col1),
-                equalTo(Value.create(val(1, 0), latestTsCol1)));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)).get(row1col0),
-                equalTo(Value.create(val(1, 0), latestTsCol0)));
-    }
-
-    @Test
-    public void deleteTimestampRangesLeavesSentinels() {
-        long latestTs = 15L;
-
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
-
-        assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, latestTs));
-        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP + 1L))
-                .get(TEST_CELL), equalTo(Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
-    }
-
-    @Test
-    public void deleteTimestampRangesIncludingSentinelsDeletesSentinels() {
-        long latestTs = 15L;
-
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
-        keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
-
-        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
-    }
-
-    @Test
-    public void deleteTimestampRangesEdgeCases() {
-        long minTs = 0;
-
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
-                TEST_CELL, Value.create(val(0, 5), minTs),
-                TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
-                TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), false);
-
-        assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, TEST_TIMESTAMP));
-    }
-
-    @Test
-    public void deleteTimestampRangesIncludingSentinelsEdgeCases() {
-        long minTs = 0;
-
-        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
-        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
-                TEST_CELL, Value.create(val(0, 5), minTs),
-                TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
-                TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
-
-        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), true);
-
-        assertThat(getAllTimestampsForTestCell(), contains(TEST_TIMESTAMP));
-    }
-
+//    @Test
+//    public void testDeleteRangeAll() {
+//        putTestDataForRowsZeroOneAndTwo();
+//        keyValueService.deleteRange(TEST_TABLE, RangeRequest.all());
+//        checkThatTableIsNowOnly();
+//    }
+//
+//    @Test
+//    public void testDeleteRangeNone() {
+//        setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("a"),
+//                PtBytes.toBytes("a"));
+//        checkThatTableIsNowOnly(row(0), row(1), row(2));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIgnoresEmptyMap() {
+//        keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of());
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesDeletesForSingleColumn() {
+//        long ts1 = 5L;
+//        long ts2 = 10L;
+//        long latestTs = 15L;
+//
+//        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+//                TEST_CELL, Value.create(val(0, 5), ts1),
+//                TEST_CELL, Value.create(val(0, 7), ts2),
+//                TEST_CELL, Value.create(val(0, 9), latestTs)));
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
+//                equalTo(Value.create(val(0, 9), latestTs)));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesDeletesMultipleColumnsAcrossMultipleRows() {
+//        Cell row0col0 = Cell.create(row(0), column(0));
+//        Cell row0col1 = Cell.create(row(0), column(1));
+//        Cell row1col0 = Cell.create(row(1), column(0));
+//
+//        long ts1Col0 = 5L;
+//        long ts2Col0 = 10L;
+//        long latestTsCol0 = 15L;
+//
+//        long ts1Col1 = 2L;
+//        long ts2Col1 = 3L;
+//        long latestTsCol1 = 4L;
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 0)), ts1Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 1)), ts2Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(1, 0)), latestTsCol0);
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 0)), ts1Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 1)), ts2Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(1, 0)), latestTsCol0);
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 0)), ts1Col1);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE,
+//                ImmutableMap.of(row0col0, latestTsCol0, row0col1, latestTsCol1, row1col0, latestTsCol0),
+//                false);
+//
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
+//                row0col0), contains(latestTsCol0));
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col1), Long.MAX_VALUE).asMap().get(
+//                row0col1), contains(latestTsCol1));
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row1col0), Long.MAX_VALUE).asMap().get(
+//                row1col0), contains(latestTsCol0));
+//
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)).get(row0col0),
+//                equalTo(Value.create(val(1, 0), latestTsCol0)));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)).get(row0col1),
+//                equalTo(Value.create(val(1, 0), latestTsCol1)));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)).get(row1col0),
+//                equalTo(Value.create(val(1, 0), latestTsCol0)));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIncludingSentinelsIgnoresEmptyMap() {
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(), true);
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIncludingSentinelsDeletesForSingleColumn() {
+//        long ts1 = 5L;
+//        long ts2 = 10L;
+//        long latestTs = 15L;
+//
+//        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+//                TEST_CELL, Value.create(val(0, 5), ts1),
+//                TEST_CELL, Value.create(val(0, 7), ts2),
+//                TEST_CELL, Value.create(val(0, 9), latestTs)));
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)).get(TEST_CELL),
+//                equalTo(Value.create(val(0, 9), latestTs)));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIncludingSentinelsDeletesMultipleColumnsAcrossMultipleRows() {
+//        Cell row0col0 = Cell.create(row(0), column(0));
+//        Cell row0col1 = Cell.create(row(0), column(1));
+//        Cell row1col0 = Cell.create(row(1), column(0));
+//
+//        long ts1Col0 = 5L;
+//        long ts2Col0 = 10L;
+//        long latestTsCol0 = 15L;
+//
+//        long ts1Col1 = 2L;
+//        long ts2Col1 = 3L;
+//        long latestTsCol1 = 4L;
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 0)), ts1Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(0, 1)), ts2Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col0, val(1, 0)), latestTsCol0);
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 0)), ts1Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(0, 1)), ts2Col0);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row1col0, val(1, 0)), latestTsCol0);
+//
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 0)), ts1Col1);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(0, 1)), ts2Col1);
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(row0col1, val(1, 0)), latestTsCol1);
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(
+//                row0col0, latestTsCol0,
+//                row0col1, latestTsCol1,
+//                row1col0, latestTsCol0), true);
+//
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col0), Long.MAX_VALUE).asMap().get(
+//                row0col0), contains(latestTsCol0));
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row0col1), Long.MAX_VALUE).asMap().get(
+//                row0col1), contains(latestTsCol1));
+//        assertThat(keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(row1col0), Long.MAX_VALUE).asMap().get(
+//                row1col0), contains(latestTsCol0));
+//
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col0, Long.MAX_VALUE)).get(row0col0),
+//                equalTo(Value.create(val(1, 0), latestTsCol0)));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row0col1, Long.MAX_VALUE)).get(row0col1),
+//                equalTo(Value.create(val(1, 0), latestTsCol1)));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(row1col0, Long.MAX_VALUE)).get(row1col0),
+//                equalTo(Value.create(val(1, 0), latestTsCol0)));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesLeavesSentinels() {
+//        long latestTs = 15L;
+//
+//        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), false);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, latestTs));
+//        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Value.INVALID_VALUE_TIMESTAMP + 1L))
+//                .get(TEST_CELL), equalTo(Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIncludingSentinelsDeletesSentinels() {
+//        long latestTs = 15L;
+//
+//        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+//        keyValueService.put(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(1, 0)), latestTs);
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, latestTs), true);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(latestTs));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesEdgeCases() {
+//        long minTs = 0;
+//
+//        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+//        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+//                TEST_CELL, Value.create(val(0, 5), minTs),
+//                TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
+//                TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), false);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(Value.INVALID_VALUE_TIMESTAMP, TEST_TIMESTAMP));
+//    }
+//
+//    @Test
+//    public void deleteTimestampRangesIncludingSentinelsEdgeCases() {
+//        long minTs = 0;
+//
+//        keyValueService.addGarbageCollectionSentinelValues(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+//        keyValueService.putWithTimestamps(TEST_TABLE, ImmutableMultimap.of(
+//                TEST_CELL, Value.create(val(0, 5), minTs),
+//                TEST_CELL, Value.create(val(0, 7), TEST_TIMESTAMP - 1),
+//                TEST_CELL, Value.create(val(0, 9), TEST_TIMESTAMP)));
+//
+//        legacyDeleteAllTimestamps(TEST_TABLE, ImmutableMap.of(TEST_CELL, TEST_TIMESTAMP), true);
+//
+//        assertThat(getAllTimestampsForTestCell(), contains(TEST_TIMESTAMP));
+//    }
+//
     private Collection<Long> getAllTimestampsForTestCell() {
         return keyValueService.getAllTimestamps(TEST_TABLE, ImmutableSet.of(TEST_CELL), Long.MAX_VALUE)
                 .asMap().get(TEST_CELL);

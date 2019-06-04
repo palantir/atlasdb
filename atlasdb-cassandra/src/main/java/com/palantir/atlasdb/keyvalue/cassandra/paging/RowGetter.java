@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -43,7 +43,7 @@ public class RowGetter {
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel consistency;
     private final TableReference tableRef;
-    private final Function<KeyRange, RowGetterBatchingStrategy> batchingStrategyFactory;
+    private final BiFunction<KeyRange, SlicePredicate, RowGetterBatchingStrategy> batchingStrategyFactory;
 
     public RowGetter(
             CassandraClientPool clientPool,
@@ -54,15 +54,20 @@ public class RowGetter {
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.batchingStrategyFactory = RowGetterBatchingStrategy::naiveStrategy;
+        this.batchingStrategyFactory
+                = (keys, predicate) -> TokenRingAwareBatchingStrategy.create(clientPool, keys, predicate);
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-        RowGetterBatchingStrategy batchingStrategy = batchingStrategyFactory.apply(keyRange);
+        RowGetterBatchingStrategy batchingStrategy = batchingStrategyFactory.apply(keyRange, slicePredicate);
         Optional<KeyRange> queryRange = batchingStrategy.getNextKeyRange(Optional.empty(), ImmutableList.of());
         List<KeySlice> result = Lists.newArrayList();
 
+        System.out.println("[getRows-Start]" + tableRef + ";" + keyRange);
+        System.out.println("[getRows-Outer]" + tableRef + ";" + queryRange);
+
         while (queryRange.isPresent()) {
+            System.out.println("[getRows-Inner]" + tableRef + ";" + queryRange);
             KeyRange presentRange = queryRange.get();
             InetSocketAddress host = clientPool.getRandomHostForKey(presentRange.getStart_key());
             List<KeySlice> queryResults = clientPool.runWithRetryOnHost(
