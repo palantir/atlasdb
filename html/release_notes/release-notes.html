@@ -188,11 +188,15 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>The default value for the length of pause between targeted sweep iterations, <code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code>, has been reduced to 50ms.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4067">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-fixed">FIXED</span></td>
 <td>Fixed a bug causing connection leaks to timelock.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4052">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Changed the default values in <code class="docutils literal notranslate"><span class="pre">PaxosRuntimeConfiguration</span></code> as (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3943">#3943</a>) changed it on test configs only.
 <code class="docutils literal notranslate"><span class="pre">leader-ping-response-wait-in-ms</span></code> was reduced to 2000 ms from 5000 ms.
 <code class="docutils literal notranslate"><span class="pre">maximum-wait-before-proposal-in-ms</span></code> was reduced to 300 ms from 1000 ms.
