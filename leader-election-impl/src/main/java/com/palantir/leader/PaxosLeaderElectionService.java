@@ -49,6 +49,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
@@ -398,7 +399,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 return;
             }
 
-            long seq = value.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+            long seq = getNextSequenceNumber(value);
 
             eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
@@ -482,7 +483,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
-        final long nextToLearnSeq = greatestLearned.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+        final long nextToLearnSeq = getNextSequenceNumber(greatestLearned);
         PaxosResponses<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
                 learners,
                 learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq))),
@@ -503,6 +504,28 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         return learned;
+    }
+
+    @Override
+    public boolean stepDown() {
+        LeadershipState leadershipState = determineLeadershipState();
+        StillLeadingStatus status = leadershipState.status();
+        if (status == StillLeadingStatus.LEADING) {
+            try {
+                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
+                return true;
+            } catch (PaxosRoundFailureException e) {
+                log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
+                        + " state was {}.",
+                        SafeArg.of("leadershipState", leadershipState));
+                throw new ServiceNotAvailableException("Couldn't relinquish leadership", e);
+            }
+        }
+        return false;
+    }
+
+    private static long getNextSequenceNumber(Optional<PaxosValue> paxosValue) {
+        return paxosValue.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
     }
 
     @Value.Immutable

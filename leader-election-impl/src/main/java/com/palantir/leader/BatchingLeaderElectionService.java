@@ -70,6 +70,11 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
         return delegate.getPotentialLeaders();
     }
 
+    @Override
+    public boolean stepDown() {
+        return delegate.stepDown();
+    }
+
     private void processBatch(List<BatchElement<Void, LeadershipToken>> batch) {
         try {
             LeaderElectionService.LeadershipToken leadershipToken = delegate.blockOnBecomingLeader();
