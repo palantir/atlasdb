@@ -52,8 +52,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
-import okio.ByteString;
-
 /**
  * Feature breakdown:
  *   - Pooling
@@ -269,8 +267,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getPools();
     }
 
-    @VisibleForTesting
-    RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
+    @Override
+    public RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap() {
         return cassandra.getTokenMap();
     }
 
@@ -314,12 +312,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @Override
     public InetSocketAddress getRandomHostForKey(byte[] key) {
         return cassandra.getRandomHostForKey(key);
-    }
-
-    @Override
-    public RangeMap<LightweightOppToken, InetSocketAddress> getRandomHostsForRange(
-            byte[] startInclusive, byte[] endExclusive) {
-        return cassandra.getRandomHostsForRange(startInclusive, endExclusive);
     }
 
     @VisibleForTesting

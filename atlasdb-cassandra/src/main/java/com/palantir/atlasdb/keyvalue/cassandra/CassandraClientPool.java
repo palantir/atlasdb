@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.RangeMap;
@@ -33,7 +34,7 @@ public interface CassandraClientPool {
             FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     <V, K extends Exception> V runWithRetry(FunctionCheckedException<CassandraClient, V, K> fn) throws K;
     InetSocketAddress getRandomHostForKey(byte[] key);
-    RangeMap<LightweightOppToken, InetSocketAddress> getRandomHostsForRange(byte[] startInclusive, byte[] endExclusive);
+    RangeMap<LightweightOppToken, List<InetSocketAddress>> getTokenMap();
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
     void shutdown();
 }

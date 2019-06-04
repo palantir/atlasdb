@@ -24,6 +24,7 @@ import java.util.Optional;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 
+import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -32,11 +33,11 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 
 class TokenRingAwareBatchingStrategy implements RowGetterBatchingStrategy {
-    private final RangeMap<LightweightOppToken, InetSocketAddress> rangesToHosts;
+    private final RangeMap<LightweightOppToken, List<InetSocketAddress>> rangesToHosts;
     private final KeyRange requestedRange;
 
     private TokenRingAwareBatchingStrategy(
-            RangeMap<LightweightOppToken, InetSocketAddress> rangesToHosts,
+            RangeMap<LightweightOppToken, List<InetSocketAddress>> rangesToHosts,
             KeyRange requestedRange) {
         this.rangesToHosts = rangesToHosts;
         this.requestedRange = requestedRange;
@@ -44,8 +45,10 @@ class TokenRingAwareBatchingStrategy implements RowGetterBatchingStrategy {
 
     static RowGetterBatchingStrategy create(CassandraClientPool cassandraClientPool,
             KeyRange requestedRange) {
-        RangeMap<LightweightOppToken, InetSocketAddress> ranges =
-                cassandraClientPool.getRandomHostsForRange(requestedRange.getStart_key(), requestedRange.getEnd_key());
+        RangeMap<LightweightOppToken, List<InetSocketAddress>> ranges = cassandraClientPool.getTokenMap()
+                .subRangeMap(Range.openClosed(
+                        new LightweightOppToken(requestedRange.getStart_key()),
+                        new LightweightOppToken(requestedRange.getEnd_key())));
         return new TokenRingAwareBatchingStrategy(ranges, requestedRange);
     }
 

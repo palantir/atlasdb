@@ -41,7 +41,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeRangeMap;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
@@ -268,18 +267,6 @@ public class CassandraService implements AutoCloseable {
         log.trace("Current ring view is: {}.",
                 SafeArg.of("tokenMap", getRingViewDescription()));
         return getRandomGoodHost().getHost();
-    }
-
-    public RangeMap<LightweightOppToken, InetSocketAddress> getRandomHostsForRange(
-            byte[] startInclusive, byte[] endExclusive) {
-        RangeMap<LightweightOppToken, List<InetSocketAddress>> subMap = tokenMap.subRangeMap(Range.closedOpen(
-                new LightweightOppToken(startInclusive), new LightweightOppToken(endExclusive)));
-        RangeMap<LightweightOppToken, InetSocketAddress> result = new TreeRangeMap<>();
-
-        for (Map.Entry<Range<LightweightOppToken>, List<InetSocketAddress>> entry : subMap.asMapOfRanges().entrySet()) {
-            result.put(entry.getKey(), getRandomHost(entry.getValue()));
-        }
-        return result;
     }
 
     public void addPool(InetSocketAddress server) {
