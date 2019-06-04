@@ -51,7 +51,7 @@ develop
          - Change
 
     *    - |improved|
-         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been reduced to 5ms.
+         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been reduced to 50ms.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4067>`__)
 
     *    - |fixed|
