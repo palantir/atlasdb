@@ -89,11 +89,11 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
         primeCache(clients);
         if (!maybeCacheKey.isPresent()) {
             return acceptorCache.getAllUpdates();
-        } else {
-            AcceptorCacheKey cacheKey = maybeCacheKey.get();
-            return latestSequencesPreparedOrAcceptedCached(cacheKey)
-                    .orElseGet(() -> emptyDigest(cacheKey));
         }
+
+        AcceptorCacheKey cacheKey = maybeCacheKey.get();
+        return latestSequencesPreparedOrAcceptedCached(cacheKey)
+                .orElseGet(() -> emptyDigest(cacheKey));
     }
 
     @Override
