@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.auth;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -43,16 +44,21 @@ import com.palantir.conjure.java.ext.refresh.Refreshable;
 import com.palantir.lock.TimelockNamespace;
 
 public class AuthManager implements AutoCloseable {
+    /**
+     * Use this flag to change auth behaviour between timelock 0.x and 1.x
+     */
+    private static final AuthRequirement AUTH_REQUIREMENT = AuthRequirement.PRIVILEGE_BASED;
+
     private final Refreshable<TimelockAuthConfiguration> authConfigurationRefreshable;
     private final Runnable closingCallback;
-    private volatile AuthServices authServices;
+    private final AtomicReference<AuthServices> authServices = new AtomicReference<>();
 
     AuthManager(Refreshable<TimelockAuthConfiguration> authConfigurationRefreshable,
             Runnable closingCallback,
             AuthServices authServices) {
         this.authConfigurationRefreshable = authConfigurationRefreshable;
         this.closingCallback = closingCallback;
-        this.authServices = authServices;
+        this.authServices.set(authServices);
     }
 
     public static AuthManager of(Supplier<TimelockAuthConfiguration> timelockAuthConfigurationSupplier) {
@@ -68,14 +74,14 @@ public class AuthManager implements AutoCloseable {
     }
 
     public void checkAuthorized(ClientId clientId, Password password, TimelockNamespace timelockNamespace) {
-        update();
+        AuthServices currentAuthServices = update();
 
-        if (!authServices.useAuth()) {
+        if (!currentAuthServices.useAuth()) {
             return;
         }
 
-        Optional<AuthenticatedClient> client = authServices.authenticator().authenticate(clientId, password);
-        if (!client.isPresent() || !authServices.authorizer().isAuthorized(client.get(), timelockNamespace)) {
+        Optional<AuthenticatedClient> client = currentAuthServices.authenticator().authenticate(clientId, password);
+        if (!client.isPresent() || !currentAuthServices.authorizer().isAuthorized(client.get(), timelockNamespace)) {
             throw new ForbiddenException();
         }
     }
@@ -85,12 +91,14 @@ public class AuthManager implements AutoCloseable {
         closingCallback.run();
     }
 
-    private void update() {
-        authConfigurationRefreshable.getAndClear().ifPresent(this::updateInternal);
+    private AuthServices update() {
+        return authConfigurationRefreshable.getAndClear()
+                .map(this::updateInternal)
+                .orElse(authServices.get());
     }
 
-    private synchronized void updateInternal(TimelockAuthConfiguration authConfiguration) {
-        authServices = getAuthServices(authConfiguration);
+    private synchronized AuthServices updateInternal(TimelockAuthConfiguration authConfiguration) {
+        return authServices.updateAndGet(ignored -> getAuthServices(authConfiguration));
     }
 
     private static AuthServices getAuthServices(TimelockAuthConfiguration authConfiguration) {
@@ -107,7 +115,7 @@ public class AuthManager implements AutoCloseable {
     private static Authorizer getAuthorizer(TimelockAuthConfiguration authConfiguration) {
         Map<ClientId, Privileges> privilegesMap = authConfiguration.privileges().stream()
                 .collect(Collectors.toMap(PrivilegesConfiguration::clientId, PrivilegesConfiguration::privileges));
-        return SimpleAuthorizer.of(privilegesMap, AuthRequirement.PRIVILEGE_BASED);
+        return SimpleAuthorizer.of(privilegesMap, AUTH_REQUIREMENT);
     }
 
     private static Authenticator getAuthenticator(TimelockAuthConfiguration authConfiguration) {
