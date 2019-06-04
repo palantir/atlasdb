@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra.paging;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -42,7 +43,7 @@ public class RowGetter {
     private final TracingQueryRunner queryRunner;
     private final ConsistencyLevel consistency;
     private final TableReference tableRef;
-    private final RowGetterBatchingStrategy batchingStrategy;
+    private final Function<KeyRange, RowGetterBatchingStrategy> batchingStrategyFactory;
 
     public RowGetter(
             CassandraClientPool clientPool,
@@ -53,12 +54,12 @@ public class RowGetter {
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
-        this.batchingStrategy = RowGetterBatchingStrategy.NAIVE;
+        this.batchingStrategyFactory = RowGetterBatchingStrategy::naiveStrategy;
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
-        Optional<KeyRange> queryRange = batchingStrategy.getNextKeyRange(
-                keyRange, Optional.empty(), ImmutableList.of());
+        RowGetterBatchingStrategy batchingStrategy = batchingStrategyFactory.apply(keyRange);
+        Optional<KeyRange> queryRange = batchingStrategy.getNextKeyRange(Optional.empty(), ImmutableList.of());
         List<KeySlice> result = Lists.newArrayList();
 
         while (queryRange.isPresent()) {
@@ -90,7 +91,7 @@ public class RowGetter {
                         }
                     });
             result.addAll(queryResults);
-            queryRange = batchingStrategy.getNextKeyRange(keyRange, queryRange, queryResults);
+            queryRange = batchingStrategy.getNextKeyRange(queryRange, queryResults);
         }
         return result;
     }

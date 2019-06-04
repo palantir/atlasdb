@@ -23,14 +23,16 @@ import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 
 interface RowGetterBatchingStrategy {
-    RowGetterBatchingStrategy NAIVE = (overallRange, previousKeyRange, shouldGrowRanges) -> {
-        if (previousKeyRange.isPresent()) {
-            return Optional.empty();
-        }
-        return Optional.of(overallRange);
-    };
-
-    Optional<KeyRange> getNextKeyRange(KeyRange overallRange,
+    Optional<KeyRange> getNextKeyRange(
             Optional<KeyRange> previousKeyRange,
             List<KeySlice> previousQueryResults);
+
+    static RowGetterBatchingStrategy naiveStrategy(KeyRange keyRange) {
+        return (previousKeyRange, previousQueryResults) -> {
+            if (previousKeyRange.isPresent()) {
+                return Optional.empty();
+            }
+            return Optional.of(keyRange);
+        };
+    }
 }

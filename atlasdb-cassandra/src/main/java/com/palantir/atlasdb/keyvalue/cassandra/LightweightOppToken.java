@@ -33,6 +33,10 @@ public class LightweightOppToken implements Comparable<LightweightOppToken> {
         return new LightweightOppToken(cell.getRowName());
     }
 
+    public byte[] getBytes() {
+        return bytes;
+    }
+
     @Override
     public int compareTo(LightweightOppToken other) {
         return UnsignedBytes.lexicographicalComparator().compare(this.bytes, other.bytes);
