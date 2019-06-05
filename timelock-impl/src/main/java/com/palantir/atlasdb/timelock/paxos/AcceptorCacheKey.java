@@ -31,7 +31,7 @@ public interface AcceptorCacheKey {
 
     @JsonValue
     @Value.Parameter
-    UUID cacheKey();
+    UUID value();
 
     static AcceptorCacheKey of(UUID uuid) {
         return ImmutableAcceptorCacheKey.of(uuid);

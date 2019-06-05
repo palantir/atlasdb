@@ -82,7 +82,7 @@ public interface BatchPaxosAcceptor {
      * acceptor has received multiple proposals at multiple sequence numbers for the same client past {@code cacheKey},
      * it will return the sequence number for the latest proposal.
      * <p>
-     * If a provided {@code cacheKey} has expired/invalid, a {@code 412 Precondition Failed} is thrown and this request
+     * If a provided {@code cacheKey} has expired/invalid, a {@code 404 Not Found} is thrown and this request
      * should be retried without a {@code cacheKey} and also with a full set of clients to ensure a correct response.
      * <p>
      * If an acceptor has received multiple proposals at multiple sequence numbers for a given client, only the la
@@ -103,7 +103,7 @@ public interface BatchPaxosAcceptor {
      * client, an acceptor has received multiple proposals at multiple sequence numbers past {@code cacheKey}, it will
      * return the sequence number for the latest proposal.
      * <p>
-     * If the {@code cacheKey} provided is invalid (expired or never issued) a {@code 412 Precondition Failed} is
+     * If the {@code cacheKey} provided is invalid (expired or never issued) a {@code 404 Not Found} is
      * returned. The caller should call {@link BatchPaxosAcceptor#latestSequencesPreparedOrAccepted} to get the desired
      * sequences.
      * <p>
