@@ -63,6 +63,35 @@ public class AcceptorCacheImplTests {
     }
 
     @Test
+    public void updatingWithNonRecentValueDoesNotAffectCache() throws InvalidAcceptorCacheKeyException {
+        Map<Client, Long> before = ImmutableMap.<Client, Long>builder()
+                .put(Client.of("client1"), 5L)
+                .put(Client.of("client2"), 6L)
+                .put(Client.of("client3"), 7L)
+                .build();
+        AcceptorCache cache = cache(before);
+        AcceptorCacheDigest digest = cache.getAllUpdates();
+
+        cache.updateSequenceNumbers(ImmutableSet.of(
+                WithSeq.of(10L, Client.of("client1")),
+                WithSeq.of(3L, Client.of("client2"))));
+
+        AcceptorCacheDigest secondDigest = cache.updatesSinceCacheKey(digest.newCacheKey()).get();
+        assertThat(secondDigest.updates())
+                .containsEntry(Client.of("client1"), 10L);
+
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(5L, Client.of("client3"))));
+
+        assertThat(cache.updatesSinceCacheKey(secondDigest.newCacheKey()))
+                .as("there are no actionable changes, cache is the same")
+                .isEmpty();
+
+        assertThat(cache.updatesSinceCacheKey(digest.newCacheKey()))
+                .as("no actionable changes => this is no different from calling updatesSinceCacheKey twice")
+                .contains(secondDigest);
+    }
+
+    @Test
     public void returnsLatestCacheKeyForOldCacheKeys() throws InvalidAcceptorCacheKeyException {
         AcceptorCache cache = cache(ImmutableMap.of());
 

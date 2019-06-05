@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -37,9 +38,9 @@ import com.palantir.common.streams.KeyedStream;
 public class AcceptorCacheImpl implements AcceptorCache {
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final Cache<AcceptorCacheKey, Long> cacheKeyToTime;
+    private final Cache<AcceptorCacheKey, Long> cacheKeyToTimestamp;
     private final Map<Client, WithSeq<Long>> clientToTimeAndSeq = Maps.newHashMap();
-    private final TreeMultimap<Long, WithSeq<Client>> clientsByLastUpdate = TreeMultimap.create(
+    private final TreeMultimap<Long, WithSeq<Client>> clientsByLatestTimestamp = TreeMultimap.create(
             Comparator.naturalOrder(),
             Comparator.comparing(clientWithSeq -> clientWithSeq.value().value(), Comparator.naturalOrder()));
 
@@ -53,7 +54,7 @@ public class AcceptorCacheImpl implements AcceptorCache {
                 .expireAfterAccess(Duration.ofMinutes(10))
                 .build();
         cacheKeyToTime.put(latestAcceptorCacheKey, currentTimestamp);
-        this.cacheKeyToTime = cacheKeyToTime;
+        this.cacheKeyToTimestamp = cacheKeyToTime;
     }
 
     @Override
@@ -61,23 +62,33 @@ public class AcceptorCacheImpl implements AcceptorCache {
         lock.writeLock().lock();
         try {
             long nextTimestamp = currentTimestamp + 1;
-            AcceptorCacheKey nextCacheKey = AcceptorCacheKey.newCacheKey();
-            cacheKeyToTime.put(nextCacheKey, nextTimestamp);
+            AtomicBoolean updated = new AtomicBoolean(false);
 
             clientsAndSeqs.forEach(clientAndSeq -> {
                 Client client = clientAndSeq.value();
                 long incomingSequenceNumber = clientAndSeq.seq();
-                WithSeq<Long> clientLastUpdate = clientToTimeAndSeq.get(client);
+                WithSeq<Long> clientLatestWithTs = clientToTimeAndSeq.get(client);
 
-                if (clientLastUpdate == null) {
+                if (clientLatestWithTs == null) {
                     clientToTimeAndSeq.put(client, WithSeq.of(incomingSequenceNumber, nextTimestamp));
-                    clientsByLastUpdate.put(nextTimestamp, clientAndSeq);
-                } else if (incomingSequenceNumber > clientLastUpdate.seq()) {
+                    clientsByLatestTimestamp.put(nextTimestamp, clientAndSeq);
+                    updated.set(true);
+                } else if (incomingSequenceNumber > clientLatestWithTs.seq()) {
                     clientToTimeAndSeq.put(client, WithSeq.of(incomingSequenceNumber, nextTimestamp));
-                    clientsByLastUpdate.put(nextTimestamp, clientAndSeq);
-                    clientsByLastUpdate.remove(clientLastUpdate.value(), WithSeq.of(clientLastUpdate.seq(), client));
+                    clientsByLatestTimestamp.put(nextTimestamp, clientAndSeq);
+                    clientsByLatestTimestamp.remove(
+                            clientLatestWithTs.value(),
+                            WithSeq.of(clientLatestWithTs.seq(), client));
+                    updated.set(true);
                 }
             });
+
+            if (!updated.get()) {
+                return;
+            }
+
+            AcceptorCacheKey nextCacheKey = AcceptorCacheKey.newCacheKey();
+            cacheKeyToTimestamp.put(nextCacheKey, nextTimestamp);
 
             currentTimestamp = nextTimestamp;
             latestAcceptorCacheKey = nextCacheKey;
@@ -111,12 +122,12 @@ public class AcceptorCacheImpl implements AcceptorCache {
                 return Optional.empty();
             }
 
-            Long cacheTime = cacheKeyToTime.getIfPresent(cacheKey);
-            if (cacheTime == null) {
+            Long cacheKeyTimestamp = cacheKeyToTimestamp.getIfPresent(cacheKey);
+            if (cacheKeyTimestamp == null) {
                 throw new InvalidAcceptorCacheKeyException(cacheKey);
             }
 
-            Map<Client, Long> diff = clientsByLastUpdate.asMap().tailMap(cacheTime).values().stream()
+            Map<Client, Long> diff = clientsByLatestTimestamp.asMap().tailMap(cacheKeyTimestamp).values().stream()
                     .flatMap(Collection::stream)
                     .collect(Collectors.toMap(WithSeq::value, WithSeq::seq));
 
