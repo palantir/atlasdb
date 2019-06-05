@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
@@ -130,6 +131,10 @@ public class CassandraServiceTest {
             ImmutableSet<InetSocketAddress> serversInPool) {
         config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .replicationFactor(3)
+                .credentials(ImmutableCassandraCredentialsConfig.builder()
+                                .username("username")
+                                .password("password")
+                                .build())
                 .addServers(servers.toArray(new InetSocketAddress[0]))
                 .build();
 
