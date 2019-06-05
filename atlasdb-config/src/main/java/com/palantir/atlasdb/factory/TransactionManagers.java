@@ -488,15 +488,29 @@ public abstract class TransactionManagers {
                 TransactionService.class,
                 TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
-        Optional<TransactionSchemaInstaller> schemaInstaller =
-                keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE
-                        ? Optional.of(initializeTransactionSchemaInstaller(
-                                closeables, runtimeConfigSupplier, transactionSchemaManager))
-                        : Optional.empty();
+        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstaller(
+                closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
         return ImmutableTransactionComponents.builder()
                 .transactionService(transactionService)
                 .schemaInstaller(schemaInstaller)
                 .build();
+    }
+
+    private Optional<TransactionSchemaInstaller> getTransactionSchemaInstaller(
+            @Output List<AutoCloseable> closeables,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+            return Optional.of(initializeTransactionSchemaInstaller(
+                    closeables, runtimeConfigSupplier, transactionSchemaManager));
+        }
+        runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion().ifPresent(version ->
+                log.warn("This service seems like it has been configured to use transaction schema version {},"
+                                + " which isn't supported as your KVS doesn't support details on CAS failures"
+                                + " (typically Postgres or Oracle). We will remain with transactions1.",
+                        SafeArg.of("configuredTransactionSchemaVersion", version)));
+        return Optional.empty();
     }
 
     private static TransactionSchemaInstaller initializeTransactionSchemaInstaller(
