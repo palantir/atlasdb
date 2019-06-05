@@ -50,6 +50,10 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - Cassandra clients are now required to supply credentials in the KVS config.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4076>`__)
+
     *    - |improved|
          - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been reduced to 50ms.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4067>`__)
