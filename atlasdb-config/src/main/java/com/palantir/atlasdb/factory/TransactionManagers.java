@@ -120,6 +120,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -505,8 +506,10 @@ public abstract class TransactionManagers {
             return Optional.of(initializeTransactionSchemaInstaller(
                     closeables, runtimeConfigSupplier, transactionSchemaManager));
         }
-        runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion().ifPresent(version ->
-                log.warn("This service seems like it has been configured to use transaction schema version {},"
+        runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()
+                .filter(version -> version != TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .ifPresent(version ->
+                        log.warn("This service seems like it has been configured to use transaction schema version {},"
                                 + " which isn't supported as your KVS doesn't support details on CAS failures"
                                 + " (typically Postgres or Oracle). We will remain with transactions1.",
                         SafeArg.of("configuredTransactionSchemaVersion", version)));
