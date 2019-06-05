@@ -130,7 +130,7 @@ public class BatchPaxosAcceptorResourceTests {
 
     @Test
     public void throwsConjureRuntime404WhenCacheKeyIsNotFound() throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
         when(cache.updatesSinceCacheKey(cacheKey))
                 .thenThrow(new InvalidAcceptorCacheKeyException(cacheKey));
 
@@ -141,7 +141,7 @@ public class BatchPaxosAcceptorResourceTests {
 
     @Test
     public void cachedEndpointDelegatesToCache() throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
         AcceptorCacheDigest digest = digest();
         when(cache.updatesSinceCacheKey(cacheKey))
                 .thenReturn(Optional.of(digest));
@@ -156,7 +156,7 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 1L)
                 .putUpdates(CLIENT_2, 2L)
                 .build();
@@ -176,10 +176,10 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
 
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_2, 2L)
                 .build();
 
@@ -218,7 +218,7 @@ public class BatchPaxosAcceptorResourceTests {
 
     private static AcceptorCacheDigest digest() {
         return ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 50L)
                 .build();
     }

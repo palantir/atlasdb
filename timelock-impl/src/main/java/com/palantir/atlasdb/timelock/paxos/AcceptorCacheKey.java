@@ -33,12 +33,8 @@ public interface AcceptorCacheKey {
     @Value.Parameter
     UUID value();
 
-    static AcceptorCacheKey of(UUID uuid) {
-        return ImmutableAcceptorCacheKey.of(uuid);
-    }
-
     static AcceptorCacheKey newCacheKey() {
-        return of(UUID.randomUUID());
+        return ImmutableAcceptorCacheKey.of(UUID.randomUUID());
     }
 
 }
