@@ -177,9 +177,10 @@ public class CoalescingBatchingEventHandlerTests {
 
     private static Future<Response> addElementToBatch(
             CoalescingBatchingEventHandler<Request, Response> handler,
-            Request request, boolean b) {
+            Request request,
+            boolean endBatch) {
         TestBatchElement element = ImmutableTestBatchElement.of(request);
-        handler.onEvent(element, new Random().nextLong(), b);
+        handler.onEvent(element, new Random().nextLong(), endBatch);
         return element.result();
     }
 

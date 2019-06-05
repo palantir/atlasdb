@@ -21,7 +21,7 @@ import java.util.Set;
 
 public interface CoalescingRequestConsumer<REQUEST> extends CoalescingRequestFunction<REQUEST, Void> {
     @Override
-    default Void defaultValue(){
+    default Void defaultValue() {
         return null;
     }
 

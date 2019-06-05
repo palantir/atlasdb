@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.lmax.disruptor.EventHandler;
 
-public class Autobatchers {
+public final class Autobatchers {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024;
 
@@ -40,7 +40,7 @@ public class Autobatchers {
      * {@code I} to {@code O}
      * @param <I> type of input element
      * @param <O> type of output element
-     * @return builder where the autobatcher can be further customised.
+     * @return builder where the autobatcher can be further customised
      * @see CoalescingRequestFunction
      * @see CoalescingRequestConsumer
      */
@@ -63,33 +63,33 @@ public class Autobatchers {
         return new AutobatcherBuilder<>(bufferSize -> new IndependentBatchingEventHandler<>(batchFunction, bufferSize));
     }
 
-    public static final class AutobatcherBuilder<REQUEST, RESPONSE> {
+    public static final class AutobatcherBuilder<I, O> {
 
-        private final Function<Integer, EventHandler<BatchElement<REQUEST, RESPONSE>>> handlerFactory;
+        private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
 
         @Nullable private String purpose;
         private int bufferSize = DEFAULT_BUFFER_SIZE;
 
-        private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<REQUEST, RESPONSE>>> handlerFactory) {
+        private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
         }
 
-        public AutobatcherBuilder<REQUEST, RESPONSE> safeLoggablePurpose(String purposeParam) {
+        public AutobatcherBuilder<I, O> safeLoggablePurpose(String purposeParam) {
             this.purpose = purposeParam;
             return this;
         }
 
         @VisibleForTesting
-        AutobatcherBuilder<REQUEST, RESPONSE> bufferSize(int bufferSizeParam) {
+        AutobatcherBuilder<I, O> bufferSize(int bufferSizeParam) {
             this.bufferSize = bufferSizeParam;
             return this;
         }
 
-        public DisruptorAutobatcher<REQUEST, RESPONSE> build() {
+        public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
-            EventHandler<BatchElement<REQUEST, RESPONSE>> handler = this.handlerFactory.apply(bufferSize);
+            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSize);
 
-            EventHandler<BatchElement<REQUEST, RESPONSE>> profiledHandler =
+            EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(handler, purpose);
 
             return DisruptorAutobatcher.create(profiledHandler, bufferSize, purpose);
