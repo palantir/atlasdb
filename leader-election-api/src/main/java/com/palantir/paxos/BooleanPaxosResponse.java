@@ -55,7 +55,7 @@ public class BooleanPaxosResponse implements PaxosResponse {
     @Override
     public String toString() {
         return "BooleanPaxosResponse ["
-                + "ack=" + ack +
+                + "ack=" + ack
                 + ']';
     }
 }
