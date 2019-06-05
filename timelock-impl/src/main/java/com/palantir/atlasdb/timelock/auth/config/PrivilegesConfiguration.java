@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.timelock.auth.config;
 
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
