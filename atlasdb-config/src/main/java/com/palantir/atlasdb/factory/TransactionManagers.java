@@ -489,7 +489,7 @@ public abstract class TransactionManagers {
                 TransactionService.class,
                 TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
                 closeables);
-        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstaller(
+        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
                 closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
         return ImmutableTransactionComponents.builder()
                 .transactionService(transactionService)
@@ -497,7 +497,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private Optional<TransactionSchemaInstaller> getTransactionSchemaInstaller(
+    private Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
             @Output List<AutoCloseable> closeables,
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
