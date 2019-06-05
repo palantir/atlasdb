@@ -18,8 +18,15 @@ package com.palantir.atlasdb.timelock.auth.api;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonSerialize(as = ImmutableClientId.class)
+@JsonDeserialize(as = ImmutableClientId.class)
 @Value.Immutable
 public interface ClientId {
+    @JsonValue
     String get();
 
     static ClientId of(String value) {

@@ -14,17 +14,31 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.api;
+package com.palantir.atlasdb.timelock.auth.config;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
 
-@JsonDeserialize(as = ImmutableCredentials.class)
-@JsonSerialize(as = ImmutableCredentials.class)
+@JsonSerialize(as = ImmutableAdminPrivilegesConfiguration.class)
+@JsonDeserialize(as = ImmutableAdminPrivilegesConfiguration.class)
+@JsonTypeName(AdminPrivilegesConfiguration.TYPE)
 @Value.Immutable
-public interface Credentials {
-    ClientId id();
-    BCryptedSecret password();
+public abstract class AdminPrivilegesConfiguration implements PrivilegesConfiguration {
+    static final String TYPE = "admin";
+
+    @JsonProperty("client-id")
+    @Override
+    public abstract ClientId clientId();
+
+    @Value.Derived
+    @Override
+    public Privileges privileges() {
+        return Privileges.ADMIN;
+    }
 }

@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.api;
+package com.palantir.atlasdb.timelock.auth.config;
+
+import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.timelock.auth.api.Privileges;
+import com.palantir.lock.TimelockNamespace;
 
-@JsonDeserialize(as = ImmutableCredentials.class)
-@JsonSerialize(as = ImmutableCredentials.class)
 @Value.Immutable
-public interface Credentials {
-    ClientId id();
-    BCryptedSecret password();
+public abstract class NamespacePrivileges implements Privileges {
+    abstract Set<TimelockNamespace> namespaces();
+
+    static Privileges of(Set<TimelockNamespace> namespaces) {
+        return ImmutableNamespacePrivileges.builder()
+                .addAllNamespaces(namespaces)
+                .build();
+    }
+
+    @Override
+    public boolean hasPrivilege(TimelockNamespace namespace) {
+        return namespaces().contains(namespace);
+    }
 }
