@@ -24,7 +24,7 @@ import com.palantir.common.annotation.Immutable;
 public class BooleanPaxosResponse implements PaxosResponse {
     private static final long serialVersionUID = 1L;
 
-    final boolean ack;
+    private final boolean ack;
 
     public BooleanPaxosResponse(@JsonProperty("successful") boolean ack) {
         this.ack = ack;
@@ -36,14 +36,14 @@ public class BooleanPaxosResponse implements PaxosResponse {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        BooleanPaxosResponse that = (BooleanPaxosResponse) o;
+        BooleanPaxosResponse that = (BooleanPaxosResponse) other;
         return ack == that.ack;
     }
 
@@ -54,8 +54,8 @@ public class BooleanPaxosResponse implements PaxosResponse {
 
     @Override
     public String toString() {
-        return "BooleanPaxosResponse [" +
-                "ack=" + ack +
-                ']';
+        return "BooleanPaxosResponse ["
+                + "ack=" + ack +
+                + ']';
     }
 }
