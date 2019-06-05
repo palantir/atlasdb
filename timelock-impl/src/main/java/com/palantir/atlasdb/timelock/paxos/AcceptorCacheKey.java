@@ -14,19 +14,27 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.config;
+package com.palantir.atlasdb.timelock.paxos;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.palantir.atlasdb.timelock.auth.api.ClientId;
-import com.palantir.atlasdb.timelock.auth.api.Privileges;
+import java.util.UUID;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", defaultImpl = ClientPrivilegesConfiguration.class)
-@JsonSubTypes({
-        @JsonSubTypes.Type(AdminPrivilegesConfiguration.class),
-        @JsonSubTypes.Type(ClientPrivilegesConfiguration.class)
-})
-public interface PrivilegesConfiguration {
-    ClientId clientId();
-    Privileges privileges();
+import org.immutables.value.Value;
+
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@Value.Immutable
+@JsonDeserialize(as = ImmutableAcceptorCacheKey.class)
+@JsonSerialize(as = ImmutableAcceptorCacheKey.class)
+public interface AcceptorCacheKey {
+
+    @JsonValue
+    @Value.Parameter
+    UUID cacheKey();
+
+    static AcceptorCacheKey of(UUID uuid) {
+        return ImmutableAcceptorCacheKey.of(uuid);
+    }
+
 }

@@ -53,7 +53,7 @@ public abstract class TargetedSweepRuntimeConfig {
 
     @Value.Default
     public long pauseMillis() {
-        return 500L;
+        return 50L;
     }
 
     public static TargetedSweepRuntimeConfig defaultTargetedSweepRuntimeConfig() {
