@@ -59,6 +59,12 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
 
     *    - |improved|
+         - If using DbKVS or JDBC KVS, we no longer spin up a background thread attempting to install new transaction schema versions.
+           Furthermore, we now log at WARN if configuration indicates that a new schema version should be installed in these cases where it won't be respected.
+           Previously, we would always read to and write from transactions1, even though the installer might actually have installed a non-1 schema version (and logged that this happened!).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4070>`__)
+
+    *    - |improved|
          - Changed the default values in ``PaxosRuntimeConfiguration`` as (`#3943 <https://github.com/palantir/atlasdb/pull/3943>`__) changed it on test configs only.
            ``leader-ping-response-wait-in-ms`` was reduced to 2000 ms from 5000 ms.
            ``maximum-wait-before-proposal-in-ms`` was reduced to 300 ms from 1000 ms.
