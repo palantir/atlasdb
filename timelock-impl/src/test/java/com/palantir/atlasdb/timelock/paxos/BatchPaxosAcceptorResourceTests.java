@@ -67,9 +67,9 @@ public class BatchPaxosAcceptorResourceTests {
 
     @Test
     public void weProxyPrepareRequests() {
-        when(components.acceptor(CLIENT_1).prepare(1, PROPOSAL_ID_1)).thenReturn(paxosPromise(PROPOSAL_ID_1));
-        when(components.acceptor(CLIENT_2).prepare(1, PROPOSAL_ID_1)).thenReturn(paxosPromise(PROPOSAL_ID_1));
-        when(components.acceptor(CLIENT_2).prepare(2, PROPOSAL_ID_2)).thenReturn(paxosPromise(PROPOSAL_ID_2));
+        when(components.acceptor(CLIENT_1).prepare(1, PROPOSAL_ID_1)).thenReturn(promise(PROPOSAL_ID_1));
+        when(components.acceptor(CLIENT_2).prepare(1, PROPOSAL_ID_1)).thenReturn(promise(PROPOSAL_ID_1));
+        when(components.acceptor(CLIENT_2).prepare(2, PROPOSAL_ID_2)).thenReturn(promise(PROPOSAL_ID_2));
 
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
@@ -82,9 +82,8 @@ public class BatchPaxosAcceptorResourceTests {
 
         SetMultimap<Client, WithSeq<PaxosPromise>> expected = ImmutableSetMultimap
                 .<Client, WithSeq<PaxosPromise>>builder()
-                .put(CLIENT_1, WithSeq.of(1, paxosPromise(PROPOSAL_ID_1)))
-                .put(CLIENT_2, WithSeq.of(1, paxosPromise(PROPOSAL_ID_1)))
-                .put(CLIENT_2, WithSeq.of(2, paxosPromise(PROPOSAL_ID_2)))
+                .put(CLIENT_1, WithSeq.of(1, promise(PROPOSAL_ID_1)))
+                .putAll(CLIENT_2, WithSeq.of(1, promise(PROPOSAL_ID_1)), WithSeq.of(2, promise(PROPOSAL_ID_2)))
                 .build();
 
         assertThat(resource.prepare(request))
@@ -201,7 +200,7 @@ public class BatchPaxosAcceptorResourceTests {
         return new PaxosProposalId(new Random().nextLong(), UUID.randomUUID().toString());
     }
 
-    private static PaxosPromise paxosPromise(PaxosProposalId proposalId) {
+    private static PaxosPromise promise(PaxosProposalId proposalId) {
         return PaxosPromise.accept(proposalId, null, null);
     }
 
