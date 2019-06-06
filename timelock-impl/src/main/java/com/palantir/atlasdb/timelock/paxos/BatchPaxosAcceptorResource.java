@@ -69,16 +69,16 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     @Override
     public SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
-            SetMultimap<Client, WithSeq<PaxosProposal>> proposalRequestsByClientAndSeq) {
-        SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(
-                proposalRequestsByClientAndSeq)
-                .map((client, paxosProposalIdWithSeq) -> {
+            SetMultimap<Client, PaxosProposal> proposalRequestsByClient) {
+        SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(proposalRequestsByClient)
+                .map((client, paxosProposal) -> {
+                    long seq = paxosProposal.getValue().getRound();
                     BooleanPaxosResponse ack = paxosComponents.acceptor(client)
-                            .accept(paxosProposalIdWithSeq.seq(), paxosProposalIdWithSeq.value());
-                    return WithSeq.of(paxosProposalIdWithSeq.seq(), ack);
+                            .accept(seq, paxosProposal);
+                    return WithSeq.of(seq, ack);
                 })
                 .collectToSetMultimap();
-        primeCache(proposalRequestsByClientAndSeq.keySet());
+        primeCache(proposalRequestsByClient.keySet());
         return results;
     }
 
