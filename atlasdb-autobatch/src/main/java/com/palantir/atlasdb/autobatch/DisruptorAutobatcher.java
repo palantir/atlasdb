@@ -19,9 +19,11 @@ package com.palantir.atlasdb.autobatch;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Closeable;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -36,10 +38,19 @@ import com.lmax.disruptor.dsl.Disruptor;
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
-    private static final int BUFFER_SIZE = 1024;
+
+    /*
+        By memoizing thread factories per loggable purpose, the names are correct for multiple instances of the same
+        autobatcher function.
+     */
+    private static final ConcurrentMap<String, ThreadFactory> threadFactories = Maps.newConcurrentMap();
 
     private static ThreadFactory threadFactory(String safeLoggablePurpose) {
-        String namePrefix = String.format("autobatcher-%s-", safeLoggablePurpose);
+        return threadFactories.computeIfAbsent(safeLoggablePurpose, DisruptorAutobatcher::createThreadFactory);
+    }
+
+    private static ThreadFactory createThreadFactory(String safeLoggablePurpose) {
+        String namePrefix = String.format("autobatcher.%s-", safeLoggablePurpose);
         return new ThreadFactoryBuilder()
                 .setDaemon(true)
                 .setNameFormat(namePrefix + "%d")
