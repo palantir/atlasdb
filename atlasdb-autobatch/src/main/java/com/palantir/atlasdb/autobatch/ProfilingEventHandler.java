@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
@@ -28,7 +27,7 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
 
     ProfilingEventHandler(
             EventHandler<BatchElement<T, R>> delegateHandler,
-            @CompileTimeConstant String safeIdentifier) {
+            String safeIdentifier) {
         this.delegateHandler = delegateHandler;
         this.batchSizeLogger = BatchSizeLogger.create(safeIdentifier);
     }
