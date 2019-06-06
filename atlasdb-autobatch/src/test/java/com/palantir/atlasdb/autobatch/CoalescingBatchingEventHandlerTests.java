@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.when;
 
-import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.immutables.value.Value;
 import org.junit.Test;
@@ -38,6 +38,8 @@ import com.google.common.util.concurrent.SettableFuture;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CoalescingBatchingEventHandlerTests {
+
+    private static final AtomicLong COUNTER = new AtomicLong();
 
     @Mock
     private CoalescingRequestFunction<Request, Response> function;
@@ -180,7 +182,7 @@ public class CoalescingBatchingEventHandlerTests {
             Request request,
             boolean endBatch) {
         TestBatchElement element = ImmutableTestBatchElement.of(request);
-        handler.onEvent(element, new Random().nextLong(), endBatch);
+        handler.onEvent(element, COUNTER.getAndIncrement(), endBatch);
         return element.result();
     }
 

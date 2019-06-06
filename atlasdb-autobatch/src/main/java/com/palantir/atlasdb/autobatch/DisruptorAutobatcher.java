@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -92,7 +93,7 @@ public final class DisruptorAutobatcher<T, R>
     static <T, R> DisruptorAutobatcher<T, R> create(
             EventHandler<BatchElement<T, R>> eventHandler,
             int bufferSize,
-            String safeLoggablePurpose) {
+            @CompileTimeConstant String safeLoggablePurpose) {
         Disruptor<DefaultBatchElement<T, R>> disruptor =
                 new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
         disruptor.handleEventsWith(eventHandler);

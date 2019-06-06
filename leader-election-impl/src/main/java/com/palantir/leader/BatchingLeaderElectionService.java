@@ -33,7 +33,7 @@ public class BatchingLeaderElectionService implements LeaderElectionService {
     public BatchingLeaderElectionService(LeaderElectionService delegate) {
         this.delegate = delegate;
         this.batcher = Autobatchers.independent(this::processBatch)
-                .safeLoggablePurpose(BatchingLeaderElectionService.class.getSimpleName())
+                .safeLoggablePurpose("leader-election-service")
                 .build();
     }
 

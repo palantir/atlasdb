@@ -22,8 +22,8 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 
 public final class Autobatchers {
@@ -68,31 +68,24 @@ public final class Autobatchers {
         private final Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory;
 
         @Nullable private String purpose;
-        private int bufferSize = DEFAULT_BUFFER_SIZE;
 
         private AutobatcherBuilder(Function<Integer, EventHandler<BatchElement<I, O>>> handlerFactory) {
             this.handlerFactory = handlerFactory;
         }
 
-        public AutobatcherBuilder<I, O> safeLoggablePurpose(String purposeParam) {
+        public AutobatcherBuilder<I, O> safeLoggablePurpose(@CompileTimeConstant String purposeParam) {
             this.purpose = purposeParam;
-            return this;
-        }
-
-        @VisibleForTesting
-        AutobatcherBuilder<I, O> bufferSize(int bufferSizeParam) {
-            this.bufferSize = bufferSizeParam;
             return this;
         }
 
         public DisruptorAutobatcher<I, O> build() {
             Preconditions.checkArgument(purpose != null, "purpose must be provided");
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(bufferSize);
+            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =
                     new ProfilingEventHandler<>(handler, purpose);
 
-            return DisruptorAutobatcher.create(profiledHandler, bufferSize, purpose);
+            return DisruptorAutobatcher.create(profiledHandler, DEFAULT_BUFFER_SIZE, purpose);
         }
 
     }

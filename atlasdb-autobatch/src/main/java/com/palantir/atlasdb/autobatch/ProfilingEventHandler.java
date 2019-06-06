@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
@@ -27,7 +28,7 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
 
     ProfilingEventHandler(
             EventHandler<BatchElement<T, R>> delegateHandler,
-            String safeIdentifier) {
+            @CompileTimeConstant String safeIdentifier) {
         this.delegateHandler = delegateHandler;
         this.batchSizeLogger = BatchSizeLogger.create(safeIdentifier);
     }
@@ -37,7 +38,6 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
         elementsSeenSoFar++;
         delegateHandler.onEvent(event, sequence, endOfBatch);
 
-        // this assumes the delegate handler will process a batch if endOfBatch is true
         if (endOfBatch) {
             // Shouldn't affect clients, because futures have already been completed
             batchSizeLogger.markBatchProcessed(elementsSeenSoFar);
