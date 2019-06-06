@@ -37,6 +37,7 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -119,7 +120,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             }
             if (status == State.CLOSED_BY_CALLBACK_FAILURE) {
                 throw new IllegalStateException("Operations cannot be performed on closed TransactionManager."
-                            + " Closed due to a callback failure.", callbackThrowable);
+                        + " Closed due to a callback failure.", callbackThrowable);
             }
         }
 
@@ -261,7 +262,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
-        TransactionManager transactionManager = new SerializableTransactionManager(
+        TransactionManager rawTransactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,
@@ -280,6 +281,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
                 transactionConfig);
+
+        TransactionManager transactionManager = AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                TransactionManager.class,
+                rawTransactionManager);
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
