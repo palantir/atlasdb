@@ -36,7 +36,9 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.LockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -202,7 +204,7 @@ public class TestableTimelockCluster {
     }
 
     LockService lockService() {
-        return proxies.failoverForClient(client, LockService.class);
+        return new LockServiceAdapter(proxies.failoverForClient(client, LockRpcClient.class));
     }
 
     TimelockService timelockService() {

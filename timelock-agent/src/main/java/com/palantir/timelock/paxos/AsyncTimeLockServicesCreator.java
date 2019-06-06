@@ -32,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
+import com.palantir.atlasdb.timelock.LockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
@@ -86,7 +87,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                lockService,
+                new LockResource(lockService),
                 asyncTimelockResource,
                 asyncTimelockService);
     }

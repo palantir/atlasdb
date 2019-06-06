@@ -25,7 +25,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public abstract class SimplifyingLockService implements AutoDelegate_LockService, CloseableLockService {
-
     @Override
     public boolean unlock(HeldLocksToken token) {
         return delegate().unlockSimple(SimpleHeldLocksToken.fromHeldLocksToken(token));

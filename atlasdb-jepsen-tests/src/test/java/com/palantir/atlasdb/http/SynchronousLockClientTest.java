@@ -39,10 +39,10 @@ import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.LockRpcClient;
 
 public class SynchronousLockClientTest {
-    private static final LockService LOCK_SERVICE = mock(LockService.class);
+    private static final LockRpcClient LOCK_SERVICE = mock(LockRpcClient.class);
     private static final SynchronousLockClient LOCK_CLIENT = new SynchronousLockClient(LOCK_SERVICE);
     private static final LockRefreshToken TOKEN_1 = new LockRefreshToken(BigInteger.ONE, 1L);
     private static final LockRefreshToken TOKEN_2 = new LockRefreshToken(BigInteger.TEN, 10L);

@@ -82,7 +82,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
                     state.put(seq, value);
                 }
             }
-            return Optional.of(state.get(seq));
+            return Optional.ofNullable(state.get(seq));
         } catch (IOException e) {
             logger.error("Unable to get corrupt learned value for sequence {}",
                     SafeArg.of("sequence", seq), e);
