@@ -383,7 +383,7 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction());
 
         TransactionManager transactionManager = initializeCloseable(
-                () -> SerializableTransactionManager.create(
+                () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),

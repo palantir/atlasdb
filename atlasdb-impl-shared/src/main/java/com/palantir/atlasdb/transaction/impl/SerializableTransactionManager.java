@@ -196,7 +196,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
     }
 
-    public static TransactionManager create(MetricsManager metricsManager,
+    public static TransactionManager create(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             TimestampManagementService timestampManagementService,
@@ -241,7 +242,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig);
     }
 
-    public static TransactionManager create(MetricsManager metricsManager,
+    public static TransactionManager create(
+            MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
             TimestampManagementService timestampManagementService,
@@ -262,7 +264,102 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig) {
-        TransactionManager rawTransactionManager = new SerializableTransactionManager(
+        return create(
+                metricsManager,
+                keyValueService,
+                timelockService,
+                timestampManagementService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                initializationPrerequisite,
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                initializeAsync,
+                timestampCache,
+                sweepQueueWriter,
+                callback,
+                initializer,
+                validateLocksOnReads,
+                transactionConfig,
+                false);
+    }
+
+    public static TransactionManager createInstrumented(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<TransactionManager> callback,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig) {
+
+        return create(metricsManager,
+                keyValueService,
+                timelockService,
+                timestampManagementService,
+                lockService,
+                transactionService,
+                constraintModeSupplier,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                cleaner,
+                initializationPrerequisite,
+                allowHiddenTableAccess,
+                concurrentGetRangesThreadPoolSize,
+                defaultGetRangesConcurrency,
+                initializeAsync,
+                timestampCache,
+                sweepQueueWriter,
+                callback,
+                PTExecutors.newSingleThreadScheduledExecutor(
+                        new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
+                validateLocksOnReads,
+                transactionConfig,
+                true);
+    }
+
+    public static TransactionManager create(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            TimelockService timelockService,
+            TimestampManagementService timestampManagementService,
+            LockService lockService,
+            TransactionService transactionService,
+            Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            Cleaner cleaner,
+            Supplier<Boolean> initializationPrerequisite,
+            boolean allowHiddenTableAccess,
+            int concurrentGetRangesThreadPoolSize,
+            int defaultGetRangesConcurrency,
+            boolean initializeAsync,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueueWriter,
+            Callback<TransactionManager> callback,
+            ScheduledExecutorService initializer,
+            boolean validateLocksOnReads,
+            Supplier<TransactionConfig> transactionConfig,
+            boolean shouldInstrument) {
+        TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
                 timelockService,
@@ -282,10 +379,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 validateLocksOnReads,
                 transactionConfig);
 
-        TransactionManager transactionManager = AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                TransactionManager.class,
-                rawTransactionManager);
+        if (shouldInstrument) {
+            transactionManager = AtlasDbMetrics.instrument(
+                    metricsManager.getRegistry(),
+                    TransactionManager.class,
+                    transactionManager);
+        }
 
         if (!initializeAsync) {
             callback.runWithRetry(transactionManager);
