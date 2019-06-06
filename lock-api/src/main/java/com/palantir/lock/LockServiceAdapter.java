@@ -34,9 +34,13 @@ public class LockServiceAdapter implements LockService {
         return lockRpcClient.lockWithFullLockResponse(client, request).orElse(null);
     }
 
-    @Deprecated
     @Override
     public boolean unlock(HeldLocksToken token) {
+        return lockRpcClient.unlock(token);
+    }
+
+    @Override
+    public boolean unlock(LockRefreshToken token) {
         return lockRpcClient.unlock(token);
     }
 
@@ -55,7 +59,6 @@ public class LockServiceAdapter implements LockService {
         return lockRpcClient.getTokens(client);
     }
 
-    @Deprecated
     @Override
     public Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens) {
         return lockRpcClient.refreshTokens(tokens);
@@ -88,7 +91,6 @@ public class LockServiceAdapter implements LockService {
         return lockRpcClient.useGrant(client, grantId);
     }
 
-    @Deprecated
     @Nullable
     @Override
     public Long getMinLockedInVersionId() {
@@ -98,6 +100,12 @@ public class LockServiceAdapter implements LockService {
     @Nullable
     @Override
     public Long getMinLockedInVersionId(LockClient client) {
+        return lockRpcClient.getMinLockedInVersionId(client).orElse(null);
+    }
+
+    @Nullable
+    @Override
+    public Long getMinLockedInVersionId(String client) {
         return lockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
@@ -119,19 +127,8 @@ public class LockServiceAdapter implements LockService {
     }
 
     @Override
-    public boolean unlock(LockRefreshToken token) {
-        return lockRpcClient.unlock(token);
-    }
-
-    @Override
     public Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens) {
         return lockRpcClient.refreshLockRefreshTokens(tokens);
-    }
-
-    @Nullable
-    @Override
-    public Long getMinLockedInVersionId(String client) {
-        return lockRpcClient.getMinLockedInVersionId(client).orElse(null);
     }
 
     @Override

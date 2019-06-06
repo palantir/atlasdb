@@ -36,6 +36,7 @@ import com.palantir.logsafe.Safe;
 @Path("/lock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@SuppressWarnings("MissingDeprecated") // documented in LockService
 public interface LockRpcClient extends RemoteLockRpcClient {
     @POST
     @Path("lock-with-full-response/{client: .*}")
