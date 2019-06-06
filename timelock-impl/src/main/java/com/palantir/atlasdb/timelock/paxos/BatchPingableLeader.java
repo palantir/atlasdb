@@ -37,7 +37,7 @@ public interface BatchPingableLeader {
      * for. Clients that the remote server is not the leader for will be excluded from the results.
      *
      * @param clients set of clients to check remote servers leadership on
-     * @return clients which the remote server believes to be the leader
+     * @return clients for which the remote server believes that it is the leader for
      */
     @GET
     @Path("ping")
@@ -50,7 +50,7 @@ public interface BatchPingableLeader {
      * This will be the same across all clients that the remote server it is currently aware of. It is therefore safe to
      * coalesce ping calls to the same remote server for different clients.
      *
-     * @return the remote servers unique leadership identifier
+     * @return the remote servers' unique leadership identifier
      */
     @GET
     @Path("uuid")
