@@ -336,7 +336,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 false);
     }
 
-    public static TransactionManager create(
+    private static TransactionManager create(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             TimelockService timelockService,
