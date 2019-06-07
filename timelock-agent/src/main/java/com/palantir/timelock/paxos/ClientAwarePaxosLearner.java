@@ -50,12 +50,12 @@ public interface ClientAwarePaxosLearner {
     @GET
     @Path("learned-value/{seq}")
     @Produces(MediaType.APPLICATION_JSON)
-    Optional<PaxosValue> safeGetLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
+    Optional<PaxosValue> getLearnedValue(@PathParam("client") String client, @PathParam("seq") long seq);
 
     @GET
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
-    Optional<PaxosValue> safeGetGreatestLearnedValue(@PathParam("client") String client);
+    Optional<PaxosValue> getGreatestLearnedValue(@PathParam("client") String client);
 
     @GET
     @Path("learned-values-since/{seq}")

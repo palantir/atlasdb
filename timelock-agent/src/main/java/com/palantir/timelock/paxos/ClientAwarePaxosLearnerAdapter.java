@@ -41,12 +41,12 @@ final class ClientAwarePaxosLearnerAdapter implements PaxosLearner {
 
     @Override
     public Optional<PaxosValue> safeGetLearnedValue(long seq) {
-        return clientAwarePaxosLearner.safeGetLearnedValue(client, seq);
+        return clientAwarePaxosLearner.getLearnedValue(client, seq);
     }
 
     @Override
     public Optional<PaxosValue> safeGetGreatestLearnedValue() {
-        return clientAwarePaxosLearner.safeGetGreatestLearnedValue(client);
+        return clientAwarePaxosLearner.getGreatestLearnedValue(client);
     }
 
     @Override

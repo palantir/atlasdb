@@ -270,7 +270,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             return Optional.empty();
         }
 
-         // check leader cache
+        // check leader cache
         String uuid = value.get().getLeaderUUID();
         if (uuidToServiceCache.containsKey(uuid)) {
             return Optional.of(uuidToServiceCache.get(uuid));
