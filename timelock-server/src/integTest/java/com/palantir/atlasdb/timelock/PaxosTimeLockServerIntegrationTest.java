@@ -443,7 +443,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         // local timestamp bound classes
         metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.safeGetLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.safeGetGreatestLearnedValue");
         metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
         metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
 
