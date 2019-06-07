@@ -72,6 +72,10 @@ develop
            These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
 
+    *    - |improved|
+         - Async initialization callbacks are run with an instrumented TransactionManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4081>`__)
+
 ========
 v0.144.0
 ========

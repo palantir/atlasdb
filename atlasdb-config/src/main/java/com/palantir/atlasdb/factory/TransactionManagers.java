@@ -383,7 +383,7 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction());
 
         TransactionManager transactionManager = initializeCloseable(
-                () -> SerializableTransactionManager.create(
+                () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
@@ -409,20 +409,17 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier),
                 closeables);
 
-        TransactionManager instrumentedTransactionManager =
-                AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
-
-        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
-        instrumentedTransactionManager.registerClosingCallback(transactionService::close);
+        transactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        transactionManager.registerClosingCallback(transactionService::close);
         components.schemaInstaller().ifPresent(
-                installer -> instrumentedTransactionManager.registerClosingCallback(installer::close));
-        instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
+                installer -> transactionManager.registerClosingCallback(installer::close));
+        transactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
-        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+        transactionManager.registerClosingCallback(persistentLockManager::close);
 
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
@@ -434,7 +431,7 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        instrumentedTransactionManager,
+                        transactionManager,
                         persistentLockManager,
                         runBackgroundSweepProcess()),
                 closeables);
@@ -443,11 +440,11 @@ public abstract class TransactionManagers {
                         metricsManager,
                         lockAndTimestampServices,
                         keyValueService,
-                        instrumentedTransactionManager,
+                        transactionManager,
                         Suppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier::get)),
                 closeables);
 
-        return instrumentedTransactionManager;
+        return transactionManager;
     }
 
     /**
