@@ -987,7 +987,7 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices createRawRemoteServices(
             MetricsManager metricsManager, AtlasDbConfig config, String userAgent) {
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> config.lock().get());
-        LockService lockService = creator.createService(LockService.class);
+        LockService lockService = new LockServiceAdapter(creator.createService(LockRpcClient.class));
         TimestampService timeService = creator.createService(TimestampService.class);
         TimestampManagementService timestampManagementService = creator.createService(TimestampManagementService.class);
 
@@ -1014,7 +1014,7 @@ public abstract class TransactionManagers {
         TimestampManagementService timestampManagementService = ServiceCreator.createInstrumentedService(
                 metricsManager.getRegistry(), managedTimestampService, TimestampManagementService.class);
 
-        env.accept(lockService);
+        env.accept(new LockResource(lockService));
         env.accept(timeService);
         env.accept(timestampManagementService);
 

@@ -97,6 +97,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
@@ -121,8 +122,10 @@ public class TransactionManagersTest {
             MetricRegistry.name(TimelockRpcClient.class, "getFreshTimestamp");
     private static final String TIMELOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(TimelockRpcClient.class, "currentTimeMillis");
-    private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
+    private static final String LOCK_SERVICE_LOCAL_CURRENT_TIME_METRIC =
             MetricRegistry.name(LockService.class, "currentTimeMillis");
+    private static final String LOCK_SERVICE_REMOTE_CURRENT_TIME_METRIC =
+            MetricRegistry.name(LockRpcClient.class, "currentTimeMillis");
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
@@ -413,7 +416,7 @@ public class TransactionManagersTest {
         setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_LOCAL_CURRENT_TIME_METRIC);
     }
 
     @Test
@@ -422,7 +425,7 @@ public class TransactionManagersTest {
         setUpLeaderBlockInConfig();
 
         assertThatTimeAndLockMetricsAreRecorded(TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                LOCK_SERVICE_CURRENT_TIME_METRIC);
+                LOCK_SERVICE_REMOTE_CURRENT_TIME_METRIC);
     }
 
     @Test

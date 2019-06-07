@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -55,7 +56,7 @@ public class SynchronousLockClientTest {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
-            return null;
+            return Optional.empty();
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }
@@ -65,7 +66,7 @@ public class SynchronousLockClientTest {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
-            return null;
+            return Optional.empty();
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }
