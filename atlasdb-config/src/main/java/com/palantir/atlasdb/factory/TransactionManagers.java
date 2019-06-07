@@ -132,6 +132,7 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
+import com.palantir.lock.LockResource;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
@@ -906,7 +907,7 @@ public abstract class TransactionManagers {
                 metricsManager.getRegistry(),
                 managedTimestampProxy,
                 TimestampManagementService.class);
-        env.accept(localLock);
+        env.accept(new LockResource(localLock));
         env.accept(localTime);
         env.accept(localManagement);
 
@@ -916,7 +917,8 @@ public abstract class TransactionManagers {
                 .sslConfiguration(leaderConfig.sslConfiguration())
                 .build();
         ServiceCreator creator = ServiceCreator.noPayloadLimiter(metricsManager, userAgent, () -> serverListConfig);
-        LockService remoteLock = creator.createService(LockService.class);
+        LockRpcClient remoteLockClient = creator.createService(LockRpcClient.class);
+        LockService remoteLock = new LockServiceAdapter(remoteLockClient);
         TimestampService remoteTime = creator.createService(TimestampService.class);
         TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
 

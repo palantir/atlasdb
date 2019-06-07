@@ -31,13 +31,12 @@ import com.palantir.annotations.remoting.CancelableServerCall;
 import com.palantir.logsafe.Safe;
 
 /**
- * See {@link LockService}.
+ * See {@link LockService} and {@link LockResource}.
  */
 @Path("/lock")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@SuppressWarnings("MissingDeprecated") // documented in LockService
-public interface LockRpcClient extends RemoteLockRpcClient {
+public interface LockRpcClient {
     @POST
     @Path("lock-with-full-response/{client: .*}")
     @CancelableServerCall
@@ -46,8 +45,11 @@ public interface LockRpcClient extends RemoteLockRpcClient {
 
     @POST
     @Path("unlock-deprecated")
-    @Deprecated
     boolean unlock(HeldLocksToken token);
+
+    @POST
+    @Path("unlock")
+    boolean unlock(LockRefreshToken token);
 
     @POST
     @Path("unlock-simple")
@@ -63,7 +65,6 @@ public interface LockRpcClient extends RemoteLockRpcClient {
 
     @POST
     @Path("refresh-tokens")
-    @Deprecated
     Set<HeldLocksToken> refreshTokens(Iterable<HeldLocksToken> tokens);
 
     @POST
@@ -88,7 +89,6 @@ public interface LockRpcClient extends RemoteLockRpcClient {
 
     @POST
     @Path("min-locked-in-version-id")
-    @Deprecated
     Optional<Long> getMinLockedInVersionId();
 
     @POST
@@ -96,6 +96,32 @@ public interface LockRpcClient extends RemoteLockRpcClient {
     Optional<Long> getMinLockedInVersionId(@Safe @PathParam("client") LockClient client);
 
     @POST
+    @Path("min-locked-in-version/{client: .*}")
+    Optional<Long> getMinLockedInVersionId(@Safe @PathParam("client") String client);
+
+    @POST
     @Path("lock-server-options")
     LockServerOptions getLockServerOptions();
+
+    @POST
+    @Path("lock/{client: .*}")
+    Optional<LockRefreshToken> lock(@Safe @PathParam("client") String client, LockRequest request)
+            throws InterruptedException;
+
+    @POST
+    @Path("try-lock/{client: .*}")
+    Optional<HeldLocksToken> lockAndGetHeldLocks(@Safe @PathParam("client") String client, LockRequest request)
+            throws InterruptedException;
+
+    @POST
+    @Path("refresh-lock-tokens")
+    Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
+
+    @POST
+    @Path("current-time-millis")
+    long currentTimeMillis();
+
+    @POST
+    @Path("log-current-state")
+    void logCurrentState();
 }

@@ -30,8 +30,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.lock.LockRpcClient;
-import com.palantir.lock.LockService;
+import com.palantir.lock.LockResource;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.TimestampManagementService;
@@ -66,7 +65,7 @@ public class TimeLockResource {
     }
 
     @Path("/lock")
-    public LockRpcClient getLockService(@Safe @PathParam("namespace") String namespace) {
+    public LockResource getLockService(@Safe @PathParam("namespace") String namespace) {
         return getOrCreateServices(namespace).getLockService();
     }
 
