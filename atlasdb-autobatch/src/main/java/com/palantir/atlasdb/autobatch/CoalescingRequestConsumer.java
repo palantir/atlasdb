@@ -16,24 +16,20 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Map;
+import java.util.Set;
 
-public final class ProfilingAutobatchers {
-
-    private ProfilingAutobatchers() {
-        // factory
+public interface CoalescingRequestConsumer<REQUEST> extends CoalescingRequestFunction<REQUEST, Void> {
+    @Override
+    default Void defaultValue() {
+        return null;
     }
 
-    public static <T, R> DisruptorAutobatcher<T, R> create(
-            String safeIdentifier,
-            Consumer<List<BatchElement<T, R>>> batchFunction) {
-        BatchSizeLogger batchSizeLogger = BatchSizeLogger.create(safeIdentifier);
-        return DisruptorAutobatcher.create(elements -> {
-            batchFunction.accept(elements);
-
-            // Shouldn't affect clients, because futures have already been completed
-            batchSizeLogger.markBatchProcessed(elements.size());
-        });
+    @Override
+    default Map<REQUEST, Void> apply(Set<REQUEST> input) {
+        accept(input);
+        return null;
     }
+
+    void accept(Set<REQUEST> elements);
 }

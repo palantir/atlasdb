@@ -78,6 +78,7 @@ import com.palantir.atlasdb.internalschema.TransactionSchemaInstaller;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
 import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMetrics;
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -119,6 +120,7 @@ import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -344,17 +346,13 @@ public abstract class TransactionManagers {
         PersistentLockService persistentLockService = createAndRegisterPersistentLockService(
                 keyValueService, registrar(), config().initializeAsync());
 
-        CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
-                metricsManager, lockAndTimestampServices, keyValueService);
-        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
-
-        TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
-                metricsManager.getRegistry(),
-                TransactionService.class,
-                TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
-                closeables);
-        TransactionSchemaInstaller schemaInstaller = initializeTransactionSchemaInstaller(
-                closeables, runtimeConfigSupplier, transactionSchemaManager);
+        TransactionComponents components = createTransactionComponents(
+                closeables,
+                metricsManager,
+                lockAndTimestampServices,
+                keyValueService,
+                runtimeConfigSupplier);
+        TransactionService transactionService = components.transactionService();
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
@@ -388,7 +386,7 @@ public abstract class TransactionManagers {
                 () -> runtimeConfigSupplier.get().transaction());
 
         TransactionManager transactionManager = initializeCloseable(
-                () -> SerializableTransactionManager.create(
+                () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
                         keyValueService,
                         lockAndTimestampServices.timelock(),
@@ -414,19 +412,17 @@ public abstract class TransactionManagers {
                         transactionConfigSupplier),
                 closeables);
 
-        TransactionManager instrumentedTransactionManager =
-                AtlasDbMetrics.instrument(metricsManager.getRegistry(), TransactionManager.class, transactionManager);
-
-        instrumentedTransactionManager.registerClosingCallback(lockAndTimestampServices.close());
-        instrumentedTransactionManager.registerClosingCallback(transactionService::close);
-        instrumentedTransactionManager.registerClosingCallback(schemaInstaller::close);
-        instrumentedTransactionManager.registerClosingCallback(targetedSweep::close);
+        transactionManager.registerClosingCallback(lockAndTimestampServices.close());
+        transactionManager.registerClosingCallback(transactionService::close);
+        components.schemaInstaller().ifPresent(
+                installer -> transactionManager.registerClosingCallback(installer::close));
+        transactionManager.registerClosingCallback(targetedSweep::close);
 
         PersistentLockManager persistentLockManager = initializeCloseable(
                 () -> new PersistentLockManager(
                         metricsManager, persistentLockService, config().getSweepPersistentLockWaitMillis()),
                 closeables);
-        instrumentedTransactionManager.registerClosingCallback(persistentLockManager::close);
+        transactionManager.registerClosingCallback(persistentLockManager::close);
 
         initializeCloseable(
                 () -> initializeSweepEndpointAndBackgroundProcess(
@@ -438,7 +434,7 @@ public abstract class TransactionManagers {
                         transactionService,
                         sweepStrategyManager,
                         follower,
-                        instrumentedTransactionManager,
+                        transactionManager,
                         persistentLockManager,
                         runBackgroundSweepProcess()),
                 closeables);
@@ -447,11 +443,11 @@ public abstract class TransactionManagers {
                         metricsManager,
                         lockAndTimestampServices,
                         keyValueService,
-                        instrumentedTransactionManager,
+                        transactionManager,
                         Suppliers.compose(AtlasDbRuntimeConfig::compact, runtimeConfigSupplier::get)),
                 closeables);
 
-        return instrumentedTransactionManager;
+        return transactionManager;
     }
 
     /**
@@ -476,6 +472,48 @@ public abstract class TransactionManagers {
     private boolean targetedSweepIsFullyEnabled() {
         return config().targetedSweep().enableSweepQueueWrites()
                 && runtimeConfigSupplier().get().map(config -> config.targetedSweep().enabled()).orElse(false);
+    }
+
+    private TransactionComponents createTransactionComponents(
+            @Output List<AutoCloseable> closeables,
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
+        CoordinationService<InternalSchemaMetadata> coordinationService = getSchemaMetadataCoordinationService(
+                metricsManager, lockAndTimestampServices, keyValueService);
+        TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
+
+        TransactionService transactionService = initializeCloseable(() -> AtlasDbMetrics.instrument(
+                metricsManager.getRegistry(),
+                TransactionService.class,
+                TransactionServices.createTransactionService(keyValueService, transactionSchemaManager)),
+                closeables);
+        Optional<TransactionSchemaInstaller> schemaInstaller = getTransactionSchemaInstallerIfSupported(
+                closeables, keyValueService, runtimeConfigSupplier, transactionSchemaManager);
+        return ImmutableTransactionComponents.builder()
+                .transactionService(transactionService)
+                .schemaInstaller(schemaInstaller)
+                .build();
+    }
+
+    private Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
+            @Output List<AutoCloseable> closeables,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        if (keyValueService.getCheckAndSetCompatibility() == CheckAndSetCompatibility.SUPPORTED_DETAIL_ON_FAILURE) {
+            return Optional.of(initializeTransactionSchemaInstaller(
+                    closeables, runtimeConfigSupplier, transactionSchemaManager));
+        }
+        runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()
+                .filter(version -> version != TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .ifPresent(version ->
+                        log.warn("This service seems like it has been configured to use transaction schema version {},"
+                                + " which isn't supported as your KVS doesn't support details on CAS failures"
+                                + " (typically Postgres or Oracle). We will remain with transactions1.",
+                        SafeArg.of("configuredTransactionSchemaVersion", version)));
+        return Optional.empty();
     }
 
     private static TransactionSchemaInstaller initializeTransactionSchemaInstaller(
@@ -1051,5 +1089,11 @@ public abstract class TransactionManagers {
         default Runnable close() {
             return () -> {};
         }
+    }
+
+    @Value.Immutable
+    public interface TransactionComponents {
+        TransactionService transactionService();
+        Optional<TransactionSchemaInstaller> schemaInstaller();
     }
 }
