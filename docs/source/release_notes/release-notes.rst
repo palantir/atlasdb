@@ -50,6 +50,13 @@ develop
     *    - Type
          - Change
 
+    *    - |devbreak|
+         - ``LockService`` and ``RemoteLockService`` are no longer annotated with JAXRS annotations.
+           Instead, clients can be used using the ``LockRpcClient`` and ``RemoteLockRpcClient``, which differ from the former by using ``Optional`` return values on all methods that could have previously returned ``null``.
+           The ``LockServiceAdapter`` and ``RemoteLockServiceAdapter`` adapter classes have also been added for convenience.\
+           This change does not break any wire format.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4082>`__)
+
     *    - |improved|
          - The pause time between iterations of targeted sweep for each background thread is now configurable by the targeted sweep runtime configuration ``pauseMillis``.
            The default value has also changed from 5000 milliseconds to 500.
