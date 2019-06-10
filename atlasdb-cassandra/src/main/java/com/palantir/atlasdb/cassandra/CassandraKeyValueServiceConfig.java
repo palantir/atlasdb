@@ -142,7 +142,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @Deprecated
     public abstract Optional<String> keyspace();
 
-    public abstract Optional<CassandraCredentialsConfig> credentials();
+    CassandraCredentialsConfig credentials();
 
     /**
      * A boolean declaring whether or not to use ssl to communicate with cassandra.
