@@ -116,8 +116,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     SafeArg.of("address", CassandraLogHelper.host(addr)),
                     UnsafeArg.of("keyspace", config.getKeyspaceOrThrow()),
                     SafeArg.of("usingSsl", config.usingSsl() ? " over SSL" : ""),
-                    UnsafeArg.of("usernameConfig", config.credentials().isPresent()
-                            ? " as user " + config.credentials().get().username() : ""));
+                    UnsafeArg.of("usernameConfig", " as user " + config.credentials().username()));
             return ret;
         } catch (Exception e) {
             ret.getOutputProtocol().getTransport().close();
@@ -171,14 +170,12 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         TProtocol protocol = new TBinaryProtocol(thriftFramedTransport);
         Cassandra.Client client = new Cassandra.Client(protocol);
 
-        if (config.credentials().isPresent()) {
-            try {
-                login(client, config.credentials().get());
-            } catch (TException e) {
-                client.getOutputProtocol().getTransport().close();
-                log.error("Exception thrown attempting to authenticate with config provided credentials", e);
-                throw e;
-            }
+        try {
+            login(client, config.credentials());
+        } catch (TException e) {
+            client.getOutputProtocol().getTransport().close();
+            log.error("Exception thrown attempting to authenticate with config provided credentials", e);
+            throw e;
         }
 
         return client;
