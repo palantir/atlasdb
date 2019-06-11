@@ -80,6 +80,10 @@ develop
          - Async initialization callbacks are run with an instrumented TransactionManager.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4081>`__)
 
+    *    - |fixed|
+         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been changed back to 500ms.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4084>`__)
+
 ========
 v0.144.0
 ========
