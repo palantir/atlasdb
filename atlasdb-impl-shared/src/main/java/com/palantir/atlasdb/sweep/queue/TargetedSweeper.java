@@ -187,10 +187,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     @VisibleForTesting
     public void sweepNextBatch(ShardAndStrategy shardStrategy) {
         assertInitialized();
-        if (!runtime.get().enabled()) {
-            metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
-            return;
-        }
         long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
         queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
@@ -236,6 +232,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private void runOneIteration() {
+            if (!runtime.get().enabled()) {
+                metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
+                return;
+            }
+
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
