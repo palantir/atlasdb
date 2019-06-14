@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -56,6 +58,8 @@ import com.palantir.logsafe.SafeArg;
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
+    private static final Duration MAX_SHARD_DURATION = Duration.ofMinutes(5L);
+
     private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
@@ -271,9 +275,11 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private void processShard(TargetedSweeperLock lock) {
+            Stopwatch watch = Stopwatch.createStarted();
             long maxTsExclusive = Sweeper.of(lock.getShardAndStrategy()).getSweepTimestamp(timestampsSupplier);
             boolean processNextBatch = true;
-            while (processNextBatch && runtime.get().enabled() && lock.refresh()) {
+            while (processNextBatch && runtime.get().enabled()
+                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
                 processNextBatch = sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
             }
         }

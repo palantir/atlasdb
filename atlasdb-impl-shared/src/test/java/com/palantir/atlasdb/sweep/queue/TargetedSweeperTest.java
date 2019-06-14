@@ -75,6 +75,7 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
@@ -128,7 +129,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThatThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
                 .isInstanceOf(NotInitializedException.class)
                 .hasMessageContaining("Targeted Sweeper");
-        assertThatThrownBy(() -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0)))
+        assertThatThrownBy(() -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
                 .isInstanceOf(NotInitializedException.class)
                 .hasMessageContaining("Targeted Sweeper");
     }
@@ -172,7 +173,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         assertReadAtTimestampReturnsNothing(TABLE_CONS, LOW_TS);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
     }
@@ -180,7 +181,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void sweepWithSingleEntryUpdatesMetrics() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(
@@ -197,18 +198,18 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Test
     public void sweepWithNoCandidatesBeforeSweepTimestampReportsNothingToSweep() {
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
     }
 
     @Test
     public void sweepDisabledIsReportedInOutcome() {
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
 
         enabled = false;
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.DISABLED, 1L);
     }
 
@@ -217,7 +218,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS);
     }
@@ -227,7 +228,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         spiedKvs.addGarbageCollectionSentinelValues(TABLE_THOR, ImmutableList.of(DEFAULT_CELL));
         assertReadAtTimestampReturnsSentinel(TABLE_THOR, 0L);
         enqueueWriteCommitted(TABLE_THOR, 10L);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, 0L);
     }
 
@@ -238,7 +239,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
     }
@@ -250,7 +251,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS2);
     }
@@ -259,7 +260,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void conservativeSweepCallsFollower() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
         verify(mockFollower, times(1)).run(eq(TABLE_CONS), captor.capture());
@@ -270,7 +271,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void thoroughSweepCallsFollower() {
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
         enqueueWriteCommitted(TABLE_THOR, LOW_TS2);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
 
         ArgumentCaptor<Set> captor = ArgumentCaptor.forClass(Set.class);
         verify(mockFollower, times(1)).run(eq(TABLE_THOR), captor.capture());
@@ -283,7 +284,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, lastWriteTs);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, lastWriteTs);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
@@ -295,7 +296,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, lastWriteTs);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, lastWriteTs);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
@@ -307,7 +308,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
         enqueueWriteCommitted(TABLE_CONS, TS_FINE_GRANULARITY);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, TS_FINE_GRANULARITY);
@@ -320,7 +321,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, LOW_TS2 + 1, LOW_TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + 1);
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, LOW_TS2 + 1, LOW_TS2);
     }
@@ -332,7 +333,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_THOR, LOW_TS + 1, LOW_TS);
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_THOR, LOW_TS2 + 1, LOW_TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
+        sweepNextBatch(ShardAndStrategy.thorough(THOR_SHARD));
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS + 1);
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS2 + 1);
     }
@@ -344,7 +345,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, LOW_TS + 1, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
     }
@@ -359,7 +360,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // ensure not all entries will be swept
         enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         for (int i = 0; i < 10; i = i + 2) {
             assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS + i);
         }
@@ -394,19 +395,19 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
 
         // first sweep effectively only writes a sentinel
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
 
         // second sweep deletes first entry
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, tsFineTwo);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsFineTwo);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(2);
 
         // third sweep deletes all but last entry
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, tsFineFour + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsFineFour + 1);
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(3);
@@ -426,22 +427,22 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, tsCoarseFour);
         enqueueWriteCommitted(TABLE_CONS, tsCoarseFour + 1L);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, tsCoarseTwo);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, tsCoarseTwo);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, tsCoarseFour + 1);
         assertReadAtTimestampReturnsValue(TABLE_CONS, tsCoarseFour + 2, tsCoarseFour + 1);
     }
 
     @Test
     public void sweepProgressesToJustBeforeSweepTsWhenNothingToSweep() {
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertProgressUpdatedToTimestamp(getSweepTsCons() - 1L);
     }
 
@@ -451,10 +452,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, writeTs);
         enqueueWriteCommitted(TABLE_CONS, writeTs + 5);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertProgressUpdatedToTimestamp(maxTsForFinePartition(tsPartitionFine(writeTs)));
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertProgressUpdatedToTimestamp(getSweepTsCons() - 1L);
     }
 
@@ -464,10 +465,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap());
 
         enqueueWriteCommitted(TABLE_CONS, immutableTs - 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
@@ -479,13 +480,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, tsSecondPartitionFine);
         enqueueWriteCommitted(TABLE_CONS, largestFirstPartitionCoarse);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(LOW_TS));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(LOW_TS));
 
         // after this sweep we progress to sweepTsConservative - 1
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertNoEntriesInSweepableTimestampsBeforeSweepTimestamp();
     }
 
@@ -499,13 +500,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, largestFirstPartitionCoarse);
         enqueueWriteCommitted(TABLE_CONS, thirdPartitionCoarse);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(LOW_TS));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(LOW_TS));
 
         // after this sweep we progress to thirdPartitionCoarse - 1
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(thirdPartitionCoarse));
     }
 
@@ -520,19 +521,19 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
 
         // last swept timestamp: TS_FINE_GRANULARITY - 1
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasEntryForTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
 
         // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
 
         // last swept timestamp: largestBeforeSweepTs
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
@@ -551,7 +552,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueTombstone(TABLE_CONS, sweepTimestamp - 5);
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp + 5);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, sweepTimestamp - 5);
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, sweepTimestamp - 5 + 1, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp + 5);
@@ -685,15 +686,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void testSweepTimestampMetric() {
         unreadableTs = 17;
         immutableTs = 40;
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.thorough(0));
 
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(17L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(40);
 
         immutableTs = 5;
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.thorough(0));
 
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
@@ -709,19 +710,19 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitedAt(TABLE_CONS, 950, immutableTs);
         enqueueWriteCommitted(TABLE_CONS, 970);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
         ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), argument.capture());
         assertThat(argument.getValue()).containsValue(
                 new TimestampRangeDelete.Builder().timestamp(920L).endInclusive(false).deleteSentinels(false).build());
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
 
         immutableTs = 1001L;
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(1001L - 1L);
         // we have now had a total of 2 calls to deleteAllTimestamps, 1 from before and one new
         verify(spiedKvs, times(2)).deleteAllTimestamps(eq(TABLE_CONS), argument.capture());
@@ -738,7 +739,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteUncommitted(TABLE_CONS, 970);
         enqueueWriteUncommitted(TABLE_CONS, 1110);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
         verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap());
 
@@ -747,14 +748,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(multimap.getValue().keySet()).containsExactly(DEFAULT_CELL);
         assertThat(multimap.getValue().values()).containsExactly(900L, 920L);
 
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(920L);
         verify(spiedKvs, never()).deleteAllTimestamps(any(TableReference.class), anyMap());
         verify(spiedKvs, times(1)).delete(any(TableReference.class), any(Multimap.class));
         assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 1110L);
 
         immutableTs = 2009L;
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(CONS_SHARD))).isEqualTo(2009L - 1L);
         ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
@@ -779,23 +780,23 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, 90);
 
         // first iteration reads all before giving up
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated);
 
         // we read one entry and give up
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 1);
 
         immutableTs = 170;
 
         // we read one good entry and then a reference to bad entries and give up
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3);
 
         immutableTs = 250;
 
         // we now read all to the end
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
     }
 
@@ -812,17 +813,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(writesInOther).isGreaterThan(0);
 
         // first iteration reads all before giving up
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated);
 
         // we read a reference to bad entries and give up
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        sweepNextBatch(ShardAndStrategy.conservative(otherShard));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1);
 
         immutableTs = 250;
 
         // we now read all to the end
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(otherShard));
+        sweepNextBatch(ShardAndStrategy.conservative(otherShard));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1 + writesInOther);
     }
 
@@ -840,7 +841,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // first iteration of sweep should include all writes corresponding to timestamp 999 + minCellsToReachBatchSize,
         // since deletes are batched, we do not specify the number of calls to delete
-        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
@@ -849,7 +850,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(1000 + minTsToReachBatchSize - 1);
 
         //second iteration should only contain writes corresponding to timestamp 1000 + minCellsToReachBatchSize
-        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getValue().size()).isEqualTo(relativePrime);
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
@@ -870,7 +871,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // first iteration of sweep should include all but one of the writes, since deletes are batched, we do not
         // specify the number of calls to delete
-        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, atLeast(1)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
@@ -879,7 +880,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(1000 + minTsToReachBatchSize - 1);
 
         // second iteration of sweep should contain the remaining write
-        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         verify(spiedKvs, atLeast(2)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getValue().size()).isEqualTo(1);
         assertThat(progress.getLastSweptTimestamp(ShardAndStrategy.conservative(0)))
@@ -893,7 +894,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         int numberOfTimestamps = 5 * BATCH_SIZE_KVS / MAX_CELLS_GENERIC + 1;
 
         commitTransactionsWithWritesIntoUniqueCells(numberOfTimestamps, MAX_CELLS_GENERIC, sweeperConservative);
-        sweeperConservative.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         ArgumentCaptor<Map> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(6)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
         assertThat(map.getAllValues().stream().map(Map::size).mapToInt(x -> x).sum())
@@ -964,7 +965,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         unreadableTs = 11;
         spiedKvs.truncateTable(TABLE_CONS);
         assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
     }
 
@@ -974,7 +975,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp + 5);
 
         IntStream.range(0, sweepIterations)
-                .forEach(unused -> sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)));
+                .forEach(unused -> sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)));
 
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, sweepTimestamp - 5);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, sweepTimestamp - 5);
@@ -982,7 +983,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private void runConservativeSweepAtTimestamp(long desiredSweepTimestamp) {
-        runWithConservativeSweepTimestamp(() -> sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)),
+        runWithConservativeSweepTimestamp(() -> sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD)),
                 desiredSweepTimestamp);
     }
 
@@ -1201,5 +1202,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                     Cell.create(DEFAULT_CELL.getRowName(), PtBytes.toBytes(startCol * 100 + i)), startTs));
         }
         return writeInfos;
+    }
+
+    private void sweepNextBatch(ShardAndStrategy shardStrategy) {
+        sweepNextBatch(sweepQueue, shardStrategy);
+    }
+
+    private void sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
+        sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
     }
 }

@@ -64,10 +64,8 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference ignored, long ts) {
-        when(timestampsSupplier.getUnreadableTimestamp()).thenReturn(ts);
-        when(timestampsSupplier.getImmutableTimestamp()).thenReturn(ts);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
         return Optional.empty();
     }
 
