@@ -204,16 +204,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void sweepDisabledIsReportedInOutcome() {
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
-
-        enabled = false;
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.DISABLED, 1L);
-    }
-
-    @Test
     public void thoroughSweepDoesNotAddSentinelAndLeavesSingleValue() {
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS);
