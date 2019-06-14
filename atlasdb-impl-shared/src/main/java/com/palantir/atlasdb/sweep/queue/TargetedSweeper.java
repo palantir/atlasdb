@@ -30,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -182,13 +183,13 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * writes from the sweep queue and then update the sweep queue progress accordingly.
      *
      * @param shardStrategy shard and strategy to use
+     * @return true if we should immediately process another batch for this shard and strategy
      */
     @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
-    public void sweepNextBatch(ShardAndStrategy shardStrategy) {
+    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
-        long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
-        queue.sweepNextBatch(shardStrategy, maxTsExclusive);
+        return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @Override
@@ -240,7 +241,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
-                maybeLock.ifPresent(lock -> sweepNextBatch(lock.getShardAndStrategy()));
+                maybeLock.ifPresent(lock -> processShard(lock));
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
@@ -267,6 +268,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private int getShardAndIncrement() {
             return (int) (counter.getAndIncrement() % queue.getNumShards());
+        }
+
+        private void processShard(TargetedSweeperLock lock) {
+            long maxTsExclusive = Sweeper.of(lock.getShardAndStrategy()).getSweepTimestamp(timestampsSupplier);
+            boolean processNextBatch = true;
+            while (processNextBatch && runtime.get().enabled() && lock.refresh()) {
+                processNextBatch = sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
+            }
         }
 
         private void logException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {

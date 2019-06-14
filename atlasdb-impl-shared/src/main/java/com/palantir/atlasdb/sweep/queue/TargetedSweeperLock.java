@@ -54,4 +54,8 @@ public final class TargetedSweeperLock {
     public void unlock() {
         timeLock.unlock(ImmutableSet.of(lockToken));
     }
+
+    public boolean refresh() {
+        return !timeLock.refreshLockLeases(ImmutableSet.of(lockToken)).isEmpty();
+    }
 }

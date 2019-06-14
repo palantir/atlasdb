@@ -106,13 +106,14 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      *
      * @param shardStrategy shard and strategy to use
      * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
+     * @return true if we should immediately process another batch for this shard and strategy
      */
-    public void sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
+    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
         metrics.updateSweepTimestamp(shardStrategy, sweepTs);
         long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
 
         if (lastSweptTs + 1 >= sweepTs) {
-            return;
+            return false;
         }
 
         log.debug("Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
@@ -141,6 +142,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         } else {
             metrics.registerOccurrenceOf(SweepOutcome.SUCCESS);
         }
+
+        return true;
     }
 
     /**
