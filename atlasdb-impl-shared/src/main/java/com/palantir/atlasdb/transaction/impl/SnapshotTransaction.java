@@ -1093,6 +1093,11 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
                     case IGNORE:
                         break;
                     case THROW_EXCEPTION:
+                        log.error("Read a sentinel",
+                                UnsafeArg.of("table", tableRef),
+                                UnsafeArg.of("rowName", encodeAsHex(key.getRowName())),
+                                UnsafeArg.of("colName", encodeAsHex(key.getColumnName())),
+                                SafeArg.of("readTimestamp", startTimestamp.get()));
                         throw new TransactionFailedRetriableException("Tried to read a value that has been deleted. "
                                 + " This can be caused by hard delete transactions using the type "
                                 + TransactionType.AGGRESSIVE_HARD_DELETE
@@ -1140,6 +1145,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         } else {
             return ImmutableMap.of();
         }
+    }
+
+    static String encodeAsHex(byte[] array) {
+        return "0x" + PtBytes.encodeHexString(array);
     }
 
     /**
