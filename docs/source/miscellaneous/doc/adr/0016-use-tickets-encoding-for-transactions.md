@@ -411,6 +411,10 @@ shutdown upgrades are costly, and we thus implemented a mechanism for performing
 defining an internal schema version for AtlasDB, and implementing a mechanism for performing schema transitions
 while ensuring nodes that want to commit transactions agree on the state of the world
 
+Effectively, we want to define an internal schema version for AtlasDB, and implement a mechanism for performing schema
+transitions while ensuring nodes that want to commit transactions agree on the state of the world - or at least,
+agree sufficiently that they won't contradict one another.
+
 #### Coordination Service
 
 We introduce a notion of a coordination service, which agrees on values being relevant or correct at a given timestamp.
@@ -472,7 +476,8 @@ constant C, it should be valid up to some point V > C - and behaviour at timesta
 
 We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
 retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
-current value. We then read the value again, and keep trying until we know what version to use.
+current value. We then read the value again, and keep trying until we know what version to use. If we read a version
+we don't support yet, we throw (presumably, this is part of a rolling upgrade and should resolve itself soon).
 
 Installing transactions2 itself is done by a background thread that submits a transform that installs version 2 (or
 whatever specific version is included in config).
@@ -481,8 +486,44 @@ whatever specific version is included in config).
 
 Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
 shutdown upgrades are costly or even verboten, and we thus implemented a mechanism for performing upgrades without
-downtime. Effectively,  this involves defining an internal schema version for AtlasDB, and implementing a mechanism for
-performing schema transitions while ensuring nodes that want to commit transactions agree on the state of the world.
+downtime. The key problem here involves reasoning about service nodes running different binary versions that are
+concurrently operating on an AtlasDB deployment.
+
+#### Legacy Versions
+
+AtlasDB is deployed as a library in client services. Versions of AtlasDB may be partitioned based on their support
+for Transactions2 into the following categories:
+
+- **(A1) Always use transactions1.** These versions don't even know that the coordination service exists, and they
+  will read and write from transactions1 regardless of what other nodes are doing.
+- **(A2) I know about the coordination service, but not about transactions2.** These versions of AtlasDB will check
+  the coordination service, but they don't know how to read from/write to transactions2, and so they will throw if
+  they need to write to transactions2, or if they need to read the commit timestamp of a value written to
+  transactions2.
+- **(A3) I know about the coordination service and about transactions2.** This is fairly self-explanatory.
+
+Client services come with a version of AtlasDB, and at some point they typically enable transactions2 by default.
+We can thus similarly partition them:
+
+- C1 and C2 are defined as client service versions using versions of AtlasDB that would be classified as A1 and A2
+  respectively.
+- C3 refers to client service versions that use an A3 version of AtlasDB, but don't enable transactions2.
+- C4 refers to client service versions that use an A3 version of AtlasDB and enable transactions2. (Transactions2
+  cannot be enabled with A1 or A2 versions of AtlasDB, as it doesn't exist in those versions!)
+
+Now, we can consider how multiple client service versions interact:
+
+- Any sets of versions that don't include C4s are safely interoperable, because in these versions transactions2 is never
+  installed anyway, so we always use transactions1. Even C1s and C3s can safely interoperate, since although C1s never
+  read the coordination table, their effective assumption that it contains everything mapping to 1 is correct.
+- C1s and C4s running concurrently can lead to **SEVERE DATA CORRUPTION**, since the C4s might install transactions2
+  and read/write from transactions2, while the C1s will continue to read/write from transactions1. This means that
+  values committed by C1s once transactions2 became active will show as uncommitted to C4s, and vice versa.
+- C2s and C4s running concurrently is safe, but not advised, as once transactions2 takes effect, C2 nodes will not be
+  able to commit any write transactions. Furthermore, read-only transactions may also be affected, as C2 nodes will also
+  throw if they encounter a version that was written with a start timestamp that would need to be written to
+  transactions2.
+- C3s and C4s can run concurrently, as they both understand how to read/write transactions2.
 
 ## Consequences
 
