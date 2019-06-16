@@ -261,12 +261,155 @@ performance would be poor for services with many nodes.
 
 ### Cell Loader V2
 
+#### Background on Cell Loading
+
+AtlasDB loads most of its data through the ``multiget_slice`` Cassandra endpoint.
+
+```
+map<binary,list<ColumnOrSuperColumn>> multiget_slice(1:required list<binary> keys,
+                                                     2:required ColumnParent column_parent,
+                                                     3:required SlicePredicate predicate,
+                                                     4:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
+
+A ``SlicePredicate`` is a Cassandra struct that allows clients to specify which columns they want to read - these
+columns are loaded for each of the keys presented. Notice that this method supports multiple keys but just one
+predicate.
+
+Thus, in Atlas when we try and perform a get of a collection of cells (which are row-column pairs), we first
+group the pairs by column and then, in parallel, dispatch requests to Cassandra for each row that is relevant.
+For example, if one's cells were ``(A, 1), (A, 2), (B, 1), (C, 2), (C, 3), (D, 3)``, then Atlas would send three
+requests:
+
+- column ``1`` and keys ``[A, B]``
+- column ``2`` and keys ``[A, C]``
+- column ``3`` and keys ``[C, D]``
+
+Note that in practice, the requests we make have to use a range predicate on Cassandra, because cells don't include
+timestamps, and the latest timestamp at which our cell existed isn't something we know a priori.
+
+#### Multiget Multislice
+
+The above model does not work well for transactions2. Transactions2 cells end up being distributed reasonably evenly
+among the columns 0 through PQ / NP (which, in our case, is 312,500). Thus, when attempting to determine whether some
+Atlas values had been committed, we will perform many requests in parallel. These requests will end up using many
+resources from the Cassandra connection pool; they also incur a lot of overhead in terms of scheduling and network I/O.
+
+We want to be able to batch these calls together. To do this, we added another endpoint to the Thrift interface that
+Palantir's fork of Cassandra provides:
+
+```
+struct KeyPredicate {
+    1: optional binary key,
+    2: optional SlicePredicate predicate,
+}
+
+map<binary,list<list<ColumnOrSuperColumn>>> multiget_multislice(1:required list<KeyPredicate> request,
+                                                                2:required ColumnParent column_parent,
+                                                                3:required ConsistencyLevel consistency_level=ConsistencyLevel.ONE)
+  throws (1:InvalidRequestException ire, 2:UnavailableException ue, 3:TimedOutException te)
+```
+
+Implementing this endpoint on the Cassandra side was not too difficult. It may seem a little wasteful in that this may
+require keys and predicates to be specified more than once, but for transactions2 these would likely be mostly
+distinct.
+
+While this improved performance, we still faced significant regressions relative to the v1 cell loader. We determined
+that this was because Cassandra has a worker pool for loading values to satisfy a ``ReadCommand``, but the calling
+thread in requests is also allowed to participate. Thus, creating large batches would turn out to likely be detrimental
+to read performance, even when the Cassandra nodes are actually able to handle higher concurrency safely.
+
+#### Selective Batching
+
+We thus settled on a compromise between sending large singular requests and inundating Cassandra with smaller ones;
+unlike in the original ``CellLoader``, we make the batch parameters configurable. There are two parameters:
+
+- cross column load batch limit (CC); we may combine requests for different columns in one call to the DB, but merged
+  calls will not exceed this size.
+- single query load batch limit (SQ); a single request should never be larger than this size. We expect SQ >= CC.
+
+We still partition requests to load cells by column first. Thereafter,
+
+- if for a given column the number of cells is at least CC, then the cells for that column will exclusively take up
+  one or more batches, with no batch having size greater than SQ.
+- otherwise, the cells may be combined with cells in other columns, in batches of size up to CC. There is no guarantee
+  that all cells for a given column will be in the same batch.
+
+In terms of implementation, we simply maintain a list of cells eligible for cross-column batching, and partition this
+list into contiguous groups of size CC. In this way, no row key will be included more than twice. It may be possible
+to reduce the amount of data sent over the wire to Cassandra and possibly some of the internal read bandwidth by
+solving the underlying bin-packing problem to ensure that each row-key only occurs once; consider that we duplicate
+many keys if we want to load CC - 1 cells from many columns. This may be worth considering in the future (while
+bin-packing is NP-complete, an algorithm like first-fit decreasing will give us a good approximation), but we have not
+implemented it yet as the overhead is only a constant factor, and in many cases with transactions2 we expect the
+number of cells per column to be small. Consider that assuming a uniform distribution, even if a single transaction 
+reads 1,000,000 values with PQ / NP = 312,500, the maximum batch size will probably not exceed 20.
+
+#### Benchmarking
+
+We tested the selective batching cell loader ("CL2") against the original algorithm ("CL1") and a full-batching
+algorithm that always batches cells up to CC, regardless of what rows or columns they are from. We tested these loaders
+against both general AtlasDB user workloads (100 rows/100 static columns and 1000 rows/10 static columns), and
+workloads more specific to transactions2 (16 rows/500 dynamic columns). This is important as we would prefer not to
+have to use a separate codepath for transactions2; current behaviour with loading queries on rows with many different
+columns (regardless of table) had also previously been observed to be inefficient.
+
+We first ran the benchmarks with a single thread against the aforementioned workflows. In our tests, CC = 50,000 and
+SQ = 200; the dynamic columns are random and are unlikely to have overlaps.
+
+| Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
+|  100 |  100 static |    p50 |        124.2 |          164.4 |        118.9 |
+|  100 |  100 static |    p95 |        169.7 |            204 |        163.5 |
+|  100 |  100 static |    p99 |        204.1 |          237.2 |        195.2 |
+| 1000 |   10 static |    p50 |        122.6 |          169.4 |        118.6 |
+| 1000 |   10 static |    p95 |        164.3 |          222.7 |        161.5 |
+| 1000 |   10 static |    p99 |        170.9 |          269.1 |        188.0 |
+|   16 | 500 dynamic |    p50 |        328.5 |          144.6 |        102.7 |
+|   16 | 500 dynamic |    p95 |        432.3 |          195.5 |        143.8 |
+|   16 | 500 dynamic |    p99 |        473.3 |          254.8 |        162.1 |
+
+Notice that for the 100 rows test, CellLoader 2 performs marginally better than CellLoader 1, probably because it is
+able to make 50 RPCs instead of 100 (recall that SQ = 200). The full batching algorithm performs the worst, probably
+owing to Cassandra latency as there is only one requestor thread apart from the worker pool executing the request.
+
+For the 1000 rows test, CellLoader 1 and 2 performance is very similar. This is expected, as the underlying calls to
+the Cassandra cluster are the same (for each column, there is a single RPC). As before, the full batching algorithm
+performs poorly.
+
+However, for the 16 rows / 500 dynamic columns test, CellLoader 1 performance is very poor, as it may need to make as
+many as 8,000 distinct RPCs owing to the different column keys. The full batching algorithm still suffers from having
+just one requestor thread. CellLoader 2 is able to divide this into approximately 40 parallel RPCs, and performs
+best overall.
+
+We also ran the benchmarks with 10 concurrent readers on the same workflows:
+
+| Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
+|-----:|------------:|-------:|-------------:|---------------:|-------------:|
+|  100 |  100 static |    p50 |       1042.0 |         1248.5 |       1027.4 |
+|  100 |  100 static |    p95 |       1355.2 |         1636.1 |       1365.1 |
+|  100 |  100 static |    p99 |       1530.6 |         1783.2 |       1530.8 |
+| 1000 |   10 static |    p50 |       1205.9 |         1172.5 |       1199.7 |
+| 1000 |   10 static |    p95 |       1515.1 |         1656.9 |       1502.8 |
+| 1000 |   10 static |    p99 |       1595.8 |         1928.3 |       1618.6 |
+|   16 | 500 dynamic |    p50 |       3141.8 |          899.2 |        888.4 |
+|   16 | 500 dynamic |    p95 |       3390.1 |         1350.6 |       1189.0 |
+|   16 | 500 dynamic |    p99 |       3497.2 |         1635.8 |       1307.2 |
+
+The magnitude by which full batching does not perform as well as CellLoader 2 is also much less, possibly because
+the worker pool has a finite size and even with the full batching algorithm in this case, each reader contributes
+one requesting thread, and although CellLoader2 also spins up many more requesting threads on the Cassandra side,
+the Cassandra cluster was unable to actually have these therads all do work concurrently.
+
+### Determining Which Transaction Service To Use
+
 ### Live Migrations and the Coordination Service
 
 Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
 shutdown upgrades are costly, and we thus implemented a mechanism for performing upgrades. Effectively, this involves
 defining an internal schema version for AtlasDB, and implementing a mechanism for performing schema transitions
-while ensuring nodes that want to commit transactions agree on the state of the world.
+while ensuring nodes that want to commit transactions agree on the state of the world
 
 #### Coordination Service
 
@@ -276,11 +419,11 @@ changes that may affect behaviour for decisions made at timestamps before the po
 More formally, if we read a value for some timestamp TS, then all future values written must then ensure that decisions
 made at TS would be done in a way consistent with our initial read.
 
-To avoid having to repeatedly read the agreed value on every transaction / every operation that involves checking this,
-we introduce a notion of validity bounds. When a transform is applied, a fresh timestamp F is taken, and the new value
-will be written with a validity bound F + C for some constant C. Going forward, the behaviour for updates up to the
-previous bound must be preserved (which means decisions would be the same whether other service nodes read the new
-value or not).
+Values provided are valid up to a specific timestamp, called the validity bound. When a transform is applied, a fresh
+timestamp F is taken, and the new value will be written with a validity bound F + C for some constant C. Going forward,
+the behaviour for updates up to the previous bound must be preserved (which means decisions would be the same whether
+other service nodes read the new value or not). Nodes must not make decisions based on values read with a validity
+bound less than their timestamp of interest.
 
 ```java
 public interface CoordinationService<T> {
@@ -310,9 +453,36 @@ service's lifetime, keeping track of the point where reading from transactions2 
 To further support this scheme, the coordination service recognises identity transformations from the current value,
 and doesn't write a new value in these cases.
 
-#### Using Primitives
+We have not implemented cleanup of the coordination service at this time, as we don't expect the number of values
+in a coordination sequence to be large. Furthermore, we don't ever range scan this table.
 
-S
+#### Determining Transaction Schema Versions
+
+We still need to retain the ability to read from the old transactions table, when checking if/when values written
+before the transactions2 migration occurred. Thus, we replace the old ``TransactionService`` (that only reads/writes
+from transactions1) with one that delegates between multiple TransactionServices (concretely, just V1 and V2 at this
+time) depending on the specific timestamps involved in calls.
+
+The mechanism for determining which ``TransactionService`` to use goes through the aforementioned
+``CoordinationService``. We agree on a ``TimestampPartitioningMap``, which is a mapping of timestamps to transaction
+schema versions. This is a range map, as we want to support rollbacks easily. The map also is guaranteed to span the
+ranges [1, +∞) and be connected; note that this does not mean future behaviour is fixed, since in practice this map
+is read together with a validity bound. Thus, even though the map will contain as a key some range [C, +∞) for a
+constant C, it should be valid up to some point V > C - and behaviour at timestamps after V may subsequently be changed.
+
+We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
+retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
+current value. We then read the value again, and keep trying until we know what version to use.
+
+Installing transactions2 itself is done by a background thread that submits a transform that installs version 2 (or
+whatever specific version is included in config).
+
+### Live Migrations
+
+Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
+shutdown upgrades are costly or even verboten, and we thus implemented a mechanism for performing upgrades without
+downtime. Effectively,  this involves defining an internal schema version for AtlasDB, and implementing a mechanism for
+performing schema transitions while ensuring nodes that want to commit transactions agree on the state of the world.
 
 ## Consequences
 
