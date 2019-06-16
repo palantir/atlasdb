@@ -296,7 +296,23 @@ public interface CoordinationService<T> {
 #### Physical Implementation
 
 The coordination service needs to persist state; we've implemented this as a non-transactional table in the AtlasDB
-key-value service called `_coordination`.
+key-value service called ``_coordination``. Within this table, each sequence of values being agreed on takes up one row.
+The values themselves are stored as dynamic columns with a var-long dynamic column key.
+
+- The value stored at column 0 is a ``SequenceAndBound`` which indicates the sequence number of the currently valid
+  value and the validity bound.
+- Values are stored at column IDs equal to a fresh timestamp at the time they're written.
+
+The main reason for this scheme is that while the validity bound itself changes frequently (approximately every
+``ADVANCEMENT_QUANTUM`` timestamps, which is 5,000,000 at time of writing), the value itself changes much less often.
+For example, with transactions2, in the absence of rollbacks, the value is expected to change just once in the
+service's lifetime, keeping track of the point where reading from transactions2 should begin.
+To further support this scheme, the coordination service recognises identity transformations from the current value,
+and doesn't write a new value in these cases.
+
+#### Using Primitives
+
+S
 
 ## Consequences
 
