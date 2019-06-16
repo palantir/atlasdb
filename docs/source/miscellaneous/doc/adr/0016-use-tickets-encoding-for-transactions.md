@@ -501,6 +501,41 @@ the Cassandra cluster was unable to actually have these therads all do work conc
 
 ### Live Migrations and the Coordination Service
 
+Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
+shutdown upgrades are costly, and we thus implemented a mechanism for performing upgrades. Effectively, this involves
+defining an internal schema version for AtlasDB, and implementing a mechanism for performing schema transitions
+while ensuring nodes that want to commit transactions agree on the state of the world.
+
+#### Coordination Service
+
+We introduce a notion of a coordination service, which agrees on values being relevant or correct at a given timestamp.
+The sequence of values being agreed needs to evolve in a *backwards consistent* manner - that is, one should avoid
+changes that may affect behaviour for decisions made at timestamps before the point where one is making one's update.
+More formally, if we read a value for some timestamp TS, then all future values written must then ensure that decisions
+made at TS would be done in a way consistent with our initial read.
+
+To avoid having to repeatedly read the agreed value on every transaction / every operation that involves checking this,
+we introduce a notion of validity bounds. When a transform is applied, a fresh timestamp F is taken, and the new value
+will be written with a validity bound F + C for some constant C. Going forward, the behaviour for updates up to the
+previous bound must be preserved (which means decisions would be the same whether other service nodes read the new
+value or not).
+
+```java
+public interface CoordinationService<T> {
+    Optional<ValueAndBound<T>> getValueForTimestamp(long timestamp);
+
+    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
+
+    // ONLY FOR METRICS AND MONITORING - NOT FOR PRODUCTION DECISIONS.
+    Optional<ValueAndBound<T>> getLastKnownLocalValue();
+}
+```
+
+#### Physical Implementation
+
+The coordination service needs to persist state; we've implemented this as a non-transactional table in the AtlasDB
+key-value service called `_coordination`.
+
 ## Consequences
 
 ### Write Performance
