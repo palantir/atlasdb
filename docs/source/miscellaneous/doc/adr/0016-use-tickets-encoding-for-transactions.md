@@ -584,7 +584,7 @@ concurrently operating on an AtlasDB deployment.
 AtlasDB is deployed as a library in client services. Versions of AtlasDB may be partitioned based on their support
 for Transactions2 into the following categories:
 
-- **(A1) Always use transactions1.** These versions don't even know that the coordination service exists, and they
+- **(A1) I always use transactions1.** These versions don't even know that the coordination service exists, and they
   will read and write from transactions1 regardless of what other nodes are doing.
 - **(A2) I know about the coordination service, but not about transactions2.** These versions of AtlasDB will check
   the coordination service, but they don't know how to read from/write to transactions2, and so they will throw if
@@ -614,6 +614,16 @@ Now, we can consider how multiple client service versions interact:
   throw if they encounter a version that was written with a start timestamp that would need to be written to
   transactions2.
 - C3s and C4s can run concurrently, as they both understand how to read/write transactions2.
+
+#### Implementing Safe Upgrades
+
+To do rolling or blue/green upgrades from C1s or C2s to C4s, we thus recommend a checkpointing process that ensures that
+C1s (and C2s) never run concurrently with C4s.
+
+1. Upgrade the version of AtlasDB to an A3 version.
+2. Release your product (this is a C3), making this a *checkpoint release* - that is, all upgrades to subsequent
+   versions must go through this version.
+3. Enable transactions2, and release your product (this is a C4).
 
 ## Consequences
 
