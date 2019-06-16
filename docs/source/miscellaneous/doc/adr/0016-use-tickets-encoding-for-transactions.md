@@ -499,12 +499,7 @@ the worker pool has a finite size and even with the full batching algorithm in t
 one requesting thread, and although CellLoader2 also spins up many more requesting threads on the Cassandra side,
 the Cassandra cluster was unable to actually have these therads all do work concurrently.
 
-### Live Migrations and the Coordination Service
-
-Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
-shutdown upgrades are costly, and we thus implemented a mechanism for performing upgrades. Effectively, this involves
-defining an internal schema version for AtlasDB, and implementing a mechanism for performing schema transitions
-while ensuring nodes that want to commit transactions agree on the state of the world.
+### Determining Which Transaction Service To Use
 
 #### Coordination Service
 
@@ -514,11 +509,11 @@ changes that may affect behaviour for decisions made at timestamps before the po
 More formally, if we read a value for some timestamp TS, then all future values written must then ensure that decisions
 made at TS would be done in a way consistent with our initial read.
 
-To avoid having to repeatedly read the agreed value on every transaction / every operation that involves checking this,
-we introduce a notion of validity bounds. When a transform is applied, a fresh timestamp F is taken, and the new value
-will be written with a validity bound F + C for some constant C. Going forward, the behaviour for updates up to the
-previous bound must be preserved (which means decisions would be the same whether other service nodes read the new
-value or not).
+Values provided are valid up to a specific timestamp, called the validity bound. When a transform is applied, a fresh
+timestamp F is taken, and the new value will be written with a validity bound F + C for some constant C. Going forward,
+the behaviour for updates up to the previous bound must be preserved (which means decisions would be the same whether
+other service nodes read the new value or not). Nodes must not make decisions based on values read with a validity
+bound less than their timestamp of interest.
 
 ```java
 public interface CoordinationService<T> {
@@ -548,9 +543,36 @@ service's lifetime, keeping track of the point where reading from transactions2 
 To further support this scheme, the coordination service recognises identity transformations from the current value,
 and doesn't write a new value in these cases.
 
-#### Using Primitives
+We have not implemented cleanup of the coordination service at this time, as we don't expect the number of values
+in a coordination sequence to be large. Furthermore, we don't ever range scan this table.
 
-S
+#### Determining Transaction Schema Versions
+
+We still need to retain the ability to read from the old transactions table, when checking if/when values written
+before the transactions2 migration occurred. Thus, we replace the old ``TransactionService`` (that only reads/writes
+from transactions1) with one that delegates between multiple TransactionServices (concretely, just V1 and V2 at this
+time) depending on the specific timestamps involved in calls.
+
+The mechanism for determining which ``TransactionService`` to use goes through the aforementioned
+``CoordinationService``. We agree on a ``TimestampPartitioningMap``, which is a mapping of timestamps to transaction
+schema versions. This is a range map, as we want to support rollbacks easily. The map also is guaranteed to span the
+ranges [1, +∞) and be connected; note that this does not mean future behaviour is fixed, since in practice this map
+is read together with a validity bound. Thus, even though the map will contain as a key some range [C, +∞) for a
+constant C, it should be valid up to some point V > C - and behaviour at timestamps after V may subsequently be changed.
+
+We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
+retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
+current value. We then read the value again, and keep trying until we know what version to use.
+
+Installing transactions2 itself is done by a background thread that submits a transform that installs version 2 (or
+whatever specific version is included in config).
+
+### Live Migrations
+
+Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
+shutdown upgrades are costly or even verboten, and we thus implemented a mechanism for performing upgrades without
+downtime. Effectively,  this involves defining an internal schema version for AtlasDB, and implementing a mechanism for
+performing schema transitions while ensuring nodes that want to commit transactions agree on the state of the world.
 
 ## Consequences
 
