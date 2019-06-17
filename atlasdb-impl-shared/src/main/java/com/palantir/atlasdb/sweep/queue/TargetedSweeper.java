@@ -195,6 +195,21 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
+    @VisibleForTesting
+    void processShard(ShardAndStrategy shardAndStrategy) {
+        long maxTsExclusive = Sweeper.of(shardAndStrategy).getSweepTimestamp(timestampsSupplier);
+        if (runtime.get().batchShardIterations()) {
+            Stopwatch watch = Stopwatch.createStarted();
+            boolean processNextBatch = true;
+            while (processNextBatch && runtime.get().enabled()
+                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
+                processNextBatch = sweepNextBatch(shardAndStrategy, maxTsExclusive);
+            }
+        } else {
+            sweepNextBatch(shardAndStrategy, maxTsExclusive);
+        }
+    }
+
     @Override
     public void close() {
         conservativeScheduler.close();
@@ -244,7 +259,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
-                maybeLock.ifPresent(lock -> processShard(lock));
+                maybeLock.ifPresent(lock -> processShard(lock.getShardAndStrategy()));
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
@@ -271,20 +286,6 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private int getShardAndIncrement() {
             return (int) (counter.getAndIncrement() % queue.getNumShards());
-        }
-
-        private void processShard(TargetedSweeperLock lock) {
-            long maxTsExclusive = Sweeper.of(lock.getShardAndStrategy()).getSweepTimestamp(timestampsSupplier);
-            if (runtime.get().batchShardIterations()) {
-                Stopwatch watch = Stopwatch.createStarted();
-                boolean processNextBatch = true;
-                while (processNextBatch && runtime.get().enabled()
-                        && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
-                    processNextBatch = sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
-                }
-            } else {
-                sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
-            }
         }
 
         private void logException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {

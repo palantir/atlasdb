@@ -103,12 +103,14 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TimelockService timelockService;
     private PuncherStore puncherStore;
     private boolean enabled = true;
+    private boolean batchShardIterations = false;
 
     @Before
     public void setup() {
         super.setup();
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
                 .enabled(enabled)
+                .batchShardIterations(batchShardIterations)
                 .shards(DEFAULT_SHARDS)
                 .build();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
@@ -201,6 +203,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+    }
+
+    @Test
+    public void sweepNextBatchReturnsFalseWhenAtSweepTimestamp() {
+        enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
+        boolean continueSweeping = sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+
+        assertThat(continueSweeping).isTrue();
+
+        continueSweeping = sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertThat(continueSweeping).isFalse();
     }
 
     @Test
@@ -959,6 +972,40 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(spiedKvs.getRange(TABLE_CONS, RangeRequest.all(), Long.MAX_VALUE)).isEmpty();
     }
 
+    @Test
+    public void sweepOnlyOneFinePartitionByDefault() {
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 2);
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS + 4);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 6);
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS + 8);
+        // write in the next fine partition
+        enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
+        enqueueTombstone(TABLE_CONS, maxTsForFinePartition(0) + 2);
+
+        sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
+
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
+    }
+
+    @Test
+    public void batchShardIterationsSweepsMultipleFinePartitions() {
+        batchShardIterations = true;
+
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 2);
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS + 4);
+        enqueueTombstone(TABLE_CONS, LOW_TS + 6);
+        enqueueWriteCommitted(TABLE_CONS, LOW_TS + 8);
+        // write in the next fine partition
+        enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
+        enqueueTombstone(TABLE_CONS, maxTsForFinePartition(0) + 2);
+
+        sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
+
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, maxTsForFinePartition(0) + 1);
+    }
+
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 5);
@@ -1194,11 +1241,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         return writeInfos;
     }
 
-    private void sweepNextBatch(ShardAndStrategy shardStrategy) {
-        sweepNextBatch(sweepQueue, shardStrategy);
+    private boolean sweepNextBatch(ShardAndStrategy shardStrategy) {
+        return sweepNextBatch(sweepQueue, shardStrategy);
     }
 
-    private void sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
-        sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
+    private boolean sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
+        return sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
     }
 }
