@@ -45,6 +45,15 @@ public abstract class TargetedSweepRuntimeConfig {
         return 8;
     }
 
+    /**
+     * If true, we batch many iterations on each shard and strategy upon obtaining the lock. This should lead to
+     * higher throughput in targeted sweep at the expense of more uneven sweeping across different shards.
+     */
+    @Value.Default
+    public boolean batchShardIterations() {
+        return false;
+    }
+
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,

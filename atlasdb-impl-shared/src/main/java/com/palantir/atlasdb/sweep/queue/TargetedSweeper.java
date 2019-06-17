@@ -274,12 +274,16 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private void processShard(TargetedSweeperLock lock) {
-            Stopwatch watch = Stopwatch.createStarted();
             long maxTsExclusive = Sweeper.of(lock.getShardAndStrategy()).getSweepTimestamp(timestampsSupplier);
-            boolean processNextBatch = true;
-            while (processNextBatch && runtime.get().enabled()
-                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
-                processNextBatch = sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
+            if (runtime.get().batchShardIterations()) {
+                Stopwatch watch = Stopwatch.createStarted();
+                boolean processNextBatch = true;
+                while (processNextBatch && runtime.get().enabled()
+                        && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
+                    processNextBatch = sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
+                }
+            } else {
+                sweepNextBatch(lock.getShardAndStrategy(), maxTsExclusive);
             }
         }
 
