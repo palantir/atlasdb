@@ -31,13 +31,10 @@ dependencies {
   testCompile group: 'org.mockito', name: 'mockito-core'
 
   compile group: 'org.openjdk.jmh', name: 'jmh-core', version: '1.13'
-  processor group: 'org.immutables', name: 'value'
-  processor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
-      // We need to explicitly exclude these so that intellij does not label them as provided
-      if(gradle.startParameter.taskNames.contains('idea')) {
-          exclude group: 'org.openjdk.jmh', module: 'jmh-core'
-      }
-  }
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
+  annotationProcessor(group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.13') {
+  compileOnly 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
 }
 
 distZip {

@@ -31,8 +31,10 @@ dependencies {
     // in the boot classpath
     runtime group: 'org.mortbay.jetty.alpn', name: 'jetty-alpn-agent', version: libVersions.jetty_alpn_agent
 
-    processor group: 'org.immutables', name: 'value'
-    processor 'com.google.auto.service:auto-service:1.0-rc2'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'com.google.auto.service:auto-service:1.0-rc2'
+    compileOnly 'com.google.auto.service:auto-service:1.0-rc2'
 
     testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock

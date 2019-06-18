@@ -16,7 +16,8 @@ dependencies {
   compile group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   processor project(":atlasdb-processors")
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
