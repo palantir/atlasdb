@@ -498,6 +498,7 @@ public class PaxosTimeLockServerIntegrationTest {
                                 .lastLockSequence(1)
                                 .lastUnlockSequence(2).build())
                 .build());
+        lockWatchService.unregisterWatch(watch);
     }
 
     @Test
@@ -513,6 +514,26 @@ public class PaxosTimeLockServerIntegrationTest {
         getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
         assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
                 .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1)));
+        lockWatchService.unregisterWatch(watch);
+    }
+
+    @Test
+    public void watchesCanCountManyLocksAndUnlocks() {
+        UUID watch = lockWatchService.registerWatch(
+                ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
+        int numTrials = 100;
+        for (int i = 0; i < numTrials; i++) {
+            LockResponse response = getTimelockService(CLIENT_1).lock(LockRequest.of(ImmutableSet.of(LOCK_1), 1234L));
+            getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
+        }
+        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
+                .addLockStates(
+                        ImmutableLockIndexState.builder()
+                                .lockDescriptor(LOCK_1)
+                                .lastLockSequence(2 * numTrials - 1)
+                                .lastUnlockSequence(2 * numTrials).build())
+                .build());
+        lockWatchService.unregisterWatch(watch);
     }
 
     private static String getFastForwardUriForClientOne() {
