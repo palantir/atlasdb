@@ -55,6 +55,8 @@ public interface LockWatchService {
     void unregisterWatch(@PathParam("id") UUID watchIdentifier) throws NotFoundException;
 
     /**
+     * Gets the state a given watch is in.
+     *
      * @param watchIdentifier watch identifier
      * @return true if and only if some lock guarded by this watch was locked
      * @throws NotFoundException if we do not recognise the watch identifier the user provides

@@ -74,7 +74,6 @@ public class LockAcquirerTest {
         inOrder.verify(lockA).lock(REQUEST_ID);
         inOrder.verify(lockB).lock(REQUEST_ID);
         inOrder.verify(lockC).lock(REQUEST_ID);
-        inOrder.verifyNoMoreInteractions();
     }
 
     @Test
