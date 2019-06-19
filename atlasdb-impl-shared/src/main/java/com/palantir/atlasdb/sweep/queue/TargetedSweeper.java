@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,6 +29,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -55,6 +57,8 @@ import com.palantir.logsafe.SafeArg;
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSweeper {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweeper.class);
+    private static final Duration MAX_SHARD_DURATION = Duration.ofMinutes(5L);
+
     private final Supplier<TargetedSweepRuntimeConfig> runtime;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
@@ -182,17 +186,28 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
      * writes from the sweep queue and then update the sweep queue progress accordingly.
      *
      * @param shardStrategy shard and strategy to use
+     * @return true if we should immediately process another batch for this shard and strategy
      */
     @SuppressWarnings("checkstyle:RegexpMultiline") // Suppress VisibleForTesting warning
     @VisibleForTesting
-    public void sweepNextBatch(ShardAndStrategy shardStrategy) {
+    public boolean sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
-        if (!runtime.get().enabled()) {
-            metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
-            return;
+        return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
+    }
+
+    @VisibleForTesting
+    void processShard(ShardAndStrategy shardAndStrategy) {
+        long maxTsExclusive = Sweeper.of(shardAndStrategy).getSweepTimestamp(timestampsSupplier);
+        if (runtime.get().batchShardIterations()) {
+            Stopwatch watch = Stopwatch.createStarted();
+            boolean processNextBatch = true;
+            while (processNextBatch && runtime.get().enabled()
+                    && (watch.elapsed().compareTo(MAX_SHARD_DURATION) < 0)) {
+                processNextBatch = sweepNextBatch(shardAndStrategy, maxTsExclusive);
+            }
+        } else {
+            sweepNextBatch(shardAndStrategy, maxTsExclusive);
         }
-        long maxTsExclusive = Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier);
-        queue.sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @Override
@@ -236,10 +251,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         }
 
         private void runOneIteration() {
+            if (!runtime.get().enabled()) {
+                metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
+                return;
+            }
+
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
-                maybeLock.ifPresent(lock -> sweepNextBatch(lock.getShardAndStrategy()));
+                maybeLock.ifPresent(lock -> processShard(lock.getShardAndStrategy()));
             } catch (InsufficientConsistencyException e) {
                 metrics.registerOccurrenceOf(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);

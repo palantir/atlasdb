@@ -47,7 +47,9 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -68,6 +70,7 @@ public class TodoClient {
     private final Supplier<KeyValueService> kvs;
     private final Supplier<SweepTaskRunner> sweepTaskRunner;
     private final Supplier<TargetedSweeper> targetedSweeper;
+    private final SpecialTimestampsSupplier sweepTimestampProvider;
     private final Random random = new Random();
 
     public TodoClient(TransactionManager transactionManager, Supplier<SweepTaskRunner> sweepTaskRunner,
@@ -76,6 +79,9 @@ public class TodoClient {
         this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
+        // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
+        this.sweepTimestampProvider = new SpecialTimestampsSupplier(transactionManager::getImmutableTimestamp,
+                transactionManager::getImmutableTimestamp);
     }
 
     public void addTodo(Todo todo) {
@@ -155,8 +161,13 @@ public class TodoClient {
     }
 
     public void runIterationOfTargetedSweep() {
-        targetedSweeper.get().sweepNextBatch(ShardAndStrategy.conservative(0));
-        targetedSweeper.get().sweepNextBatch(ShardAndStrategy.thorough(0));
+        runIterationOfTargetedSweepForShard(ShardAndStrategy.conservative(0));
+        runIterationOfTargetedSweepForShard(ShardAndStrategy.thorough(0));
+    }
+
+    private void runIterationOfTargetedSweepForShard(ShardAndStrategy shardStrategy) {
+        targetedSweeper.get()
+                .sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampProvider));
     }
 
 
