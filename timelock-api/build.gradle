@@ -1,0 +1,18 @@
+apply plugin: 'org.inferred.processors'
+apply plugin: 'org.unbroken-dome.test-sets'
+
+apply from: "../gradle/publish-jars.gradle"
+apply from: "../gradle/shared.gradle"
+apply from: "../gradle/tests.gradle"
+
+testSets {
+    integTest
+}
+
+check.dependsOn integTest
+
+dependencies {
+    compile (project(":lock-api"))
+
+    processor group: 'org.immutables', name: 'value'
+}
