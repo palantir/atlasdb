@@ -218,6 +218,15 @@ These settings have empirically improved the performance of timelock when the le
 <td>Async initialization callbacks are run with an instrumented TransactionManager.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4081">Pull Request</a>)</td>
 </tr>
+<tr class="row-even"><td><span class="changetype changetype-fixed">FIXED</span></td>
+<td>The default value for the length of pause between targeted sweep iterations, <code class="docutils literal notranslate"><span class="pre">pauseMillis</span></code>, has been changed back to 500ms.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4084">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Added runtime configurable behavior to targeted sweep to allow multiple consecutive iterations on the same targeted sweep shard, all while holding the relevant lock. This option
+should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4086">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>
