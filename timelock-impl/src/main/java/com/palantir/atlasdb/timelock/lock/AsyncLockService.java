@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -47,14 +48,15 @@ public class AsyncLockService implements Closeable {
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor) {
+            ScheduledExecutorService timeoutExecutor,
+            LockEventProcessor eventProcessor) {
 
         LeaderClock clock = LeaderClock.create();
 
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
-                new LockAcquirer(lockLog, timeoutExecutor, clock),
+                new LockAcquirer(lockLog, timeoutExecutor, clock, eventProcessor),
                 HeldLocksCollection.create(clock),
                 new AwaitedLocksCollection(),
                 reaperExecutor,

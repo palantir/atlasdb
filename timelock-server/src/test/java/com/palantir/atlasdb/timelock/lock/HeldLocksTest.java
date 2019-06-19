@@ -18,7 +18,9 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +31,7 @@ import org.junit.Test;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -45,13 +48,15 @@ public class HeldLocksTest {
 
     private HeldLocks heldLocks;
 
+    private final LockEventProcessor eventProcessor = mock(LockEventProcessor.class);
+
     @Before
     public void before() {
         when(timer.isExpired()).thenReturn(false);
         lockA.lock(REQUEST_ID);
         lockB.lock(REQUEST_ID);
         heldLocks = new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
-                ImmutableList.of(lockA, lockB), REQUEST_ID, timer);
+                ImmutableList.of(lockA, lockB), REQUEST_ID, timer, eventProcessor);
     }
 
     @Test
@@ -60,6 +65,8 @@ public class HeldLocksTest {
 
         verify(lockA).unlock(REQUEST_ID);
         verify(lockB).unlock(REQUEST_ID);
+
+        verify(eventProcessor, times(2)).registerUnlock(LOCK_DESCRIPTOR);
     }
 
     @Test
@@ -78,18 +85,24 @@ public class HeldLocksTest {
     public void canOnlyUnlockOnce() {
         assertTrue(heldLocks.unlock());
         assertFalse(heldLocks.unlock());
+
+        verify(eventProcessor, times(2)).registerUnlock(LOCK_DESCRIPTOR);
     }
 
     @Test
     public void unlocksIfExpired() {
         when(timer.isExpired()).thenReturn(true);
         assertTrue(heldLocks.unlockIfExpired());
+
+        verify(eventProcessor, times(2)).registerUnlock(LOCK_DESCRIPTOR);
     }
 
     @Test
     public void doesNotUnlockIfNotExpired() {
         when(timer.isExpired()).thenReturn(false);
         assertFalse(heldLocks.unlockIfExpired());
+
+        verify(eventProcessor, never()).registerUnlock(LOCK_DESCRIPTOR);
     }
 
     @Test

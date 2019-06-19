@@ -33,6 +33,7 @@ import org.junit.Test;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LeadershipId;
@@ -242,7 +243,8 @@ public class HeldLocksCollectionTest {
         return new HeldLocks(new LockLog(new MetricRegistry(), () -> 2L),
                 ImmutableSet.of(new ExclusiveLock(StringLockDescriptor.of("foo"))),
                 id,
-                leaderClock);
+                leaderClock,
+                LockEventProcessor.createNoOpForTests());
     }
 
     private void advance(Duration duration) {

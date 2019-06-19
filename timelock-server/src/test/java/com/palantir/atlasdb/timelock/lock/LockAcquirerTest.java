@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ import org.mockito.InOrder;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 
@@ -60,7 +62,8 @@ public class LockAcquirerTest {
     private final LockAcquirer lockAcquirer = new LockAcquirer(
             new LockLog(new MetricRegistry(), () -> 2L),
             executor,
-            leaderClock);
+            leaderClock,
+            mock(LockEventProcessor.class));
 
     @Test
     public void acquiresLocksInOrder() {

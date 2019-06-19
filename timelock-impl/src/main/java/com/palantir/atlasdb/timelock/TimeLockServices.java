@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
+import com.palantir.atlasdb.timelock.watch.LockWatchResource;
 import com.palantir.lock.LockService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -40,4 +43,5 @@ public interface TimeLockServices {
     TimestampService getTimestampService();
     AsyncTimelockResource getTimelockService();
     LockService getLockService();
+    Optional<LockWatchResource> getLockWatchService();
 }

@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.watch;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -41,12 +42,24 @@ public class LockWatchResource {
 
     private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
     private final Map<UUID, LockWatch> activeWatches;
+    private final LockEventProcessor eventProcessor;
 
     public LockWatchResource() {
         this.explicitDescriptorsToWatches = Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys()
                 .arrayListValues()
                 .build());
         this.activeWatches = Maps.newConcurrentMap();
+        this.eventProcessor = new LockEventProcessor() {
+            @Override
+            public void registerLock(LockDescriptor descriptor) {
+                explicitDescriptorsToWatches.get(descriptor).forEach(watch -> watch.registerLock(descriptor));
+            }
+
+            @Override
+            public void registerUnlock(LockDescriptor descriptor) {
+                explicitDescriptorsToWatches.get(descriptor).forEach(watch -> watch.registerUnlock(descriptor));
+            }
+        };
     }
 
     @PUT
@@ -65,7 +78,10 @@ public class LockWatchResource {
         }
         ExplicitLockPredicate explicitLockPredicate = (ExplicitLockPredicate) predicate;
 
-        activeWatches.put(idToAssign, new LockWatch(explicitLockPredicate.descriptors()));
+        Set<LockDescriptor> descriptors = explicitLockPredicate.descriptors();
+        LockWatch watch = new LockWatch(descriptors);
+        activeWatches.put(idToAssign, watch);
+        descriptors.forEach(descriptor -> explicitDescriptorsToWatches.put(descriptor, watch));
         return idToAssign;
     }
 
@@ -76,6 +92,8 @@ public class LockWatchResource {
         if (removed == null) {
             throw new NotFoundException("lock watch does not exist");
         }
+        removed.getState().lockStates().keySet()
+                .forEach(descriptor -> explicitDescriptorsToWatches.remove(descriptor, removed));
     }
 
     /**
@@ -92,5 +110,9 @@ public class LockWatchResource {
             throw new NotFoundException("lock watch does not exist");
         }
         return watch.getState();
+    }
+
+    public LockEventProcessor getEventProcessor() {
+        return eventProcessor;
     }
 }

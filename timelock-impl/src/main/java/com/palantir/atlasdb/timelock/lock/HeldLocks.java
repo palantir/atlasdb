@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.GuardedBy;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.common.time.NanoTime;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -32,21 +33,26 @@ public class HeldLocks {
     private final Collection<AsyncLock> acquiredLocks;
     private final LockToken token;
     private final LeaseExpirationTimer expirationTimer;
+    private final LockEventProcessor lockEventProcessor;
 
     @GuardedBy("this")
     private boolean isUnlocked = false;
 
-    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId, LeaderClock leaderClock) {
-        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(() -> leaderClock.time().currentTime()));
+    public HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks, UUID requestId, LeaderClock leaderClock,
+            LockEventProcessor lockEventProcessor) {
+        this(lockLog, acquiredLocks, requestId, new LeaseExpirationTimer(() -> leaderClock.time().currentTime()),
+                lockEventProcessor);
     }
 
     @VisibleForTesting
     HeldLocks(LockLog lockLog, Collection<AsyncLock> acquiredLocks,
-            UUID requestId, LeaseExpirationTimer expirationTimer) {
+            UUID requestId, LeaseExpirationTimer expirationTimer,
+            LockEventProcessor lockEventProcessor) {
         this.lockLog = lockLog;
         this.acquiredLocks = acquiredLocks;
         this.token = LockToken.of(requestId);
         this.expirationTimer = expirationTimer;
+        this.lockEventProcessor = lockEventProcessor;
     }
 
     /**
@@ -79,6 +85,7 @@ public class HeldLocks {
 
         for (AsyncLock lock : acquiredLocks) {
             lock.unlock(token.getRequestId());
+            lockEventProcessor.registerUnlock(lock.getDescriptor());
         }
 
         return true;

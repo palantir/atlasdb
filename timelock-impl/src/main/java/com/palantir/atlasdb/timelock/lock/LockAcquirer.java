@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
+import com.palantir.atlasdb.timelock.watch.LockEventProcessor;
 import com.palantir.logsafe.SafeArg;
 
 public class LockAcquirer {
@@ -33,18 +34,26 @@ public class LockAcquirer {
     private final LockLog lockLog;
     private final ScheduledExecutorService timeoutExecutor;
     private final LeaderClock leaderClock;
+    private final LockEventProcessor lockEventProcessor;
 
     public LockAcquirer(LockLog lockLog,
             ScheduledExecutorService timeoutExecutor,
-            LeaderClock leaderClock) {
+            LeaderClock leaderClock,
+            LockEventProcessor lockEventProcessor) {
         this.lockLog = lockLog;
         this.timeoutExecutor = timeoutExecutor;
         this.leaderClock = leaderClock;
+        this.lockEventProcessor = lockEventProcessor;
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId)).execute()
-                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock));
+        return new Acquisition(requestId, locks, timeout, lock -> {
+            AsyncResult<Void> result = lock.lock(requestId);
+            lockEventProcessor.registerLock(lock.getDescriptor());
+            return result;
+        })
+                .execute()
+                .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock, lockEventProcessor));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {

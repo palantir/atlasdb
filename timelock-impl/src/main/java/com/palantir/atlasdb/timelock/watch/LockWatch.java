@@ -37,13 +37,13 @@ class LockWatch {
                 .collectTo(Maps::newConcurrentMap);
     }
 
-    public void registerLock(LockDescriptor descriptor) {
+    void registerLock(LockDescriptor descriptor) {
         indexStates.computeIfPresent(
                 descriptor,
                 (unused, oldState) -> oldState.withLockSequence(counters.get(descriptor).getAndIncrement()));
     }
 
-    public void registerUnlock(LockDescriptor descriptor) {
+    void registerUnlock(LockDescriptor descriptor) {
         indexStates.computeIfPresent(
                 descriptor,
                 (unused, oldState) -> oldState.withUnlockSequence(counters.get(descriptor).getAndIncrement()));
