@@ -20,18 +20,35 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
 
 @JsonSerialize(as = ImmutableLockIndexState.class)
 @JsonDeserialize(as = ImmutableLockIndexState.class)
 @Value.Immutable
 public interface LockIndexState {
-    LockDescriptor lockDescriptor();
+    LockIndexState DEFAULT = ImmutableLockIndexState.builder()
+            .lastLockSequence(0)
+            .lastUnlockSequence(0)
+            .build();
+
     long lastLockSequence();
     long lastUnlockSequence();
 
     @Value.Derived
     default boolean isLockOpen() {
         return lastLockSequence() > lastUnlockSequence();
+    }
+
+    default LockIndexState withLockSequence(long lockSequence) {
+        return ImmutableLockIndexState.builder()
+                .from(this)
+                .lastLockSequence(lockSequence)
+                .build();
+    }
+
+    default LockIndexState withUnlockSequence(long unlockSequence) {
+        return ImmutableLockIndexState.builder()
+                .from(this)
+                .lastUnlockSequence(unlockSequence)
+                .build();
     }
 }

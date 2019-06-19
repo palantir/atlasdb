@@ -16,16 +16,17 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
-import java.util.List;
+import java.util.Map;
 
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.lock.LockDescriptor;
 
 @JsonSerialize(as = ImmutableLockWatchState.class)
 @JsonDeserialize(as = ImmutableLockWatchState.class)
 @Value.Immutable
 public interface LockWatchState {
-    List<LockIndexState> lockStates();
+    Map<LockDescriptor, LockIndexState> lockStates();
 }
