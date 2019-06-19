@@ -467,6 +467,10 @@ SQ = 200; the dynamic columns are random and are unlikely to have overlaps.
 |   16 | 500 dynamic |    p95 |        432.3 |          195.5 |        143.8 |
 |   16 | 500 dynamic |    p99 |        473.3 |          254.8 |        162.1 |
 
+These results may be better visualised with a graph - for example, for p95 response times:
+
+![Graph reflecting p95 response times for each workflow and algorithm](0016-cellloader2-graph1.png)
+
 Notice that for the 100 rows test, CellLoader 2 performs marginally better than CellLoader 1, probably because it is
 able to make 50 RPCs instead of 100 (recall that SQ = 200). The full batching algorithm performs the worst, probably
 owing to Cassandra latency as there is only one requestor thread apart from the worker pool executing the request.
@@ -493,6 +497,8 @@ We also ran the benchmarks with 10 concurrent readers on the same workflows:
 |   16 | 500 dynamic |    p50 |       3141.8 |          899.2 |        888.4 |
 |   16 | 500 dynamic |    p95 |       3390.1 |         1350.6 |       1189.0 |
 |   16 | 500 dynamic |    p99 |       3497.2 |         1635.8 |       1307.2 |
+
+![Graph reflecting p95 response times for each workflow and algorithm](0016-cellloader2-graph2.png)
 
 The magnitude by which full batching does not perform as well as CellLoader 2 is also much less, possibly because
 the worker pool has a finite size and even with the full batching algorithm in this case, each reader contributes
