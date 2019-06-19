@@ -87,13 +87,13 @@ public class LockWatchResource {
 
     @DELETE
     @Path("watch/{id}")
-    void unregisterWatch(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
+    public void unregisterWatch(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
         LockWatch removed = activeWatches.remove(watchIdentifier);
         if (removed == null) {
             throw new NotFoundException("lock watch does not exist");
         }
-        removed.getState().lockStates().keySet()
-                .forEach(descriptor -> explicitDescriptorsToWatches.remove(descriptor, removed));
+        removed.getState().lockStates()
+                .forEach(state -> explicitDescriptorsToWatches.remove(state.lockDescriptor(), removed));
     }
 
     /**
@@ -104,7 +104,7 @@ public class LockWatchResource {
     @POST
     @Path("watch/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    LockWatchState getWatchState(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
+    public LockWatchState getWatchState(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
         LockWatch watch = activeWatches.get(watchIdentifier);
         if (watch == null) {
             throw new NotFoundException("lock watch does not exist");

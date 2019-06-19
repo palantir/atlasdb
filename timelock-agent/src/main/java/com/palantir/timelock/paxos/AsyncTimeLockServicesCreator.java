@@ -90,7 +90,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                 asyncTimelockService,
                 lockService,
                 asyncTimelockResource,
-                asyncTimelockService);
+                asyncTimelockService,
+                lockWatchResource);
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {

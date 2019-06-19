@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
@@ -27,7 +28,8 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableExplicitLockPredicate.class)
 @JsonDeserialize(as = ImmutableExplicitLockPredicate.class)
 @Value.Immutable
-interface ExplicitLockPredicate extends LockPredicate {
+@JsonTypeName("explicit")
+public interface ExplicitLockPredicate extends LockPredicate {
     Set<LockDescriptor> descriptors();
 
     @Override

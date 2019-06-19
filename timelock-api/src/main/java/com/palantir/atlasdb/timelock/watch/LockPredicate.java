@@ -22,7 +22,7 @@ import com.palantir.lock.LockDescriptor;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ExplicitLockPredicate.class, name = "explicit")
+        @JsonSubTypes.Type(ExplicitLockPredicate.class)
         })
 public interface LockPredicate {
     boolean matches(LockDescriptor lockDescriptor);

@@ -52,5 +52,6 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core'
     testCompile group: 'com.squareup.okhttp3', name: 'okhttp'
 
+    integTestCompile project(":timelock-api")
     integTestCompile group: 'io.dropwizard', name: 'dropwizard-testing'
 }

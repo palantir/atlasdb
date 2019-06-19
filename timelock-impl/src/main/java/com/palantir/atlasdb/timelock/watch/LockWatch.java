@@ -30,7 +30,7 @@ class LockWatch {
 
     LockWatch(Set<LockDescriptor> lockDescriptors) {
         this.indexStates = KeyedStream.of(lockDescriptors)
-                .map(unused -> LockIndexState.DEFAULT)
+                .map(LockIndexState::createDefaultForLockDescriptor)
                 .collectTo(Maps::newConcurrentMap);
         this.counters = KeyedStream.of(lockDescriptors)
                 .map(unused -> new AtomicLong())
@@ -40,18 +40,18 @@ class LockWatch {
     void registerLock(LockDescriptor descriptor) {
         indexStates.computeIfPresent(
                 descriptor,
-                (unused, oldState) -> oldState.withLockSequence(counters.get(descriptor).getAndIncrement()));
+                (unused, oldState) -> oldState.withLockSequence(counters.get(descriptor).incrementAndGet()));
     }
 
     void registerUnlock(LockDescriptor descriptor) {
         indexStates.computeIfPresent(
                 descriptor,
-                (unused, oldState) -> oldState.withUnlockSequence(counters.get(descriptor).getAndIncrement()));
+                (unused, oldState) -> oldState.withUnlockSequence(counters.get(descriptor).incrementAndGet()));
     }
 
     LockWatchState getState() {
         return ImmutableLockWatchState.builder()
-                .putAllLockStates(indexStates)
+                .addAllLockStates(indexStates.values())
                 .build();
     }
 }
