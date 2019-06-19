@@ -79,7 +79,8 @@ public class TodoClient {
         this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
-        this.sweepTimestampProvider = new SpecialTimestampsSupplier(transactionManager::getUnreadableTimestamp,
+        // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
+        this.sweepTimestampProvider = new SpecialTimestampsSupplier(transactionManager::getImmutableTimestamp,
                 transactionManager::getImmutableTimestamp);
     }
 
