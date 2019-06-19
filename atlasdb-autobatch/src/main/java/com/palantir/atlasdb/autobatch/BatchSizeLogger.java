@@ -56,7 +56,7 @@ public final class BatchSizeLogger {
         total += batchSize;
         counter++;
         if (shouldFlush.getAsBoolean()) {
-            log.info("The autobatcher with identifier {} has just processed a batch of size {}."
+            log.debug("The autobatcher with identifier {} has just processed a batch of size {}."
                     + " Over the last {} seconds, it has processed {} batches with average size {}.",
                     SafeArg.of("safeIdentifier", safeIdentifier),
                     SafeArg.of("currentBatchSize", batchSize),
