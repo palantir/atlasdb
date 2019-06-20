@@ -435,7 +435,7 @@ public class PaxosTimeLockServerIntegrationTest {
     public void instrumentationSmokeTest() throws IOException {
         getTimestampService(CLIENT_1).getFreshTimestamp();
         getLockService(CLIENT_1).currentTimeMillis();
-        getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
+        LockToken token = getTimelockService(CLIENT_1).lock(newLockV2Request(LOCK_1)).getToken();
 
         MetricsOutput metrics = getMetricsOutput();
 
@@ -457,6 +457,8 @@ public class PaxosTimeLockServerIntegrationTest {
         // async lock
         // TODO(nziebart): why does this flake on circle?
         //assertContainsTimer(metrics, "lock.blocking-time");
+
+        getTimelockService(CLIENT_1).unlock(ImmutableSet.of(token));
     }
 
     @Test
@@ -465,7 +467,8 @@ public class PaxosTimeLockServerIntegrationTest {
                 ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
         LockWatchState watchState = lockWatchService.getWatchState(watch);
         assertThat(watchState).isEqualTo(ImmutableLockWatchState.builder()
-                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1)));
+                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1))
+                .build());
         lockWatchService.unregisterWatch(watch);
     }
 
@@ -509,11 +512,13 @@ public class PaxosTimeLockServerIntegrationTest {
                 ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
         LockResponse response = getTimelockService(CLIENT_1).lock(LockRequest.of(ImmutableSet.of(somethingElse), 123L));
         assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1)));
+                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1))
+                .build());
 
         getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
         assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1)));
+                .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK_1))
+                .build());
         lockWatchService.unregisterWatch(watch);
     }
 
