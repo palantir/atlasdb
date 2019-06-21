@@ -100,7 +100,7 @@ public class ShardProgress {
         return kvs.get(TABLE_REF, ImmutableMap.of(cellForShard(shardAndStrategy), SweepQueueUtils.READ_TS));
     }
 
-    private Cell cellForShard(ShardAndStrategy shardAndStrategy) {
+    private static Cell cellForShard(ShardAndStrategy shardAndStrategy) {
         SweepShardProgressTable.SweepShardProgressRow row = SweepShardProgressTable.SweepShardProgressRow.of(
                 shardAndStrategy.shard(),
                 PersistableBoolean.of(shardAndStrategy.isConservative()).persistToBytes());
@@ -108,7 +108,7 @@ public class ShardProgress {
                 SweepShardProgressTable.SweepShardProgressNamedColumn.VALUE.getShortName());
     }
 
-    private long getValue(Map<Cell, Value> entry) {
+    private static long getValue(Map<Cell, Value> entry) {
         SweepShardProgressTable.Value value = SweepShardProgressTable.Value.BYTES_HYDRATOR.hydrateFromBytes(
                 Iterables.getOnlyElement(entry.values()).getContents());
         return value.getValue();
@@ -150,22 +150,22 @@ public class ShardProgress {
         if (isDefaultValue(shardAndStrategy, oldVal)) {
             return maybeGet(shardAndStrategy)
                     .map(persistedValue -> createSingleCellRequest(shardAndStrategy, persistedValue, colValNew))
-                    .orElse(createNewCellRequest(shardAndStrategy, colValNew));
+                    .orElseGet(() -> createNewCellRequest(shardAndStrategy, colValNew));
         } else {
             return createSingleCellRequest(shardAndStrategy, oldVal, colValNew);
         }
     }
 
-    private boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
+    private static boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
         return oldVal == SweepQueueUtils.INITIAL_TIMESTAMP
                 || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 
-    CheckAndSetRequest createNewCellRequest(ShardAndStrategy shardAndStrategy, byte[] colValNew) {
+    static CheckAndSetRequest createNewCellRequest(ShardAndStrategy shardAndStrategy, byte[] colValNew) {
         return CheckAndSetRequest.newCell(TABLE_REF, cellForShard(shardAndStrategy), colValNew);
     }
 
-    private CheckAndSetRequest createSingleCellRequest(ShardAndStrategy shardAndStrategy, long oldVal,
+    private static CheckAndSetRequest createSingleCellRequest(ShardAndStrategy shardAndStrategy, long oldVal,
             byte[] colValNew) {
         byte[] colValOld = createColumnValue(oldVal);
         return CheckAndSetRequest.singleCell(TABLE_REF, cellForShard(shardAndStrategy), colValOld, colValNew);

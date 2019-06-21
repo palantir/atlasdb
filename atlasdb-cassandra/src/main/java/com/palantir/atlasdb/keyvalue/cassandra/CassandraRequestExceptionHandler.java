@@ -107,7 +107,7 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     RequestExceptionHandlerStrategy getStrategy() {
-        return overrideStrategyForTest.orElse(resolveStrategy());
+        return overrideStrategyForTest.orElseGet(this::resolveStrategy);
     }
 
     private RequestExceptionHandlerStrategy resolveStrategy() {
@@ -118,7 +118,7 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    private AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
+    private static AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
             RetryableCassandraRequest<?, ?> req) {
         log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
                 SafeArg.of("numTries", numberOfAttempts),

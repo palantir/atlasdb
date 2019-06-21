@@ -163,7 +163,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     @Override
     public long getUnreadableTimestamp() {
-        return unreadableTs.orElse(super.getUnreadableTimestamp());
+        return unreadableTs.orElseGet(super::getUnreadableTimestamp);
     }
 
     public void setUnreadableTimestamp(long timestamp) {

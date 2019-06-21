@@ -494,7 +494,7 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
+    private static Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
             @Output List<AutoCloseable> closeables,
             KeyValueService keyValueService,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
@@ -882,7 +882,7 @@ public abstract class TransactionManagers {
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
         Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
-        TimeLockClientConfig clientConfig = config.timelock().orElse(ImmutableTimeLockClientConfig.builder().build());
+        TimeLockClientConfig clientConfig = config.timelock().orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());
         String resolvedClient = OptionalResolver.resolve(clientConfig.client(), config.namespace());
         return () -> ServerListConfigs.parseInstallAndRuntimeConfigs(
                 clientConfig,

@@ -166,7 +166,7 @@ public abstract class AbstractKeyValueServiceTest {
         Map<Cell, Value> rows4 = keyValueService.getRows(
                 TEST_TABLE,
                 ImmutableSet.of(cell1.getRowName()),
-                ColumnSelection.create(ImmutableList.<byte[]>of()),
+                ColumnSelection.create(ImmutableList.of()),
                 1);
 
         // This has changed recently - now empty column set means
@@ -197,7 +197,7 @@ public abstract class AbstractKeyValueServiceTest {
                 .findFirst()
                 .map(Entry::getValue)
                 .map(value -> Iterators.limit(value, number))
-                .orElse(Collections.emptyIterator());
+                .orElseGet(Collections::emptyIterator);
 
         while (it.hasNext()) {
             Entry<Cell, Value> result = it.next();
@@ -938,9 +938,10 @@ public abstract class AbstractKeyValueServiceTest {
         }
     }
 
-    private List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(int numRows,
-                                                                                          int numColsInSelection,
-                                                                                          boolean reverse) {
+    private static List<RowResult<Value>> getExpectedResultForRangePagingWithColumnSelectionTest(
+            int numRows,
+            int numColsInSelection,
+            boolean reverse) {
         List<RowResult<Value>> expected = new ArrayList<>();
         for (long row = 1; row <= numRows; ++row) {
             ImmutableSortedMap.Builder<byte[], Value> builder = ImmutableSortedMap.orderedBy(
@@ -1412,7 +1413,7 @@ public abstract class AbstractKeyValueServiceTest {
         try {
             putTestDataForSingleTimestamp();
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1429,7 +1430,7 @@ public abstract class AbstractKeyValueServiceTest {
                             TEST_CELL,
                             Value.create(val(0, 0), TEST_TIMESTAMP + 1)));
         } catch (AtlasDbDependencyException e) {
-            if (KeyAlreadyExistsException.class.isInstance(e.getCause())) {
+            if (e.getCause() instanceof KeyAlreadyExistsException) {
                 Assert.fail("Must not throw when overwriting with same value!");
             }
         }
@@ -1756,11 +1757,11 @@ public abstract class AbstractKeyValueServiceTest {
         assertThat(getOnlyItemInTableRange(), is(originalData));
     }
 
-    private void modifyValue(byte[] retrievedValue) {
+    private static void modifyValue(byte[] retrievedValue) {
         retrievedValue[0] = (byte) 50;
     }
 
-    private byte[] copyOf(byte[] contents) {
+    private static byte[] copyOf(byte[] contents) {
         return Arrays.copyOf(contents, contents.length);
     }
 
@@ -1905,7 +1906,7 @@ public abstract class AbstractKeyValueServiceTest {
         return PtBytes.toBytes("value" + row + col);
     }
 
-    private byte[] dynamicColumn(long columnId) {
+    private static byte[] dynamicColumn(long columnId) {
         return PtBytes.toBytes(columnId);
     }
 
