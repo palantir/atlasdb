@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -33,13 +34,14 @@ public class BatchSizeRecorderTest {
         batchSizeRecorder.markBatchProcessed(5);
         batchSizeRecorder.markBatchProcessed(10);
 
-        Meter meter = (Meter) SharedTaggedMetricRegistries.getSingleton().getMetrics()
+        Histogram meter = (Histogram) SharedTaggedMetricRegistries.getSingleton().getMetrics()
                 .get(MetricName.builder().safeName(BatchSizeRecorder.AUTOBATCHER_METER)
                         .putSafeTags("safeIdentifier", SAFE_IDENTIFIER)
                         .build());
 
         assertThat(meter).isNotNull();
-        assertThat(meter.getCount()).isEqualTo(15);
+        assertThat(meter.getCount()).isEqualTo(2);
+        assertThat(meter.getSnapshot().getMean()).isEqualTo(7.5);
     }
 
 }
