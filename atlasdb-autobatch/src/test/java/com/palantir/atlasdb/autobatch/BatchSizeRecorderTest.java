@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
