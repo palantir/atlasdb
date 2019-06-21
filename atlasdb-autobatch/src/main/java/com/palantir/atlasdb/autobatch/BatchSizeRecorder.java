@@ -24,7 +24,7 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 
 @NotThreadSafe // Disruptor runs the batching function on just one thread.
 public final class BatchSizeRecorder {
-    static final String AUTOBATCHER_METER = "autobatcherMeter";
+    static final String AUTOBATCHER_METER = "atlasdb.autobatcherMeter";
 
     private final Histogram histo;
 
@@ -35,7 +35,7 @@ public final class BatchSizeRecorder {
     public static BatchSizeRecorder create(String safeLoggerIdentifier) {
         Histogram meter = SharedTaggedMetricRegistries.getSingleton().histogram(MetricName.builder()
                         .safeName(AUTOBATCHER_METER)
-                        .putSafeTags("safeIdentifier", safeLoggerIdentifier)
+                        .putSafeTags("identifier", safeLoggerIdentifier)
                         .build());
         return new BatchSizeRecorder(meter);
     }
