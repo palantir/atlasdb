@@ -35,7 +35,7 @@ public class BatchSizeRecorderTest {
 
         Histogram histogram = (Histogram) SharedTaggedMetricRegistries.getSingleton().getMetrics()
                 .get(MetricName.builder().safeName(BatchSizeRecorder.AUTOBATCHER_METER)
-                        .putSafeTags("safeIdentifier", SAFE_IDENTIFIER)
+                        .putSafeTags("identifier", SAFE_IDENTIFIER)
                         .build());
 
         assertThat(histogram).isNotNull();
