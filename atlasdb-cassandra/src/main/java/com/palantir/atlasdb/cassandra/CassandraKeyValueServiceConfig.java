@@ -303,7 +303,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     @Value.Derived
     default boolean usingSsl() {
-        return ssl().orElse(sslConfiguration().isPresent());
+        return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
     @Value.Check
