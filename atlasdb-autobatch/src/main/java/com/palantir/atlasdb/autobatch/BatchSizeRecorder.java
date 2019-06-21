@@ -26,22 +26,22 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 public final class BatchSizeRecorder {
     static final String AUTOBATCHER_METER = "atlasdb.autobatcherMeter";
 
-    private final Histogram histo;
+    private final Histogram histogram;
 
-    private BatchSizeRecorder(Histogram histo) {
-        this.histo = histo;
+    private BatchSizeRecorder(Histogram histogram) {
+        this.histogram = histogram;
     }
 
     public static BatchSizeRecorder create(String safeLoggerIdentifier) {
-        Histogram meter = SharedTaggedMetricRegistries.getSingleton().histogram(MetricName.builder()
+        Histogram histogram = SharedTaggedMetricRegistries.getSingleton().histogram(MetricName.builder()
                         .safeName(AUTOBATCHER_METER)
                         .putSafeTags("identifier", safeLoggerIdentifier)
                         .build());
-        return new BatchSizeRecorder(meter);
+        return new BatchSizeRecorder(histogram);
     }
 
     public void markBatchProcessed(long batchSize) {
-        histo.update(batchSize);
+        histogram.update(batchSize);
     }
 
 }

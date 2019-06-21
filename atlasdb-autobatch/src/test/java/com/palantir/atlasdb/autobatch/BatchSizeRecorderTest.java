@@ -33,14 +33,14 @@ public class BatchSizeRecorderTest {
         batchSizeRecorder.markBatchProcessed(5);
         batchSizeRecorder.markBatchProcessed(10);
 
-        Histogram meter = (Histogram) SharedTaggedMetricRegistries.getSingleton().getMetrics()
+        Histogram histogram = (Histogram) SharedTaggedMetricRegistries.getSingleton().getMetrics()
                 .get(MetricName.builder().safeName(BatchSizeRecorder.AUTOBATCHER_METER)
                         .putSafeTags("safeIdentifier", SAFE_IDENTIFIER)
                         .build());
 
-        assertThat(meter).isNotNull();
-        assertThat(meter.getCount()).isEqualTo(2);
-        assertThat(meter.getSnapshot().getMean()).isEqualTo(7.5);
+        assertThat(histogram).isNotNull();
+        assertThat(histogram.getCount()).isEqualTo(2);
+        assertThat(histogram.getSnapshot().getMean()).isEqualTo(7.5);
     }
 
 }
