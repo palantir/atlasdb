@@ -31,7 +31,7 @@ import javax.ws.rs.core.MediaType;
 /**
  * A service that allows users of a {@link com.palantir.lock.v2.TimelockService} to track what is happening with their
  * locks. Specifically, users can register a watch over some lock IDs. Whenever a watched lock is locked or unlocked,
- * an event is *synchronously* published to this service
+ * an event is published to this service.
  */
 @Path("/lock-watch")
 public interface LockWatchService {

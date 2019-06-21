@@ -37,14 +37,14 @@ import com.google.common.collect.Multimaps;
 import com.palantir.lock.LockDescriptor;
 
 @Path("/lock-watch")
-public class LockWatchResource {
+public class LockWatchResourceImpl implements LockWatchResource {
     private static final int WATCH_LIMIT = 50;
 
     private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
     private final Map<UUID, LockWatch> activeWatches;
     private final LockEventProcessor eventProcessor;
 
-    public LockWatchResource() {
+    public LockWatchResourceImpl() {
         this.explicitDescriptorsToWatches = Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys()
                 .arrayListValues()
                 .build());
@@ -52,6 +52,7 @@ public class LockWatchResource {
         this.eventProcessor = new LockEventProcessor() {
             @Override
             public void registerLock(LockDescriptor descriptor) {
+                System.out.println(activeWatches);
                 explicitDescriptorsToWatches.get(descriptor).forEach(watch -> watch.registerLock(descriptor));
             }
 
@@ -96,11 +97,6 @@ public class LockWatchResource {
                 .forEach(state -> explicitDescriptorsToWatches.remove(state.lockDescriptor(), removed));
     }
 
-    /**
-     * @param watchIdentifier watch identifier
-     * @return true if and only if some lock guarded by this watch was locked
-     * @throws NotFoundException if we do not recognise the watch identifier the user provides
-     */
     @POST
     @Path("watch/{id}")
     @Produces(MediaType.APPLICATION_JSON)

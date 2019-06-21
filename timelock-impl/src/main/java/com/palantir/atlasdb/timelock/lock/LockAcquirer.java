@@ -47,11 +47,7 @@ public class LockAcquirer {
     }
 
     public AsyncResult<HeldLocks> acquireLocks(UUID requestId, OrderedLocks locks, TimeLimit timeout) {
-        return new Acquisition(requestId, locks, timeout, lock -> {
-            AsyncResult<Void> result = lock.lock(requestId);
-            lockEventProcessor.registerLock(lock.getDescriptor());
-            return result;
-        })
+        return new Acquisition(requestId, locks, timeout, lock -> lock.lock(requestId))
                 .execute()
                 .map(ignored -> new HeldLocks(lockLog, locks.get(), requestId, leaderClock, lockEventProcessor));
     }
@@ -92,6 +88,11 @@ public class LockAcquirer {
             try {
                 AsyncResult<Void> lockResult = AsyncResult.completedResult();
                 for (AsyncLock lock : locks.get()) {
+                    // This must happen BEFORE the lock is locked, it's safe to have a spurious lock.
+                    lockResult = lockResult.concatWith(() -> {
+                        lockEventProcessor.registerLock(lock.getDescriptor());
+                        return AsyncResult.completedResult();
+                    });
                     lockResult = lockResult.concatWith(() -> lockFunction.apply(lock));
                 }
                 this.result = lockResult;
@@ -117,6 +118,8 @@ public class LockAcquirer {
             try {
                 for (AsyncLock lock : locks.get()) {
                     lock.unlock(requestId);
+                    // This must happen only after a successful unlock.
+                    lockEventProcessor.registerUnlock(lock.getDescriptor());
                 }
             } catch (Throwable t) {
                 log.error("Error while unlocking locks", SafeArg.of("requestId", requestId), t);

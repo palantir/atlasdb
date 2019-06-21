@@ -34,6 +34,7 @@ import org.junit.rules.TemporaryFolder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.watch.LockWatchService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
@@ -223,6 +224,10 @@ public class TestableTimelockCluster {
 
     private TimelockRpcClient timelockRpcClient(String name) {
         return proxies.failoverForClient(name, TimelockRpcClient.class);
+    }
+
+    LockWatchService lockWatchService() {
+        return proxies.failoverForClient(client, LockWatchService.class);
     }
 
     RuleChain getRuleChain() {

@@ -38,8 +38,13 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.timelock.watch.ImmutableExplicitLockPredicate;
+import com.palantir.atlasdb.timelock.watch.ImmutableLockIndexState;
+import com.palantir.atlasdb.timelock.watch.ImmutableLockWatchState;
+import com.palantir.atlasdb.timelock.watch.LockIndexState;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -373,6 +378,33 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                 .collect(Collectors.toSet());
 
         assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
+    }
+
+    @Test
+    public void lockWatchesAreResetAfterLeaderElection() {
+        int numTrials = 6;
+        Set<UUID> previousWatches = Sets.newHashSet();
+        for (int i = 0; i < numTrials; i++) {
+            UUID watch = CLUSTER.lockWatchService().registerWatch(
+                    ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK).build());
+            assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
+                    .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK))
+                    .build());
+            LockResponse response = CLUSTER.lock(LockRequest.of(ImmutableSet.of(LOCK), 1234L));
+            CLUSTER.unlock(response.getToken());
+            assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
+                    .addLockStates(
+                            ImmutableLockIndexState.builder()
+                                    .lockDescriptor(LOCK)
+                                    .lastLockSequence(1)
+                                    .lastUnlockSequence(2).build())
+                    .build());
+            for (UUID previousWatch : previousWatches) {
+
+            }
+            CLUSTER.failoverToNewLeader();
+            previousWatches.add(watch);
+        }
     }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {

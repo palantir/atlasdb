@@ -37,6 +37,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.watch.LockWatchResource;
+import com.palantir.atlasdb.timelock.watch.LockWatchResourceImpl;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
@@ -65,7 +66,11 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             String client,
             Supplier<ManagedTimestampService> rawTimestampServiceSupplier,
             Supplier<LockService> rawLockServiceSupplier) {
-        LockWatchResource lockWatchResource = new LockWatchResource();
+        LockWatchResource lockWatchResource = instrumentInLeadershipProxy(
+                metricsManager.getTaggedRegistry(),
+                LockWatchResource.class,
+                LockWatchResourceImpl::new,
+                client);
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         AsyncTimelockService asyncTimelockService = instrumentInLeadershipProxy(
                 metricsManager.getTaggedRegistry(),
@@ -104,7 +109,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private AsyncTimelockService createRawAsyncTimelockService(
             String client,
             Supplier<ManagedTimestampService> timestampServiceSupplier,
-            LockWatchResource lockWatchResource) {
+            LockWatchResource lockWatchResourceImpl) {
         ScheduledExecutorService reaperExecutor = new InstrumentedScheduledExecutorService(
                 PTExecutors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
                         .setNameFormat("async-lock-reaper-" + client + "-%d")
@@ -117,7 +122,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
                 AsyncLockService.createDefault(
-                        lockLog, reaperExecutor, timeoutExecutor, lockWatchResource.getEventProcessor()),
+                        lockLog, reaperExecutor, timeoutExecutor, lockWatchResourceImpl.getEventProcessor()),
                 timestampServiceSupplier.get());
     }
 
