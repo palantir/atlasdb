@@ -1297,6 +1297,12 @@ public abstract class AbstractKeyValueServiceTest {
         keyValueService.deleteRange(TEST_TABLE, range);
     }
 
+    private void setupTestRowsZeroOneAndTwoAndDeleteSpecific(List<byte[]> rows) {
+        putTestDataForRowsZeroOneAndTwo();
+        
+        keyValueService.deleteRows(TEST_TABLE, rows);
+    }
+
     private void checkThatTableIsNowOnly(byte[]... rows) {
         List<byte[]> keys = Lists.newArrayList();
         keyValueService.getRange(TEST_TABLE, RangeRequest.all(), AtlasDbConstants.MAX_TS)
