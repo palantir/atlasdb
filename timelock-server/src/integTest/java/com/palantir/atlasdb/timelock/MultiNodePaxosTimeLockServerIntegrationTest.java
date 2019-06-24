@@ -400,7 +400,8 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
                                     .lastUnlockSequence(2).build())
                     .build());
             for (UUID previousWatch : previousWatches) {
-
+                assertThatThrownBy(() -> CLUSTER.lockWatchService().getWatchState(previousWatch))
+                        .hasMessageContaining("404");
             }
             CLUSTER.failoverToNewLeader();
             previousWatches.add(watch);

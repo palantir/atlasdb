@@ -181,6 +181,7 @@ public class LockAcquirerTest {
         waitFor(lockA);
 
         verify(lockA).waitUntilAvailable(REQUEST_ID);
+        verify(lockA).getDescriptor();
         verifyNoMoreInteractions(lockA);
     }
 
