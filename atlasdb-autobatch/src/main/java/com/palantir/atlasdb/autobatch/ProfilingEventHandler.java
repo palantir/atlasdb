@@ -21,7 +21,7 @@ import com.lmax.disruptor.EventHandler;
 final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
     private final EventHandler<BatchElement<T, R>> delegateHandler;
-    private final BatchSizeLogger batchSizeLogger;
+    private final BatchSizeRecorder batchSizeRecorder;
 
     private int elementsSeenSoFar;
 
@@ -29,7 +29,7 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
             EventHandler<BatchElement<T, R>> delegateHandler,
             String safeIdentifier) {
         this.delegateHandler = delegateHandler;
-        this.batchSizeLogger = BatchSizeLogger.create(safeIdentifier);
+        this.batchSizeRecorder = BatchSizeRecorder.create(safeIdentifier);
     }
 
     @Override
@@ -39,7 +39,7 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
 
         if (endOfBatch) {
             // Shouldn't affect clients, because futures have already been completed
-            batchSizeLogger.markBatchProcessed(elementsSeenSoFar);
+            batchSizeRecorder.markBatchProcessed(elementsSeenSoFar);
             elementsSeenSoFar = 0;
         }
     }
