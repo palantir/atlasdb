@@ -30,7 +30,7 @@ public final class ServerListConfigs {
             String namespace) {
         ServerListConfig nonNamespacedConfig = runtimeConfig.get()
                 .map(TimeLockRuntimeConfig::serversList)
-                .orElse(installClientConfig.serversList());
+                .orElseGet(() -> installClientConfig.serversList());
         return namespaceUris(nonNamespacedConfig, namespace);
     }
 

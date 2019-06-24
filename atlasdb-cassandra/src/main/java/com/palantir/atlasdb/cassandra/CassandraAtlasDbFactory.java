@@ -104,7 +104,7 @@ public class CassandraAtlasDbFactory implements AtlasDbFactory {
 
                 latestValidRuntimeConfig = (CassandraKeyValueServiceRuntimeConfig) config;
                 return latestValidRuntimeConfig;
-            }).orElse(CassandraKeyValueServiceRuntimeConfig.getDefault());
+            }).orElseGet(CassandraKeyValueServiceRuntimeConfig::getDefault);
         };
     }
 

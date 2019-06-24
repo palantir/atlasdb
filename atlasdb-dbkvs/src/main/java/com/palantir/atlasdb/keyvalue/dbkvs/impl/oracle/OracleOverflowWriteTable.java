@@ -224,7 +224,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for delete on table {}: {}, autocommit={}",
+            log.debug("Got connection for delete on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
@@ -307,7 +307,7 @@ public final class OracleOverflowWriteTable implements DbWriteTable {
         String shortTableName = oraclePrefixedTableNames.get(tableRef, conns);
         SqlConnection conn = conns.get();
         try {
-            log.info("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
+            log.debug("Got connection for deleteAllTimestamps on table {}: {}, autocommit={}",
                     shortTableName,
                     conn.getUnderlyingConnection(),
                     conn.getUnderlyingConnection().getAutoCommit());
