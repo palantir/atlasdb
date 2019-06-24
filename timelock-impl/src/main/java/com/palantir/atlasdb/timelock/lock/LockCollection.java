@@ -20,9 +20,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import com.palantir.lock.LockDescriptor;
 
@@ -31,14 +30,9 @@ public class LockCollection {
     private final LoadingCache<LockDescriptor, ExclusiveLock> locksById;
 
     public LockCollection() {
-        locksById = CacheBuilder.newBuilder()
+        locksById = Caffeine.newBuilder()
                 .weakValues()
-                .build(new CacheLoader<LockDescriptor, ExclusiveLock>() {
-                    @Override
-                    public ExclusiveLock load(LockDescriptor descriptor) throws Exception {
-                        return new ExclusiveLock(descriptor);
-                    }
-                });
+                .build(ExclusiveLock::new);
     }
 
     public OrderedLocks getAll(Set<LockDescriptor> descriptors) {
@@ -51,14 +45,14 @@ public class LockCollection {
         return OrderedLocks.fromOrderedList(locks);
     }
 
-    private List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {
+    private static List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {
         List<LockDescriptor> orderedDescriptors = Lists.newArrayList(descriptors);
         orderedDescriptors.sort(Comparator.naturalOrder());
         return orderedDescriptors;
     }
 
     private AsyncLock getLock(LockDescriptor descriptor) {
-        return locksById.getUnchecked(descriptor);
+        return locksById.get(descriptor);
     }
 
 }
