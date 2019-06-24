@@ -27,7 +27,7 @@ import com.palantir.lock.LockDescriptor;
 
 public class LockCollection {
 
-    private final LoadingCache<LockDescriptor, ExclusiveLock> locksById;
+    private final LoadingCache<LockDescriptor, AsyncLock> locksById;
 
     public LockCollection() {
         locksById = Caffeine.newBuilder()
