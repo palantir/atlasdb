@@ -94,6 +94,26 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
     }
 
+    @Test
+    public void sweepValuesAcrossPartitions() {
+        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
+        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
+
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 5000);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 15000);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 31337);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 62626);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 71717);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 99999);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 161616);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 183255);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 201759);
+        put(TABLE_NAME, TEST_CELL, NEW_VALUE, 212837);
+
+        completeSweep(null, 222222);
+
+    }
+
     private Value getValue(TableReference tableRef, long ts) {
         return kvs.get(tableRef, ImmutableMap.of(TEST_CELL, ts)).get(TEST_CELL);
     }

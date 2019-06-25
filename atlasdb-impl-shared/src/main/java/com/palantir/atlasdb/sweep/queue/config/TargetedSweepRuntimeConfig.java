@@ -54,6 +54,16 @@ public abstract class TargetedSweepRuntimeConfig {
         return false;
     }
 
+    /**
+     * Specifies whether targeted sweep should attempt to read sweep queue information across multiple partitions
+     * before executing deletes. This is expected to improve the throughput of targeted sweep, at the expense
+     * of more uneven sweeping across different shards.
+     */
+    @Value.Default
+    public boolean batchReadsAcrossPartitions() {
+        return true;
+    }
+
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
