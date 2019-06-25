@@ -45,32 +45,29 @@ class SweepQueueReader {
         if (batchReadsAcrossPartitions.getAsBoolean()) {
             boolean shouldStop = false;
 
-            List<WriteInfo> allTheWrites = Lists.newArrayList();
-            List<SweepableCellsTable.SweepableCellsRow> allTheDedicatedRows = Lists.newArrayList();
+            List<WriteInfo> accumulatedWrites = Lists.newArrayList();
+            List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = Lists.newArrayList();
             long progressTimestamp = lastSweptTs;
 
             while (!shouldStop) {
-                Optional<Long> nextFinePartition
-                        = sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, progressTimestamp, sweepTs);
+                Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
+                        shardStrategy, progressTimestamp, sweepTs);
                 if (!nextFinePartition.isPresent()) {
                     progressTimestamp = sweepTs - 1;
                     shouldStop = true;
                 } else {
-                    System.out.println(sweepTs);
-                    System.out.println(nextFinePartition);
                     SweepBatch batch = sweepableCells.getBatchForPartition(
                             shardStrategy, nextFinePartition.get(), progressTimestamp, sweepTs);
-                    System.out.println(batch);
-                    allTheWrites.addAll(batch.writes());
-                    allTheDedicatedRows.addAll(batch.dedicatedRows().getDedicatedRows());
+                    accumulatedWrites.addAll(batch.writes());
+                    accumulatedDedicatedRows.addAll(batch.dedicatedRows().getDedicatedRows());
                     progressTimestamp = batch.lastSweptTimestamp();
-                    shouldStop = allTheWrites.size() > SweepQueueUtils.SWEEP_BATCH_SIZE
+                    shouldStop = accumulatedWrites.size() > SweepQueueUtils.SWEEP_BATCH_SIZE
                             || progressTimestamp >= (sweepTs - 1);
                 }
             }
             return ImmutableSweepBatch.builder()
-                    .writes(onlyTakeLatest(allTheWrites))
-                    .dedicatedRows(DedicatedRows.of(allTheDedicatedRows))
+                    .writes(onlyTakeLatest(accumulatedWrites))
+                    .dedicatedRows(DedicatedRows.of(accumulatedDedicatedRows))
                     .lastSweptTimestamp(progressTimestamp)
                     .build();
         }
@@ -78,7 +75,6 @@ class SweepQueueReader {
     }
 
     private List<WriteInfo> onlyTakeLatest(List<WriteInfo> allTheWrites) {
-        List<WriteInfo> finalResults = Lists.newArrayList();
         Map<WriteReference, List<WriteInfo>> writes = allTheWrites.stream()
                 .collect(Collectors.groupingBy(WriteInfo::writeRef));
         return KeyedStream.stream(writes)
