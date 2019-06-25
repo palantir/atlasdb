@@ -61,7 +61,7 @@ public abstract class TargetedSweepRuntimeConfig {
      */
     @Value.Default
     public boolean batchReadsAcrossPartitions() {
-        return true;
+        return false;
     }
 
     @Value.Check

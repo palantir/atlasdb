@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.WriteReference;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCellReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import com.palantir.common.streams.KeyedStream;
 
@@ -56,17 +57,20 @@ class SweepQueueReader {
                     progressTimestamp = sweepTs - 1;
                     shouldStop = true;
                 } else {
+                    System.out.println(nextFinePartition);
                     SweepBatch batch = sweepableCells.getBatchForPartition(
                             shardStrategy, nextFinePartition.get(), progressTimestamp, sweepTs);
+                    System.out.println(batch);
                     accumulatedWrites.addAll(batch.writes());
                     accumulatedDedicatedRows.addAll(batch.dedicatedRows().getDedicatedRows());
                     progressTimestamp = batch.lastSweptTimestamp();
                     shouldStop = accumulatedWrites.size() > SweepQueueUtils.SWEEP_BATCH_SIZE
+                            || batch.isEmpty()
                             || progressTimestamp >= (sweepTs - 1);
                 }
             }
             return ImmutableSweepBatch.builder()
-                    .writes(onlyTakeLatest(accumulatedWrites))
+                    .writes(takeLatestByCellReference(accumulatedWrites))
                     .dedicatedRows(DedicatedRows.of(accumulatedDedicatedRows))
                     .lastSweptTimestamp(progressTimestamp)
                     .build();
@@ -74,9 +78,12 @@ class SweepQueueReader {
         return getBatchFromSingleFinePartition(shardStrategy, lastSweptTs, sweepTs);
     }
 
-    private List<WriteInfo> onlyTakeLatest(List<WriteInfo> allTheWrites) {
-        Map<WriteReference, List<WriteInfo>> writes = allTheWrites.stream()
-                .collect(Collectors.groupingBy(WriteInfo::writeRef));
+    private List<WriteInfo> takeLatestByCellReference(List<WriteInfo> allTheWrites) {
+        Map<CellReference, List<WriteInfo>> writes = allTheWrites.stream()
+                .collect(Collectors.groupingBy(writeInfo -> ImmutableCellReference.builder()
+                        .cell(writeInfo.cell())
+                        .tableRef(writeInfo.tableRef())
+                        .build()));
         return KeyedStream.stream(writes)
                 .map(list -> list.stream().max(Comparator.comparing(WriteInfo::timestamp)))
                 .map(Optional::get) // groupingBy() won't return empty lists

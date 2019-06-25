@@ -377,10 +377,10 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     void deleteDedicatedRows(DedicatedRows dedicatedRows) {
-        List<byte[]> persistedRows = dedicatedRows.getDedicatedRows().stream()
+        dedicatedRows.getDedicatedRows().stream()
                 .map(SweepableCellsRow::persistToBytes)
-                .collect(Collectors.toList());
-        deleteRows(persistedRows);
+                .map(dedicatedRow -> computeRangeRequestForRows(dedicatedRow, dedicatedRow))
+                .forEach(this::deleteRange);
     }
 
     void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, long partitionFine) {

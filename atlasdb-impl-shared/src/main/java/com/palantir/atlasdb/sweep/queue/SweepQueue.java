@@ -130,8 +130,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         SweepBatch sweepBatch = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
 
-        System.out.println(sweepBatch);
-
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
         if (!sweepBatch.isEmpty()) {
