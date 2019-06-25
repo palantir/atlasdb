@@ -17,6 +17,7 @@ package com.palantir.timelock.paxos;
 
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -41,6 +42,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -51,12 +53,17 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     private final MetricsManager metricsManager;
     private final LockLog lockLog;
     private final PaxosLeadershipCreator leadershipCreator;
+    private final Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier;
 
-    public AsyncTimeLockServicesCreator(MetricsManager metricsManager,
-            LockLog lockLog, PaxosLeadershipCreator leadershipCreator) {
+    public AsyncTimeLockServicesCreator(
+            MetricsManager metricsManager,
+            LockLog lockLog,
+            PaxosLeadershipCreator leadershipCreator,
+            Supplier<TargetedSweepLockControlConfig> lockControlConfigSupplier) {
         this.metricsManager = metricsManager;
         this.lockLog = lockLog;
         this.leadershipCreator = leadershipCreator;
+        this.lockControlConfigSupplier = lockControlConfigSupplier;
     }
 
     @Override
@@ -112,8 +119,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor),
+                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor, shouldRateLimit(client)),
                 timestampServiceSupplier.get());
+    }
+
+    private BooleanSupplier shouldRateLimit(String client) {
+        return Suppliers.compose(f -> f.shouldRateLimit(client), lockControlConfigSupplier::get)::get;
     }
 
     private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,
