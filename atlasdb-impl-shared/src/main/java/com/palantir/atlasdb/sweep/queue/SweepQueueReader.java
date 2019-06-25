@@ -94,6 +94,7 @@ class SweepQueueReader {
     private SweepBatch getBatchFromSingleFinePartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
                 .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElseGet(() -> SweepBatch.of(ImmutableList.of(), DedicatedRows.of(ImmutableList.of()), sweepTs - 1L));
+                .orElseGet(() -> SweepBatch.of(
+                        ImmutableList.of(), DedicatedRows.of(ImmutableList.of()), sweepTs - 1L));
     }
 }
