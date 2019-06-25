@@ -330,14 +330,15 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
-     * Deletes multiple rows from the key-value store.
+     * Deletes multiple complete rows from the key-value store.
      *
      * Does not guarantee atomicity in any way (deletes may be partial within *any* of the rows provided, and
      * there is no guarantee of any correlation or lack thereof between success of the deletes for each of the rows
      * provided).
      *
-     * Some systems may require more nodes to be up to ensure that a delete is successful. If this
-     * is the case then this method may throw if the delete can't be completed on all nodes.
+     * Some systems may require more nodes to be up to ensure that a delete is successful. If this is the case then
+     * this method may throw if the delete can't be completed on all nodes. Please be aware that if it does throw,
+     * some deletes may have been applied on some nodes.
      *
      * @param tableRef the name of the table to delete values from.
      * @param rows rows to delete
