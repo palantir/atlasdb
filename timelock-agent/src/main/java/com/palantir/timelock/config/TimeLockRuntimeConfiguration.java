@@ -55,6 +55,12 @@ public abstract class TimeLockRuntimeConfiguration {
         return 10000;
     }
 
+    @JsonProperty("targeted-sweep-locks")
+    @Value.Default
+    public TargetedSweepLockControlConfig targetedSweepLockControlConfig() {
+        return TargetedSweepLockControlConfig.defaultConfig();
+    }
+
     @Value.Check
     public void check() {
         Preconditions.checkState(maxNumberOfClients() >= 0,
