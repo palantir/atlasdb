@@ -27,6 +27,7 @@ import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.util.paging.BasicResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
@@ -347,6 +348,7 @@ public interface KeyValueService extends AutoCloseable {
      * @param rows rows to delete
      */
     @Idempotent
+    @DoNotDelegate
     default void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
         rows.forEach(row -> deleteRange(tableRef, RangeRequests.ofSingleRow(row)));
     }
