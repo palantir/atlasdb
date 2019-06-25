@@ -1086,6 +1086,42 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void deleteRowsWithNothing() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of());
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesOneRow() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2), row(1)));
+        checkThatTableIsNowOnly();
+    }
+
+    @Test
+    public void deleteRowsDeletesMultipleNoncontiguousRows() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(2)));
+        checkThatTableIsNowOnly(row(1));
+    }
+
+    @Test
+    public void deleteRowsIgnoresRowsThatDoNotExist() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(5), row(7)));
+        checkThatTableIsNowOnly(row(0), row(1), row(2));
+    }
+
+    @Test
+    public void deleteRowsResilientToDuplicates() {
+        setupTestRowsZeroOneAndTwoAndDeleteSpecific(ImmutableList.of(row(0), row(0), row(0), row(0)));
+        checkThatTableIsNowOnly(row(1), row(2));
+    }
+
+    @Test
     public void deleteTimestampRangesIgnoresEmptyMap() {
         keyValueService.deleteAllTimestamps(TEST_TABLE, ImmutableMap.of());
     }
@@ -1299,7 +1335,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     private void setupTestRowsZeroOneAndTwoAndDeleteSpecific(List<byte[]> rows) {
         putTestDataForRowsZeroOneAndTwo();
-        
+
         keyValueService.deleteRows(TEST_TABLE, rows);
     }
 

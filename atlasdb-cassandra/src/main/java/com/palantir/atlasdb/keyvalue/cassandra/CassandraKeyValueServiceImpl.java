@@ -1580,17 +1580,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
         long timestamp = mutationTimestampProvider.getRemoveTimestamp();
-        Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap
-                = KeyedStream.of(StreamSupport.stream(rows.spliterator(), false))
-                .mapKeys(ByteBuffer::wrap)
-                .map(row -> new Deletion().setTimestamp(timestamp).setPredicate(new SlicePredicate()))
+        Set<ByteBuffer> actualKeys = StreamSupport.stream(rows.spliterator(), false)
+                .map(ByteBuffer::wrap)
+                .collect(Collectors.toSet());
+
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap = KeyedStream.of(actualKeys)
+                .map(row -> new Deletion().setTimestamp(timestamp))
                 .map(deletion -> new Mutation().setDeletion(deletion))
                 .map(mutation -> keyMutationMapByColumnFamily(tableRef, mutation))
                 .collectToMap();
 
         try {
             clientPool.runWithRetry(client -> {
-                client.batch_mutate("deleteRanges", mutationMap, DELETE_CONSISTENCY);
+                client.batch_mutate("deleteRows", mutationMap, DELETE_CONSISTENCY);
+                System.out.println("batch mutate" + mutationMap);
                 return null;
             });
         } catch (UnavailableException e) {
@@ -1603,7 +1606,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
             Mutation mutation) {
-        return ImmutableMap.of(CassandraKeyValueServiceImpl.internalTableName(tableRef), ImmutableList.of(mutation));
+        return ImmutableMap.of(AbstractKeyValueService.internalTableName(tableRef), ImmutableList.of(mutation));
     }
 
     @Override
