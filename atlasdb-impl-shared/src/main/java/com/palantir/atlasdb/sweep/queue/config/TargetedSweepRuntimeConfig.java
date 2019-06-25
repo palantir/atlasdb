@@ -54,15 +54,6 @@ public abstract class TargetedSweepRuntimeConfig {
         return false;
     }
 
-    /**
-     * If true, we may read information from multiple partitions before performing deletes. This may reduce RPC
-     * overhead, as deletes can be batched together.
-     */
-    @Value.Default
-    public boolean batchAcrossFinePartitions() {
-        return false;
-    }
-
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,
