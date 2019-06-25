@@ -1593,7 +1593,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             clientPool.runWithRetry(client -> {
                 client.batch_mutate("deleteRows", mutationMap, DELETE_CONSISTENCY);
-                System.out.println("batch mutate" + mutationMap);
                 return null;
             });
         } catch (UnavailableException e) {
