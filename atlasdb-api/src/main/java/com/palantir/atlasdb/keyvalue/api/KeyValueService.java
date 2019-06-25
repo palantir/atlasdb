@@ -340,6 +340,9 @@ public interface KeyValueService extends AutoCloseable {
      * this method may throw if the delete can't be completed on all nodes. Please be aware that if it does throw,
      * some deletes may have been applied on some nodes.
      *
+     * This method MAY require linearly many calls to the database in the number of rows, so should be used with
+     * caution.
+     *
      * @param tableRef the name of the table to delete values from.
      * @param rows rows to delete
      */
