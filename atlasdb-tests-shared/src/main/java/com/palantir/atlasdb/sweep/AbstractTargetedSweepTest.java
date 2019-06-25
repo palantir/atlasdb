@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -45,6 +46,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     private static final String OLD_VALUE = "old_value";
     private static final String NEW_VALUE = "new_value";
+    private static final String NEWER_VALUE = "newer_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
@@ -95,23 +97,25 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     }
 
     @Test
-    public void sweepValuesAcrossPartitions() {
+    public void targetedSweepCanSweepValuesAcrossPartitions() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
 
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 5000);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 15000);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 31337);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 62626);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 71717);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 99999);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 161616);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 183255);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 201759);
-        put(TABLE_NAME, TEST_CELL, NEW_VALUE, 212837);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY - 1);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY );
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY + 1);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 2 * SweepQueueUtils.TS_FINE_GRANULARITY - 1);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 1);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 2);
+        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 3);
+        put(TABLE_NAME, TEST_CELL, NEW_VALUE, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 42);
+        put(TABLE_NAME, TEST_CELL, NEWER_VALUE, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 3142);
 
-        completeSweep(null, 222222);
-
+        completeSweep(null, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 1111);
+        assertThat(getValue(TABLE_NAME, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 41))
+                .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
+        assertThat(getValue(TABLE_NAME, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 43))
+                .isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 42));
     }
 
     private Value getValue(TableReference tableRef, long ts) {
