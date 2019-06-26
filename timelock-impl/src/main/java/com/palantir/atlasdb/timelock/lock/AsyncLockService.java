@@ -42,6 +42,7 @@ public class AsyncLockService implements Closeable {
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
+    private final TargetedSweepLockDecorator decorator;
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
 
@@ -56,6 +57,7 @@ public class AsyncLockService implements Closeable {
                 TargetedSweepLockDecorator.create(shouldRateLimitTargetedSweepLock, timeoutExecutor);
         return new AsyncLockService(
                 new LockCollection(targetedSweepLockDecorator),
+                targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(lockLog, timeoutExecutor, clock),
                 HeldLocksCollection.create(clock),
@@ -67,6 +69,7 @@ public class AsyncLockService implements Closeable {
     @VisibleForTesting
     AsyncLockService(
             LockCollection locks,
+            TargetedSweepLockDecorator decorator,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
@@ -74,6 +77,7 @@ public class AsyncLockService implements Closeable {
             ScheduledExecutorService reaperExecutor,
             LeaderClock leaderClock) {
         this.locks = locks;
+        this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
@@ -165,6 +169,7 @@ public class AsyncLockService implements Closeable {
     @Override
     public void close() {
         reaperExecutor.shutdown();
+        decorator.close();
         heldLocks.failAllOutstandingRequestsWithNotCurrentLeaderException();
     }
 }
