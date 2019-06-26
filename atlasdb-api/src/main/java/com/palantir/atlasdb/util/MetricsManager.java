@@ -15,10 +15,10 @@
  */
 package com.palantir.atlasdb.util;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
@@ -57,8 +57,8 @@ public class MetricsManager {
             Predicate<TableReference> isSafeToLog) {
         this.metricRegistry = metricRegistry;
         this.taggedMetricRegistry = taggedMetricRegistry;
-        this.registeredMetrics = new HashSet<>();
-        this.registeredTaggedMetrics = new HashSet<>();
+        this.registeredMetrics = ConcurrentHashMap.newKeySet();
+        this.registeredTaggedMetrics = ConcurrentHashMap.newKeySet();
         this.isSafeToLog = isSafeToLog;
         this.lock = new ReentrantReadWriteLock();
     }
