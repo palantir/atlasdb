@@ -1220,7 +1220,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private void waitUntilSweepRunsOneIteration() throws InterruptedException {
-        Thread.sleep(3000L);
+        Thread.sleep(4000L);
     }
 
     private Map<Integer, Integer> enqueueAtLeastThresholdWritesInDefaultShardWithStartTs(long threshold, long startTs) {
