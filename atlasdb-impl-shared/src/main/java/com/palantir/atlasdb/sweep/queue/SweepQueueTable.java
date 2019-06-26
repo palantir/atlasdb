@@ -121,8 +121,4 @@ public abstract class SweepQueueTable {
     void deleteRange(RangeRequest request) {
         kvs.deleteRange(tableRef, request);
     }
-
-    void deleteRows(Iterable<byte[]> rows) {
-        kvs.deleteRows(tableRef, rows);
-    }
 }

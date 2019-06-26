@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
-import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.TableMetadata;
@@ -95,29 +94,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
                 .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
         assertThat(getValue(TABLE_NAME, 160)).isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 150));
     }
-
-    @Test
-    public void targetedSweepCanSweepValuesAcrossPartitions() {
-        createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
-        kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
-
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY - 1);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY );
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, SweepQueueUtils.TS_FINE_GRANULARITY + 1);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 2 * SweepQueueUtils.TS_FINE_GRANULARITY - 1);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 1);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 2);
-        put(TABLE_NAME, TEST_CELL, OLD_VALUE, 3 * SweepQueueUtils.TS_FINE_GRANULARITY + 3);
-        put(TABLE_NAME, TEST_CELL, NEW_VALUE, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 42);
-        put(TABLE_NAME, TEST_CELL, NEWER_VALUE, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 3142);
-
-        completeSweep(null, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 1111);
-        assertThat(getValue(TABLE_NAME, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 41))
-                .isEqualTo(Value.create(PtBytes.EMPTY_BYTE_ARRAY, Value.INVALID_VALUE_TIMESTAMP));
-        assertThat(getValue(TABLE_NAME, 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 43))
-                .isEqualTo(Value.create(PtBytes.toBytes(NEW_VALUE), 4 * SweepQueueUtils.TS_FINE_GRANULARITY + 42));
-    }
-
+    
     private Value getValue(TableReference tableRef, long ts) {
         return kvs.get(tableRef, ImmutableMap.of(TEST_CELL, ts)).get(TEST_CELL);
     }
