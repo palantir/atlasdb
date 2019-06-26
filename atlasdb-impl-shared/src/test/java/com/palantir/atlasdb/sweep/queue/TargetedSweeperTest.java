@@ -112,7 +112,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
                 .enabled(enabled)
                 .batchShardIterations(batchShardIterations)
-                .maximumPartitionsToBatchInSingleRead(1)
+                .maximumPartitionsToBatchInSingleRead(8)
                 .shards(DEFAULT_SHARDS)
                 .build();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
@@ -990,7 +990,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
 
-        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 2);
     }
 
     @Test

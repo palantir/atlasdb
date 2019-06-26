@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCellReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
-import com.palantir.common.streams.KeyedStream;
 
 class SweepBatchAccumulator {
     private final List<WriteInfo> accumulatedWrites = Lists.newArrayList();
@@ -80,10 +79,10 @@ class SweepBatchAccumulator {
                         .cell(writeInfo.cell())
                         .tableRef(writeInfo.tableRef())
                         .build()));
-        return KeyedStream.stream(writes)
+        return writes.values()
+                .stream()
                 .map(list -> list.stream().max(Comparator.comparing(WriteInfo::timestamp)))
                 .map(Optional::get) // groupingBy() won't return empty lists
-                .values()
                 .collect(Collectors.toList());
     }
 
