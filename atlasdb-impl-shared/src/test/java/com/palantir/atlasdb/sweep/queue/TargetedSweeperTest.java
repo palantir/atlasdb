@@ -52,6 +52,7 @@ import java.util.stream.IntStream;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -104,7 +105,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private PuncherStore puncherStore;
     private boolean enabled = true;
     private boolean batchShardIterations = false;
-    private boolean batchReadsAcrossPartitions = true;
 
     @Before
     public void setup() {
@@ -112,7 +112,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
                 .enabled(enabled)
                 .batchShardIterations(batchShardIterations)
-                .batchReadsAcrossPartitions(batchReadsAcrossPartitions)
+                .maximumPartitionsToBatchInSingleRead(1)
                 .shards(DEFAULT_SHARDS)
                 .build();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
@@ -647,15 +647,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    @Ignore // TODO (jkong): Fix this. Is this something reasonable to care about?
     public void canSweepAtMaximumTime() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS3);
 
-        // TODO jkong figure out what to do
-//        runConservativeSweepAtTimestamp(Long.MAX_VALUE);
-//        assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS3);
-//        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS3);
+        runConservativeSweepAtTimestamp(Long.MAX_VALUE);
+        assertReadAtTimestampReturnsSentinel(TABLE_CONS, LOW_TS3);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS3);
     }
 
     @Test

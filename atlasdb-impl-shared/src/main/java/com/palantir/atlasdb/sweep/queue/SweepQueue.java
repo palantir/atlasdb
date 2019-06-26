@@ -228,7 +228,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         private SweepQueueReader createReader() {
             return new SweepQueueReader(
-                    timestamps, cells, () -> runtimeConfigSupplier.get().batchReadsAcrossPartitions());
+                    timestamps, cells, () -> runtimeConfigSupplier.get().maximumPartitionsToBatchInSingleRead());
         }
 
         private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {

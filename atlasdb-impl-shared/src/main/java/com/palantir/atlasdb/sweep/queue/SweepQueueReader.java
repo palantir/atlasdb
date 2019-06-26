@@ -15,86 +15,40 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.BooleanSupplier;
-import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.ImmutableCellReference;
-import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
-import com.palantir.common.streams.KeyedStream;
+import java.util.function.IntSupplier;
 
 class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
-    private final BooleanSupplier batchReadsAcrossPartitions;
+    private final IntSupplier maximumPartitionsToBatchInSingleRead;
 
     SweepQueueReader(SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
-            BooleanSupplier batchReadsAcrossPartitions) {
+            IntSupplier maximumPartitionsToBatchInSingleRead) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
-        this.batchReadsAcrossPartitions = batchReadsAcrossPartitions;
+        this.maximumPartitionsToBatchInSingleRead = maximumPartitionsToBatchInSingleRead;
     }
 
     SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        if (batchReadsAcrossPartitions.getAsBoolean()) {
-            boolean shouldStop = false;
-
-            List<WriteInfo> accumulatedWrites = Lists.newArrayList();
-            List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = Lists.newArrayList();
-            long progressTimestamp = lastSweptTs;
-
-            while (!shouldStop) {
-                Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
-                        shardStrategy, progressTimestamp, sweepTs);
-                if (!nextFinePartition.isPresent()) {
-                    progressTimestamp = sweepTs - 1;
-                    shouldStop = true;
-                } else {
-                    System.out.println(nextFinePartition);
-                    SweepBatch batch = sweepableCells.getBatchForPartition(
-                            shardStrategy, nextFinePartition.get(), progressTimestamp, sweepTs);
-                    System.out.println(batch);
-                    accumulatedWrites.addAll(batch.writes());
-                    accumulatedDedicatedRows.addAll(batch.dedicatedRows().getDedicatedRows());
-                    progressTimestamp = batch.lastSweptTimestamp();
-                    shouldStop = accumulatedWrites.size() > SweepQueueUtils.SWEEP_BATCH_SIZE
-                            || batch.isEmpty()
-                            || progressTimestamp >= (sweepTs - 1);
-                }
+        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, lastSweptTs);
+        for (int currentBatch = 0;
+                currentBatch < maximumPartitionsToBatchInSingleRead.getAsInt()
+                        && accumulator.shouldAcceptAdditionalBatch();
+                currentBatch++) {
+            Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
+                    shardStrategy, accumulator.getProgressTimestamp(), sweepTs);
+            if (!nextFinePartition.isPresent()) {
+                return accumulator.toSweepBatch();
             }
-            return ImmutableSweepBatch.builder()
-                    .writes(takeLatestByCellReference(accumulatedWrites))
-                    .dedicatedRows(DedicatedRows.of(accumulatedDedicatedRows))
-                    .lastSweptTimestamp(progressTimestamp)
-                    .build();
+            SweepBatch batch = sweepableCells.getBatchForPartition(
+                    shardStrategy, nextFinePartition.get(), accumulator.getProgressTimestamp(), sweepTs);
+            accumulator.accumulateBatch(batch);
+            if (batch.isEmpty()) {
+                return accumulator.toSweepBatch();
+            }
         }
-        return getBatchFromSingleFinePartition(shardStrategy, lastSweptTs, sweepTs);
-    }
-
-    private List<WriteInfo> takeLatestByCellReference(List<WriteInfo> allTheWrites) {
-        Map<CellReference, List<WriteInfo>> writes = allTheWrites.stream()
-                .collect(Collectors.groupingBy(writeInfo -> ImmutableCellReference.builder()
-                        .cell(writeInfo.cell())
-                        .tableRef(writeInfo.tableRef())
-                        .build()));
-        return KeyedStream.stream(writes)
-                .map(list -> list.stream().max(Comparator.comparing(WriteInfo::timestamp)))
-                .map(Optional::get) // groupingBy() won't return empty lists
-                .values()
-                .collect(Collectors.toList());
-    }
-
-    private SweepBatch getBatchFromSingleFinePartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
-                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElseGet(() -> SweepBatch.of(
-                        ImmutableList.of(), DedicatedRows.of(ImmutableList.of()), sweepTs - 1L));
+        return accumulator.toSweepBatch();
     }
 }
