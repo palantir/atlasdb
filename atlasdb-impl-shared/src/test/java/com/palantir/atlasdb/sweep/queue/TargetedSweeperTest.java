@@ -52,7 +52,6 @@ import java.util.stream.IntStream;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -112,7 +111,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
                 .enabled(enabled)
                 .batchShardIterations(batchShardIterations)
-                .maximumPartitionsToBatchInSingleRead(8)
+                .maximumPartitionsToBatchInSingleRead(1)
                 .shards(DEFAULT_SHARDS)
                 .build();
         sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager, runtime);
@@ -649,7 +648,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    @Ignore // TODO (jkong): Fix this. Is this something reasonable to care about?
     public void canSweepAtMaximumTime() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);
@@ -1004,11 +1002,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 8);
         // write in the next fine partition
         enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
-        enqueueTombstone(TABLE_CONS, maxTsForFinePartition(0) + 2);
 
         sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
 
-        assertReadAtTimestampReturnsSentinel(TABLE_CONS, maxTsForFinePartition(0) + 1);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
 
     private void writeValuesAroundSweepTimestampAndSweepAndCheck(long sweepTimestamp, int sweepIterations) {
