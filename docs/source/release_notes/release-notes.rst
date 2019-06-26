@@ -91,7 +91,7 @@ develop
 
     *    - |improved|
          - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4097>`__)
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
 
 ========
 v0.144.0
