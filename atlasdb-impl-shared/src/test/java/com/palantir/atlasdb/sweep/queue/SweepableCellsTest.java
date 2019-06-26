@@ -17,9 +17,11 @@ package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import static com.palantir.atlasdb.sweep.queue.ShardAndStrategy.conservative;
@@ -375,6 +377,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         sweepableCells.deleteDedicatedRows(dedicatedRows);
 
         verifyRowsDeletedFromSweepQueue(dedicatedRows.getDedicatedRows());
+        verify(spiedKvs, times(1)).deleteRows(eq(SWEEP_QUEUE_TABLE), any());
     }
 
     @Test
