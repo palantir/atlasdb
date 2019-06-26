@@ -34,7 +34,10 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
 
-final class TargetedSweepLockDecorator implements OrderedLocksDecorator, Closeable {
+public final class TargetedSweepLockDecorator implements OrderedLocksDecorator, Closeable {
+
+    @VisibleForTesting
+    public static final int LOCK_ACQUIRES_PER_SECOND = 2;
 
     private static final LockDescriptor PREFIX = StringLockDescriptor.of("shard 0");
     private static final LockDescriptor NEXT_LEX_PREFIX = StringLockDescriptor.of("shard :");
@@ -51,7 +54,7 @@ final class TargetedSweepLockDecorator implements OrderedLocksDecorator, Closeab
         targetedSweepRateLimitersById = Caffeine.newBuilder()
                 .build(delegateLock -> new TargetedSweepAsyncLock(
                         delegateLock,
-                        RateLimiter.create(2),
+                        RateLimiter.create(LOCK_ACQUIRES_PER_SECOND),
                         isRateLimiting,
                         timeoutExecutor,
                         unlocker));
