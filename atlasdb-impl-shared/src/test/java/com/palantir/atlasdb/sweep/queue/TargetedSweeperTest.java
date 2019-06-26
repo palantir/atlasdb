@@ -988,7 +988,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
 
-        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 2);
+        assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
 
     @Test
