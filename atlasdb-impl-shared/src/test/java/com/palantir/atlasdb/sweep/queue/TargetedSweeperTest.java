@@ -52,7 +52,6 @@ import java.util.stream.IntStream;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -649,7 +648,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    @Ignore // TODO (jkong): Fix this. Is this something reasonable to care about?
     public void canSweepAtMaximumTime() {
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS2);

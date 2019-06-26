@@ -30,6 +30,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -44,8 +45,6 @@ import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableTargetedSweepMetadata;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
@@ -402,16 +401,14 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     private void verifyRowsDeletedFromSweepQueue(List<SweepableCellsRow> rows) {
-        ArgumentCaptor<RangeRequest> captor = ArgumentCaptor.forClass(RangeRequest.class);
-        verify(spiedKvs, atLeast(0)).deleteRange(eq(SWEEP_QUEUE_TABLE), captor.capture());
+        ArgumentCaptor<List<byte[]>> captor = ArgumentCaptor.forClass(List.class);
+        verify(spiedKvs, atLeast(0)).deleteRows(eq(SWEEP_QUEUE_TABLE), captor.capture());
 
-        List<RangeRequest> expectedRangesToDelete = rows.stream()
-                .map(row -> RangeRequest.builder()
-                        .startRowInclusive(row)
-                        .endRowExclusive(RangeRequests.nextLexicographicName(row.persistToBytes()))
-                        .build())
+        List<byte[]> expectedValuesToDelete = rows.stream()
+                .map(SweepableCellsRow::persistToBytes)
                 .collect(Collectors.toList());
-        assertThat(captor.getAllValues()).hasSameElementsAs(expectedRangesToDelete);
+        assertThat(captor.getAllValues().stream().flatMap(Collection::stream).collect(Collectors.toList()))
+                .hasSameElementsAs(expectedValuesToDelete);
     }
 
     private SweepBatch readConservative(int shard, long partition, long minExclusive, long maxExclusive) {
