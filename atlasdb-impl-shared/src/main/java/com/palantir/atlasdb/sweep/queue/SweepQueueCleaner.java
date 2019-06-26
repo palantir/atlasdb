@@ -50,7 +50,7 @@ public class SweepQueueCleaner {
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        if (firstIterationOfSweep(oldProgress) && SweepQueueUtils.tsPartitionFine(newProgress + 1) == 0) {
+        if (firstIterationAndStillInFirstPartition(oldProgress, newProgress)) {
             return;
         }
 
@@ -67,6 +67,10 @@ public class SweepQueueCleaner {
                     LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
                     SafeArg.of("partition", currentPartition));
         }
+    }
+
+    private boolean firstIterationAndStillInFirstPartition(long oldProgress, long newProgress) {
+        return firstIterationOfSweep(oldProgress) && SweepQueueUtils.tsPartitionFine(newProgress + 1) == 0;
     }
 
     private void cleanDedicatedRows(DedicatedRows dedicatedRows) {

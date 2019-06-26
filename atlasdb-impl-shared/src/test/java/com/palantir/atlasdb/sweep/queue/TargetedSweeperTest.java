@@ -516,7 +516,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     @Test
-    public void sweepableCellsGetsScrubbedWheneverLastSweptInNewPartition() {
+    public void sweepableCellsGetsScrubbedWheneverPartitionIsCompletelySwept() {
         long tsSecondPartitionFine = LOW_TS + TS_FINE_GRANULARITY;
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 1L);
@@ -525,17 +525,19 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, tsSecondPartitionFine);
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
 
-        // last swept timestamp: TS_FINE_GRANULARITY - 1
-        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
-        assertSweepableCellsHasEntryForTimestamp(LOW_TS + 1);
-        assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
-        assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
-
-        // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1
+        // last swept timestamp: TS_FINE_GRANULARITY - 1: fine partition 0 is completely swept
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(tsSecondPartitionFine);
         assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
+        assertSweepableCellsHasNoDedicatedRowsForShard(CONS_SHARD);
+
+        // last swept timestamp: 2 * TS_FINE_GRANULARITY - 1: fine partition 1 is completely swept
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
+        assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(tsSecondPartitionFine);
+        assertSweepableCellsHasEntryForTimestamp(getSweepTsCons());
+        assertSweepableCellsHasNoDedicatedRowsForShard(CONS_SHARD);
 
         // last swept timestamp: largestBeforeSweepTs
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
