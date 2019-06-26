@@ -342,7 +342,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
         writeCommittedConservativeRowForTimestamp(TS + 3, MAX_CELLS_GENERIC);
         writeCommittedConservativeRowForTimestamp(TS + 5, MAX_CELLS_GENERIC);
 
-        sweepableCells.deleteNonDedicatedRow(ShardAndStrategy.conservative(0), TS_FINE_PARTITION);
+        sweepableCells.deleteNonDedicatedRows(ShardAndStrategy.conservative(0), ImmutableList.of(TS_FINE_PARTITION));
         SweepableCellsRow row = SweepableCellsRow.of(TS_FINE_PARTITION,
                 ImmutableTargetedSweepMetadata.builder()
                         .conservative(true)

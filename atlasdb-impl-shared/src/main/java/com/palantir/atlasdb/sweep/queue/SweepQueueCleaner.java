@@ -15,6 +15,10 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,16 +61,16 @@ public class SweepQueueCleaner {
         long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionFine(oldProgress);
         long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionFine(newProgress + 1);
 
-        for (long currentPartition = lastSweptPartitionPreviously;
-                currentPartition < minimumSweepPartitionNextIteration;
-                currentPartition++) {
-            // This is present for backcompat; we now clean up dedicated rows early.
-            cleanDedicatedRows(shardStrategy, currentPartition);
-            cleanNonDedicatedRow(shardStrategy, currentPartition);
-            log.info("Deleted persisted sweep queue information in table {} for partition {}.",
-                    LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
-                    SafeArg.of("partition", currentPartition));
-        }
+        List<Long> relevantPartitions = LongStream.range(lastSweptPartitionPreviously,
+                minimumSweepPartitionNextIteration)
+                .boxed()
+                .collect(Collectors.toList());
+        cleanDedicatedRows(shardStrategy, relevantPartitions);
+        cleanNonDedicatedRows(shardStrategy, relevantPartitions);
+
+        log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
+                LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
+                SafeArg.of("partitions", relevantPartitions));
     }
 
     private boolean firstIterationAndStillInFirstPartition(long oldProgress, long newProgress) {
@@ -77,12 +81,12 @@ public class SweepQueueCleaner {
         sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
-    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, long partitionToDelete) {
-        sweepableCells.deleteDedicatedRows(shardStrategy, partitionToDelete);
+    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, List<Long> partitionsToDelete) {
+        sweepableCells.deleteDedicatedRows(shardStrategy, partitionsToDelete);
     }
 
-    private void cleanNonDedicatedRow(ShardAndStrategy shardStrategy, long partitionToDelete) {
-        sweepableCells.deleteNonDedicatedRow(shardStrategy, partitionToDelete);
+    private void cleanNonDedicatedRows(ShardAndStrategy shardStrategy, List<Long> partitionsToDelete) {
+        sweepableCells.deleteNonDedicatedRows(shardStrategy, partitionsToDelete);
     }
 
     private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
