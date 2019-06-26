@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +48,14 @@ public class AsyncLockService implements Closeable {
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor) {
+            ScheduledExecutorService timeoutExecutor,
+            BooleanSupplier shouldRateLimitTargetedSweepLock) {
 
         LeaderClock clock = LeaderClock.create();
-
+        TargetedSweepLockDecorator targetedSweepLockDecorator =
+                TargetedSweepLockDecorator.create(shouldRateLimitTargetedSweepLock, timeoutExecutor);
         return new AsyncLockService(
-                new LockCollection(),
+                new LockCollection(targetedSweepLockDecorator),
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(lockLog, timeoutExecutor, clock),
                 HeldLocksCollection.create(clock),
