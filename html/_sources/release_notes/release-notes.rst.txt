@@ -89,6 +89,10 @@ develop
            should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
 
+    *    - |improved|
+         - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
+
 ========
 v0.144.0
 ========
