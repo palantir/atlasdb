@@ -61,8 +61,8 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     private static final String RATE_LIMITED_CLIENT = "should-rate-limit";
     private static final long TIMEOUT = Duration.ofMillis(100).toMillis();
 
-    private ListeningScheduledExecutorService nonRateLimitedExecutor = getExecutorService();
-    private ListeningScheduledExecutorService rateLimitedExecutor = getExecutorService();
+    private final ListeningScheduledExecutorService nonRateLimitedExecutor = getExecutorService();
+    private final ListeningScheduledExecutorService rateLimitedExecutor = getExecutorService();
 
     @After
     public void after() {
@@ -126,7 +126,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     }
 
     private static ListeningScheduledExecutorService getExecutorService() {
-        ScheduledThreadPoolExecutor delegate = PTExecutors.newScheduledThreadPoolExecutor(100);
+        ScheduledThreadPoolExecutor delegate = PTExecutors.newScheduledThreadPoolExecutor(10);
         return MoreExecutors.listeningDecorator(delegate);
     }
 
