@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.assertj.core.api.SoftAssertions;
 import org.assertj.core.data.Offset;
 import org.junit.Test;
 
@@ -40,6 +39,7 @@ import com.codahale.metrics.Meter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -60,61 +60,62 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     private static final String RATE_LIMITED_CLIENT = "should-rate-limit";
     private static final long TIMEOUT = Duration.ofMillis(100).toMillis();
 
-    private ListeningScheduledExecutorService executorService = getExecutorService();
-    private ListeningScheduledExecutorService executorService2 = getExecutorService();
+    private ListeningScheduledExecutorService nonRateLimitedExecutor = getExecutorService();
+    private ListeningScheduledExecutorService rateLimitedExecutor = getExecutorService();
 
     @Test
     public void full_ete() throws InterruptedException {
-        Pair<Meter, ListenableFuture<?>> nonTsLock = run(() -> nonTsLockRequest(), CLIENT, executorService);
-        Pair<Meter, ListenableFuture<?>> nonTsLock2 = run(() -> nonTsLockRequest(), CLIENT, executorService);
+        Pair<Meter, ListenableFuture<?>> nonTsLock = run(() -> nonTsLockRequest(), CLIENT, nonRateLimitedExecutor);
+        Pair<Meter, ListenableFuture<?>> nonTsLock2 = run(() -> nonTsLockRequest(), CLIENT, nonRateLimitedExecutor);
         Pair<Meter, ListenableFuture<?>> tsLock =
-                run(ShardAndStrategy.of(0, CONSERVATIVE), CLIENT, executorService);
+                run(ShardAndStrategy.of(0, CONSERVATIVE), CLIENT, nonRateLimitedExecutor);
         Pair<Meter, ListenableFuture<?>> tsLockDuplicated =
-                run(ShardAndStrategy.of(0, CONSERVATIVE), CLIENT, executorService);
+                run(ShardAndStrategy.of(0, CONSERVATIVE), CLIENT, nonRateLimitedExecutor);
         Pair<Meter, ListenableFuture<?>> tsLock2 =
-                run(ShardAndStrategy.of(0, THOROUGH), CLIENT, executorService);
+                run(ShardAndStrategy.of(0, THOROUGH), CLIENT, nonRateLimitedExecutor);
 
-        Pair<Meter, ListenableFuture<?>> nonTsLock_r =
-                run(() -> nonTsLockRequest(), RATE_LIMITED_CLIENT, executorService2);
-        Pair<Meter, ListenableFuture<?>> nonTsLock2_r =
-                run(() -> nonTsLockRequest(), RATE_LIMITED_CLIENT, executorService2);
-        Pair<Meter, ListenableFuture<?>> tsLock_r =
-                run(ShardAndStrategy.of(0, CONSERVATIVE), RATE_LIMITED_CLIENT, executorService2);
-        Pair<Meter, ListenableFuture<?>> tsLockDuplicated_r =
-                run(ShardAndStrategy.of(0, CONSERVATIVE), RATE_LIMITED_CLIENT, executorService2);
-        Pair<Meter, ListenableFuture<?>> tsLock2_r =
-                run(ShardAndStrategy.of(0, THOROUGH), RATE_LIMITED_CLIENT, executorService2);
+        Pair<Meter, ListenableFuture<?>> nonTsLockRateLimitedClient =
+                run(() -> nonTsLockRequest(), RATE_LIMITED_CLIENT, rateLimitedExecutor);
+        Pair<Meter, ListenableFuture<?>> nonTsLock2RateLimitedClient =
+                run(() -> nonTsLockRequest(), RATE_LIMITED_CLIENT, rateLimitedExecutor);
+        Pair<Meter, ListenableFuture<?>> tsLockRateLimitedClient =
+                run(ShardAndStrategy.of(0, CONSERVATIVE), RATE_LIMITED_CLIENT, rateLimitedExecutor);
+        Pair<Meter, ListenableFuture<?>> tsLockDuplicatedRateLimitedClient =
+                run(ShardAndStrategy.of(0, CONSERVATIVE), RATE_LIMITED_CLIENT, rateLimitedExecutor);
+        Pair<Meter, ListenableFuture<?>> tsLock2RateLimitedClient =
+                run(ShardAndStrategy.of(0, THOROUGH), RATE_LIMITED_CLIENT, rateLimitedExecutor);
 
         List<Pair<Meter, ListenableFuture<?>>> nonRateLimitedRuns =
                 ImmutableList.of(nonTsLock, nonTsLock2, tsLock, tsLockDuplicated, tsLock2);
 
-        List<Pair<Meter, ListenableFuture<?>>> rateLimitedRuns =
-                ImmutableList.of(nonTsLock_r, nonTsLock2_r, tsLock_r, tsLockDuplicated_r, tsLock2_r);
+        List<Pair<Meter, ListenableFuture<?>>> rateLimitedRuns = ImmutableList.of(
+                nonTsLockRateLimitedClient,
+                nonTsLock2RateLimitedClient,
+                tsLockRateLimitedClient,
+                tsLockDuplicatedRateLimitedClient,
+                tsLock2RateLimitedClient);
 
         Future<List<Object>> combinedFuture = asFuture(Iterables.concat(nonRateLimitedRuns, rateLimitedRuns));
 
         Thread.sleep(15_000);
         combinedFuture.cancel(true);
 
-        SoftAssertions softAssertions = new SoftAssertions();
-        softAssertions.assertThat(meanRates(nonRateLimitedRuns))
+        assertThat(meanRates(nonRateLimitedRuns))
                 .as("None of these should be rate limited")
                 .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isNotRateLimited);
 
-        List<Double> rateLimitedRunMeanRates = meanRates(rateLimitedRuns);
-        softAssertions.assertThat(rateLimitedRunMeanRates.subList(0, 2))
-                .as("first two non ts lock requests")
+        assertThat(meanRates(Lists.newArrayList(nonTsLockRateLimitedClient, nonTsLock2RateLimitedClient)))
+                .as("first two non ts lock requests are not rate limited")
                 .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isNotRateLimited);
 
-        softAssertions.assertThat(rateLimitedRunMeanRates.get(4))
+        assertThat(meanRate(tsLock2RateLimitedClient))
                 .as("last ts non-shared request is in rate limited correctly")
                 .isLessThan(LOCK_ACQUIRES_PER_SECOND + Offset.offset(0.3).value);
 
-        softAssertions.assertThat(rateLimitedRunMeanRates.get(2) + rateLimitedRunMeanRates.get(3))
+        assertThat(meanRate(tsLockRateLimitedClient) + meanRate(tsLockDuplicatedRateLimitedClient))
                 .as("adding rates for two separate requests for same lock should be within rate limit")
                 .isLessThan(LOCK_ACQUIRES_PER_SECOND + Offset.offset(0.3).value);
 
-        softAssertions.assertAll();
     }
 
     private static ListeningScheduledExecutorService getExecutorService() {
@@ -124,6 +125,10 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
 
     private static List<Double> meanRates(List<Pair<Meter, ListenableFuture<?>>> pairs) {
         return pairs.stream().map(Pair::getLhSide).map(Meter::getMeanRate).collect(Collectors.toList());
+    }
+
+    private static Double meanRate(Pair<Meter, ListenableFuture<?>> pair) {
+        return pair.lhSide.getMeanRate();
     }
 
     private static void isNotRateLimited(Double rate) {
@@ -137,17 +142,17 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     private Pair<Meter, ListenableFuture<?>> run(
             ShardAndStrategy shardAndStrategy,
             String client,
-            ListeningScheduledExecutorService executorService) {
-        return run(shardAndStrategy::toLockDescriptor, client, executorService);
+            ListeningScheduledExecutorService executor) {
+        return run(shardAndStrategy::toLockDescriptor, client, executor);
     }
 
     private Pair<Meter, ListenableFuture<?>> run(
             Supplier<LockDescriptor> descriptor,
             String client,
-            ListeningScheduledExecutorService executorService) {
+            ListeningScheduledExecutorService executor) {
         Meter meter = new Meter();
         AtomicReference<LockToken> lastHeldToken = new AtomicReference<>();
-        ListenableFuture<?> future = executorService.scheduleWithFixedDelay(() -> {
+        ListenableFuture<?> future = executor.scheduleWithFixedDelay(() -> {
             LockResponse response = cluster.timelockServiceForClient(client).lock(requestFor(descriptor.get()));
             if (!response.wasSuccessful()) {
                 return;

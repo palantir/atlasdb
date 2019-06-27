@@ -21,8 +21,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
-import javax.ws.rs.NotSupportedException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +51,10 @@ public class TargetedSweepAsyncLock implements AsyncLock {
     }
 
     /*
-        lock, unlock, timeout are synchronised, so we can't get into a situation where we've acquired a lock, but are
-        waiting for to acquire the rate limit permit, and then someone either times out the request id, unlocks, or does
-        some weird stuff
+        lock, unlock, timeout are synchronized, so we can't get into a situation where we've acquired a lock, but are
+        waiting for to acquire the rate limiter permit, and then someone either times out the request id, unlocks, or
+        does some weird stuff. Acquiring the rate limiter permit is done in either `lock` or `unlock` as they will
+        complete the future for the next request.
      */
     @Override
     public synchronized AsyncResult<Void> lock(UUID requestId) {
@@ -66,7 +65,7 @@ public class TargetedSweepAsyncLock implements AsyncLock {
                         - lock if there are no existing locks
                         - unlock by the previous request id
 
-                    Make both of these methods synchronised such that we can't sneak in a lock/unlock request to the
+                    Make both of these methods synchronized such that we can't sneak in a lock/unlock request to the
                     underlying lock and have two handlers running concurrently e.g. long gc pause
 
                     Downside of this approach means that if you get multiple lock requests whilst a lock is being
@@ -85,7 +84,8 @@ public class TargetedSweepAsyncLock implements AsyncLock {
         log.error("received waitUntilAvailable on a lock believed to be a targeted sweep lock",
                 SafeArg.of("requestId", requestId));
         // we shouldn't hit this in practice
-        throw new NotSupportedException();
+        throw new UnsupportedOperationException("received waitUntilAvailable on a lock believed to be a targeted "
+                + "sweep lock.");
     }
 
     /*

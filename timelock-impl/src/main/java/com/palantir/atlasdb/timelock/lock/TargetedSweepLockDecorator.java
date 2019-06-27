@@ -40,7 +40,7 @@ public final class TargetedSweepLockDecorator implements OrderedLocksDecorator, 
     public static final int LOCK_ACQUIRES_PER_SECOND = 2;
 
     private static final LockDescriptor PREFIX = StringLockDescriptor.of("shard 0");
-    private static final LockDescriptor NEXT_LEX_PREFIX = StringLockDescriptor.of("shard :");
+    private static final LockDescriptor NEXT_LEX_PREFIX = StringLockDescriptor.of("shard " + ('9' + 1));
 
     private final LoadingCache<AsyncLock, TargetedSweepAsyncLock> targetedSweepRateLimitersById;
     private final AutobatchingUnlocker unlockerAutobatcher;

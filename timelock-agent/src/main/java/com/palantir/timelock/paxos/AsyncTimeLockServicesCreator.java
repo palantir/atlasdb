@@ -124,7 +124,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
     }
 
     private BooleanSupplier shouldRateLimit(String client) {
-        return Suppliers.compose(f -> f.shouldRateLimit(client), lockControlConfigSupplier::get)::get;
+        return () -> lockControlConfigSupplier.get().shouldRateLimit(client);
     }
 
     private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,

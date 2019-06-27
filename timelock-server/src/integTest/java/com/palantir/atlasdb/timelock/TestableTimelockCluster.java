@@ -218,13 +218,13 @@ public class TestableTimelockCluster {
     TimelockService timelockServiceForClient(String name) {
         return timelockServicesForClient.computeIfAbsent(
                 name,
-                client -> RemoteTimelockServiceAdapter.create(
-                        proxies.failoverForClient(client, TimelockRpcClient.class)));
+                clientName -> RemoteTimelockServiceAdapter.create(
+                        proxies.failoverForClient(clientName, TimelockRpcClient.class)));
     }
 
     TimeLockUnlocker unlockerForClient(String name) {
         return unlockerForClient.computeIfAbsent(name,
-                client -> AsyncTimeLockUnlocker.create(timelockServiceForClient(client)));
+                clientName -> AsyncTimeLockUnlocker.create(timelockServiceForClient(clientName)));
     }
 
     <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {

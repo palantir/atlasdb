@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import java.util.UUID;
 
-public interface TargetedSweepLockUnlocker {
+interface TargetedSweepLockUnlocker {
 
     void unlock(AsyncLock lock, UUID requestId);
 
