@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.assertj.core.data.Offset;
+import org.junit.After;
 import org.junit.Test;
 
 import com.codahale.metrics.Meter;
@@ -62,6 +63,12 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
 
     private ListeningScheduledExecutorService nonRateLimitedExecutor = getExecutorService();
     private ListeningScheduledExecutorService rateLimitedExecutor = getExecutorService();
+
+    @After
+    public void after() {
+        nonRateLimitedExecutor.shutdown();
+        rateLimitedExecutor.shutdown();
+    }
 
     @Test
     public void full_ete() throws InterruptedException {
