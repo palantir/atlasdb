@@ -117,10 +117,7 @@ class CellDeleter {
                 }
             });
         } catch (RetryLimitReachedException e) {
-            if (e.suppressed(UnavailableException.class) || e.suppressed(InsufficientConsistencyException.class)) {
-                throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", e);
-            }
-            throw e;
+            throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

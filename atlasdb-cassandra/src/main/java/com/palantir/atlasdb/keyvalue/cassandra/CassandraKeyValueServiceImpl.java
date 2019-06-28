@@ -1558,11 +1558,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     return null;
                 });
             } catch (RetryLimitReachedException e) {
-                if (e.suppressed(UnavailableException.class) || e.suppressed(InsufficientConsistencyException.class)) {
-                    throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.",
-                            e);
-                }
-                throw e;
+                throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }

@@ -308,20 +308,13 @@ public class CqlExecutorImpl implements CqlExecutor {
             try {
                 return clientPool.runWithRetryOnHost(host, cqlFunction);
             } catch (RetryLimitReachedException e) {
-                throw wrapIfConsistencyAll(e);
+                if (consistency.equals(ConsistencyLevel.ALL)) {
+                    throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
+                }
+                throw e;
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
-        }
-
-        private RuntimeException wrapIfConsistencyAll(RetryLimitReachedException e) {
-            if (consistency.equals(ConsistencyLevel.ALL)) {
-                if (e.suppressed(UnavailableException.class) || e.suppressed(InsufficientConsistencyException.class)) {
-                    throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.",
-                            e);
-                }
-            }
-            throw e;
         }
 
         private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
