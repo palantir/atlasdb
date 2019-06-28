@@ -437,6 +437,14 @@ argument will store them in descending order instead.</p>
 <p>You may also identify a row component as being explicitly safe or unsafe
 for logging. (If this is not specified it defaults to unsafe, or safe if
 the table was set to default components as being safe.)</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You may define an arbitrary number of row components. However, for compatibility
+with key-value-services where cell sizes are restricted, AtlasDB enforces a
+maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on row names. Please ensure
+that your rows will remain within that size <strong>for all possible inputs</strong> - be especially
+careful with component values that users may be able to define arbitrarily.</p>
+</div>
 <div class="section" id="partitioners">
 <span id="tables-and-indices-partitioners"></span><h4>Partitioners<a class="headerlink" href="#partitioners" title="Permalink to this headline">¶</a></h4>
 <p>Each row component, after being defined, may then have a partitioner
@@ -475,7 +483,7 @@ a VAR_LONG, a VAR_SIGNED_LONG, or a SIZED_BLOB.</p>
 </pre></div>
 </div>
 <p>Also, in the event that the first row component may not be sufficient for even
-distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
+distribution (e.g. it has low cardinality and/or an uneven distribution, but subsequent
 components are more varied), AtlasDB also offers hashing a prefix of the row key, via
 <code class="docutils literal notranslate"><span class="pre">hashFirstNRowComponents(int)</span></code>. This is useful, for instance, in stream stores.</p>
 <div class="code java highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rowName</span><span class="p">();</span>
@@ -486,7 +494,8 @@ components are more varied), AtlasDB also offers hashing a prefix of the row key
 </pre></div>
 </div>
 <p>This will prepend a hash of the first and second components of each row key to
-the table.</p>
+the table. Naturally, as hashing involves some overhead, please choose as few
+components as needed that will still ensure reasonable distribution.</p>
 </div>
 </div>
 <div class="section" id="table-named-columns">
@@ -501,11 +510,11 @@ public void column(String columnName, String shortName, Class&lt;?&gt; protoOrPe
 <p>The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
 character label which will be the actual name for the column when stored
-in AtlasDB. Any ValueType may be used as the value for a column, as well
-as any protobuffer class or Persistable. AtlasDB will handle serializing
-and deserializing the proto/persistable to and from its byte array
-representation, and will optionally also compress the byte array to save
-space using the method you specify. Columns can not be overloaded with
+in the underlying database. Any ValueType may be used as the value for a
+column, as well as any protobuffer class or Persistable. AtlasDB will handle
+serializing and deserializing the proto/persistable to and from its byte
+array representation, and will optionally also compress the byte array to
+save space using the method you specify. Columns can not be overloaded with
 multiple types - each <code class="docutils literal notranslate"><span class="pre">column()</span></code> call must contain unique column names
 and short names.</p>
 <p>Also, you may explicitly identify the name of this column to be safe or
@@ -543,6 +552,15 @@ can be a primitive ValueType or protobuf (optionally compressed).</p>
 <p>If values are not needed for the table, specifying
 <code class="docutils literal notranslate"><span class="pre">value(ValueType.VAR_LONG)</span></code> and <code class="docutils literal notranslate"><span class="pre">maxValueSize(1)</span></code> is conventional.
 The max value size command is a performance hint for AtlasDB.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You may define an arbitrary number of dynamic column key components. However,
+for compatibility with key-value-services where cell sizes are restricted, AtlasDB
+enforces a maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on column names.
+Please ensure that your dynamic column keys will remain within that size
+<strong>for all possible inputs</strong> - be especially careful with components that users may
+be able to define arbitrarily.</p>
+</div>
 </div>
 <div class="section" id="index-rows-and-columns">
 <h3>Index Rows and Columns<a class="headerlink" href="#index-rows-and-columns" title="Permalink to this headline">¶</a></h3>
