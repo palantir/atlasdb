@@ -89,6 +89,11 @@ develop
            should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
 
+    *    - |new|
+         - Added ability for timelock to rate limit targeted sweep lock requests to 2 per second. This is to reduce load on timelock for bad atlas
+           clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4096>`__)
+
     *    - |improved|
          - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
