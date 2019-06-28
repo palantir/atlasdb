@@ -24,7 +24,6 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 
 public class CassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
@@ -48,7 +47,7 @@ public class CassandraKvsSerializableTransactionTest extends AbstractSerializabl
                 keyValueService,
                 timelockService,
                 () -> 128,
-                TargetedSweepRuntimeConfig::defaultTargetedSweepRuntimeConfig);
+                () -> 1);
     }
 
     @Override
