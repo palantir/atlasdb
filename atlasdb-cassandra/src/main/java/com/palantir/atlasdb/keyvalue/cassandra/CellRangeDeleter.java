@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
@@ -99,9 +100,11 @@ class CellRangeDeleter {
                             + deletes.size() + " column timestamp ranges)";
                 }
             });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
-                    e);
+        } catch (RetryLimitReachedException e) {
+            if (e.encounteredInstanceOf(UnavailableException.class)) {
+                throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", e);
+            }
+            throw e;
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

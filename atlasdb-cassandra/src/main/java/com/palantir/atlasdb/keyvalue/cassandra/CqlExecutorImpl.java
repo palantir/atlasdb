@@ -48,6 +48,7 @@ import com.google.common.collect.Maps;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -306,20 +307,21 @@ public class CqlExecutorImpl implements CqlExecutor {
                 FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction, InetSocketAddress host) {
             try {
                 return clientPool.runWithRetryOnHost(host, cqlFunction);
-            } catch (UnavailableException e) {
+            } catch (RetryLimitReachedException e) {
                 throw wrapIfConsistencyAll(e);
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }
         }
 
-        private RuntimeException wrapIfConsistencyAll(UnavailableException ex) {
+        private RuntimeException wrapIfConsistencyAll(RetryLimitReachedException ex) {
             if (consistency.equals(ConsistencyLevel.ALL)) {
-                throw new InsufficientConsistencyException("This operation requires all Cassandra"
-                        + " nodes to be up and available.", ex);
-            } else {
-                throw Throwables.throwUncheckedException(ex);
+                if (ex.encounteredInstanceOf(UnavailableException.class)) {
+                    throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.",
+                            ex);
+                }
             }
+            throw ex;
         }
 
         private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {

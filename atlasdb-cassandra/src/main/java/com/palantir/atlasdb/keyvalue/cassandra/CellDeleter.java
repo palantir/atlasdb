@@ -34,6 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.common.base.FunctionCheckedException;
@@ -115,9 +116,11 @@ class CellDeleter {
                             + numVersions + " total versions of " + cellVersionsMap.size() + " keys)";
                 }
             });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be up and available.",
-                    e);
+        } catch (RetryLimitReachedException e) {
+            if (e.encounteredInstanceOf(UnavailableException.class)) {
+                throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", e);
+            }
+            throw e;
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

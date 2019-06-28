@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
+import com.google.common.collect.Streams;
 import com.palantir.common.exception.AtlasDbDependencyException;
 
 public class RetryLimitReachedException extends AtlasDbDependencyException {
@@ -26,5 +29,9 @@ public class RetryLimitReachedException extends AtlasDbDependencyException {
     public RetryLimitReachedException(List<Exception> exceptions) {
         super(String.format(MESSAGE, exceptions.size()));
         exceptions.forEach(this::addSuppressed);
+    }
+
+    public <E extends Exception> boolean encounteredInstanceOf(Class<E> type) {
+        return Arrays.stream(getSuppressed()).map(type::isInstance).anyMatch(x -> x);
     }
 }

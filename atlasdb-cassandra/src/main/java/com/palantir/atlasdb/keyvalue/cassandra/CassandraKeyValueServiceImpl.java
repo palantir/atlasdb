@@ -89,6 +89,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -1556,9 +1557,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     client.remove("deleteRange", tableRef, row, timestamp, DELETE_CONSISTENCY);
                     return null;
                 });
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException(
-                        "Deleting requires all Cassandra nodes to be up and available.", e);
+            } catch (RetryLimitReachedException e) {
+                if (e.encounteredInstanceOf(UnavailableException.class)) {
+                    throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.",
+                            e);
+                }
+                throw e;
             } catch (TException e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
