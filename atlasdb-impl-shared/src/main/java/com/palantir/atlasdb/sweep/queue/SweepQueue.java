@@ -128,7 +128,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 SafeArg.of("shardStrategy", shardStrategy.toText()),
                 SafeArg.of("sweepTs", sweepTs), SafeArg.of("lastSweptTs", lastSweptTs));
 
-        SweepBatch sweepBatch = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
+        SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
+        SweepBatch sweepBatch = batchWithInfo.sweepBatch();
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
@@ -139,7 +140,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
-        cleaner.clean(shardStrategy, lastSweptTs, sweepBatch.lastSweptTimestamp(), sweepBatch.dedicatedRows());
+        cleaner.clean(shardStrategy,
+                batchWithInfo.partitionsForlastSweptTs(lastSweptTs),
+                sweepBatch.lastSweptTimestamp(),
+                sweepBatch.dedicatedRows());
 
         metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());

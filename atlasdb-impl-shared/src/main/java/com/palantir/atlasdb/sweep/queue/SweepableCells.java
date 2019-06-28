@@ -380,12 +380,12 @@ public class SweepableCells extends SweepQueueTable {
                 .collect(Collectors.toList()));
     }
 
-    void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, List<Long> partitionFines) {
+    void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionFines) {
         deleteRows(getAllAssociatedDedicatedRows(shardAndStrategy, partitionFines));
     }
 
-    void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, List<Long> partitionFines) {
-        List<byte[]> rows = partitionFines.stream()
+    void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionFines) {
+        List<byte[]> rows = Streams.stream(partitionFines)
                 .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))
                 .map(SweepableCellsRow::persistToBytes)
                 .collect(Collectors.toList());
@@ -399,8 +399,8 @@ public class SweepableCells extends SweepQueueTable {
 
     private List<byte[]> getAllAssociatedDedicatedRows(
             ShardAndStrategy shardAndStrategy,
-            List<Long> partitionFines) {
-        List<SweepableCellsTable.SweepableCellsRow> rows = partitionFines.stream()
+            Iterable<Long> partitionFines) {
+        List<SweepableCellsTable.SweepableCellsRow> rows = Streams.stream(partitionFines)
                 .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))
                 .collect(Collectors.toList());
         RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRows(rows);

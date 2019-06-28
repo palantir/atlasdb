@@ -18,6 +18,8 @@ package com.palantir.atlasdb.sweep.queue;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -136,15 +138,11 @@ public class SweepableTimestamps extends SweepQueueTable {
      * @param shardStrategy desired shard and strategy
      * @param partitionCoarse coarse partition for which the row should be deleted
      */
-    void deleteRow(ShardAndStrategy shardStrategy, long partitionCoarse) {
-        byte[] rowBytes = computeRowBytes(shardStrategy, partitionCoarse);
+    void deleteCoarsePartitons(ShardAndStrategy shardStrategy, Set<Long> partitionsCoarse) {
+        Set<byte[]> rowsBytes = partitionsCoarse.stream()
+                .map(partition -> computeRowBytes(shardStrategy, partition))
+                .collect(Collectors.toSet());
 
-        RangeRequest request = RangeRequest.builder()
-                .startRowInclusive(rowBytes)
-                .endRowExclusive(RangeRequests.nextLexicographicName(rowBytes))
-                .retainColumns(ColumnSelection.all())
-                .build();
-
-        deleteRange(request);
+        deleteRows(rowsBytes);
     }
 }

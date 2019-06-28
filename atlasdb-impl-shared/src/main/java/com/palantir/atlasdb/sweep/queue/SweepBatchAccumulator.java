@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
-import com.palantir.atlasdb.keyvalue.api.ImmutableCellReference;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 
 class SweepBatchAccumulator {
     private final List<WriteInfo> accumulatedWrites = Lists.newArrayList();
+    private final Set<Long> finePartitions = Sets.newHashSet();
     private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = Lists.newArrayList();
     private final long sweepTimestamp;
 
@@ -52,6 +51,9 @@ class SweepBatchAccumulator {
                 sweepTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
+        sweepBatch.writes().stream()
+                .map(writeInfo -> SweepQueueUtils.tsPartitionFine(writeInfo.timestamp()))
+                .forEach(finePartitions::add);
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
         anyBatchesPresent = true;
@@ -61,11 +63,12 @@ class SweepBatchAccumulator {
         return progressTimestamp;
     }
 
-    SweepBatch toSweepBatch() {
-        return SweepBatch.of(
+    SweepBatchWithPartitionInfo toSweepBatch() {
+        SweepBatch sweepBatch = SweepBatch.of(
                 getLatestWritesByCellReference(),
                 DedicatedRows.of(accumulatedDedicatedRows),
                 getLastSweptTimestamp());
+        return SweepBatchWithPartitionInfo.of(sweepBatch, finePartitions);
     }
 
     boolean shouldAcceptAdditionalBatch() {
@@ -74,16 +77,10 @@ class SweepBatchAccumulator {
     }
 
     private List<WriteInfo> getLatestWritesByCellReference() {
-        Map<CellReference, List<WriteInfo>> writes = accumulatedWrites.stream()
-                .collect(Collectors.groupingBy(writeInfo -> ImmutableCellReference.builder()
-                        .cell(writeInfo.cell())
-                        .tableRef(writeInfo.tableRef())
-                        .build()));
-        return writes.values()
-                .stream()
-                .map(list -> list.stream().max(Comparator.comparing(WriteInfo::timestamp)))
-                .map(Optional::get) // groupingBy() won't return empty lists
-                .collect(Collectors.toList());
+        return ImmutableList.copyOf(
+                accumulatedWrites.stream()
+                .collect(Collectors.toMap(info -> info.writeRef().cellReference(), x -> x, WriteInfo::higherTimestamp))
+                .values());
     }
 
     private long getLastSweptTimestamp() {

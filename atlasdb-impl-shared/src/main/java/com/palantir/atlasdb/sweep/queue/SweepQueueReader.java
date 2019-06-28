@@ -31,7 +31,7 @@ class SweepQueueReader {
         this.maximumPartitionsToBatchInSingleRead = maximumPartitionsToBatchInSingleRead;
     }
 
-    SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, lastSweptTs);
         for (int currentBatch = 0;
                 currentBatch < maximumPartitionsToBatchInSingleRead.getAsInt()
