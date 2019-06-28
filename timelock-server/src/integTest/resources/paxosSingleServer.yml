@@ -16,7 +16,10 @@ install:
   timestampBoundPersistence:
 
 runtime:
-  paxos:
+  targeted-sweep-locks:
+    mode: disabled-by-default
+    excluded-clients:
+      - should-rate-limit
 
 server:
   minThreads: 1

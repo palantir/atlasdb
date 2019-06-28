@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +42,22 @@ public class AsyncLockService implements Closeable {
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
+    private final TargetedSweepLockDecorator decorator;
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
 
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
-            ScheduledExecutorService timeoutExecutor) {
+            ScheduledExecutorService timeoutExecutor,
+            BooleanSupplier shouldRateLimitTargetedSweepLock) {
 
         LeaderClock clock = LeaderClock.create();
-
+        TargetedSweepLockDecorator targetedSweepLockDecorator =
+                TargetedSweepLockDecorator.create(shouldRateLimitTargetedSweepLock, timeoutExecutor);
         return new AsyncLockService(
-                new LockCollection(),
+                new LockCollection(targetedSweepLockDecorator),
+                targetedSweepLockDecorator,
                 new ImmutableTimestampTracker(),
                 new LockAcquirer(lockLog, timeoutExecutor, clock),
                 HeldLocksCollection.create(clock),
@@ -64,6 +69,7 @@ public class AsyncLockService implements Closeable {
     @VisibleForTesting
     AsyncLockService(
             LockCollection locks,
+            TargetedSweepLockDecorator decorator,
             ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
@@ -71,6 +77,7 @@ public class AsyncLockService implements Closeable {
             ScheduledExecutorService reaperExecutor,
             LeaderClock leaderClock) {
         this.locks = locks;
+        this.decorator = decorator;
         this.immutableTsTracker = immutableTimestampTracker;
         this.lockAcquirer = acquirer;
         this.heldLocks = heldLocks;
@@ -162,6 +169,7 @@ public class AsyncLockService implements Closeable {
     @Override
     public void close() {
         reaperExecutor.shutdown();
+        decorator.close();
         heldLocks.failAllOutstandingRequestsWithNotCurrentLeaderException();
     }
 }
