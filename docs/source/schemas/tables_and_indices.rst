@@ -310,7 +310,8 @@ the table was set to default components as being safe.)
    You may define an arbitrary number of row components. However, for compatibility
    with key-value-services where cell sizes are restricted, AtlasDB enforces a
    maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on row names. Please ensure
-   that your rows remain within that size.
+   that your rows will remain within that size **for all possible inputs** - be especially
+   careful with component values that users may be able to define arbitrarily.
 
 .. _tables-and-indices-partitioners:
 
@@ -441,10 +442,12 @@ The max value size command is a performance hint for AtlasDB.
 
 .. warning::
 
-   You may define an arbitrary number of dynamic column components. However,
+   You may define an arbitrary number of dynamic column key components. However,
    for compatibility with key-value-services where cell sizes are restricted, AtlasDB
    enforces a maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on column names.
-   Please ensure that your columns remain within that size.
+   Please ensure that your dynamic column keys will remain within that size
+   **for all possible inputs** - be especially careful with components that users may
+   be able to define arbitrarily.
 
 Index Rows and Columns
 ----------------------
