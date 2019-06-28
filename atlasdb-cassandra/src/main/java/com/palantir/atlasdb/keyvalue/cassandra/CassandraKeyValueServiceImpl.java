@@ -1579,10 +1579,13 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
-        long timestamp = mutationTimestampProvider.getRemoveTimestamp();
         Set<ByteBuffer> actualKeys = StreamSupport.stream(rows.spliterator(), false)
                 .map(ByteBuffer::wrap)
                 .collect(Collectors.toSet());
+        if (actualKeys.isEmpty()) {
+            return;
+        }
+        long timestamp = mutationTimestampProvider.getRemoveTimestamp();
 
         Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap = KeyedStream.of(actualKeys)
                 .map(row -> new Deletion().setTimestamp(timestamp))

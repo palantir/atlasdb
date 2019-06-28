@@ -45,6 +45,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     private static final String OLD_VALUE = "old_value";
     private static final String NEW_VALUE = "new_value";
+    private static final String NEWER_VALUE = "newer_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 

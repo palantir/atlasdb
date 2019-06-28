@@ -54,6 +54,27 @@ public abstract class TargetedSweepRuntimeConfig {
         return false;
     }
 
+    /**
+     * Specifies the maximum number of (fine) partitions over which targeted sweep attempts to read sweep queue
+     * information before executing deletes. Only partitions which actually contain information about writes will count
+     * towards this limit. Targeted sweep may, of course, read fewer partitions. Legacy behaviour prior to the
+     * introduction of this feature is consistent with a value of 1.
+     *
+     * This is expected to improve the throughput of targeted sweep, at the expense of more uneven sweeping across
+     * different shards.
+     */
+    @Value.Default
+    public int maximumPartitionsToBatchInSingleRead() {
+        return 1;
+    }
+
+    @Value.Check
+    void checkPartitionsToBatch() {
+        Preconditions.checkArgument(maximumPartitionsToBatchInSingleRead() > 0,
+                "Number of partitions to read in a batch must be positive, but found %s.",
+                maximumPartitionsToBatchInSingleRead());
+    }
+
     @Value.Check
     void checkShardSize() {
         Preconditions.checkArgument(shards() >= 1 && shards() <= 256,

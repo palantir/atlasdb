@@ -157,7 +157,7 @@ public class ShardProgress {
     }
 
     private static boolean isDefaultValue(ShardAndStrategy shardAndStrategy, long oldVal) {
-        return oldVal == SweepQueueUtils.INITIAL_TIMESTAMP
+        return SweepQueueUtils.firstSweep(oldVal)
                 || (shardAndStrategy == SHARD_COUNT_SAS && oldVal == AtlasDbConstants.DEFAULT_SWEEP_QUEUE_SHARDS);
     }
 

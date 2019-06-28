@@ -15,21 +15,36 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import java.util.function.IntSupplier;
 
 class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
+    private final IntSupplier maximumPartitionsInBatch;
 
     SweepQueueReader(SweepableTimestamps sweepableTimestamps,
-            SweepableCells sweepableCells) {
+            SweepableCells sweepableCells,
+            IntSupplier maximumPartitionsInBatch) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
+        this.maximumPartitionsInBatch = maximumPartitionsInBatch;
     }
 
-    SweepBatch getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        return sweepableTimestamps.nextSweepableTimestampPartition(shardStrategy, lastSweptTs, sweepTs)
-                .map(fine -> sweepableCells.getBatchForPartition(shardStrategy, fine, lastSweptTs, sweepTs))
-                .orElseGet(() -> SweepBatch.of(ImmutableList.of(), DedicatedRows.of(ImmutableList.of()), sweepTs - 1L));
+    SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, lastSweptTs);
+        for (int currentBatch = 0;
+                currentBatch < maximumPartitionsInBatch.getAsInt() && accumulator.shouldAcceptAdditionalBatch();
+                currentBatch++) {
+            Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
+                    shardStrategy, accumulator.getProgressTimestamp(), sweepTs);
+            if (!nextFinePartition.isPresent()) {
+                return accumulator.toSweepBatch();
+            }
+            SweepBatch batch = sweepableCells.getBatchForPartition(
+                    shardStrategy, nextFinePartition.get(), accumulator.getProgressTimestamp(), sweepTs);
+            accumulator.accumulateBatch(batch);
+        }
+        return accumulator.toSweepBatch();
     }
 }
