@@ -305,6 +305,13 @@ You may also identify a row component as being explicitly safe or unsafe
 for logging. (If this is not specified it defaults to unsafe, or safe if
 the table was set to default components as being safe.)
 
+.. warning::
+
+   You may define an arbitrary number of row components. However, for compatibility
+   with key-value-services where cell sizes are restricted, AtlasDB enforces a
+   maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on row names. Please ensure
+   that your rows remain within that size.
+
 .. _tables-and-indices-partitioners:
 
 Partitioners
@@ -350,7 +357,7 @@ For a safe data distribution the usage of ``hashFirstRowComponent()`` is suggest
         rowComponent("secondary_row_component_of_any_type", ValueType.VAR_LONG);
 
 Also, in the event that the first row component may not be sufficient for even
-distribution (e.g. it has low cardinality and an uneven distribution, but subsequent
+distribution (e.g. it has low cardinality and/or an uneven distribution, but subsequent
 components are more varied), AtlasDB also offers hashing a prefix of the row key, via
 ``hashFirstNRowComponents(int)``. This is useful, for instance, in stream stores.
 
@@ -363,7 +370,8 @@ components are more varied), AtlasDB also offers hashing a prefix of the row key
         rowComponent("third_component_maybe_expensive_to_hash", ValueType.BLOB);
 
 This will prepend a hash of the first and second components of each row key to
-the table.
+the table. Naturally, as hashing involves some overhead, please choose as few
+components as needed that will still ensure reasonable distribution.
 
 Table Named Columns
 -------------------
@@ -380,11 +388,11 @@ type referenced by each column is specified by a single command.
 The column name is the name of the column that will be used in the
 generated java code and table metadata. The short name is a one or two
 character label which will be the actual name for the column when stored
-in AtlasDB. Any ValueType may be used as the value for a column, as well
-as any protobuffer class or Persistable. AtlasDB will handle serializing
-and deserializing the proto/persistable to and from its byte array
-representation, and will optionally also compress the byte array to save
-space using the method you specify. Columns can not be overloaded with
+in the underlying database. Any ValueType may be used as the value for a
+column, as well as any protobuffer class or Persistable. AtlasDB will handle
+serializing and deserializing the proto/persistable to and from its byte
+array representation, and will optionally also compress the byte array to
+save space using the method you specify. Columns can not be overloaded with
 multiple types - each ``column()`` call must contain unique column names
 and short names.
 
@@ -430,6 +438,13 @@ can be a primitive ValueType or protobuf (optionally compressed).
 If values are not needed for the table, specifying
 ``value(ValueType.VAR_LONG)`` and ``maxValueSize(1)`` is conventional.
 The max value size command is a performance hint for AtlasDB.
+
+.. warning::
+
+   You may define an arbitrary number of dynamic column components. However,
+   for compatibility with key-value-services where cell sizes are restricted, AtlasDB
+   enforces a maximum length of Cell.MAX_NAME_LENGTH (= 1500) bytes on column names.
+   Please ensure that your columns remain within that size.
 
 Index Rows and Columns
 ----------------------
