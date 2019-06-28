@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
@@ -33,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -393,34 +391,6 @@ public class SweepableCells extends SweepQueueTable {
                 index % SweepQueueUtils.MAX_CELLS_DEDICATED);
     }
 
-    private List<byte[]> getAllAssociatedDedicatedRows(
-            ShardAndStrategy shardAndStrategy,
-            Iterable<Long> partitionFines) {
-        List<SweepableCellsTable.SweepableCellsRow> rows = Streams.stream(partitionFines)
-                .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))
-                .collect(Collectors.toList());
-        RowColumnRangeIterator rowIterator = getWithColumnRangeAllForRows(rows);
-        List<byte[]> dedicatedRows = new ArrayList<>();
-        rowIterator.forEachRemaining(entry -> dedicatedRows.addAll(
-                getAssociatedDedicatedRows(computeRow(entry), computeColumn(entry))));
-        return dedicatedRows;
-    }
-
-    private Set<byte[]> getAssociatedDedicatedRows(SweepableCellsTable.SweepableCellsRow row,
-            SweepableCellsTable.SweepableCellsColumn col) {
-        if (!isReferenceToDedicatedRows(col)) {
-            return ImmutableSet.of();
-        }
-        return computeDedicatedRows(row, col).stream()
-                .map(SweepableCellsRow::persistToBytes)
-                .collect(Collectors.toSet());
-    }
-
-    private SweepableCellsTable.SweepableCellsRow computeRow(Map.Entry<Cell, Value> entry) {
-        return SweepableCellsTable.SweepableCellsRow.BYTES_HYDRATOR
-                .hydrateFromBytes(entry.getKey().getRowName());
-    }
-
     private SweepableCellsTable.SweepableCellsColumn computeColumn(Map.Entry<Cell, Value> entry) {
         return SweepableCellsTable.SweepableCellsColumn.BYTES_HYDRATOR
                 .hydrateFromBytes(entry.getKey().getColumnName());
@@ -434,10 +404,6 @@ public class SweepableCells extends SweepQueueTable {
         byte[] endCol = SweepableCellsTable.SweepableCellsColumn.of(endExcl, SweepQueueUtils.MINIMUM_WRITE_INDEX)
                 .persistToBytes();
         return new ColumnRangeSelection(startCol, endCol);
-    }
-
-    private RowColumnRangeIterator getWithColumnRangeAllForRows(List<SweepableCellsTable.SweepableCellsRow> rows) {
-        return getWithColumnRangeAll(rows.stream().map(SweepableCellsRow::persistToBytes).collect(Collectors.toList()));
     }
 
     private long exactColumnOrElseOneBeyondEndOfRow(long endTsExclusive, long partitionFine) {
