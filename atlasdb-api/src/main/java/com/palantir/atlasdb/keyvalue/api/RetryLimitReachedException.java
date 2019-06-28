@@ -30,6 +30,6 @@ public class RetryLimitReachedException extends AtlasDbDependencyException {
     }
 
     public <E extends Exception> boolean suppressed(Class<E> type) {
-        return Arrays.stream(getSuppressed()).map(type::isInstance).anyMatch(x -> x);
+        return Arrays.stream(getSuppressed()).anyMatch(type::isInstance);
     }
 }
