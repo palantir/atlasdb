@@ -314,14 +314,14 @@ public class CqlExecutorImpl implements CqlExecutor {
             }
         }
 
-        private RuntimeException wrapIfConsistencyAll(RetryLimitReachedException ex) {
+        private RuntimeException wrapIfConsistencyAll(RetryLimitReachedException e) {
             if (consistency.equals(ConsistencyLevel.ALL)) {
-                if (ex.encounteredInstanceOf(UnavailableException.class)) {
+                if (e.suppressed(UnavailableException.class) || e.suppressed(InsufficientConsistencyException.class)) {
                     throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.",
-                            ex);
+                            e);
                 }
             }
-            throw ex;
+            throw e;
         }
 
         private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
