@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -61,7 +62,8 @@ public class AsyncLockServiceEteTest {
     private final LeaderClock clock = LeaderClock.create();
 
     private final AsyncLockService service = new AsyncLockService(
-            new LockCollection(),
+            new LockCollection(OrderedLocksDecorator.DO_NOTHING),
+            mock(TargetedSweepLockDecorator.class),
             new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
@@ -275,7 +277,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
-    public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
+    public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() throws Exception {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Leased<LockToken>> request2 = lock(REQUEST_2, LOCK_A);
 
@@ -309,7 +311,7 @@ public class AsyncLockServiceEteTest {
         assertThat(LockLeaseContract.CLIENT_LEASE_TIMEOUT).isLessThan(LockLeaseContract.SERVER_LEASE_TIMEOUT);
     }
 
-    private void waitForTimeout(TimeLimit timeout) {
+    private static void waitForTimeout(TimeLimit timeout) {
         Stopwatch timer = Stopwatch.createStarted();
         long buffer = 250L;
         while (timer.elapsed(TimeUnit.MILLISECONDS) < timeout.getTimeMillis() + buffer) {
@@ -329,7 +331,7 @@ public class AsyncLockServiceEteTest {
         return service.waitForLocks(requestId, descriptors(locks), TIMEOUT);
     }
 
-    private Set<LockDescriptor> descriptors(String... locks) {
+    private static Set<LockDescriptor> descriptors(String... locks) {
         return Arrays.stream(locks)
                 .map(StringLockDescriptor::of)
                 .collect(Collectors.toSet());

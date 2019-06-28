@@ -46,6 +46,7 @@ import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
@@ -104,7 +105,11 @@ public class TimeLockAgent {
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
-        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
+
+        Supplier<TargetedSweepLockControlConfig> targetedSweepLockControlConfig = Suppliers.compose(
+                TimeLockRuntimeConfiguration::targetedSweepLockControlConfig, runtime::get);
+        this.timelockCreator = new AsyncTimeLockServicesCreator(
+                metricsManager, lockLog, leadershipCreator, targetedSweepLockControlConfig);
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {

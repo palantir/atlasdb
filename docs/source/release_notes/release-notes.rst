@@ -94,6 +94,15 @@ develop
            Users who extend ``KeyValueService`` will need to implement this method, but can refer to ``AbstractKeyValueService`` for a functional implementation (as this method can be written in terms of ``deleteRange()``).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
 
+    *    - |new|
+         - Added ability for timelock to rate limit targeted sweep lock requests to 2 per second. This is to reduce load on timelock for bad atlas
+           clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4096>`__)
+
+    *    - |improved|
+         - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
+
 ========
 v0.144.0
 ========
