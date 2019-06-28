@@ -89,6 +89,11 @@ develop
            should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
 
+    *    - |devbreak|
+         - ``KeyValueService`` implementations now have a new endpoint ``deleteRows()`` that allows row-level deletes to be performed.
+           Users who extend ``KeyValueService`` will need to implement this method, but can refer to ``AbstractKeyValueService`` for a functional implementation (as this method can be written in terms of ``deleteRange()``).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
+
     *    - |new|
          - Added ability for timelock to rate limit targeted sweep lock requests to 2 per second. This is to reduce load on timelock for bad atlas
            clients.
