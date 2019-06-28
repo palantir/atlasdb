@@ -141,7 +141,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         }
 
         cleaner.clean(shardStrategy,
-                batchWithInfo.partitionsForlastSweptTs(lastSweptTs),
+                batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
                 sweepBatch.lastSweptTimestamp(),
                 sweepBatch.dedicatedRows());
 

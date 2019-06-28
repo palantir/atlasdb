@@ -21,21 +21,20 @@ import java.util.function.IntSupplier;
 class SweepQueueReader {
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
-    private final IntSupplier maximumPartitionsToBatchInSingleRead;
+    private final IntSupplier maximumPartitionsInBatch;
 
     SweepQueueReader(SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
-            IntSupplier maximumPartitionsToBatchInSingleRead) {
+            IntSupplier maximumPartitionsInBatch) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
-        this.maximumPartitionsToBatchInSingleRead = maximumPartitionsToBatchInSingleRead;
+        this.maximumPartitionsInBatch = maximumPartitionsInBatch;
     }
 
     SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         SweepBatchAccumulator accumulator = new SweepBatchAccumulator(sweepTs, lastSweptTs);
         for (int currentBatch = 0;
-                currentBatch < maximumPartitionsToBatchInSingleRead.getAsInt()
-                        && accumulator.shouldAcceptAdditionalBatch();
+                currentBatch < maximumPartitionsInBatch.getAsInt() && accumulator.shouldAcceptAdditionalBatch();
                 currentBatch++) {
             Optional<Long> nextFinePartition = sweepableTimestamps.nextSweepableTimestampPartition(
                     shardStrategy, accumulator.getProgressTimestamp(), sweepTs);
@@ -45,9 +44,6 @@ class SweepQueueReader {
             SweepBatch batch = sweepableCells.getBatchForPartition(
                     shardStrategy, nextFinePartition.get(), accumulator.getProgressTimestamp(), sweepTs);
             accumulator.accumulateBatch(batch);
-            if (batch.isEmpty()) {
-                return accumulator.toSweepBatch();
-            }
         }
         return accumulator.toSweepBatch();
     }

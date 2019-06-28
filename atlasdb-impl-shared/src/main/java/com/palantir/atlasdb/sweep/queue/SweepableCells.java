@@ -380,10 +380,6 @@ public class SweepableCells extends SweepQueueTable {
                 .collect(Collectors.toList()));
     }
 
-    void deleteDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionFines) {
-        deleteRows(getAllAssociatedDedicatedRows(shardAndStrategy, partitionFines));
-    }
-
     void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionFines) {
         List<byte[]> rows = Streams.stream(partitionFines)
                 .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))

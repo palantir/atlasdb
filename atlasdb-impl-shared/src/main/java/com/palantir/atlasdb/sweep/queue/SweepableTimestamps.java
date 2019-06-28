@@ -25,10 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.RangeRequest;
-import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
@@ -134,11 +131,11 @@ public class SweepableTimestamps extends SweepQueueTable {
     }
 
     /**
-     * Deletes the entire row of the Sweepable Timestamps table.
+     * Deletes complete rows of the Sweepable Timestamps table.
      * @param shardStrategy desired shard and strategy
-     * @param partitionCoarse coarse partition for which the row should be deleted
+     * @param partitionsCoarse coarse partitions for which the row should be deleted
      */
-    void deleteCoarsePartitons(ShardAndStrategy shardStrategy, Set<Long> partitionsCoarse) {
+    void deleteCoarsePartitions(ShardAndStrategy shardStrategy, Set<Long> partitionsCoarse) {
         Set<byte[]> rowsBytes = partitionsCoarse.stream()
                 .map(partition -> computeRowBytes(shardStrategy, partition))
                 .collect(Collectors.toSet());

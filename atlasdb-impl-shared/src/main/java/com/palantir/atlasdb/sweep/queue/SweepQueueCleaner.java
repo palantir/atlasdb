@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,21 +41,19 @@ public class SweepQueueCleaner {
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
      * partition. Then, updates the sweep queue progress.
      * @param shardStrategy shard and strategy to clean for.
-     * @param oldProgress last swept timestamp for the previous iteration of sweep.
-     * @param newProgress last swept timestamp for this iteration of sweep.
+     * @param partitions set of fine partitions that need to be cleaned up.
+     * @param lastTs last swept timestamp for this iteration of sweep.
      * @param dedicatedRows the dedicated rows that have now been swept that should now be removed.
      */
     public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
         cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, partitions);
-        cleanSweepableTimestamps(shardStrategy, partitions);
+        cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
         progressTo(shardStrategy, lastTs);
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
-        cleanDedicatedRows(shardStrategy, partitions);
-        cleanNonDedicatedRows(shardStrategy, partitions);
-
+        sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
         log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
                 LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
                 SafeArg.of("partitions", partitions));
@@ -66,25 +63,21 @@ public class SweepQueueCleaner {
         sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
-    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, Iterable<Long> partitionsToDelete) {
-        sweepableCells.deleteDedicatedRows(shardStrategy, partitionsToDelete);
-    }
-
-    private void cleanNonDedicatedRows(ShardAndStrategy shardStrategy, Iterable<Long> partitionsToDelete) {
-        sweepableCells.deleteNonDedicatedRows(shardStrategy, partitionsToDelete);
-    }
-
-    private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, Set<Long> finePartitions) {
+    private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, Set<Long> finePartitions, long lastTs) {
         Set<Long> coarsePartitions = finePartitions.stream()
                 .map(SweepQueueUtils::partitionFineToCoarse)
                 .collect(Collectors.toSet());
-        OptionalLong maxFinePartition = finePartitions.stream().mapToLong(x -> x).max();
-        maxFinePartition.ifPresent(partition -> coarsePartitions.remove(SweepQueueUtils.tsPartitionCoarse(SweepQueueUtils.maxTsForFinePartition(partition) + 1)));
+        coarsePartitions = removeLastPartitionIfNotComplete(coarsePartitions, lastTs);
 
-        sweepableTimestamps.deleteCoarsePartitons(shardStrategy, coarsePartitions);
+        sweepableTimestamps.deleteCoarsePartitions(shardStrategy, coarsePartitions);
         log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
                 LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
                 SafeArg.of("partitions", coarsePartitions));
+    }
+
+    private static Set<Long> removeLastPartitionIfNotComplete(Set<Long> coarsePartitions, long lastTs) {
+        coarsePartitions.remove(SweepQueueUtils.tsPartitionCoarse(lastTs + 1));
+        return coarsePartitions;
     }
 
     private void progressTo(ShardAndStrategy shardStrategy, long lastTs) {
@@ -97,9 +90,5 @@ public class SweepQueueCleaner {
         log.debug("Progressed last swept timestamp for {} to {}.",
                 SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
 
-    }
-
-    private boolean firstIterationOfSweep(long oldProgress) {
-        return oldProgress == SweepQueueUtils.INITIAL_TIMESTAMP;
     }
 }

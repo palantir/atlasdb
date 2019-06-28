@@ -28,14 +28,11 @@ public interface SweepBatchWithPartitionInfo {
     SweepBatch sweepBatch();
     Set<Long> finePartitions();
 
-    default Set<Long> partitionsForlastSweptTs(long lastSweptTs) {
-        Set<Long> encounteredPartitions;
-        if (lastSweptTs == SweepQueueUtils.INITIAL_TIMESTAMP) {
-            encounteredPartitions = finePartitions();
-        } else {
-            encounteredPartitions = Sets.union(finePartitions(),
-                    ImmutableSet.of(SweepQueueUtils.tsPartitionFine(lastSweptTs)));
-        }
+    default Set<Long> partitionsForPreviousLastSweptTs(long previousLastSweptTs) {
+        Set<Long> encounteredPartitions = SweepQueueUtils.firstSweep(previousLastSweptTs)
+                ? finePartitions()
+                : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
+
         return Sets.difference(encounteredPartitions,
                 ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
     }
