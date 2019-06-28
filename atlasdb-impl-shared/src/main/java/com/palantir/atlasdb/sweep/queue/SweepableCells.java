@@ -372,14 +372,15 @@ public class SweepableCells extends SweepQueueTable {
     }
 
     void deleteDedicatedRows(DedicatedRows dedicatedRows) {
-        deleteRows(dedicatedRows.getDedicatedRows()
+        List<byte[]> rows = dedicatedRows.getDedicatedRows()
                 .stream()
                 .map(SweepableCellsRow::persistToBytes)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+        deleteRows(rows);
     }
 
-    void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionFines) {
-        List<byte[]> rows = Streams.stream(partitionFines)
+    void deleteNonDedicatedRows(ShardAndStrategy shardAndStrategy, Iterable<Long> partitionsFine) {
+        List<byte[]> rows = Streams.stream(partitionsFine)
                 .map(partitionFine -> computeRow(partitionFine, shardAndStrategy))
                 .map(SweepableCellsRow::persistToBytes)
                 .collect(Collectors.toList());
