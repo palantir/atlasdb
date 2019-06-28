@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +39,7 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
@@ -123,6 +125,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -1572,6 +1575,37 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return false;
         }
         return Arrays.equals(endExclusive, RangeRequests.nextLexicographicName(startInclusive));
+    }
+
+    @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        long timestamp = mutationTimestampProvider.getRemoveTimestamp();
+        Set<ByteBuffer> actualKeys = StreamSupport.stream(rows.spliterator(), false)
+                .map(ByteBuffer::wrap)
+                .collect(Collectors.toSet());
+
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap = KeyedStream.of(actualKeys)
+                .map(row -> new Deletion().setTimestamp(timestamp))
+                .map(deletion -> new Mutation().setDeletion(deletion))
+                .map(mutation -> keyMutationMapByColumnFamily(tableRef, mutation))
+                .collectToMap();
+
+        try {
+            clientPool.runWithRetry(client -> {
+                client.batch_mutate("deleteRows", mutationMap, DELETE_CONSISTENCY);
+                return null;
+            });
+        } catch (UnavailableException e) {
+            throw new InsufficientConsistencyException(
+                    "Deleting requires all Cassandra nodes to be up and available.", e);
+        } catch (TException e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    private Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
+            Mutation mutation) {
+        return ImmutableMap.of(AbstractKeyValueService.internalTableName(tableRef), ImmutableList.of(mutation));
     }
 
     @Override

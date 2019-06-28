@@ -117,6 +117,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        try {
+            delegate().deleteRows(tableMapper.getMappedTableName(tableRef), rows);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         try {
             delegate().deleteAllTimestamps(tableMapper.getMappedTableName(tableRef), deletes);
