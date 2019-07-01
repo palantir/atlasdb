@@ -46,6 +46,7 @@ import com.palantir.lock.LockService;
 import com.palantir.timelock.TimeLockStatus;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.PaxosTsBoundPersisterConfiguration;
+import com.palantir.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
@@ -96,14 +97,19 @@ public class TimeLockAgent {
         this.runtime = runtime;
         this.registrar = registrar;
         this.sharedExecutor = sharedExecutor;
-        this.paxosResource = PaxosResource.create(metricsManager.getRegistry(),
-                install.paxos().dataDirectory().toString());
+        this.paxosResource = PaxosResource.create(
+                metricsManager.getTaggedRegistry(),
+                install.paxos().dataDirectory().toPath());
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.leadershipCreator = new PaxosLeadershipCreator(metricsManager, install, runtime, registrar);
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
-        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
+
+        Supplier<TargetedSweepLockControlConfig> targetedSweepLockControlConfig = Suppliers.compose(
+                TimeLockRuntimeConfiguration::targetedSweepLockControlConfig, runtime::get);
+        this.timelockCreator = new AsyncTimeLockServicesCreator(
+                metricsManager, lockLog, leadershipCreator, targetedSweepLockControlConfig);
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
@@ -182,7 +188,7 @@ public class TimeLockAgent {
         return healthCheckSupplier.get().getStatus();
     }
 
-    @SuppressWarnings("unused") // used by external health checks
+    @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks
     public int getNumberOfActiveClients() {
         return resource.getNumberOfActiveClients();
     }
@@ -224,7 +230,7 @@ public class TimeLockAgent {
     private TimeLockServices createInvalidatingTimeLockServices(String client) {
         List<String> uris = install.cluster().clusterMembers();
         ImmutableLeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
-                .addLeaders(uris.toArray(new String[uris.size()]))
+                .addLeaders(uris.toArray(new String[0]))
                 .localServer(install.cluster().localServer())
                 .sslConfiguration(PaxosRemotingUtils.getSslConfigurationOptional(install))
                 .quorumSize(PaxosRemotingUtils.getQuorumSize(uris))

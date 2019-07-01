@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 
-public class CassandraReloadableKvsConfig extends AutoDelegate_CassandraKeyValueServiceConfig {
+public class CassandraReloadableKvsConfig implements AutoDelegate_CassandraKeyValueServiceConfig {
     private final CassandraKeyValueServiceConfig config;
     private final Supplier<Optional<KeyValueServiceRuntimeConfig>> runtimeConfigSupplier;
 

@@ -137,6 +137,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        getDelegate(tableRef).deleteRows(tableRef, rows);
+    }
+
+    @Override
     public void deleteAllTimestamps(
             TableReference tableRef,
             Map<Cell, TimestampRangeDelete> deletes) {
@@ -196,8 +201,8 @@ public final class TableSplittingKeyValueService implements KeyValueService {
 
     public KeyValueService getDelegate(TableReference tableRef) {
         return tableDelegateFor(tableRef)
-                .orElse(namespaceDelegateFor(tableRef)
-                        .orElse(delegates.get(0)));
+                .orElseGet(() -> namespaceDelegateFor(tableRef)
+                        .orElseGet(() -> delegates.get(0)));
     }
 
     private Optional<KeyValueService> tableDelegateFor(TableReference tableRef) {

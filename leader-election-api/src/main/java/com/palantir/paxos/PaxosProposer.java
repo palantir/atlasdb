@@ -38,6 +38,13 @@ public interface PaxosProposer {
             throws PaxosRoundFailureException;
 
     /**
+     * Reaches a consensus with peers on a value of type V using a single instance of paxos, as in
+     * {@link PaxosProposer#propose(long, byte[])}. However, this value is proposed anonymously, with a fresh
+     * proposer ID. This may be useful for relinquishing leadership in algorithms for that based on Paxos.
+     */
+    byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException;
+
+    /**
      * Returns the number of acceptors that need to support a successful request.
      */
     int getQuorumSize();

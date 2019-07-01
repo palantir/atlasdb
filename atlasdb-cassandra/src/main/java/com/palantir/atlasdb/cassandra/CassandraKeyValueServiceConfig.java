@@ -42,26 +42,26 @@ import com.palantir.processors.AutoDelegate;
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @AutoDelegate
 @Value.Immutable
-public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceConfig {
+public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
-    public static final String TYPE = "cassandra";
+    String TYPE = "cassandra";
 
-    public abstract Set<InetSocketAddress> servers();
+    Set<InetSocketAddress> servers();
 
     @Value.Default
-    public Map<String, InetSocketAddress> addressTranslation() {
+    default Map<String, InetSocketAddress> addressTranslation() {
         return ImmutableMap.of();
     }
 
     @Override
     @JsonIgnore
     @Value.Derived
-    public Optional<String> namespace() {
+    default Optional<String> namespace() {
         return keyspace();
     }
 
     @Value.Default
-    public int poolSize() {
+    default int poolSize() {
         return 30;
     }
 
@@ -71,7 +71,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * idle {@link #poolSize()} value.
      */
     @Value.Default
-    public int maxConnectionBurstSize() {
+    default int maxConnectionBurstSize() {
         return 100;
     }
 
@@ -83,17 +83,17 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * be evicted from the pool if it has been idle for at least 10 minutes.
      */
     @Value.Default
-    public double proportionConnectionsToCheckPerEvictionRun() {
+    default double proportionConnectionsToCheckPerEvictionRun() {
         return 0.1;
     }
 
     @Value.Default
-    public int idleConnectionTimeoutSeconds() {
+    default int idleConnectionTimeoutSeconds() {
         return 10 * 60;
     }
 
     @Value.Default
-    public int timeBetweenConnectionEvictionRunsSeconds() {
+    default int timeBetweenConnectionEvictionRunsSeconds() {
         return 20;
     }
 
@@ -102,7 +102,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * At every refresh, we check the health of the current blacklisted nodes — if they're healthy, we whitelist them.
      */
     @Value.Default
-    public int poolRefreshIntervalSeconds() {
+    default int poolRefreshIntervalSeconds() {
         return 2 * 60;
     }
 
@@ -115,7 +115,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int unresponsiveHostBackoffTimeSeconds() {
+    default int unresponsiveHostBackoffTimeSeconds() {
         return CassandraConstants.DEFAULT_UNRESPONSIVE_HOST_BACKOFF_TIME_SECONDS;
     }
 
@@ -124,13 +124,13 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * as data marked with a tombstone is removed during the normal compaction process every gc_grace_seconds.
      */
     @Value.Default
-    public int gcGraceSeconds() {
+    default int gcGraceSeconds() {
         return CassandraConstants.DEFAULT_GC_GRACE_SECONDS;
     }
 
     @JsonIgnore
     @Value.Lazy
-    public String getKeyspaceOrThrow() {
+    default String getKeyspaceOrThrow() {
         return keyspace().orElseThrow(() -> new IllegalStateException(
                 "Tried to read the keyspace from a CassandraConfig when it hadn't been set!"));
     }
@@ -140,9 +140,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * @deprecated Use the AtlasDbConfig#namespace to specify it instead.
      */
     @Deprecated
-    public abstract Optional<String> keyspace();
+    Optional<String> keyspace();
 
-    public abstract Optional<CassandraCredentialsConfig> credentials();
+    CassandraCredentialsConfig credentials();
 
     /**
      * A boolean declaring whether or not to use ssl to communicate with cassandra.
@@ -153,7 +153,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * @deprecated Use {@link #sslConfiguration()} instead.
      */
     @Deprecated
-    public abstract Optional<Boolean> ssl();
+    Optional<Boolean> ssl();
 
     /**
      * An object for specifying ssl configuration details.  The lack of existence of this
@@ -161,9 +161,9 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      *
      * The existence of this object overrides any configuration made via the ssl config value.
      */
-    public abstract Optional<SslConfiguration> sslConfiguration();
+    Optional<SslConfiguration> sslConfiguration();
 
-    public abstract int replicationFactor();
+    int replicationFactor();
 
     /**
      * @deprecated Use {@link CassandraKeyValueServiceRuntimeConfig#mutationBatchCount()} to make this value
@@ -172,7 +172,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int mutationBatchCount() {
+    default int mutationBatchCount() {
         return CassandraConstants.DEFAULT_MUTATION_BATCH_COUNT;
     }
 
@@ -183,7 +183,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int mutationBatchSizeBytes() {
+    default int mutationBatchSizeBytes() {
         return CassandraConstants.DEFAULT_MUTATION_BATCH_SIZE_BYTES;
     }
 
@@ -194,37 +194,37 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public int fetchBatchCount() {
+    default int fetchBatchCount() {
         return CassandraConstants.DEFAULT_FETCH_BATCH_COUNT;
     }
 
     @Value.Default
-    public boolean ignoreNodeTopologyChecks() {
+    default boolean ignoreNodeTopologyChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignoreInconsistentRingChecks() {
+    default boolean ignoreInconsistentRingChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignoreDatacenterConfigurationChecks() {
+    default boolean ignoreDatacenterConfigurationChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean ignorePartitionerChecks() {
+    default boolean ignorePartitionerChecks() {
         return false;
     }
 
     @Value.Default
-    public boolean autoRefreshNodes() {
+    default boolean autoRefreshNodes() {
         return true;
     }
 
     @Value.Default
-    public boolean clusterMeetsNormalConsistencyGuarantees() {
+    default boolean clusterMeetsNormalConsistencyGuarantees() {
         return true;
     }
 
@@ -234,7 +234,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * that it will fail out quickly if it is clear we can't reach that server.
      */
     @Value.Default
-    public int socketTimeoutMillis() {
+    default int socketTimeoutMillis() {
         return 2 * 1000;
     }
 
@@ -245,22 +245,22 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
      * it very much (10s by default).
      */
     @Value.Default
-    public int socketQueryTimeoutMillis() {
+    default int socketQueryTimeoutMillis() {
         return 62 * 1000;
     }
 
     @Value.Default
-    public int cqlPoolTimeoutMillis() {
+    default int cqlPoolTimeoutMillis() {
         return 20 * 1000;
     }
 
     @Value.Default
-    public int schemaMutationTimeoutMillis() {
+    default int schemaMutationTimeoutMillis() {
         return 120 * 1000;
     }
 
     @Value.Default
-    public int rangesConcurrency() {
+    default int rangesConcurrency() {
         return 32;
     }
 
@@ -272,7 +272,7 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed") // Used by immutable copy of this file
     @Value.Default
     @Deprecated
-    public Integer timestampsGetterBatchSize() {
+    default Integer timestampsGetterBatchSize() {
         return 1_000;
     }
 
@@ -283,31 +283,31 @@ public abstract class CassandraKeyValueServiceConfig implements KeyValueServiceC
     @SuppressWarnings("DeprecatedIsStillUsed")
     @Value.Default
     @Deprecated
-    public Integer sweepReadThreads() {
+    default Integer sweepReadThreads() {
         return AtlasDbConstants.DEFAULT_SWEEP_CASSANDRA_READ_THREADS;
     }
 
-    public abstract Optional<CassandraJmxCompactionConfig> jmx();
+    Optional<CassandraJmxCompactionConfig> jmx();
 
     @Override
-    public final String type() {
+    default String type() {
         return TYPE;
     }
 
     @Override
     @Value.Default
-    public int concurrentGetRangesThreadPoolSize() {
+    default int concurrentGetRangesThreadPoolSize() {
         return poolSize() * servers().size();
     }
 
     @JsonIgnore
     @Value.Derived
-    public boolean usingSsl() {
-        return ssl().orElse(sslConfiguration().isPresent());
+    default boolean usingSsl() {
+        return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
     @Value.Check
-    protected final void check() {
+    default void check() {
         Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
         for (InetSocketAddress addr : servers()) {
             Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");

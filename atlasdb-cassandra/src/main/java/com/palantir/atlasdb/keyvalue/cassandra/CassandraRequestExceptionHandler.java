@@ -107,7 +107,7 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     RequestExceptionHandlerStrategy getStrategy() {
-        return overrideStrategyForTest.orElse(resolveStrategy());
+        return overrideStrategyForTest.orElseGet(this::resolveStrategy);
     }
 
     private RequestExceptionHandlerStrategy resolveStrategy() {
@@ -118,7 +118,7 @@ class CassandraRequestExceptionHandler {
         }
     }
 
-    private AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
+    private static AtlasDbDependencyException logAndThrowException(int numberOfAttempts, Exception ex,
             RetryableCassandraRequest<?, ?> req) {
         log.warn("Tried to connect to cassandra {} times. Exception message was: {} : {}",
                 SafeArg.of("numTries", numberOfAttempts),
@@ -145,7 +145,9 @@ class CassandraRequestExceptionHandler {
 
     @VisibleForTesting
     boolean shouldBlacklist(Exception ex, int numberOfAttempts) {
-        return isConnectionException(ex) && numberOfAttempts >= maxTriesSameHost.get();
+        return isConnectionException(ex)
+                && numberOfAttempts >= maxTriesSameHost.get()
+                && !isExceptionNotImplicatingThisParticularNode(ex);
     }
 
     private <K extends Exception> void handleBackoff(RetryableCassandraRequest<?, K> req,
@@ -234,6 +236,15 @@ class CassandraRequestExceptionHandler {
                 // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
                 && (ex instanceof InvalidRequestException
                 || isFastFailoverException(ex.getCause()));
+    }
+
+    static boolean isExceptionNotImplicatingThisParticularNode(Throwable ex) {
+        // client pool has no more elements to give, so this service node has too many requests in flight.
+        return ex instanceof NoSuchElementException
+                // Other nodes are down. Technically this node might be isolated from a functional quorum via a network
+                // partition but we consider that to be an edge case.
+                || ex instanceof InsufficientConsistencyException
+                || isIndicativeOfCassandraLoad(ex.getCause());
     }
 
     @VisibleForTesting

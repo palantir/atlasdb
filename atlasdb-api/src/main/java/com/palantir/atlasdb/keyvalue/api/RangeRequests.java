@@ -19,6 +19,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 public final class RangeRequests {
@@ -199,5 +200,29 @@ public final class RangeRequests {
         } else {
             return nextLexicographicNameInternal(rowName);
         }
+    }
+
+    public static boolean isContiguousRange(boolean reverse, byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return true;
+        }
+        if (reverse) {
+            return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) >= 0;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) <= 0;
+    }
+
+    public static boolean isExactlyEmptyRange(byte[] startInclusive, byte[] endExclusive) {
+        if (startInclusive.length == 0 || endExclusive.length == 0) {
+            return false;
+        }
+        return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) == 0;
+    }
+
+    public static RangeRequest ofSingleRow(@Nonnull byte[] row) {
+        return RangeRequest.builder()
+                .startRowInclusive(row)
+                .endRowExclusive(RangeRequests.nextLexicographicName(row))
+                .build();
     }
 }

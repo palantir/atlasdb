@@ -67,6 +67,10 @@ public class PaxosResponses<T extends PaxosResponse> {
         return successes >= quorum;
     }
 
+    public int numberOfResponses() {
+        return responses.size();
+    }
+
     PaxosQuorumStatus getQuorumResult() {
         if (hasQuorum()) {
             return PaxosQuorumStatus.QUORUM_AGREED;

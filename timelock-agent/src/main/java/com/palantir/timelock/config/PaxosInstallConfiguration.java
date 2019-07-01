@@ -54,12 +54,11 @@ public interface PaxosInstallConfiguration {
         }
 
         if (!isNewService() && !dataDirectory().isDirectory()) {
-            throw new IllegalArgumentException(
-                    "If this is a new timelock service, please configure paxos.is-new-service to true for the first "
-                            + "startup only of each node. \n\nOtherwise, the timelock data directory appears to no "
-                            + "longer exist. If you are trying to move the nodes on your timelock cluster or add new "
-                            + "nodes, you have likely already made a mistake by this point. This is a non-trivial "
-                            + "operation, please be careful and make sure that you have appropriate approvals.");
+            throw new IllegalArgumentException("The timelock data directory does not appear to exist. If you are "
+                    + "trying to move the nodes on your timelock cluster or add new nodes, you have likely already "
+                    + "made a mistake by this point. This is a non-trivial operation and risks service corruption, "
+                    + "so contact support for assistance. Otherwise, if this is a new timelock service, please "
+                    + "configure paxos.is-new-service to true for the first startup only of each node.");
         }
     }
 }
