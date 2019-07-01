@@ -17,7 +17,13 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -44,9 +50,15 @@ public class SweepBatchAccumulatorTest {
     private static final DedicatedRows DEDICATED_ROWS_1 = DedicatedRows.of(ImmutableList.of(SWEEPABLE_CELLS_ROW_1));
     private static final DedicatedRows DEDICATED_ROWS_2 = DedicatedRows.of(ImmutableList.of(SWEEPABLE_CELLS_ROW_2));
 
+    private SweepBatchAccumulator accumulator;
+
+    @Before
+    public void setUp() {
+        accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
+    }
+
     @Test
     public void noBatchesMeansEverythingSweptUpToTheSweepTimestamp() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         SweepBatchWithPartitionInfo batchWithPartitionInfo = accumulator.toSweepBatch();
 
         assertThat(batchWithPartitionInfo.sweepBatch()).satisfies(batch -> {
@@ -59,7 +71,6 @@ public class SweepBatchAccumulatorTest {
 
     @Test
     public void oneBatchAccumulatesToItselfAndLogsPartition() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         SweepBatch sweepBatch = SweepBatch.of(
                 ImmutableList.of(WRITE_INFO_1),
                 DEDICATED_ROWS_1,
@@ -74,7 +85,6 @@ public class SweepBatchAccumulatorTest {
 
     @Test
     public void mergesTwoBatchesWithDistinctWriteInfo() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(WRITE_INFO_1),
                 NO_DEDICATED_ROWS,
@@ -97,7 +107,6 @@ public class SweepBatchAccumulatorTest {
 
     @Test
     public void mergesDedicatedRows() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(),
                 DEDICATED_ROWS_1,
@@ -118,7 +127,6 @@ public class SweepBatchAccumulatorTest {
 
     @Test
     public void onlyKeepsNewestVersionOfWriteInfoWhenMergingMultipleBatches() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(WRITE_INFO_1),
                 NO_DEDICATED_ROWS,
@@ -146,7 +154,6 @@ public class SweepBatchAccumulatorTest {
 
     @Test
     public void correctlySkipsPartitionsWhenMergingMultipleBatches() {
-        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, PROGRESS_TIMESTAMP);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(WRITE_INFO_1),
                 NO_DEDICATED_ROWS,
@@ -169,5 +176,63 @@ public class SweepBatchAccumulatorTest {
         assertThat(batchWithPartitionInfo.finePartitions()).isEqualTo(ImmutableSet.of(
                 SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
                 SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 100 + 9 * SweepQueueUtils.TS_FINE_GRANULARITY)));
+    }
+
+    @Test
+    public void throwsWhenAttemptingToMergeWriteInfoAtTheSweepTimestamp() {
+        assertThatThrownBy(() -> accumulator.accumulateBatch(SweepBatch.of(
+                ImmutableList.of(WriteInfo.write(TABLE_REFERENCE_1, CELL_1, PROGRESS_TIMESTAMP + 5)),
+                NO_DEDICATED_ROWS,
+                SWEEP_TIMESTAMP)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Tried to accumulate a batch")
+                .hasMessageContaining("went beyond the sweep timestamp");
+    }
+
+    @Test
+    public void throwsWhenAttemptingToMergeWriteInfoAfterTheSweepTimestamp() {
+        assertThatThrownBy(() -> accumulator.accumulateBatch(SweepBatch.of(
+                ImmutableList.of(WriteInfo.write(TABLE_REFERENCE_1, CELL_1, PROGRESS_TIMESTAMP + 5)),
+                NO_DEDICATED_ROWS,
+                SWEEP_TIMESTAMP + 1)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Tried to accumulate a batch")
+                .hasMessageContaining("went beyond the sweep timestamp");
+    }
+
+    @Test
+    public void initiallyAcceptsAdditionalBatches() {
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isTrue();
+    }
+
+    @Test
+    public void acceptsAdditionalBatchesAfterOneOneElementBatch() {
+        accumulator.accumulateBatch(SweepBatch.of(
+                ImmutableList.of(WRITE_INFO_1),
+                NO_DEDICATED_ROWS,
+                PROGRESS_TIMESTAMP + 177));
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isTrue();
+    }
+
+    @Test
+    public void rejectsBatchesOnceLimitReached() {
+        List<WriteInfo> writeInfos = LongStream.range(0, SweepQueueUtils.SWEEP_BATCH_SIZE)
+                .mapToObj(index -> WriteInfo.write(
+                        TABLE_REFERENCE_1, Cell.create(PtBytes.toBytes(index), PtBytes.toBytes(index)), index))
+                .collect(Collectors.toList());
+        accumulator.accumulateBatch(SweepBatch.of(
+                writeInfos,
+                NO_DEDICATED_ROWS,
+                PROGRESS_TIMESTAMP + 177));
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
+    }
+
+    @Test
+    public void rejectsBatchesOnceSweepTimestampIsReached() {
+        accumulator.accumulateBatch(SweepBatch.of(
+                ImmutableList.of(WRITE_INFO_1),
+                NO_DEDICATED_ROWS,
+                SWEEP_TIMESTAMP - 1));
+        assertThat(accumulator.shouldAcceptAdditionalBatch()).isFalse();
     }
 }
