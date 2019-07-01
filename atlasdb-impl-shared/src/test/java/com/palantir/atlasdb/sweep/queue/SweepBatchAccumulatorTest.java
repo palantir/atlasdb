@@ -133,7 +133,7 @@ public class SweepBatchAccumulatorTest {
                 PROGRESS_TIMESTAMP + 177));
         WriteInfo writeInfo1AtNewerVersion = WriteInfo.write(TABLE_REFERENCE_1, CELL_1,
                 PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.TS_FINE_GRANULARITY);
-        long newSweepTimestamp = PROGRESS_TIMESTAMP + 288 + SweepQueueUtils.TS_FINE_GRANULARITY;
+        long newSweepTimestamp = PROGRESS_TIMESTAMP + 288 + SweepQueueUtils.minTsForFinePartition(1);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(writeInfo1AtNewerVersion),
                 NO_DEDICATED_ROWS,
@@ -149,7 +149,7 @@ public class SweepBatchAccumulatorTest {
         // Both must still be present here!
         assertThat(batchWithPartitionInfo.finePartitions()).isEqualTo(ImmutableSet.of(
                 SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
-                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.TS_FINE_GRANULARITY)));
+                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(1))));
     }
 
     @Test
@@ -159,8 +159,8 @@ public class SweepBatchAccumulatorTest {
                 NO_DEDICATED_ROWS,
                 PROGRESS_TIMESTAMP + 177));
         WriteInfo writeInfo1AtNewerVersion = WriteInfo.write(TABLE_REFERENCE_1, CELL_1,
-                PROGRESS_TIMESTAMP + 100 + 9 * SweepQueueUtils.TS_FINE_GRANULARITY);
-        long newSweepTimestamp = PROGRESS_TIMESTAMP + 288 + 15 * SweepQueueUtils.TS_FINE_GRANULARITY;
+                PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(9));
+        long newSweepTimestamp = PROGRESS_TIMESTAMP + 288 + SweepQueueUtils.minTsForFinePartition(15);
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(writeInfo1AtNewerVersion),
                 NO_DEDICATED_ROWS,
@@ -175,7 +175,7 @@ public class SweepBatchAccumulatorTest {
 
         assertThat(batchWithPartitionInfo.finePartitions()).isEqualTo(ImmutableSet.of(
                 SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
-                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 100 + 9 * SweepQueueUtils.TS_FINE_GRANULARITY)));
+                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 100 + SweepQueueUtils.minTsForFinePartition(9))));
     }
 
     @Test
