@@ -37,7 +37,10 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
@@ -57,7 +60,10 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager,
+                () -> ImmutableTargetedSweepRuntimeConfig.builder().shards(1).maximumPartitionsToBatchInSingleRead(8)
+                        .build());
         sweepQueue.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
     }
