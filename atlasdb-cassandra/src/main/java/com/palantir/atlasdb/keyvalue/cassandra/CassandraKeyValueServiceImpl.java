@@ -43,7 +43,6 @@ import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +90,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -1559,9 +1559,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     client.remove("deleteRange", tableRef, row, timestamp, DELETE_CONSISTENCY);
                     return null;
                 });
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException(
-                        "Deleting requires all Cassandra nodes to be up and available.", e);
+            } catch (RetryLimitReachedException e) {
+                throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
