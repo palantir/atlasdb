@@ -99,7 +99,9 @@ import com.palantir.lock.v2.TimelockService;
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Parameterized.Parameters(name = "readBatchSize = {0}")
     public static Object[] readBatchSize() {
-        return new Object[] { 1, 8 };
+        // Tests have an assumption that the read batch size is less than half of the number of coarse
+        // partitions (SweepQueueUtils.TS_COARSE_GRANULARITY / SweepQueueUtils.TS_FINE_GRANULARITY / 2).
+        return new Object[] { 1, 8, 99 };
     }
 
     private static final long LOW_TS = 10L;
@@ -410,7 +412,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepProgressesAndSkipsEmptyFinePartitions() {
-        setSweepTimestamp(maxTsForFinePartition(100));
+        setSweepTimestamp(minTsForFinePartition(2 * (2 * readBatchSize) + 2));
         List<Integer> permittedPartitions = Lists.newArrayList();
         for (int index = 0; index <= 2 * readBatchSize; index++) {
             int partitionToUse = 2 * index;
@@ -427,8 +429,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         punchTimeAtTimestamp(finalValueWallClockTime, additionalTimestampForFinalPartition);
 
         // additional unsweepable value
-        enqueueWriteCommitted(TABLE_CONS, minTsForFinePartition(101));
-        punchTimeAtTimestamp(Long.MAX_VALUE, minTsForFinePartition(101));
+        enqueueWriteCommitted(TABLE_CONS, minTsForFinePartition(9_999_999));
+        punchTimeAtTimestamp(Long.MAX_VALUE, minTsForFinePartition(9_999_999));
 
         // first sweep writes a sentinel for the last partition in the batch, but doesn't clear it
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -460,14 +462,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepProgressesAcrossCoarsePartitions() {
-        setSweepTimestamp(minTsForCoarsePartition(101));
+        setSweepTimestamp(Long.MAX_VALUE);
         List<Integer> permittedPartitions = Lists.newArrayList();
         permittedPartitions.add(0);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
 
-        for (int coarsePartition = 1; coarsePartition < 100; coarsePartition = coarsePartition + 3) {
-            enqueueWriteCommitted(TABLE_CONS, minTsForCoarsePartition(coarsePartition) + LOW_TS);
-            permittedPartitions.add(coarsePartition);
+        for (int index = 0; index <= 3 * readBatchSize; index++) {
+            int partitionToUse = 3 * index + 1;
+            enqueueWriteCommitted(TABLE_CONS, minTsForCoarsePartition(partitionToUse) + LOW_TS);
+            permittedPartitions.add(partitionToUse);
         }
 
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
@@ -572,7 +575,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         }
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
 
-        // last swept timestamp: TS_FINE_GRANULARITY - 1: fine partitions 0 through rBS - 1 aer completely swept
+        // last swept timestamp: TS_FINE_GRANULARITY - 1: fine partitions 0 through rBS - 1 are completely swept
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertSweepableCellsHasNoEntriesInPartitionOfTimestamp(LOW_TS + 1);
         assertSweepableCellsHasEntryForTimestamp(SweepQueueUtils.minTsForFinePartition(readBatchSize));
