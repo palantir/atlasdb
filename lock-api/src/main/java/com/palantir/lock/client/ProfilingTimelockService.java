@@ -118,12 +118,14 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     @Override
     public LockResponse lock(LockRequest request) {
         // Don't profile this, as it may be skewed by user contention on locks.
+        tryFlushLogs();
         return delegate.lock(request);
     }
 
     @Override
     public WaitForLocksResponse waitForLocks(WaitForLocksRequest request) {
         // Don't profile this, as it may be skewed by user contention on locks.
+        tryFlushLogs();
         return delegate.waitForLocks(request);
     }
 
@@ -165,7 +167,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     private void trackActionAndMaybeLog(String actionName, Stopwatch stopwatch, Optional<Exception> failure) {
         stopwatch.stop();
         accumulateSlowOperationTracking(actionName, stopwatch, failure);
-        logIfCanAcquirePermit();
+        tryFlushLogs();
     }
 
     private void accumulateSlowOperationTracking(String actionName, Stopwatch stopwatch, Optional<Exception> failure) {
@@ -179,7 +181,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         }
     }
 
-    private void logIfCanAcquirePermit() {
+    private void tryFlushLogs() {
         if (loggingPermissionSupplier.getAsBoolean()) {
             Optional<ActionProfile> actionProfile = slowestOperation.getAndSet(Optional.empty());
             if (actionProfile.isPresent()) {

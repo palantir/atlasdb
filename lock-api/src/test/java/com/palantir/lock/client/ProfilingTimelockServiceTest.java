@@ -130,7 +130,7 @@ public class ProfilingTimelockServiceTest {
         makeOperationsTakeSpecifiedDuration(LONG_DURATION);
         allowLogging();
         profilingTimelockService.waitForLocks(WaitForLocksRequest.of(
-                ImmutableSet.of(StringLockDescriptor.of("readwrite")), 123));
+                ImmutableSet.of(StringLockDescriptor.of("combination")), 123));
 
         verifyLoggerNeverInvoked();
     }
@@ -145,6 +145,18 @@ public class ProfilingTimelockServiceTest {
         profilingTimelockService.startIdentifiedAtlasDbTransaction();
 
         verifyLoggerInvokedWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
+    }
+
+    @Test
+    public void logsTheSlowestNonBannedOperationAboveThreshold() {
+        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
+        profilingTimelockService.getFreshTimestamp();
+
+        makeOperationsTakeSpecifiedDuration(TWO_CENTURIES);
+        allowLogging();
+        profilingTimelockService.lock(LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("mortice")), 2366));
+
+        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
     }
 
     @Test
