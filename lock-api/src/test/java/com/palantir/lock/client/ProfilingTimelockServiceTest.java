@@ -195,14 +195,15 @@ public class ProfilingTimelockServiceTest {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
         ArgumentCaptor<Arg<Duration>> durationCaptor = ArgumentCaptor.forClass(Arg.class);
-        verify(logger).info(any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any());
+        verify(logger).info(
+                any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any(), any());
 
         assertThat(messageCaptor.getValue().getValue()).isEqualTo(operation);
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
     }
 
     private void verifyLoggerInvokedSpecificNumberOfTimes(int times) {
-        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any());
+        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any(), any());
     }
 
     private void makeOperationsTakeSpecifiedDuration(Duration duration) {

@@ -188,12 +188,13 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
                 ActionProfile presentActionProfile = actionProfile.get();
                 logger.info("Call to TimeLockService#{} took {}. This was the slowest operation that completed"
                                 + " in the last {}. The operation completed with outcome {} - if it failed, the error"
-                                + " was {}.",
+                                + " was {}. We include a stack trace of the call: {}",
                         SafeArg.of("actionName", presentActionProfile.actionName()),
                         SafeArg.of("duration", presentActionProfile.duration()),
                         SafeArg.of("timeWindow", LOGGING_TIME_WINDOW),
                         SafeArg.of("outcome", presentActionProfile.failure().isPresent() ? "fail" : "success"),
-                        UnsafeArg.of("failure", presentActionProfile.failure()));
+                        UnsafeArg.of("failure", presentActionProfile.failure()),
+                        SafeArg.of("stacktrace", new RuntimeException().getStackTrace()));
             }
         }
     }
