@@ -1597,9 +1597,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 client.batch_mutate("deleteRows", mutationMap, DELETE_CONSISTENCY);
                 return null;
             });
-        } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "Deleting requires all Cassandra nodes to be up and available.", e);
+        } catch (RetryLimitReachedException e) {
+            throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
         } catch (TException e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
