@@ -172,7 +172,9 @@ public final class PaxosQuorumChecker {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
                 MultiplexingCompletionService.create(executors);
 
-        PaxosResponses<RESPONSE> receivedResponses = new PaxosResponses<>(remotes.size(), quorumSize,
+        PaxosResponseAccumulator<RESPONSE> receivedResponses = PaxosResponseAccumulator.newResponse(
+                remotes.size(),
+                quorumSize,
                 shortcircuitIfQuorumImpossible);
         // kick off all the requests
         List<Future<RESPONSE>> allFutures = Lists.newArrayList();
@@ -222,7 +224,7 @@ public final class PaxosQuorumChecker {
                 encounteredErrors.forEach(throwable -> log.warn(PAXOS_MESSAGE_ERROR, throwable));
             }
         }
-        return receivedResponses;
+        return receivedResponses.collect();
     }
 
     private static boolean timedOut(Future<?> responseFuture) {
