@@ -136,7 +136,7 @@ public class ProfilingTimelockServiceTest {
     }
 
     @Test
-    public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThreshold() {
+    public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfFirst() {
         makeOperationsTakeSpecifiedDuration(LONG_DURATION);
         profilingTimelockService.getFreshTimestamp();
 
@@ -145,6 +145,18 @@ public class ProfilingTimelockServiceTest {
         profilingTimelockService.startIdentifiedAtlasDbTransaction();
 
         verifyLoggerInvokedWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
+    }
+
+    @Test
+    public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfNotFirst() {
+        makeOperationsTakeSpecifiedDuration(TWO_CENTURIES);
+        profilingTimelockService.getFreshTimestamp();
+
+        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
+        allowLogging();
+        profilingTimelockService.startIdentifiedAtlasDbTransaction();
+
+        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", TWO_CENTURIES);
     }
 
     @Test

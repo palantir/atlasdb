@@ -175,10 +175,10 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         if (stopwatchDescribesSlowOperation(stopwatch)) {
             slowestOperation.accumulateAndGet(
                     Optional.of(ImmutableActionProfile.of(actionName, stopwatch.elapsed(), failure)),
-                    (current, update) -> !update.isPresent()
-                            || update.get().duration().compareTo(stopwatch.elapsed()) < 0
-                            ? current
-                            : update);
+                    (existing, update) -> !existing.isPresent()
+                            || existing.get().duration().compareTo(stopwatch.elapsed()) < 0
+                            ? update
+                            : existing);
         }
     }
 
