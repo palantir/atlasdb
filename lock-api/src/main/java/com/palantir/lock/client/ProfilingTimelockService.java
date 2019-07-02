@@ -16,17 +16,18 @@
 
 package com.palantir.lock.client;
 
-import java.io.Closeable;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -64,22 +65,23 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     private final TimelockService delegate;
     private final Supplier<Stopwatch> stopwatchSupplier;
 
-    private final AtomicReference<Optional<ActionNameAndDuration>> slowestOperation
+    private final AtomicReference<Optional<ActionProfile>> slowestOperation
             = new AtomicReference<>(Optional.empty());
-    private final RateLimiter rateLimiter;
+    private final BooleanSupplier loggingPermissionSupplier;
 
-    private ProfilingTimelockService(
+    @VisibleForTesting
+    ProfilingTimelockService(
             TimelockService delegate,
             Supplier<Stopwatch> stopwatchSupplier,
-            RateLimiter rateLimiter) {
+            BooleanSupplier loggingPermissionSupplier) {
         this.delegate = delegate;
         this.stopwatchSupplier = stopwatchSupplier;
-        this.rateLimiter = rateLimiter;
+        this.loggingPermissionSupplier = loggingPermissionSupplier;
     }
 
     public static ProfilingTimelockService create(TimelockService delegate) {
-        return new ProfilingTimelockService(
-                delegate, Stopwatch::createStarted, RateLimiter.create(1. / LOGGING_TIME_WINDOW.getSeconds()));
+        RateLimiter rateLimiter = RateLimiter.create(1. / LOGGING_TIME_WINDOW.getSeconds());
+        return new ProfilingTimelockService(delegate, Stopwatch::createStarted, rateLimiter::tryAcquire);
     }
 
     @Override
@@ -137,33 +139,52 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     private <T> T runTaskTimed(String actionName, Supplier<T> action) {
         Stopwatch stopwatch = stopwatchSupplier.get();
-        T result = action.get();
-        submitActionTimeAndMaybeLog(actionName, stopwatch);
-        return result;
+        try {
+            T result = action.get();
+            trackSuccessfulAction(actionName, stopwatch);
+            return result;
+        } catch (RuntimeException e) {
+            trackFailedAction(actionName, stopwatch, e);
+            throw e;
+        }
     }
 
-    private void submitActionTimeAndMaybeLog(String actionName, Stopwatch stopwatch) {
+    private void trackSuccessfulAction(String actionName, Stopwatch stopwatch) {
+        trackActionAndMaybeLog(actionName, stopwatch, Optional.empty());
+    }
+
+    private void trackFailedAction(String actionName, Stopwatch stopwatch, RuntimeException exception) {
+        trackActionAndMaybeLog(actionName, stopwatch, Optional.of(exception));
+    }
+
+    private void trackActionAndMaybeLog(String actionName, Stopwatch stopwatch, Optional<Exception> failure) {
         stopwatch.stop();
+        accumulateSlowOperationTracking(actionName, stopwatch);
+        logIfCanAcquirePermit();
+    }
+
+    private void accumulateSlowOperationTracking(String actionName, Stopwatch stopwatch) {
         if (stopwatchDescribesSlowOperation(stopwatch)) {
             slowestOperation.accumulateAndGet(
-                    Optional.of(ImmutableActionNameAndDuration.of(actionName, stopwatch.elapsed())),
+                    Optional.of(ImmutableActionProfile.of(actionName, stopwatch.elapsed())),
                     (current, update) -> !update.isPresent()
                             || update.get().duration().compareTo(stopwatch.elapsed()) < 0
                             ? current
                             : update);
         }
+    }
 
-        if (rateLimiter.tryAcquire()) {
-            Optional<ActionNameAndDuration> actionNameAndDuration = slowestOperation.getAndSet(Optional.empty());
+    private void logIfCanAcquirePermit() {
+        if (loggingPermissionSupplier.getAsBoolean()) {
+            Optional<ActionProfile> actionNameAndDuration = slowestOperation.getAndSet(Optional.empty());
             if (actionNameAndDuration.isPresent()) {
-                ActionNameAndDuration presentActionNameAndDuration = actionNameAndDuration.get();
+                ActionProfile presentActionNameAndDuration = actionNameAndDuration.get();
                 log.info("Call to TimeLockService#{} took {}. This was the slowest operation that completed"
                                 + " in the last {}.",
                         SafeArg.of("actionName", presentActionNameAndDuration.actionName()),
                         SafeArg.of("duration", presentActionNameAndDuration.duration()),
                         SafeArg.of("timeWindow", LOGGING_TIME_WINDOW));
             }
-
         }
     }
 
@@ -179,10 +200,12 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Value.Immutable
-    interface ActionNameAndDuration {
+    interface ActionProfile {
         @Value.Parameter
         String actionName();
         @Value.Parameter
         Duration duration();
+        @Value.Parameter
+        Optional<Exception> failure();
     }
 }
