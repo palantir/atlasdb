@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.RateLimiter;
+import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -204,9 +205,13 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (delegate instanceof AutoCloseable) {
-            ((AutoCloseable) delegate).close();
+            try {
+                ((AutoCloseable) delegate).close();
+            } catch (Exception e) {
+                throw Throwables.rewrapAndThrowUncheckedException("Error closing delegate timelock service", e);
+            }
         }
     }
 

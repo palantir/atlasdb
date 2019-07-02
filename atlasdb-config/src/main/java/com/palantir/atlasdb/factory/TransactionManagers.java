@@ -138,6 +138,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.client.LockRefreshingLockService;
+import com.palantir.lock.client.ProfilingTimelockService;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.impl.LegacyTimelockService;
@@ -789,14 +790,16 @@ public abstract class TransactionManagers {
     private static LockAndTimestampServices withRefreshingLockService(
             LockAndTimestampServices lockAndTimestampServices) {
         TimeLockClient timeLockClient = TimeLockClient.createDefault(lockAndTimestampServices.timelock());
+        ProfilingTimelockService profilingService = ProfilingTimelockService.create(timeLockClient);
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)
-                .timestamp(new TimelockTimestampServiceAdapter(timeLockClient))
-                .timelock(timeLockClient)
+                .timestamp(new TimelockTimestampServiceAdapter(profilingService))
+                .timelock(profilingService)
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .close(() -> {
                     lockAndTimestampServices.close();
                     timeLockClient.close();
+                    profilingService.close();
                 })
                 .build();
     }
