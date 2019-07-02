@@ -203,6 +203,7 @@ public class ProfilingTimelockServiceTest {
     }
 
     @SuppressWarnings("unchecked") // Captors of generics
+    @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
     private void verifyLoggerInvokedWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
@@ -214,6 +215,7 @@ public class ProfilingTimelockServiceTest {
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
     }
 
+    @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
     private void verifyLoggerInvokedSpecificNumberOfTimes(int times) {
         verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any(), any());
     }
