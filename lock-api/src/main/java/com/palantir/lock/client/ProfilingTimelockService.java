@@ -39,6 +39,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampRange;
 
 /**
@@ -59,9 +60,11 @@ import com.palantir.timestamp.TimestampRange;
 public class ProfilingTimelockService implements AutoCloseable, TimelockService {
     private static final Logger log = LoggerFactory.getLogger(ProfilingTimelockService.class);
 
-    private static final Duration SLOW_THRESHOLD = Duration.ofSeconds(1);
+    @VisibleForTesting
+    static final Duration SLOW_THRESHOLD = Duration.ofSeconds(1);
     private static final Duration LOGGING_TIME_WINDOW = Duration.ofSeconds(10);
 
+    private final Logger logger;
     private final TimelockService delegate;
     private final Supplier<Stopwatch> stopwatchSupplier;
 
@@ -71,9 +74,11 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @VisibleForTesting
     ProfilingTimelockService(
+            Logger logger,
             TimelockService delegate,
             Supplier<Stopwatch> stopwatchSupplier,
             BooleanSupplier loggingPermissionSupplier) {
+        this.logger = logger;
         this.delegate = delegate;
         this.stopwatchSupplier = stopwatchSupplier;
         this.loggingPermissionSupplier = loggingPermissionSupplier;
@@ -81,7 +86,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     public static ProfilingTimelockService create(TimelockService delegate) {
         RateLimiter rateLimiter = RateLimiter.create(1. / LOGGING_TIME_WINDOW.getSeconds());
-        return new ProfilingTimelockService(delegate, Stopwatch::createStarted, rateLimiter::tryAcquire);
+        return new ProfilingTimelockService(log, delegate, Stopwatch::createStarted, rateLimiter::tryAcquire);
     }
 
     @Override
@@ -159,14 +164,14 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     private void trackActionAndMaybeLog(String actionName, Stopwatch stopwatch, Optional<Exception> failure) {
         stopwatch.stop();
-        accumulateSlowOperationTracking(actionName, stopwatch);
+        accumulateSlowOperationTracking(actionName, stopwatch, failure);
         logIfCanAcquirePermit();
     }
 
-    private void accumulateSlowOperationTracking(String actionName, Stopwatch stopwatch) {
+    private void accumulateSlowOperationTracking(String actionName, Stopwatch stopwatch, Optional<Exception> failure) {
         if (stopwatchDescribesSlowOperation(stopwatch)) {
             slowestOperation.accumulateAndGet(
-                    Optional.of(ImmutableActionProfile.of(actionName, stopwatch.elapsed())),
+                    Optional.of(ImmutableActionProfile.of(actionName, stopwatch.elapsed(), failure)),
                     (current, update) -> !update.isPresent()
                             || update.get().duration().compareTo(stopwatch.elapsed()) < 0
                             ? current
@@ -176,14 +181,17 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     private void logIfCanAcquirePermit() {
         if (loggingPermissionSupplier.getAsBoolean()) {
-            Optional<ActionProfile> actionNameAndDuration = slowestOperation.getAndSet(Optional.empty());
-            if (actionNameAndDuration.isPresent()) {
-                ActionProfile presentActionNameAndDuration = actionNameAndDuration.get();
-                log.info("Call to TimeLockService#{} took {}. This was the slowest operation that completed"
-                                + " in the last {}.",
-                        SafeArg.of("actionName", presentActionNameAndDuration.actionName()),
-                        SafeArg.of("duration", presentActionNameAndDuration.duration()),
-                        SafeArg.of("timeWindow", LOGGING_TIME_WINDOW));
+            Optional<ActionProfile> actionProfile = slowestOperation.getAndSet(Optional.empty());
+            if (actionProfile.isPresent()) {
+                ActionProfile presentActionProfile = actionProfile.get();
+                logger.info("Call to TimeLockService#{} took {}. This was the slowest operation that completed"
+                                + " in the last {}. The operation completed with outcome {} - if it failed, the error"
+                                + " was {}.",
+                        SafeArg.of("actionName", presentActionProfile.actionName()),
+                        SafeArg.of("duration", presentActionProfile.duration()),
+                        SafeArg.of("timeWindow", LOGGING_TIME_WINDOW),
+                        SafeArg.of("outcome", presentActionProfile.failure().isPresent() ? "fail" : "success"),
+                        UnsafeArg.of("failure", presentActionProfile.failure()));
             }
         }
     }
