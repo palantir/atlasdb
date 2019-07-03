@@ -128,6 +128,22 @@ public class SweepBatchAccumulatorTest {
     }
 
     @Test
+    public void mergesFinePartitionsFromWritesAndDedicatedRows() {
+        accumulator.accumulateBatch(SweepBatch.of(
+                ImmutableList.of(WRITE_INFO_1),
+                DedicatedRows.of(
+                        ImmutableList.of(
+                                SweepableCellsTable.SweepableCellsRow.of(
+                                        SweepQueueUtils.minTsForFinePartition(1), PtBytes.toBytes("aaaaaaa")))),
+                SweepQueueUtils.minTsForFinePartition(2)));
+
+        SweepBatchWithPartitionInfo batchWithPartitionInfo = accumulator.toSweepBatch();
+        assertThat(batchWithPartitionInfo.finePartitions())
+                .hasSize(2)
+                .isEqualTo(ImmutableSet.of(SweepQueueUtils.tsPartitionFine(WRITE_INFO_1.timestamp()), 1L));
+    }
+
+    @Test
     public void onlyKeepsNewestVersionOfWriteInfoWhenMergingMultipleBatches() {
         accumulator.accumulateBatch(SweepBatch.of(
                 ImmutableList.of(WRITE_INFO_1),
