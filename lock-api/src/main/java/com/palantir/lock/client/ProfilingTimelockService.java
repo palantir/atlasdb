@@ -175,10 +175,12 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         if (stopwatchDescribesSlowOperation(stopwatch)) {
             slowestOperation.accumulateAndGet(
                     Optional.of(ImmutableActionProfile.of(actionName, stopwatch.elapsed(), failure)),
-                    (existing, update) -> !existing.isPresent()
-                            || existing.get().duration().compareTo(stopwatch.elapsed()) < 0
-                            ? update
-                            : existing);
+                    (existing, update) -> {
+                        if (!existing.isPresent()) {
+                            return update;
+                        }
+                        return existing.get().duration().compareTo(stopwatch.elapsed()) < 0 ? update : existing;
+                    });
         }
     }
 
@@ -200,7 +202,7 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
         }
     }
 
-    private boolean stopwatchDescribesSlowOperation(Stopwatch stopwatch) {
+    private static boolean stopwatchDescribesSlowOperation(Stopwatch stopwatch) {
         return stopwatch.elapsed().compareTo(SLOW_THRESHOLD) >= 0;
     }
 

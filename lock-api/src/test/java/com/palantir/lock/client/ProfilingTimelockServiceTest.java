@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 
@@ -45,7 +46,7 @@ import com.palantir.logsafe.Arg;
 public class ProfilingTimelockServiceTest {
     private static final Duration SHORT_DURATION = ProfilingTimelockService.SLOW_THRESHOLD.dividedBy(5);
     private static final Duration LONG_DURATION = ProfilingTimelockService.SLOW_THRESHOLD.multipliedBy(5);
-    private static final Duration TWO_CENTURIES = Duration.ofDays(365 * 100 * 2 + 50 - 2); // most of the time
+    private static final Duration TWO_CENTURIES = ChronoUnit.CENTURIES.getDuration().multipliedBy(2);
 
     private final Logger logger = mock(Logger.class);
     private final TimelockService delegate = mock(TimelockService.class);
@@ -61,7 +62,7 @@ public class ProfilingTimelockServiceTest {
     };
 
     private final AtomicBoolean allowLogging = new AtomicBoolean();
-    private final BooleanSupplier loggingPermissionSupplier = () -> allowLogging.getAndSet(false);
+    private final BooleanSupplier loggingPermissionSupplier = allowLogging::get;
 
     private final ProfilingTimelockService profilingTimelockService = new ProfilingTimelockService(
             logger, delegate, () -> Stopwatch.createStarted(ticker), loggingPermissionSupplier);
@@ -192,6 +193,7 @@ public class ProfilingTimelockServiceTest {
         for (int i = 0; i < 100; i++) {
             allowLogging();
             profilingTimelockService.lockImmutableTimestamp();
+            disallowLogging();
             profilingTimelockService.lockImmutableTimestamp();
             profilingTimelockService.lockImmutableTimestamp();
         }
@@ -225,6 +227,10 @@ public class ProfilingTimelockServiceTest {
     }
 
     private void allowLogging() {
+        allowLogging.set(true);
+    }
+
+    private void disallowLogging() {
         allowLogging.set(true);
     }
 }
