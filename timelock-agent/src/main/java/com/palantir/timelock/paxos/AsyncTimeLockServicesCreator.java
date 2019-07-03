@@ -17,7 +17,6 @@ package com.palantir.timelock.paxos;
 
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -34,6 +33,8 @@ import com.palantir.atlasdb.timelock.AsyncTimelockResource;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.AsyncTimelockServiceImpl;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
@@ -42,7 +43,6 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -119,12 +119,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         .setDaemon(true)
                         .build()), metricsManager.getRegistry(), "async-lock-timeouts");
         return new AsyncTimelockServiceImpl(
-                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor, shouldRateLimit(client)),
+                AsyncLockService.createDefault(lockLog, reaperExecutor, timeoutExecutor, rateLimitConfig(client)),
                 timestampServiceSupplier.get());
     }
 
-    private BooleanSupplier shouldRateLimit(String client) {
-        return () -> lockControlConfigSupplier.get().shouldRateLimit(client);
+    private Supplier<RateLimitConfig> rateLimitConfig(String client) {
+        return () -> lockControlConfigSupplier.get().rateLimitConfig(client);
     }
 
     private <T> T instrumentInLeadershipProxy(TaggedMetricRegistry taggedMetrics, Class<T> serviceClass,

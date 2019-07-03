@@ -31,14 +31,16 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.timelock.config.ImmutableRateLimitConfig;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
 
 public class TargetedSweepLockDecoratorTests {
 
-    private final TargetedSweepLockDecorator lockDecorator =
-            TargetedSweepLockDecorator.create(() -> true, mock(ScheduledExecutorService.class));
+    private final TargetedSweepLockDecorator lockDecorator = TargetedSweepLockDecorator.create(
+            () -> ImmutableRateLimitConfig.builder().enabled(true).build(),
+            mock(ScheduledExecutorService.class));
 
     @After
     public void after() {

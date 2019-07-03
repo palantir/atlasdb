@@ -19,17 +19,23 @@ package com.palantir.atlasdb.timelock.lock;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.util.concurrent.RateLimiter;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.ShardAndThreadConfig;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.util.Pair;
@@ -41,27 +47,49 @@ public final class TargetedSweepLockDecorator implements OrderedLocksDecorator, 
 
     private static final LockDescriptor PREFIX = StringLockDescriptor.of("shard 0");
     private static final LockDescriptor NEXT_LEX_PREFIX = StringLockDescriptor.of("shard " + ('9' + 1));
+    private static final ByteString CONSERVATIVE_SUFFIX =
+            ByteString.copyFrom(StringLockDescriptor.of("CONSERVATIVE").getBytes());
+    private static final ByteString THOROUGH_SUFFIX =
+            ByteString.copyFrom(StringLockDescriptor.of("THOROUGH").getBytes());
 
-    private final LoadingCache<AsyncLock, TargetedSweepAsyncLock> targetedSweepRateLimitersById;
+    private final LoadingCache<Map.Entry<SweepStrategy, AsyncLock>, TargetedSweepAsyncLock> targetedSweepLockByDelegate;
     private final AutobatchingUnlocker unlockerAutobatcher;
 
     @VisibleForTesting
     TargetedSweepLockDecorator(
-            BooleanSupplier isRateLimiting,
+            Supplier<RateLimitConfig> targetedSweepRateLimiterConfig,
             ScheduledExecutorService timeoutExecutor,
             AutobatchingUnlocker unlocker) {
         this.unlockerAutobatcher = unlocker;
-        targetedSweepRateLimitersById = Caffeine.newBuilder()
+        targetedSweepLockByDelegate = Caffeine.newBuilder()
                 .build(delegateLock -> new TargetedSweepAsyncLock(
-                        delegateLock,
-                        RateLimiter.create(LOCK_ACQUIRES_PER_SECOND),
-                        isRateLimiting,
+                        delegateLock.getValue(),
+                        createRateLimiter(targetedSweepRateLimiterConfig, delegateLock.getKey()),
+                        () -> targetedSweepRateLimiterConfig.get().enabled(),
                         timeoutExecutor,
                         unlocker));
     }
 
-    static TargetedSweepLockDecorator create(BooleanSupplier isRateLimiting, ScheduledExecutorService timeoutExecutor) {
-        return new TargetedSweepLockDecorator(isRateLimiting, timeoutExecutor, new AutobatchingUnlocker(unlocker()));
+    private static RateLimiter createRateLimiter(Supplier<RateLimitConfig> rateLimiterConfig, SweepStrategy strategy) {
+        RateLimitConfig first = rateLimiterConfig.get();
+        ShardAndThreadConfig shardAndThreadConfig = first.config();
+        switch (strategy) {
+            case CONSERVATIVE:
+                return RateLimiter.create(shardAndThreadConfig.conservativePermitsPerSecond());
+            case THOROUGH:
+                return RateLimiter.create(shardAndThreadConfig.thoroughPermitsPerSecond());
+            default:
+                throw new AssertionError("this should not happen");
+        }
+    }
+
+    static TargetedSweepLockDecorator create(
+            Supplier<RateLimitConfig> targetedSweepRateLimitConfig,
+            ScheduledExecutorService timeoutExecutor) {
+        return new TargetedSweepLockDecorator(
+                targetedSweepRateLimitConfig,
+                timeoutExecutor,
+                new AutobatchingUnlocker(unlocker()));
     }
 
     private static final class AutobatchingUnlocker implements TargetedSweepLockUnlocker, Closeable {
@@ -105,12 +133,22 @@ public final class TargetedSweepLockDecorator implements OrderedLocksDecorator, 
         Range<Integer> targetedSweepLockRange = findTargetedSweepLocks(descriptors);
         if (!targetedSweepLockRange.isEmpty()) {
             for (int i = targetedSweepLockRange.lowerEndpoint(); i < targetedSweepLockRange.upperEndpoint(); i++) {
-                TargetedSweepAsyncLock targetedSweepAsyncLock = targetedSweepRateLimitersById.get(locks.get(i));
-                locks.set(i, targetedSweepAsyncLock);
+                locks.set(i, targetedSweepLock(descriptors.get(i), locks.get(i)));
             }
         }
 
         return OrderedLocks.fromOrderedList(locks);
+    }
+
+    private AsyncLock targetedSweepLock(LockDescriptor descriptor, AsyncLock lock) {
+        ByteString descriptorByteString = ByteString.copyFrom(descriptor.getBytes());
+        if (descriptorByteString.endsWith(CONSERVATIVE_SUFFIX)) {
+            return targetedSweepLockByDelegate.get(Maps.immutableEntry(SweepStrategy.CONSERVATIVE, lock));
+        } else if (descriptorByteString.endsWith(THOROUGH_SUFFIX)) {
+            return targetedSweepLockByDelegate.get(Maps.immutableEntry(SweepStrategy.THOROUGH, lock));
+        } else {
+            return lock;
+        }
     }
 
     private static boolean containsTargetedSweepLocks(List<LockDescriptor> descriptors) {

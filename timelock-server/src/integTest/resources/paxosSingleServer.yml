@@ -20,6 +20,13 @@ runtime:
     mode: disabled-by-default
     excluded-clients:
       - should-rate-limit
+      - should-rate-limit-circular
+    concurrency:
+      should-rate-limit-circular:
+        conservativeThreads: 1
+        conservativeShards: 4
+        thoroughThreads: 2
+        thoroughShards: 8
 
 server:
   minThreads: 1
