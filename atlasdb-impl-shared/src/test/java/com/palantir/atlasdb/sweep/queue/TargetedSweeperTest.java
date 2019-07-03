@@ -313,7 +313,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps() {
-        long lastWriteTs = TS_FINE_GRANULARITY - 1;
+        long lastWriteTs = 5000;
         for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_CONS, i);
         }
@@ -325,7 +325,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels() {
-        long lastWriteTs = TS_FINE_GRANULARITY - 1;
+        long lastWriteTs = 5000;
         for (long i = 1; i <= lastWriteTs; i++) {
             enqueueWriteCommitted(TABLE_THOR, i);
         }
