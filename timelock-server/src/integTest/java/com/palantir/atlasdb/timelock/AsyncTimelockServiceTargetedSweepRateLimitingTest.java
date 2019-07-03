@@ -173,8 +173,8 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
                 .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
 
         assertThat(meanRate(rateLimitedConservative) + meanRate(rateLimitedConservative2))
-                .as("conservative is rate limited with 4 shards and 1 thread, each 'thread' should get 1 per second per "
-                        + "thread")
+                .as("conservative is rate limited with 4 shards and 1 thread, each 'thread' should get 1 per second per"
+                        + " thread")
                 .satisfies(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
     }
 
