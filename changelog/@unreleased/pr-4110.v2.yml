@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Correctly rate limit bad targeted sweep clients.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4110
