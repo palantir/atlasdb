@@ -51,10 +51,8 @@ class SweepBatchAccumulator {
                 sweepTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
-        sweepBatch.writes().stream()
-                .map(writeInfo -> SweepQueueUtils.tsPartitionFine(writeInfo.timestamp()))
-                .forEach(finePartitions::add);
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
+        addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
         anyBatchesPresent = true;
     }
@@ -88,5 +86,15 @@ class SweepBatchAccumulator {
             return progressTimestamp;
         }
         return sweepTimestamp - 1;
+    }
+
+    private void addRelevantFinePartitions(SweepBatch sweepBatch) {
+        sweepBatch.writes().stream()
+                .map(writeInfo -> SweepQueueUtils.tsPartitionFine(writeInfo.timestamp()))
+                .forEach(finePartitions::add);
+        sweepBatch.dedicatedRows().getDedicatedRows().stream()
+                .map(SweepableCellsTable.SweepableCellsRow::getTimestampPartition)
+                .map(SweepQueueUtils::tsPartitionFine) // Dedicated rows are written with the start timestamp
+                .forEach(finePartitions::add);
     }
 }

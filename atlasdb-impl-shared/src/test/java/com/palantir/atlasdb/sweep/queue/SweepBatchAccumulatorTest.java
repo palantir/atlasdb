@@ -122,7 +122,9 @@ public class SweepBatchAccumulatorTest {
                     ImmutableList.of(SWEEPABLE_CELLS_ROW_1, SWEEPABLE_CELLS_ROW_2)));
             assertThat(batch.lastSweptTimestamp()).isEqualTo(PROGRESS_TIMESTAMP + 288);
         });
-        assertThat(batchWithPartitionInfo.finePartitions()).isEqualTo(ImmutableSet.of());
+        assertThat(batchWithPartitionInfo.finePartitions()).isEqualTo(ImmutableSet.of(
+                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 177),
+                SweepQueueUtils.tsPartitionFine(PROGRESS_TIMESTAMP + 288)));
     }
 
     @Test
