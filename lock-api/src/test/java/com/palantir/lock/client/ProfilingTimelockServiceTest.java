@@ -202,8 +202,8 @@ public class ProfilingTimelockServiceTest {
         verifyNoMoreInteractions(logger);
     }
 
-    @SuppressWarnings("unchecked") // Captors of generics
-    @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
+    @SuppressWarnings({ "unchecked", // Captors of generics
+                        "Slf4jConstantLogMessage" }) // Logger verify
     private void verifyLoggerInvokedWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
