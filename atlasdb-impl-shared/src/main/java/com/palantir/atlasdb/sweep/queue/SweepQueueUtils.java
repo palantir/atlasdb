@@ -71,6 +71,10 @@ public final class SweepQueueUtils {
         return minTsForFinePartition(finePartition) + TS_FINE_GRANULARITY - 1;
     }
 
+    public static long minTsForCoarsePartition(long coarsePartition) {
+        return coarsePartition * TS_COARSE_GRANULARITY;
+    }
+
     public static boolean firstSweep(long previousTs) {
         return previousTs == INITIAL_TIMESTAMP;
     }
