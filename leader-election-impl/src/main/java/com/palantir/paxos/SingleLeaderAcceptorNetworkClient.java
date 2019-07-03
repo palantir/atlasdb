@@ -16,6 +16,7 @@
 
 package com.palantir.paxos;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
@@ -28,10 +29,10 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
     private final Map<PaxosAcceptor, ExecutorService> executors;
 
     public SingleLeaderAcceptorNetworkClient(
-            ImmutableList<PaxosAcceptor> acceptors,
+            List<PaxosAcceptor> acceptors,
             int quorumSize,
             Map<PaxosAcceptor, ExecutorService> executors) {
-        this.acceptors = acceptors;
+        this.acceptors = ImmutableList.copyOf(acceptors);
         this.quorumSize = quorumSize;
         this.executors = executors;
     }
