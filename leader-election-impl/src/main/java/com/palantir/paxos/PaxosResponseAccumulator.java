@@ -72,7 +72,7 @@ final class PaxosResponseAccumulator<T extends PaxosResponse> {
     }
 
     PaxosResponses<T> collect() {
-        return PaxosResponses.of(quorum, successes, responses);
+        return PaxosResponses.of(quorum, responses);
     }
 
 }

@@ -26,13 +26,11 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class PaxosResponses<T extends PaxosResponse> {
     abstract int quorum();
-    abstract int successes();
     abstract List<T> responses();
 
-    public static <T extends PaxosResponse> PaxosResponses<T> of(int quorum, int successes, List<T> responses) {
+    public static <T extends PaxosResponse> PaxosResponses<T> of(int quorum, List<T> responses) {
         return ImmutablePaxosResponses.<T>builder()
                 .quorum(quorum)
-                .successes(successes)
                 .addAllResponses(responses)
                 .build();
     }
@@ -46,7 +44,12 @@ public abstract class PaxosResponses<T extends PaxosResponse> {
     }
 
     public <U extends PaxosResponse> PaxosResponses<U> map(Function<T, U> mapper) {
-        return of(quorum(), successes(), responses().stream().map(mapper).collect(Collectors.toList()));
+        return of(quorum(), responses().stream().map(mapper).collect(Collectors.toList()));
+    }
+
+    @Value.Derived
+    int successes() {
+        return (int) responses().stream().filter(PaxosResponse::isSuccessful).count();
     }
 
     @Value.Derived
