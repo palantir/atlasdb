@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.jetty.util.ConcurrentHashSet;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -119,7 +120,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private boolean enabled = true;
     private boolean batchShardIterations = false;
 
-    public  TargetedSweeperTest(int readBatchSize) {
+    public TargetedSweeperTest(int readBatchSize) {
         this.readBatchSize = readBatchSize;
     }
 
@@ -142,6 +143,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
         sweepableCells = new SweepableCells(spiedKvs, partitioner, null, txnService);
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
+    }
+
+    @After
+    public void tearDown() {
+        // This is required because of JUnit memory issues
+        sweepQueue = null;
+        progress = null;
+        sweepableTimestamps = null;
+        sweepableCells = null;
+        puncherStore = null;
     }
 
     @Test

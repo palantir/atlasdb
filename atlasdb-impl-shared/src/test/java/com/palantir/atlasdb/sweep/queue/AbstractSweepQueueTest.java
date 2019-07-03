@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.assertj.core.api.Assertions;
+import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.collect.ImmutableList;
@@ -84,6 +85,12 @@ public abstract class AbstractSweepQueueTest {
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
         partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
         txnService = TransactionServices.createV1TransactionService(spiedKvs);
+    }
+
+    @After
+    public void tearDown() {
+        // This is required because of JUnit memory issues
+        spiedKvs = null;
     }
 
     static byte[] metadataBytes(SweepStrategy sweepStrategy) {
