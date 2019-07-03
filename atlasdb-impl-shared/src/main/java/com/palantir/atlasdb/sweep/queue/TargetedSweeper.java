@@ -103,8 +103,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         return new TargetedSweeper(metrics, runtime, install, followers);
     }
 
-    @VisibleForTesting
-    static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager,
+    public static TargetedSweeper createUninitializedForTest(MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(0)
