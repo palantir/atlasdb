@@ -94,7 +94,6 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 
-// TODO (jkong): Assert stricter properties on the types of ranged deletes that are created.
 @RunWith(Parameterized.class)
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Parameterized.Parameters(name = "readBatchSize = {0}")
@@ -331,7 +330,6 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
             enqueueWriteCommitted(TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(partition));
             enqueueWriteCommitted(TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(partition) + 1);
         }
-        enqueueWriteCommitted(TABLE_CONS, TS_FINE_GRANULARITY);
 
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertReadAtTimestampReturnsSentinel(
@@ -847,7 +845,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // we now read all to the end
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(
-                4 + writesInDedicated + 3 + writesInDedicated + 2 + + (readBatchSize > 1 ? 2 : 0));
+                4 + writesInDedicated + 3 + writesInDedicated + 2 + (readBatchSize > 1 ? 2 : 0));
     }
 
     @Test
