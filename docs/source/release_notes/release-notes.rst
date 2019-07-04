@@ -104,7 +104,7 @@ develop
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
 
     *    - |improved|
-         - Clients now log at most once every 10 seconds when a timelock-level request is slow.
+         - Clients now log at most once every 10 seconds when a ``TimelockService`` level request is slow.
            Please see the JavaDocs of ``ProfilingTimelockService`` for more information.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
 
