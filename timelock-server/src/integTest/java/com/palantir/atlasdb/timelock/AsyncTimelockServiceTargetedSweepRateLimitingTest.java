@@ -132,10 +132,6 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
 
     @Test
     public void circular() throws InterruptedException {
-        Pair<Meter, ListenableFuture<?>> nonRateLimited = run(
-                lockDescriptorSupplier(4, CONSERVATIVE),
-                CLIENT,
-                nonRateLimitedExecutor);
         Pair<Meter, ListenableFuture<?>> rateLimitedConservativeNode1 = run(
                 lockDescriptorSupplier(8, CONSERVATIVE),
                 RATE_LIMITED_CLIENT_CIRCULAR,
@@ -169,7 +165,6 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
                 rateLimitedExecutor);
 
         Future<List<Object>> combinedFuture = asFuture(ImmutableList.of(
-                nonRateLimited,
                 rateLimitedConservativeNode1,
                 rateLimitedConservativeNode2,
                 rateLimitedThoroughNode1Thread1,
@@ -178,16 +173,6 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
                 rateLimitedThoroughNode2Thread2));
         Thread.sleep(15_000);
         combinedFuture.cancel(true);
-
-        System.out.println(meanRate(nonRateLimited));
-        System.out.println("---");
-        System.out.println(meanRates(rateLimitedThoroughNode1Thread1, rateLimitedThoroughNode1Thread2, rateLimitedThoroughNode2Thread1, rateLimitedThoroughNode2Thread2));
-        System.out.println("---");
-        System.out.println(meanRates(rateLimitedConservativeNode1, rateLimitedConservativeNode2));
-
-        assertThat(meanRate(nonRateLimited))
-                .as("non rate limited client isn't rate limited when we go in a circle like targeted sweep")
-                .satisfies(AsyncTimelockServiceTargetedSweepRateLimitingTest::isNotRateLimited);
 
         assertThat(meanRates(
                 rateLimitedThoroughNode1Thread1, rateLimitedThoroughNode1Thread2,

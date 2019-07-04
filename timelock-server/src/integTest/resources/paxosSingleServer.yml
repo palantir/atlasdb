@@ -22,6 +22,8 @@ runtime:
       - should-rate-limit
       - should-rate-limit-circular
     concurrency:
+      should-rate-limit:
+        shards: 1
       should-rate-limit-circular:
         nodes: 2
         shards: 8
