@@ -23,7 +23,6 @@ import java.util.Set;
 
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -74,41 +73,42 @@ public abstract class TargetedSweepLockControlConfig {
 
     @JsonDeserialize(as = ImmutableShardAndThreadConfig.class)
     @JsonSerialize(as = ImmutableShardAndThreadConfig.class)
-    @JsonIgnoreProperties(ignoreUnknown = true)
     @Value.Immutable
     public interface ShardAndThreadConfig {
 
+        @Value.Default
+        default int nodes() {
+            return 1;
+        }
+
+        @JsonProperty("conservative-threads")
         @Value.Default
         default int conservativeThreads() {
             return 1;
         }
 
-        @Value.Default
-        default int conservativeShards() {
-            return 1;
-        }
-
+        @JsonProperty("thorough-threads")
         @Value.Default
         default int thoroughThreads() {
             return 1;
         }
 
         @Value.Default
-        default int thoroughShards() {
-            return 1;
+        default int shards() {
+            return 8;
         }
 
         default double conservativePermitsPerSecond() {
-            return permitsPerSecond(conservativeThreads(), conservativeShards());
+            return permitsPerSecond(nodes(), conservativeThreads(), shards());
         }
 
         default double thoroughPermitsPerSecond() {
-            return permitsPerSecond(thoroughThreads(), thoroughShards());
+            return permitsPerSecond(nodes(), thoroughThreads(), shards());
         }
 
-        default double permitsPerSecond(int threads, int shards) {
-            int concurrency = Math.min(threads, shards);
-            return ((double) LOCK_ACQUIRES_PER_SECOND) / shards * concurrency;
+        static double permitsPerSecond(int nodes, int threads, int shards) {
+            int concurrency = Math.min(threads * nodes, shards);
+            return ((double) LOCK_ACQUIRES_PER_SECOND) * concurrency / shards;
         }
 
         static ShardAndThreadConfig defaultConfig() {

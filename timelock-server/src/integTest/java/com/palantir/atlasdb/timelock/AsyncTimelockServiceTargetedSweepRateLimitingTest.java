@@ -23,7 +23,9 @@ import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.Swe
 import static com.palantir.atlasdb.timelock.lock.TargetedSweepLockDecorator.LOCK_ACQUIRES_PER_SECOND;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -134,54 +136,76 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
                 lockDescriptorSupplier(4, CONSERVATIVE),
                 CLIENT,
                 nonRateLimitedExecutor);
-        Pair<Meter, ListenableFuture<?>> rateLimitedConservative = run(
-                lockDescriptorSupplier(4, CONSERVATIVE),
+        Pair<Meter, ListenableFuture<?>> rateLimitedConservativeNode1 = run(
+                lockDescriptorSupplier(8, CONSERVATIVE),
+                RATE_LIMITED_CLIENT_CIRCULAR,
+                nonRateLimitedExecutor);
+
+        Pair<Meter, ListenableFuture<?>> rateLimitedConservativeNode2 = run(
+                lockDescriptorSupplier(8, CONSERVATIVE),
+                RATE_LIMITED_CLIENT_CIRCULAR,
+                nonRateLimitedExecutor);
+
+        Supplier<LockDescriptor> thoroughNode1LockDescriptor = lockDescriptorSupplier(8, THOROUGH);
+        Pair<Meter, ListenableFuture<?>> rateLimitedThoroughNode1Thread1 = run(
+                thoroughNode1LockDescriptor,
                 RATE_LIMITED_CLIENT_CIRCULAR,
                 rateLimitedExecutor);
 
-        Pair<Meter, ListenableFuture<?>> rateLimitedConservative2 = run(
-                lockDescriptorSupplier(4, CONSERVATIVE),
+        Pair<Meter, ListenableFuture<?>> rateLimitedThoroughNode1Thread2 = run(
+                thoroughNode1LockDescriptor,
                 RATE_LIMITED_CLIENT_CIRCULAR,
                 rateLimitedExecutor);
 
-        Pair<Meter, ListenableFuture<?>> rateLimitedThorough = run(
-                lockDescriptorSupplier(8, THOROUGH),
+        Supplier<LockDescriptor> thoroughNode2LockDescriptor = lockDescriptorSupplier(8, THOROUGH);
+        Pair<Meter, ListenableFuture<?>> rateLimitedThoroughNode2Thread1 = run(
+                thoroughNode2LockDescriptor,
                 RATE_LIMITED_CLIENT_CIRCULAR,
                 rateLimitedExecutor);
 
-        Pair<Meter, ListenableFuture<?>> rateLimitedThorough2 = run(
-                lockDescriptorSupplier(8, THOROUGH),
+        Pair<Meter, ListenableFuture<?>> rateLimitedThoroughNode2Thread2 = run(
+                thoroughNode2LockDescriptor,
                 RATE_LIMITED_CLIENT_CIRCULAR,
                 rateLimitedExecutor);
 
         Future<List<Object>> combinedFuture = asFuture(ImmutableList.of(
                 nonRateLimited,
-                rateLimitedConservative,
-                rateLimitedConservative2,
-                rateLimitedThorough,
-                rateLimitedThorough2));
+                rateLimitedConservativeNode1,
+                rateLimitedConservativeNode2,
+                rateLimitedThoroughNode1Thread1,
+                rateLimitedThoroughNode1Thread2,
+                rateLimitedThoroughNode2Thread1,
+                rateLimitedThoroughNode2Thread2));
         Thread.sleep(15_000);
         combinedFuture.cancel(true);
+
+        System.out.println(meanRate(nonRateLimited));
+        System.out.println("---");
+        System.out.println(meanRates(rateLimitedThoroughNode1Thread1, rateLimitedThoroughNode1Thread2, rateLimitedThoroughNode2Thread1, rateLimitedThoroughNode2Thread2));
+        System.out.println("---");
+        System.out.println(meanRates(rateLimitedConservativeNode1, rateLimitedConservativeNode2));
 
         assertThat(meanRate(nonRateLimited))
                 .as("non rate limited client isn't rate limited when we go in a circle like targeted sweep")
                 .satisfies(AsyncTimelockServiceTargetedSweepRateLimitingTest::isNotRateLimited);
 
-        assertThat(ImmutableList.of(meanRate(rateLimitedThorough), meanRate(rateLimitedThorough2)))
-                .as("thorough is rate limited with 8 shards and 2 threads, each 'thread' should get 2 per second per "
-                        + "thread")
+        assertThat(meanRates(
+                rateLimitedThoroughNode1Thread1, rateLimitedThoroughNode1Thread2,
+                rateLimitedThoroughNode2Thread1, rateLimitedThoroughNode2Thread2))
+                .as("thorough is rate limited with 8 shards, 2 threads, 2 nodes, each thread per node should process "
+                        + "2 shards per second")
                 .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
 
-        assertThat(meanRate(rateLimitedConservative) + meanRate(rateLimitedConservative2))
-                .as("conservative is rate limited with 4 shards and 1 thread, each 'thread' should get 1 per second per"
-                        + " thread")
-                .satisfies(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
+        assertThat(meanRates(rateLimitedConservativeNode1, rateLimitedConservativeNode2))
+                .as("conservative is rate limited with 8 shards, 1 thread, 2 nodes, each thread per node should "
+                        + "process 2 shards per second")
+                .allSatisfy(AsyncTimelockServiceTargetedSweepRateLimitingTest::isRateLimited);
     }
 
     private static Supplier<LockDescriptor> lockDescriptorSupplier(
             int numShards,
             SweepStrategy sweepStrategy) {
-        AtomicInteger counter = new AtomicInteger(0);
+        AtomicInteger counter = new AtomicInteger(new Random().nextInt() % numShards);
         return () -> {
             int shard = counter.getAndIncrement() % numShards;
             ShardAndStrategy shardStrategy = ShardAndStrategy.of(shard, sweepStrategy);
@@ -192,6 +216,10 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     private static ListeningScheduledExecutorService getExecutorService() {
         ScheduledThreadPoolExecutor delegate = PTExecutors.newScheduledThreadPoolExecutor(10);
         return MoreExecutors.listeningDecorator(delegate);
+    }
+
+    private static List<Double> meanRates(Pair<Meter, ListenableFuture<?>>... pairs) {
+        return Arrays.stream(pairs).map(Pair::getLhSide).map(Meter::getMeanRate).collect(Collectors.toList());
     }
 
     private static List<Double> meanRates(Iterable<Pair<Meter, ListenableFuture<?>>> pairs) {
@@ -207,7 +235,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     }
 
     private static void isRateLimited(double rate) {
-        assertThat(rate).isCloseTo(LOCK_ACQUIRES_PER_SECOND, Offset.offset(0.3));
+        assertThat(rate).isCloseTo(LOCK_ACQUIRES_PER_SECOND, Offset.offset(0.5));
     }
 
     private static ListenableFuture<List<Object>> asFuture(Iterable<Pair<Meter, ListenableFuture<?>>> pairs) {
