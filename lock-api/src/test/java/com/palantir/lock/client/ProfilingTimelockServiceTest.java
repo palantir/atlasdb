@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 
@@ -69,10 +70,8 @@ public class ProfilingTimelockServiceTest {
 
     @Test
     public void doesNotLogIfOperationsAreFast() {
-        makeOperationsTakeSpecifiedDuration(SHORT_DURATION);
-        allowLogging();
-        profilingTimelockService.getFreshTimestamp();
-        profilingTimelockService.startIdentifiedAtlasDbTransaction();
+        flushLogsWithCall(SHORT_DURATION, profilingTimelockService::getFreshTimestamp);
+        flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
 
         verify(delegate).getFreshTimestamp();
         verify(delegate).startIdentifiedAtlasDbTransaction();
@@ -81,18 +80,15 @@ public class ProfilingTimelockServiceTest {
 
     @Test
     public void logsIfOperationsAreSlowAndLoggingAllowed() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        allowLogging();
-        profilingTimelockService.getFreshTimestamp();
+        flushLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
 
         verify(delegate).getFreshTimestamp();
-        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
+        verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
     }
 
     @Test
     public void doesNotLogIfLoggingNotAllowedEvenIfOperationsAreSlow() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        profilingTimelockService.getFreshTimestamp();
+        accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
 
         verify(delegate).getFreshTimestamp();
         verifyLoggerNeverInvoked();
@@ -109,93 +105,75 @@ public class ProfilingTimelockServiceTest {
         RuntimeException exception = new RuntimeException("kaboom");
         when(profilingTimelockService.getFreshTimestamp()).thenThrow(exception);
 
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        allowLogging();
-        assertThatThrownBy(profilingTimelockService::getFreshTimestamp).isEqualTo(exception);
+        assertThatThrownBy(() -> flushLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp))
+                .isEqualTo(exception);
 
         verify(delegate).getFreshTimestamp();
-        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
+        verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
+        verifyLoggerInvokedOnceWithException(exception);
     }
 
     @Test
     public void doesNotLogIfLockIsSlow() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        allowLogging();
-        profilingTimelockService.lock(LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("exclusive")), 1234));
+        flushLogsWithCall(LONG_DURATION, () -> profilingTimelockService.lock(
+                LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("exclusive")), 1234)));
 
         verifyLoggerNeverInvoked();
     }
 
     @Test
     public void doesNotLogIfWaitForLocksIsSlow() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        allowLogging();
-        profilingTimelockService.waitForLocks(WaitForLocksRequest.of(
-                ImmutableSet.of(StringLockDescriptor.of("combination")), 123));
+        flushLogsWithCall(LONG_DURATION, () -> profilingTimelockService.waitForLocks(WaitForLocksRequest.of(
+                ImmutableSet.of(StringLockDescriptor.of("combination")), 123)));
 
         verifyLoggerNeverInvoked();
     }
 
     @Test
     public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfFirst() {
-        makeOperationsTakeSpecifiedDuration(TWO_CENTURIES);
-        profilingTimelockService.getFreshTimestamp();
+        accumulateLogsWithCall(TWO_CENTURIES, profilingTimelockService::getFreshTimestamp);
+        flushLogsWithCall(TWO_CENTURIES, profilingTimelockService::startIdentifiedAtlasDbTransaction);
 
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        allowLogging();
-        profilingTimelockService.startIdentifiedAtlasDbTransaction();
-
-        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", TWO_CENTURIES);
+        verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", TWO_CENTURIES);
     }
 
     @Test
     public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfNotFirst() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        profilingTimelockService.getFreshTimestamp();
+        accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
+        flushLogsWithCall(TWO_CENTURIES, profilingTimelockService::startIdentifiedAtlasDbTransaction);
 
-        makeOperationsTakeSpecifiedDuration(TWO_CENTURIES);
-        allowLogging();
-        profilingTimelockService.startIdentifiedAtlasDbTransaction();
-
-        verifyLoggerInvokedWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
+        verifyLoggerInvokedOnceWithSpecificProfile("startIdentifiedAtlasDbTransaction", TWO_CENTURIES);
     }
 
     @Test
     public void logsTheSlowestNonBannedOperationAboveThreshold() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
-        profilingTimelockService.getFreshTimestamp();
+        accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::getFreshTimestamp);
 
-        makeOperationsTakeSpecifiedDuration(TWO_CENTURIES);
-        allowLogging();
-        profilingTimelockService.lock(LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("mortice")), 2366));
+        flushLogsWithCall(TWO_CENTURIES,
+                () -> profilingTimelockService.lock(LockRequest.of(ImmutableSet.of(StringLockDescriptor.of("mortice")),
+                        2366)));
 
-        verifyLoggerInvokedWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
+        verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", LONG_DURATION);
     }
 
     @Test
     public void logsOnlyOnceEvenIfManyRequestsAreSlow() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
         for (int i = 0; i < 100; i++) {
-            profilingTimelockService.lockImmutableTimestamp();
+            accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::lockImmutableTimestamp);
         }
 
-        makeOperationsTakeSpecifiedDuration(SHORT_DURATION);
-        allowLogging();
-        profilingTimelockService.startIdentifiedAtlasDbTransaction();
+        flushLogsWithCall(SHORT_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
 
-        verifyLoggerInvokedWithSpecificProfile("lockImmutableTimestamp", LONG_DURATION);
+        verifyLoggerInvokedOnceWithSpecificProfile("lockImmutableTimestamp", LONG_DURATION);
         verifyNoMoreInteractions(logger);
     }
 
     @Test
     public void logsMultipleTimesIfAllowedToMultipleTimes() {
-        makeOperationsTakeSpecifiedDuration(LONG_DURATION);
         for (int i = 0; i < 100; i++) {
-            allowLogging();
-            profilingTimelockService.lockImmutableTimestamp();
-            disallowLogging();
-            profilingTimelockService.lockImmutableTimestamp();
-            profilingTimelockService.lockImmutableTimestamp();
+            accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::lockImmutableTimestamp);
+            accumulateLogsWithCall(LONG_DURATION, profilingTimelockService::lockImmutableTimestamp);
+            flushLogsWithCall(LONG_DURATION, profilingTimelockService::lockImmutableTimestamp);
         }
         verifyLoggerInvokedSpecificNumberOfTimes(100);
     }
@@ -206,7 +184,7 @@ public class ProfilingTimelockServiceTest {
 
     @SuppressWarnings({ "unchecked", // Captors of generics
                         "Slf4jConstantLogMessage" }) // Logger verify
-    private void verifyLoggerInvokedWithSpecificProfile(String operation, Duration duration) {
+    private void verifyLoggerInvokedOnceWithSpecificProfile(String operation, Duration duration) {
         // XXX Maybe there's a better way? The approaches I tried didn't work because of conflict with other methods
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
         ArgumentCaptor<Arg<Duration>> durationCaptor = ArgumentCaptor.forClass(Arg.class);
@@ -215,6 +193,15 @@ public class ProfilingTimelockServiceTest {
 
         assertThat(messageCaptor.getValue().getValue()).isEqualTo(operation);
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
+    }
+
+    @SuppressWarnings({ "unchecked", // Captors of generics
+                        "Slf4jConstantLogMessage" }) // Logger verify
+    private void verifyLoggerInvokedOnceWithException(Exception exception) {
+        ArgumentCaptor<Arg<Optional<Exception>>> exceptionCaptor = ArgumentCaptor.forClass(Arg.class);
+        verify(logger).info(
+                any(String.class), any(), any(), any(), any(), exceptionCaptor.capture(), any());
+        assertThat(exceptionCaptor.getValue().getValue()).contains(exception);
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
@@ -226,11 +213,19 @@ public class ProfilingTimelockServiceTest {
         operationTiming = duration.toNanos();
     }
 
-    private void allowLogging() {
-        allowLogging.set(true);
+    private void accumulateLogsWithCall(Duration duration, Runnable operation) {
+        allowLogging.set(false);
+        runOperationUnderDuration(duration, operation);
     }
 
-    private void disallowLogging() {
+    private void flushLogsWithCall(Duration duration, Runnable operation) {
         allowLogging.set(true);
+        runOperationUnderDuration(duration, operation);
     }
+
+    private void runOperationUnderDuration(Duration duration, Runnable operation) {
+        makeOperationsTakeSpecifiedDuration(duration);
+        operation.run();
+    }
+
 }
