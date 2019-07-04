@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.Beta;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -43,6 +44,9 @@ public abstract class InternalSchemaConfig {
      */
     public abstract Optional<Integer> targetTransactionsSchemaVersion();
 
+    @Beta // AtlasDB DOES NOT GUARANTEE THAT THIS CONFIGURATION OPTION WILL REMAIN AROUND FOR ANY LENGTH OF TIME
+    public abstract Optional<String> cleanLegacyCoordinationServiceEntries();
+
     @Value.Check
     public void check() {
         targetTransactionsSchemaVersion().ifPresent(version ->
@@ -50,5 +54,12 @@ public abstract class InternalSchemaConfig {
                         "{} is not a recognised transactions schema version. Supported versions are {}",
                         SafeArg.of("configuredVersion", version),
                         SafeArg.of("supportedVersions", TransactionConstants.SUPPORTED_TRANSACTIONS_SCHEMA_VERSIONS)));
+
+        cleanLegacyCoordinationServiceEntries().ifPresent(string ->
+                Preconditions.checkState(string.equals("I am on Storage Infrastructure and know what I am doing."
+                        + " Specifically, I declare that every node of this service has been bounced since the last"
+                        + " time the coordination service received a new value (bound perpetuations are okay, but"
+                        + " installing new versions or reverting is not). I confirm that this information is correct"
+                        + " to the best of my knowledge and belief.")));
     }
 }
