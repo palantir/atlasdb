@@ -39,8 +39,9 @@ Changelog
 
 .. note::
 
-   For versions of AtlasDB above v0.151.1, please refer to GitHub's releases page for release notes. This page is kept
-   around as a document of changes up to v0.151.1 inclusive.
+   For versions of AtlasDB above v0.151.1, please refer to GitHub's
+   `releases page <https://github.com/palantir/atlasdb/releases>`__ for release notes. This page is kept around as a
+   document of changes up to v0.151.1 inclusive.
 
 ========
 v0.151.1
