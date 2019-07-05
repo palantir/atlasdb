@@ -74,8 +74,6 @@ v0.151.0
            This is expected to be particularly relevant at installations where write information is sparsely distributed over many partitions (e.g. transactions2 deployments, especially such deployments with thorough tables).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4097>`__)
 
-
-
 ========
 v0.150.0
 ========
@@ -143,7 +141,7 @@ v0.147.0
     *    - Type
          - Change
 
-        *    - |devbreak|
+    *    - |devbreak|
          - Cassandra clients are now required to supply credentials in the KVS config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4076>`__)
 
