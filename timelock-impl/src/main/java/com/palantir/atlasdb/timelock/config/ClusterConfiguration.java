@@ -51,7 +51,7 @@ public abstract class ClusterConfiguration {
         }
     }
 
-    protected void checkTopologyOffersHighAvailability() {
+    private void checkTopologyOffersHighAvailability() {
         Preconditions.checkArgument(servers().size() >= 3,
                 "This TimeLock cluster is set up to use %s (<3) servers, which is not a standard configuration!"
                         + " With fewer than three servers, your service will not have high availability. In the"
