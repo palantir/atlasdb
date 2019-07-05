@@ -27,8 +27,6 @@ import org.junit.Test;
 public class ClusterConfigurationTest {
     private static final String ADDRESS_1 = "localhost:1";
     private static final String ADDRESS_2 = "localhost:2";
-    private static final String ADDRESS_3 = "localhost:3";
-    private static final String ADDRESS_4 = "localhost:4";
 
     @Test
     public void shouldThrowIfLocalServerNotSpecified() {
