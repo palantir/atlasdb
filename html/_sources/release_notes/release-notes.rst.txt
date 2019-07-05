@@ -37,11 +37,102 @@ Changelog
 .. toctree::
   :hidden:
 
-=======
-develop
-=======
+.. note::
 
-.. replace this with the release date and the above with v<tag> (the v makes the permalinks nice)
+   For versions of AtlasDB above v0.151.1, please refer to GitHub's
+   `releases page <https://github.com/palantir/atlasdb/releases>`__ for release notes. This page is kept around as a
+   document of changes up to v0.151.1 inclusive.
+
+========
+v0.151.1
+========
+
+2 Jul 2019
+
+Identical to v0.151.0. This version was released owing to deployment infrastructure issues with v0.151.0.
+
+========
+v0.151.0
+========
+
+28 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |devbreak|
+         - ``KeyValueService`` implementations now have a new endpoint ``deleteRows()`` that allows row-level deletes to be performed.
+           Users who extend ``KeyValueService`` will need to implement this method, but can refer to ``AbstractKeyValueService`` for a functional implementation (as this method can be written in terms of ``deleteRange()``).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4094>`__)
+
+    *    - |improved|
+         - Targeted Sweep now supports reading write information and dedicated row information from multiple partitions at a time; the same overall sweep batch limit is still respected.
+           This is expected to be particularly relevant at installations where write information is sparsely distributed over many partitions (e.g. transactions2 deployments, especially such deployments with thorough tables).
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4097>`__)
+
+========
+v0.150.0
+========
+
+20 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - |new|
+         - Added ability for timelock to rate limit targeted sweep lock requests to 2 per second. This is to reduce load on timelock for bad atlas clients.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4096>`__)
+
+    *    - |improved|
+         - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
+
+
+========
+v0.149.0
+========
+
+11 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Added runtime configurable behavior to targeted sweep to allow multiple consecutive iterations on the same targeted sweep shard, all while holding the relevant lock. This option
+           should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
+
+========
+v0.148.0
+========
+
+11 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been changed back to 500ms.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4084>`__)
+
+========
+v0.147.0
+========
+
+10 Jun 2019
 
 .. list-table::
     :widths: 5 40
@@ -54,19 +145,50 @@ develop
          - Cassandra clients are now required to supply credentials in the KVS config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4076>`__)
 
-    *    - |improved|
-         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been reduced to 50ms.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4067>`__)
+========
+v0.146.0
+========
 
-    *    - |fixed|
-         - Fixed a bug causing connection leaks to timelock.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
+7 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |improved|
+         - Async initialization callbacks are run with an instrumented TransactionManager.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4081>`__)
 
     *    - |improved|
          - If using DbKVS or JDBC KVS, we no longer spin up a background thread attempting to install new transaction schema versions.
            Furthermore, we now log at WARN if configuration indicates that a new schema version should be installed in these cases where it won't be respected.
            Previously, we would always read to and write from transactions1, even though the installer might actually have installed a non-1 schema version (and logged that this happened!).
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4070>`__)
+
+
+========
+v0.145.0
+========
+
+4 Jun 2019
+
+.. list-table::
+    :widths: 5 40
+    :header-rows: 1
+
+    *    - Type
+         - Change
+
+    *    - |fixed|
+         - Fixed a bug causing connection leaks to timelock.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4052>`__)
+
+    *    - |improved|
+         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been reduced to 50ms.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4067>`__)
 
     *    - |improved|
          - Changed the default values in ``PaxosRuntimeConfiguration`` as (`#3943 <https://github.com/palantir/atlasdb/pull/3943>`__) changed it on test configs only.
@@ -75,33 +197,6 @@ develop
            ``ping-rate-in-ms`` was reduced to 50 ms from 5000 ms.
            These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
-
-    *    - |improved|
-         - Async initialization callbacks are run with an instrumented TransactionManager.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4081>`__)
-
-    *    - |fixed|
-         - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been changed back to 500ms.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4084>`__)
-
-    *    - |improved|
-         - Added runtime configurable behavior to targeted sweep to allow multiple consecutive iterations on the same targeted sweep shard, all while holding the relevant lock. This option
-           should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
-
-    *    - |devbreak|
-         - ``KeyValueService`` implementations now have a new endpoint ``deleteRows()`` that allows row-level deletes to be performed.
-           Users who extend ``KeyValueService`` will need to implement this method, but can refer to ``AbstractKeyValueService`` for a functional implementation (as this method can be written in terms of ``deleteRange()``).
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4086>`__)
-
-    *    - |new|
-         - Added ability for timelock to rate limit targeted sweep lock requests to 2 per second. This is to reduce load on timelock for bad atlas
-           clients.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4096>`__)
-
-    *    - |improved|
-         - Relaxed concurrency model of ``MetricsManager`` allowing for more concurrency.
-           (`Pull Request <https://github.com/palantir/atlasdb/pull/4098>`__)
 
 ========
 v0.144.0
