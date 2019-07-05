@@ -21,13 +21,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.RateLimitConfig;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -50,11 +51,11 @@ public class AsyncLockService implements Closeable {
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor,
-            BooleanSupplier shouldRateLimitTargetedSweepLock) {
+            Supplier<RateLimitConfig> targetedSweepRateLimitConfig) {
 
         LeaderClock clock = LeaderClock.create();
         TargetedSweepLockDecorator targetedSweepLockDecorator =
-                TargetedSweepLockDecorator.create(shouldRateLimitTargetedSweepLock, timeoutExecutor);
+                TargetedSweepLockDecorator.create(targetedSweepRateLimitConfig, timeoutExecutor);
         return new AsyncLockService(
                 new LockCollection(targetedSweepLockDecorator),
                 targetedSweepLockDecorator,
