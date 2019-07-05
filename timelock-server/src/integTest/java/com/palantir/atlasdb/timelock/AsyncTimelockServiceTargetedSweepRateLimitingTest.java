@@ -220,7 +220,7 @@ public class AsyncTimelockServiceTargetedSweepRateLimitingTest extends AbstractA
     }
 
     private static void isRateLimited(double rate) {
-        assertThat(rate).isLessThan(LOCK_ACQUIRES_PER_SECOND + Offset.offset(0.5).value);
+        assertThat(rate).isLessThan(LOCK_ACQUIRES_PER_SECOND + Offset.offset(1).value);
     }
 
     private static ListenableFuture<List<Object>> asFuture(Iterable<Pair<Meter, ListenableFuture<?>>> pairs) {
