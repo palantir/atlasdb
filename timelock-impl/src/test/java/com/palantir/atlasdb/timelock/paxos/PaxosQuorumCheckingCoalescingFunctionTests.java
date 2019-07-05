@@ -78,7 +78,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         Map<Long, PaxosResponses<PaxosLong>> expected = ImmutableMap.<Long, PaxosResponses<PaxosLong>>builder()
                 .put(1L, sorted(responsesFor(2L, 6L, 3L)))
                 .put(2L, sorted(responsesFor(23L, 23L, 65L)))
-                .put(5L, sorted(responsesFor( 65L, 32L, 32L)))
+                .put(5L, sorted(responsesFor(65L, 32L, 32L)))
                 .build();
 
         Map<Long, PaxosResponses<PaxosLong>> results = paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
@@ -105,7 +105,7 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
         Map<Long, PaxosResponses<PaxosLong>> expected = ImmutableMap.<Long, PaxosResponses<PaxosLong>>builder()
                 .put(1L, sorted(responsesFor(2L)))
                 .put(2L, sorted(responsesFor(23L, 23L, 65L)))
-                .put(5L, sorted(responsesFor( 32L)))
+                .put(5L, sorted(responsesFor(32L)))
                 .build();
 
         Map<Long, PaxosResponses<PaxosLong>> results = paxosQuorumChecker.apply(ImmutableSet.of(1L, 2L, 5L));
