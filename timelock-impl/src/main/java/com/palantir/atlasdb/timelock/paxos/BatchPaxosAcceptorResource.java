@@ -108,7 +108,7 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {
         return ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(cacheKey.value())
+                .newCacheKey(cacheKey)
                 .build();
     }
 
