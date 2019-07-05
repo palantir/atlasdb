@@ -31,7 +31,6 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
-      - run: scripts/circle-ci/pr-changelog-status-check.sh
 
   test:
     parallelism: 8
