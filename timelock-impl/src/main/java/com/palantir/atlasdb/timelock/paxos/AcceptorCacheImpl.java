@@ -127,7 +127,8 @@ public class AcceptorCacheImpl implements AcceptorCache {
                 throw new InvalidAcceptorCacheKeyException(cacheKey);
             }
 
-            Map<Client, Long> diff = clientsByLatestTimestamp.asMap().tailMap(cacheKeyTimestamp).values().stream()
+            Map<Client, Long> diff = clientsByLatestTimestamp.asMap().tailMap(cacheKeyTimestamp, false).values()
+                    .stream()
                     .flatMap(Collection::stream)
                     .collect(Collectors.toMap(WithSeq::value, WithSeq::seq));
 

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,7 @@ public class AcceptorCacheImplTests {
 
         AcceptorCacheDigest secondDigest = cache.updatesSinceCacheKey(digest.newCacheKey()).get();
         assertThat(secondDigest.updates())
-                .containsEntry(Client.of("client1"), 10L);
+                .containsOnly(entry(Client.of("client1"), 10L));
 
         cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(5L, Client.of("client3"))));
 
@@ -95,25 +96,25 @@ public class AcceptorCacheImplTests {
     public void returnsLatestCacheKeyForOldCacheKeys() throws InvalidAcceptorCacheKeyException {
         AcceptorCache cache = cache(ImmutableMap.of());
 
-        AcceptorCacheKey newCacheKey = cache.getAllUpdates().newCacheKey();
+        AcceptorCacheKey initialCacheKey = cache.getAllUpdates().newCacheKey();
 
         cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(20L, Client.of("client1"))));
-        AcceptorCacheKey newCacheKeyAfterFirstUpdate = cache.getAllUpdates().newCacheKey();
+        AcceptorCacheKey cacheKeyAfterFirstUpdate = cache.getAllUpdates().newCacheKey();
 
         cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(25L, Client.of("client4"))));
-        AcceptorCacheKey newCacheKeyAfterSecondUpdate = cache.getAllUpdates().newCacheKey();
+        AcceptorCacheKey cacheKeyAfterSecondUpdate = cache.getAllUpdates().newCacheKey();
 
-        assertThat(cache.updatesSinceCacheKey(newCacheKey))
+        assertThat(cache.updatesSinceCacheKey(initialCacheKey))
                 .map(AcceptorCacheDigest::newCacheKey)
                 .as("asking with first cache key after two updates should return latest cache key")
-                .contains(newCacheKeyAfterSecondUpdate);
+                .contains(cacheKeyAfterSecondUpdate);
 
-        assertThat(cache.updatesSinceCacheKey(newCacheKeyAfterFirstUpdate))
+        assertThat(cache.updatesSinceCacheKey(cacheKeyAfterFirstUpdate))
                 .map(AcceptorCacheDigest::newCacheKey)
                 .as("asking with second cache key after one update should also return latest cache key")
-                .contains(newCacheKeyAfterSecondUpdate);
+                .contains(cacheKeyAfterSecondUpdate);
 
-        assertThat(cache.updatesSinceCacheKey(newCacheKeyAfterSecondUpdate))
+        assertThat(cache.updatesSinceCacheKey(cacheKeyAfterSecondUpdate))
                 .as("no updates past this cache key as this is the latest cache key, return empty")
                 .isEmpty();
     }
