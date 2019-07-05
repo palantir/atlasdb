@@ -39,8 +39,8 @@ Changelog
 
 .. note::
 
-   From AtlasDB 0.152.0 onwards, please refer to GitHub's releases page for release notes. This page is kept around
-   as a document of changes up to v0.151.1 inclusive.
+   For versions of AtlasDB above v0.151.1, please refer to GitHub's releases page for release notes. This page is kept
+   around as a document of changes up to v0.151.1 inclusive.
 
 ========
 v0.151.1
@@ -59,6 +59,9 @@ v0.151.0
 .. list-table::
     :widths: 5 40
     :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |devbreak|
          - ``KeyValueService`` implementations now have a new endpoint ``deleteRows()`` that allows row-level deletes to be performed.
@@ -101,6 +104,9 @@ v0.149.0
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
     *    - |improved|
          - Added runtime configurable behavior to targeted sweep to allow multiple consecutive iterations on the same targeted sweep shard, all while holding the relevant lock. This option
            should improve targeted sweep throughput without adding additional load on Timelock for places where the downtime between targeted sweep iterations is a bottleneck.
@@ -116,6 +122,9 @@ v0.148.0
     :widths: 5 40
     :header-rows: 1
 
+    *    - Type
+         - Change
+
     *    - |fixed|
          - The default value for the length of pause between targeted sweep iterations, ``pauseMillis``, has been changed back to 500ms.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4084>`__)
@@ -130,7 +139,10 @@ v0.147.0
     :widths: 5 40
     :header-rows: 1
 
-    *    - |devbreak|
+    *    - Type
+         - Change
+
+        *    - |devbreak|
          - Cassandra clients are now required to supply credentials in the KVS config.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4076>`__)
 
@@ -143,6 +155,9 @@ v0.146.0
 .. list-table::
     :widths: 5 40
     :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |improved|
          - Async initialization callbacks are run with an instrumented TransactionManager.
@@ -164,6 +179,9 @@ v0.145.0
 .. list-table::
     :widths: 5 40
     :header-rows: 1
+
+    *    - Type
+         - Change
 
     *    - |fixed|
          - Fixed a bug causing connection leaks to timelock.
