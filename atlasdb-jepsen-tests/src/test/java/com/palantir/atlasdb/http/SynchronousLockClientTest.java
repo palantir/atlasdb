@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.junit.Test;
 
@@ -39,10 +40,10 @@ import com.palantir.lock.BlockingMode;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.LockRpcClient;
 
 public class SynchronousLockClientTest {
-    private static final LockService LOCK_SERVICE = mock(LockService.class);
+    private static final LockRpcClient LOCK_SERVICE = mock(LockRpcClient.class);
     private static final SynchronousLockClient LOCK_CLIENT = new SynchronousLockClient(LOCK_SERVICE);
     private static final LockRefreshToken TOKEN_1 = new LockRefreshToken(BigInteger.ONE, 1L);
     private static final LockRefreshToken TOKEN_2 = new LockRefreshToken(BigInteger.TEN, 10L);
@@ -55,7 +56,7 @@ public class SynchronousLockClientTest {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getBlockingMode(), is(BlockingMode.DO_NOT_BLOCK));
-            return null;
+            return Optional.empty();
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }
@@ -65,7 +66,7 @@ public class SynchronousLockClientTest {
         when(LOCK_CLIENT.lock(CLIENT, LOCK_NAME)).thenAnswer((invocation) -> {
             LockRequest request = (LockRequest) invocation.getArguments()[1];
             assertThat(request.getLocks(), contains(hasProperty("lockMode", is(LockMode.WRITE))));
-            return null;
+            return Optional.empty();
         });
         LOCK_CLIENT.lock(CLIENT, LOCK_NAME);
     }

@@ -18,38 +18,21 @@ package com.palantir.lock;
 import java.util.Set;
 
 import javax.annotation.Nullable;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-
-import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
-import com.palantir.logsafe.Safe;
 
 public interface RemoteLockService {
     /**
      * Attempts to acquire the requested set of locks for the given client.
      * @return null if the lock request failed
      */
-    @POST
-    @Path("lock/{client: .*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
-    LockRefreshToken lock(@Safe @PathParam("client") String client, LockRequest request) throws InterruptedException;
+    LockRefreshToken lock(String client, LockRequest request) throws InterruptedException;
 
     /**
      * This is the same as {@link #lock(String, LockRequest)} but will return as many locks as can be acquired.
      * @return a token for the locks acquired
      */
-    @POST
-    @Path("try-lock/{client: .*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    HeldLocksToken lockAndGetHeldLocks(@Safe @PathParam("client") String client, LockRequest request)
+    @Nullable
+    HeldLocksToken lockAndGetHeldLocks(String client, LockRequest request)
             throws InterruptedException;
 
     /**
@@ -63,42 +46,25 @@ public interface RemoteLockService {
      *         either because it was already unlocked, or because it expired or
      *         was converted to a lock grant
      */
-    @POST
-    @Path("unlock")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @NonIdempotent boolean unlock(LockRefreshToken token);
+    boolean unlock(LockRefreshToken token);
 
     /**
      * Refreshes the given lock tokens.
      *
      * @return the subset of tokens which are still valid after being refreshed
      */
-    @POST
-    @Path("refresh-lock-tokens")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
+    Set<LockRefreshToken> refreshLockRefreshTokens(Iterable<LockRefreshToken> tokens);
 
     /**
      * Returns the minimum version ID for all locks that are currently acquired
      * (by everyone), or {@code null} if none of these active locks specified a
      * version ID in their {@link LockRequest}s.
      */
-    @POST
-    @Path("min-locked-in-version/{client: .*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Idempotent
-    @Nullable Long getMinLockedInVersionId(@Safe @PathParam("client") String client);
+    @Nullable
+    Long getMinLockedInVersionId(String client);
 
     /** Returns the current time in milliseconds on the server. */
-    @POST
-    @Path("current-time-millis")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Idempotent long currentTimeMillis();
+    long currentTimeMillis();
 
-    @POST
-    @Path("log-current-state")
     void logCurrentState();
 }

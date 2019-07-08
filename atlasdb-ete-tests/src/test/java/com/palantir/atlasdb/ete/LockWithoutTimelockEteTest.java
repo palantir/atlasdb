@@ -20,10 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.lock.LockResource;
+import com.palantir.atlasdb.lock.EteLockResource;
 
 public class LockWithoutTimelockEteTest {
-    private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
+    private EteLockResource lockResource = EteSetup.createClientToSingleNode(EteLockResource.class);
 
     @Test
     public void hugeV1LockSucceeds() throws InterruptedException {

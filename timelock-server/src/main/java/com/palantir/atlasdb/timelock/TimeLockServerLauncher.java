@@ -58,6 +58,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule());
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
+        environment.jersey().register(new EmptyOptionalNoContentExceptionMapper());
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), new DefaultTaggedMetricRegistry());
         Consumer<Object> registrar = component -> environment.jersey().register(component);

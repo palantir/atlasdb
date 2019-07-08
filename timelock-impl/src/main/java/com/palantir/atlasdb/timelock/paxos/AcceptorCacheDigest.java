@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.auth.api;
+package com.palantir.atlasdb.timelock.paxos;
+
+import java.util.Map;
+import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Value.Immutable
-public interface Client {
-    Client ANONYMOUS = Client.create("anonymous");
-
-    String id();
-
-    static Client create(String clientName) {
-        return ImmutableClient.builder()
-                .id(clientName)
-                .build();
-    }
+@JsonDeserialize(as = ImmutableAcceptorCacheDigest.class)
+@JsonSerialize(as = ImmutableAcceptorCacheDigest.class)
+public interface AcceptorCacheDigest {
+    UUID newCacheKey();
+    Map<Client, Long> updates();
 }

@@ -45,6 +45,9 @@ public interface PaxosLearner {
 
     /**
      * Returns learned value or null if non-exists.
+     *
+     * @deprecated use {@link #safeGetLearnedValue(long)} instead.
+     *
      */
     @Nullable
     @Deprecated
@@ -59,6 +62,9 @@ public interface PaxosLearner {
 
     /**
      * Returns the learned value for the greatest known round or null if nothing has been learned.
+     *
+     * @deprecated use {@link #safeGetGreatestLearnedValue()} instead.
+     *
      */
     @Nullable
     @Deprecated

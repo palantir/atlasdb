@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
-import com.palantir.atlasdb.timelock.auth.api.Client;
 
 public class PrivilegeBasedNamespaceLocker implements NamespaceLocker {
     private List<Privileges> nonAdminPrivileges;
 
-    PrivilegeBasedNamespaceLocker(Map<Client, Privileges> privileges) {
+    PrivilegeBasedNamespaceLocker(Map<ClientId, Privileges> privileges) {
         this.nonAdminPrivileges = privileges.values().stream()
                 .filter(privilege -> privilege != Privileges.ADMIN)
                 .collect(Collectors.toList());

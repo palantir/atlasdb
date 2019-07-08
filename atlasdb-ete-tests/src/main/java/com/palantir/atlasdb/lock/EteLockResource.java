@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,34 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.cas;
 
-import java.util.Optional;
+package com.palantir.atlasdb.lock;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import io.dropwizard.jersey.PATCH;
-
-@Path("/cas")
-public interface CheckAndSetResource {
-    @PUT
-    @Path("/")
-    @Consumes(MediaType.APPLICATION_JSON)
-    void set(Optional<Long> value);
-
-    @GET
-    @Path("/")
+@Path("lock")
+public interface EteLockResource {
+    @POST
+    @Path("timelock-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    Long get();
-
-    @PATCH
-    @Path("/")
     @Consumes(MediaType.APPLICATION_JSON)
+    boolean lockUsingTimelockApi(@QueryParam("number") int numDescriptors, int descriptorSize);
+
+    @POST
+    @Path("remote-lock")
     @Produces(MediaType.APPLICATION_JSON)
-    boolean checkAndSet(CheckAndSetValueUpdate valueUpdate);
+    @Consumes(MediaType.APPLICATION_JSON)
+    boolean lockUsingLegacyLockApi(@QueryParam("number") int numDescriptors, int descriptorSize);
 }

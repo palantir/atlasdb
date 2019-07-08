@@ -314,6 +314,15 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         @Override
+        public byte[] proposeAnonymously(long seq, @Nullable byte[] proposalValue) throws PaxosRoundFailureException {
+            if (hasFailed) {
+                return delegate.proposeAnonymously(seq, proposalValue);
+            }
+            hasFailed = true;
+            throw new PaxosRoundFailureException("paxos fail");
+        }
+
+        @Override
         public int getQuorumSize() {
             return delegate.getQuorumSize();
         }

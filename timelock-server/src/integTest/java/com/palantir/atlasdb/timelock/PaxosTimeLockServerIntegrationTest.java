@@ -56,7 +56,9 @@ import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.LockServiceAdapter;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -440,7 +442,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
         // local timestamp bound classes
         metrics.assertContainsTimer("com.palantir.timestamp.TimestampBoundStore.getUpperLimit");
-        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.getGreatestLearnedValue");
+        metrics.assertContainsTimer("com.palantir.paxos.PaxosLearner.safeGetGreatestLearnedValue");
         metrics.assertContainsTimer("com.palantir.paxos.PaxosAcceptor.accept");
         metrics.assertContainsTimer("com.palantir.paxos.PaxosProposer.propose");
 
@@ -476,7 +478,7 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static LockService getLockService(String client) {
-        return getProxyForService(client, LockService.class);
+        return new LockServiceAdapter(getProxyForService(client, LockRpcClient.class));
     }
 
     private static TimestampService getTimestampService(String client) {

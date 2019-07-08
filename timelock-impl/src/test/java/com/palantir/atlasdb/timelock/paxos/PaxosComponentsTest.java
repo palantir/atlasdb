@@ -19,22 +19,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import com.codahale.metrics.MetricRegistry;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 
-public class PaxosResourceTest {
-    private static final String CLIENT_1 = "alice";
+public class PaxosComponentsTest {
+    private static final Client CLIENT = Client.of("alice");
 
     private static final long PAXOS_ROUND_ONE = 1;
     private static final long PAXOS_ROUND_TWO = 2;
@@ -44,39 +45,39 @@ public class PaxosResourceTest {
     private static final PaxosProposal PAXOS_PROPOSAL = new PaxosProposal(
             new PaxosProposalId(PAXOS_ROUND_TWO, PAXOS_UUID), PAXOS_VALUE);
 
-    @ClassRule
-    public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    @Rule
+    public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
-    private PaxosResource paxosResource;
-    private File logDirectory;
+    private PaxosComponents paxosComponents;
+    private Path logDirectory;
 
     @Before
     public void setUp() throws IOException {
-        logDirectory = TEMPORARY_FOLDER.newFolder();
-        paxosResource = PaxosResource.create(new MetricRegistry(), logDirectory.getPath());
+        logDirectory = TEMPORARY_FOLDER.newFolder().toPath();
+        paxosComponents = new PaxosComponents(new DefaultTaggedMetricRegistry(), "test", logDirectory);
     }
 
     @Test
     public void newClientCanBeCreated() {
-        PaxosLearner learner = paxosResource.getPaxosLearner(CLIENT_1);
+        PaxosLearner learner = paxosComponents.learner(CLIENT);
         learner.learn(PAXOS_ROUND_ONE, PAXOS_VALUE);
-        assertThat(learner.safeGetGreatestLearnedValue()).isNotEmpty();
-        assertThat(learner.safeGetGreatestLearnedValue().get().getLeaderUUID()).isEqualTo(PAXOS_UUID);
-        assertThat(learner.safeGetGreatestLearnedValue().get().getData()).isEqualTo(PAXOS_DATA);
 
-        PaxosAcceptor acceptor = paxosResource.getPaxosAcceptor(CLIENT_1);
+        assertThat(learner.safeGetGreatestLearnedValue().map(PaxosValue::getLeaderUUID)).contains(PAXOS_UUID);
+        assertThat(learner.safeGetGreatestLearnedValue().map(PaxosValue::getData)).contains(PAXOS_DATA);
+
+        PaxosAcceptor acceptor = paxosComponents.acceptor(CLIENT);
         acceptor.accept(PAXOS_ROUND_TWO, PAXOS_PROPOSAL);
         assertThat(acceptor.getLatestSequencePreparedOrAccepted()).isEqualTo(PAXOS_ROUND_TWO);
     }
 
     @Test
     public void addsClientsInSubdirectory() {
-        paxosResource.getPaxosLearner(CLIENT_1);
-        File expectedAcceptorLogDir =
-                Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH).toFile();
+        paxosComponents.learner(CLIENT);
+        File expectedAcceptorLogDir = logDirectory.resolve(
+                Paths.get(CLIENT.value(), PaxosTimeLockConstants.ACCEPTOR_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedAcceptorLogDir.exists()).isTrue();
-        File expectedLearnerLogDir =
-                Paths.get(logDirectory.getPath(), CLIENT_1, PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH).toFile();
+        File expectedLearnerLogDir = logDirectory.resolve(
+                Paths.get(CLIENT.value(), PaxosTimeLockConstants.LEARNER_SUBDIRECTORY_PATH)).toFile();
         assertThat(expectedLearnerLogDir.exists()).isTrue();
     }
 

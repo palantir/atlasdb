@@ -34,7 +34,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 
-public class SimpleLockResource implements LockResource {
+public class SimpleLockResource implements EteLockResource {
     private static final SecureRandom GENERATOR = new SecureRandom();
     private final TransactionManager transactionManager;
 

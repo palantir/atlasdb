@@ -26,19 +26,19 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
-import com.palantir.lock.LockService;
+import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
 
 public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken> {
-    private final LockService lockService;
+    private final LockRpcClient lockService;
 
     @VisibleForTesting
-    SynchronousLockClient(LockService lockService) {
+    SynchronousLockClient(LockRpcClient lockService) {
         this.lockService = lockService;
     }
 
     public static JepsenLockClient<LockRefreshToken> create(MetricRegistry metricRegistry, List<String> hosts) {
-        return new SynchronousLockClient(TimelockUtils.createClient(metricRegistry, hosts, LockService.class));
+        return new SynchronousLockClient(TimelockUtils.createClient(metricRegistry, hosts, LockRpcClient.class));
     }
 
     @Override
@@ -48,7 +48,7 @@ public class SynchronousLockClient implements JepsenLockClient<LockRefreshToken>
                 .doNotBlock()
                 .build();
 
-        return lockService.lock(client, request);
+        return lockService.lock(client, request).orElse(null);
     }
 
     @Override

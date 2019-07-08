@@ -34,7 +34,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
  * one of the delegates.
  * <p>
  * It will simply call the other delegates and ignore their return values and log any exceptions
- * that are thrown at the error level.  These are logged as errors because these classes shoudln't be throwing.
+ * that are thrown at the error level.  These are logged as errors because these classes shouldn't be throwing.
  * <p>
  * This class is useful if you have a Mock and you want to ensure certain methods
  * are/aren't called, but you want to use a Fake to do the work.

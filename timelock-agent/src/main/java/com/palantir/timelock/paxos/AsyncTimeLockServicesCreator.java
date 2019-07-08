@@ -39,6 +39,7 @@ import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.lock.LockResource;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -86,7 +87,7 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
 
         return TimeLockServices.create(
                 asyncTimelockService,
-                lockService,
+                new LockResource(lockService),
                 asyncTimelockResource,
                 asyncTimelockService);
     }
