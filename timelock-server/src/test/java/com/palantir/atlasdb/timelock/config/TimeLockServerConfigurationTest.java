@@ -41,7 +41,7 @@ public class TimeLockServerConfigurationTest {
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
             .localServer(ADDRESS)
             .addServers(ADDRESS)
-            .enableNonstandardAndPossiblyDangerousTopology(true) // Tests
+            .enableNonstandardAndPossiblyDangerousTopology(true)
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
 
