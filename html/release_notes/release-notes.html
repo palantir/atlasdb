@@ -356,6 +356,11 @@ Previously, we would always read to and write from transactions1, even though th
 These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4055">Pull Request</a>)</td>
 </tr>
+<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Clients now log at most once every 10 seconds when a <code class="docutils literal notranslate"><span class="pre">TimelockService</span></code> level request is slow.
+Please see the JavaDocs of <code class="docutils literal notranslate"><span class="pre">ProfilingTimelockService</span></code> for more information.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4QQQ">Pull Request</a>)</td>
+</tr>
 </tbody>
 </table>
 </div>

@@ -198,6 +198,11 @@ v0.145.0
            These settings have empirically improved the performance of timelock when the leader node goes down without negatively affecting stability.
            (`Pull Request <https://github.com/palantir/atlasdb/pull/4055>`__)
 
+    *    - |improved|
+         - Clients now log at most once every 10 seconds when a ``TimelockService`` level request is slow.
+           Please see the JavaDocs of ``ProfilingTimelockService`` for more information.
+           (`Pull Request <https://github.com/palantir/atlasdb/pull/4QQQ>`__)
+
 ========
 v0.144.0
 ========
