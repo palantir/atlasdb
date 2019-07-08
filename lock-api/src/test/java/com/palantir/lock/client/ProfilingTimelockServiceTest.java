@@ -132,7 +132,7 @@ public class ProfilingTimelockServiceTest {
     @Test
     public void logsSlowestOperationIfMultipleOperationsExceedTheSlowThresholdIfFirst() {
         accumulateLogsWithCall(TWO_CENTURIES, profilingTimelockService::getFreshTimestamp);
-        flushLogsWithCall(TWO_CENTURIES, profilingTimelockService::startIdentifiedAtlasDbTransaction);
+        flushLogsWithCall(LONG_DURATION, profilingTimelockService::startIdentifiedAtlasDbTransaction);
 
         verifyLoggerInvokedOnceWithSpecificProfile("getFreshTimestamp", TWO_CENTURIES);
     }
@@ -189,7 +189,7 @@ public class ProfilingTimelockServiceTest {
         ArgumentCaptor<Arg<String>> messageCaptor = ArgumentCaptor.forClass(Arg.class);
         ArgumentCaptor<Arg<Duration>> durationCaptor = ArgumentCaptor.forClass(Arg.class);
         verify(logger).info(
-                any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any(), any());
+                any(String.class), messageCaptor.capture(), durationCaptor.capture(), any(), any(), any());
 
         assertThat(messageCaptor.getValue().getValue()).isEqualTo(operation);
         assertThat(durationCaptor.getValue().getValue()).isEqualTo(duration);
@@ -200,13 +200,13 @@ public class ProfilingTimelockServiceTest {
     private void verifyLoggerInvokedOnceWithException(Exception exception) {
         ArgumentCaptor<Arg<Optional<Exception>>> exceptionCaptor = ArgumentCaptor.forClass(Arg.class);
         verify(logger).info(
-                any(String.class), any(), any(), any(), any(), exceptionCaptor.capture(), any());
+                any(String.class), any(), any(), any(), any(), exceptionCaptor.capture());
         assertThat(exceptionCaptor.getValue().getValue()).contains(exception);
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage") // only for tests
     private void verifyLoggerInvokedSpecificNumberOfTimes(int times) {
-        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any(), any());
+        verify(logger, times(times)).info(any(String.class), any(), any(), any(), any(), any());
     }
 
     private void makeOperationsTakeSpecifiedDuration(Duration duration) {
