@@ -30,6 +30,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.BATCH_SIZE_KVS;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
@@ -224,7 +226,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         setTimelockTime(5_000L);
         punchTimeAtTimestamp(2_000, LOW_TS);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5_000L - 2_000L);
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.SUCCESS, 1L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, SweepOutcome.SUCCESS, 1L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, SweepOutcome.SUCCESS, 0L);
     }
 
     @Test
@@ -232,7 +235,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
-        assertThat(metricsManager).hasTargetedOutcomeEqualTo(SweepOutcome.NOTHING_TO_SWEEP, 1L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, SweepOutcome.NOTHING_TO_SWEEP, 1L);
+        assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, SweepOutcome.NOTHING_TO_SWEEP, 0L);
     }
 
     @Test

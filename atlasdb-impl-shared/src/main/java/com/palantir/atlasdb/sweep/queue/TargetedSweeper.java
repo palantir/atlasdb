@@ -252,7 +252,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
         private void runOneIteration() {
             if (!runtime.get().enabled()) {
-                metrics.registerOccurrenceOf(SweepOutcome.DISABLED);
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.DISABLED);
                 return;
             }
 
@@ -261,10 +261,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
                 maybeLock.ifPresent(lock -> processShard(lock.getShardAndStrategy()));
             } catch (InsufficientConsistencyException e) {
-                metrics.registerOccurrenceOf(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
                 logException(e, maybeLock);
             } catch (Throwable th) {
-                metrics.registerOccurrenceOf(SweepOutcome.ERROR);
+                metrics.registerOccurrenceOf(sweepStrategy, SweepOutcome.ERROR);
                 logException(th, maybeLock);
             } finally {
                 try {
