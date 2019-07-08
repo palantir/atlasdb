@@ -187,9 +187,7 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void failovers() {
-//        for (int i = 0; i < 10; i++) {
-            CLUSTER.failoverToNewLeader();
-//        }
+        CLUSTER.failoverToNewLeader();
     }
 
     @Test
