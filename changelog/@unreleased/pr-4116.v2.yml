@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We now tag Targeted Sweep outcome metrics with the appropriate sweep
+    strategy. Previously, the outcomes for both strategies were aggregated, resulting
+    in metrics that were difficult to interpret.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4116
