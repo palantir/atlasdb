@@ -139,7 +139,7 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                         AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
     }
 
-    private String getTagForStrategy(SweepStrategy strategy) {
+    private static String getTagForStrategy(SweepStrategy strategy) {
         return strategy == SweepStrategy.CONSERVATIVE
                 ? AtlasDbMetricNames.TAG_CONSERVATIVE
                 : AtlasDbMetricNames.TAG_THOROUGH;
