@@ -20,14 +20,17 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * {@link PaxosLearnerNetworkClient}s encapsulates the consensus portion of the request, and this should be used over
- * {@link PaxosLearner}. This allows us to specifically tailor our approach for single leader vs multi leader
- * configurations.
+ * {@link PaxosLearnerNetworkClient} encapsulates the consensus portion of the request and involves communicating with
+ * multiple {@link PaxosLearner}s. This should be used over {@link PaxosQuorumChecker} and {@link PaxosAcceptor} where
+ * possible. This allows us to specifically tailor our approach for single leader vs multi leader configurations.
  */
 public interface PaxosLearnerNetworkClient {
 
     /**
-     * Learn given value for the seq-th round. This should communicate with all learner nodes in the cluster.
+     * Teaches the given value for the seq-th round to all (read {@code quorumSize}) learner nodes including the local
+     * node.
+     *
+     * This will attempt to communicate with all learner nodes in the cluster.
      *
      * @param seq round in question
      * @param value value learned for that round
@@ -36,8 +39,10 @@ public interface PaxosLearnerNetworkClient {
     void learn(long seq, PaxosValue value);
 
     /**
+     * Retrieves the learned value for the given seq from the cluster.
+     * <p>
      * Calls {@code mapper} with the learned value or {@code Optional.empty()} if the value at {@code seq} has not been
-     * learned. This should communicate with all learner nodes in the cluster and should collect at least
+     * learned. This will attempt to communicate with all learner nodes in the cluster and should collect at least
      * {@code quorumResponses}.
      *
      * @see PaxosLearner#getLearnedValue
@@ -45,8 +50,9 @@ public interface PaxosLearnerNetworkClient {
     <T extends PaxosResponse> PaxosResponses<T> getLearnedValue(long seq, Function<Optional<PaxosValue>, T> mapper);
 
     /**
-     * Returns some collection of learned values since the seq-th round (inclusive). This will communicate with all
-     * learner nodes in the cluster and will wait for consensus.
+     * Returns some collection of learned values since the seq-th round (inclusive) from the cluster.
+     * This will attempt to communicate with all learner nodes in the cluster and will wait for consensus and should
+     * collect at least {@code quorumResponses}.
      *
      * @param seq lower round cutoff for returned values
      * @return some set of learned values for rounds since the seq-th round
