@@ -78,11 +78,11 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
 
     public static <REQUEST, RESPONSE extends PaxosResponse, SERVICE>
     PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE> wrap(
-            List<SERVICE> acceptors,
+            List<SERVICE> services,
             ExecutorService executor,
             int quorumSize,
             Function<SERVICE, ? extends CoalescingRequestFunction<REQUEST, RESPONSE>> function) {
-        return acceptors.stream()
+        return services.stream()
                 .map(function)
                 .collect(collectingAndThen(
                         toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
@@ -91,7 +91,7 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
                                 quorumSize)));
     }
 
-    private class PaxosContainer<T> implements PaxosResponse {
+    public static class PaxosContainer<T> implements PaxosResponse {
 
         private final T response;
 
