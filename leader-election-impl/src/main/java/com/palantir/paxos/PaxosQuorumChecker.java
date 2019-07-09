@@ -95,7 +95,7 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Map<SERVICE, ExecutorService> executors,
+            Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout) {
         Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
@@ -109,7 +109,7 @@ public final class PaxosQuorumChecker {
     }
 
     public static <SERVICE, RESPONSE extends PaxosResponse> PaxosResponses<RESPONSE> collectQuorumResponses(
-            Map<SERVICE, ExecutorService> remotesToExecutors,
+            Map<? extends SERVICE, ExecutorService> remotesToExecutors,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
             Duration remoteRequestTimeout) {
@@ -166,7 +166,7 @@ public final class PaxosQuorumChecker {
             ImmutableList<SERVICE> remotes,
             Function<SERVICE, RESPONSE> request,
             int quorumSize,
-            Map<SERVICE, ExecutorService> executors,
+            Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout,
             boolean shortcircuitIfQuorumImpossible) {
         MultiplexingCompletionService<SERVICE, RESPONSE> responseCompletionService =
