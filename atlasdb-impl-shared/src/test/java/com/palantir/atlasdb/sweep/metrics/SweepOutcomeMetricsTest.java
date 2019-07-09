@@ -17,6 +17,8 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import static org.mockito.Mockito.mock;
 
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.CONSERVATIVE;
+import static com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy.THOROUGH;
 import static com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert.assertThat;
 
 import java.util.Arrays;
@@ -26,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
@@ -52,9 +55,16 @@ public class SweepOutcomeMetricsTest {
             assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 1L);
         });
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
-            assertThat(metricsManager).hasTargetedOutcomeEqualTo(outcome, 0L);
-            targetedSweepMetrics.registerOccurrenceOf(outcome);
-            assertThat(metricsManager).hasTargetedOutcomeEqualTo(outcome, 1L);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 0L);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 0L);
+
+            targetedSweepMetrics.registerOccurrenceOf(ShardAndStrategy.conservative(3), outcome);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 0L);
+
+            targetedSweepMetrics.registerOccurrenceOf(ShardAndStrategy.thorough(1), outcome);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
+            assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 1L);
         });
     }
 
@@ -87,6 +97,9 @@ public class SweepOutcomeMetricsTest {
     public void targetedSweepDoesNotRegisterExcludedOutcomes() {
         Arrays.stream(SweepOutcome.values())
                 .filter(outcome -> !SweepOutcomeMetrics.TARGETED_OUTCOMES.contains(outcome))
-                .forEach(outcome -> assertThat(metricsManager).hasNotRegisteredTargetedOutcome(outcome));
+                .forEach(outcome -> assertThat(metricsManager).hasNotRegisteredTargetedOutcome(CONSERVATIVE, outcome));
+        Arrays.stream(SweepOutcome.values())
+                .filter(outcome -> !SweepOutcomeMetrics.TARGETED_OUTCOMES.contains(outcome))
+                .forEach(outcome -> assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, outcome));
     }
 }

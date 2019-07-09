@@ -134,7 +134,7 @@ public class DbKvsGetRanges {
         Map<Cell, Value> cells = kvs.getRows(tableRef, rowsForBatches.values(),
                 ColumnSelection.all(), timestamp);
         NavigableMap<byte[], SortedMap<byte[], Value>> cellsByRow = Cells.breakCellsUpByRow(cells);
-        log.info("getRange actualRowsReturned: {}", cellsByRow.size());
+        log.debug("getRange actualRowsReturned: {}", cellsByRow.size());
         return breakUpByBatch(requests, rowsForBatches, cellsByRow);
     }
 

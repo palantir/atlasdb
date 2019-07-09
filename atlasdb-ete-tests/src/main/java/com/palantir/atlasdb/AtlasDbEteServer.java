@@ -32,9 +32,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.blob.BlobSchema;
-import com.palantir.atlasdb.cas.CheckAndSetClient;
-import com.palantir.atlasdb.cas.CheckAndSetSchema;
-import com.palantir.atlasdb.cas.SimpleCheckAndSetResource;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -76,7 +73,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     private static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 60;
     private static final long CREATE_TRANSACTION_MANAGER_POLL_INTERVAL_SECS = 5;
     private static final Set<Schema> ETE_SCHEMAS = ImmutableSet.of(
-            CheckAndSetSchema.getSchema(),
             TodoSchema.getSchema(),
             BlobSchema.getSchema());
     private static final Follower FOLLOWER = CleanupFollower.create(ETE_SCHEMAS);
@@ -106,7 +102,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 sweepTaskRunner,
                 sweeperSupplier)));
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
-        environment.jersey().register(new SimpleCheckAndSetResource(new CheckAndSetClient(txManager)));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new SimpleEteTimestampResource(txManager));
         environment.jersey().register(new SimpleLockResource(txManager));
@@ -143,6 +138,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     }
 
     private TargetedSweeper initializeAndGet(TargetedSweeper sweeper, TransactionManager txManager) {
+        // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
         sweeper.initializeWithoutRunning(
                 new SpecialTimestampsSupplier(txManager::getImmutableTimestamp, txManager::getImmutableTimestamp),
                 txManager.getTimelockService(),

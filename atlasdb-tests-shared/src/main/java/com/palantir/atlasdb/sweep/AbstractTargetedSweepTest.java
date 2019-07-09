@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
@@ -38,7 +37,10 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
+import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
@@ -46,6 +48,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     private static final String OLD_VALUE = "old_value";
     private static final String NEW_VALUE = "new_value";
+    private static final String NEWER_VALUE = "newer_value";
     private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     private TargetedSweeper sweepQueue;
 
@@ -57,17 +60,18 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     public void setup() {
         super.setup();
 
-        sweepQueue = TargetedSweeper.createUninitializedForTest(() -> 1);
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+        sweepQueue = TargetedSweeper.createUninitializedForTest(metricsManager,
+                () -> ImmutableTargetedSweepRuntimeConfig.builder().shards(1).maximumPartitionsToBatchInSingleRead(8)
+                        .build());
         sweepQueue.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
     }
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference ignored, long ts) {
-        when(timestampsSupplier.getUnreadableTimestamp()).thenReturn(ts);
-        when(timestampsSupplier.getImmutableTimestamp()).thenReturn(ts);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
+        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
         return Optional.empty();
     }
 

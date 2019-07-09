@@ -133,6 +133,12 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        delegate1.deleteRows(tableRef, rows);
+        delegate2.deleteRows(tableRef, rows);
+    }
+
+    @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         delegate1.deleteAllTimestamps(tableRef, deletes);
         delegate2.deleteAllTimestamps(tableRef, deletes);

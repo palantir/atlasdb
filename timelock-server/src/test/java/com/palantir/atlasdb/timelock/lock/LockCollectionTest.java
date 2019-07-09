@@ -32,7 +32,7 @@ import com.palantir.lock.StringLockDescriptor;
 
 public class LockCollectionTest {
 
-    private final LockCollection lockCollection = new LockCollection();
+    private final LockCollection lockCollection = new LockCollection(OrderedLocksDecorator.DO_NOTHING);
 
     @Test
     public void createsLocksOnDemand() {
@@ -70,7 +70,7 @@ public class LockCollectionTest {
         assertThat(actualOrder).isEqualTo(expectedOrder);
     }
 
-    private Set<LockDescriptor> descriptors(String... names) {
+    private static Set<LockDescriptor> descriptors(String... names) {
         return Arrays.stream(names)
                 .map(StringLockDescriptor::of)
                 .collect(Collectors.toSet());

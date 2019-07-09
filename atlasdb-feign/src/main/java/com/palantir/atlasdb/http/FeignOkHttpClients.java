@@ -127,7 +127,7 @@ public final class FeignOkHttpClients {
         okhttp3.OkHttpClient.Builder builder = new okhttp3.OkHttpClient.Builder()
                 .connectionSpecs(CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .connectionPool(new ConnectionPool(CONNECTION_POOL_SIZE, KEEP_ALIVE_TIME_MILLIS, TimeUnit.MILLISECONDS))
-                .proxySelector(proxySelector.orElse(ProxySelector.getDefault()))
+                .proxySelector(proxySelector.orElseGet(ProxySelector::getDefault))
                 .retryOnConnectionFailure(false);
         if (trustContext.isPresent()) {
             builder.sslSocketFactory(trustContext.get().sslSocketFactory(), trustContext.get().x509TrustManager());

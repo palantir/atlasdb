@@ -49,7 +49,7 @@ public class AsyncLockServiceTest {
 
     private static final String LOCK_A = "a";
     private static final String LOCK_B = "b";
-    public static final long REAPER_PERIOD_MS = LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2;
+    private static final long REAPER_PERIOD_MS = LockLeaseContract.SERVER_LEASE_TIMEOUT.toMillis() / 2;
 
     private static final TimeLimit DEADLINE = TimeLimit.of(123L);
 
@@ -61,7 +61,14 @@ public class AsyncLockServiceTest {
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
-            locks, immutableTimestampTracker, acquirer, heldLocks, awaitedLocks, reaperExecutor, leaderClock);
+            locks,
+            mock(TargetedSweepLockDecorator.class),
+            immutableTimestampTracker,
+            acquirer,
+            heldLocks,
+            awaitedLocks,
+            reaperExecutor,
+            leaderClock);
 
     @Before
     public void before() {
@@ -155,17 +162,17 @@ public class AsyncLockServiceTest {
         assertThat(result.isTimedOut()).isTrue();
     }
 
-    private ExclusiveLock newLock() {
+    private static ExclusiveLock newLock() {
         return new ExclusiveLock(LOCK_DESCRIPTOR);
     }
 
-    private Set<LockDescriptor> descriptors(String... lockNames) {
+    private static Set<LockDescriptor> descriptors(String... lockNames) {
         return Arrays.stream(lockNames)
                 .map(StringLockDescriptor::of)
                 .collect(Collectors.toSet());
     }
 
-    private OrderedLocks orderedLocks(AsyncLock... orderedLocks) {
+    private static OrderedLocks orderedLocks(AsyncLock... orderedLocks) {
         return OrderedLocks.fromOrderedList(ImmutableList.copyOf(orderedLocks));
     }
 
