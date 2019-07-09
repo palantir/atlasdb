@@ -18,6 +18,10 @@ package com.palantir.atlasdb.schema;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.description.Schema;
 
+/**
+ * @deprecated Schema classes do not need to extend this class.
+ */
+@Deprecated
 public interface AtlasSchema {
     Namespace getNamespace();
     Schema getLatestSchema();
