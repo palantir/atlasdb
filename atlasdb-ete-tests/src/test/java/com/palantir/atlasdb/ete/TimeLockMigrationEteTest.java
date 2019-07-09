@@ -33,7 +33,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.codahale.metrics.MetricRegistry;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
