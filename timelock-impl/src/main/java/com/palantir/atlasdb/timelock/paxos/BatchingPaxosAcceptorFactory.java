@@ -16,69 +16,79 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
+
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.BooleanPaxosResponse;
-import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosAcceptorNetworkClient;
+import com.palantir.paxos.PaxosLong;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import com.palantir.paxos.PaxosResponses;
 
 public class BatchingPaxosAcceptorFactory {
 
-    private final DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> prepareAutobatcher;
-    private final DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> acceptAutobatcher;
-    private final DisruptorAutobatcher<Client, Long> latestSequenceAutobatcher;
+    private final DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare;
+    private final DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept;
+    private final DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequence;
 
     private BatchingPaxosAcceptorFactory(
-            DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> prepareAutobatcher,
-            DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> acceptAutobatcher,
-            DisruptorAutobatcher<Client, Long> latestSequenceAutobatcher) {
-        this.prepareAutobatcher = prepareAutobatcher;
-        this.acceptAutobatcher = acceptAutobatcher;
-        this.latestSequenceAutobatcher = latestSequenceAutobatcher;
+            DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare,
+            DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept,
+            DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequence) {
+        this.prepare = prepare;
+        this.accept = accept;
+        this.latestSequence = latestSequence;
     }
 
-    public BatchingPaxosAcceptorFactory create(BatchPaxosAcceptor batchPaxosAcceptor) {
-        DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> prepareAutobatcher =
-                Autobatchers.coalescing(new PrepareCoalescingFunction(batchPaxosAcceptor))
+    public static BatchingPaxosAcceptorFactory create(
+            List<BatchPaxosAcceptor> acceptors,
+            ExecutorService executor,
+            int quorumSize) {
+
+        DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
+                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-acceptor-prepare")
                         .build();
 
-        DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> acceptAutobatcher =
-                Autobatchers.coalescing(new AcceptCoalescingFunction(batchPaxosAcceptor))
-                .safeLoggablePurpose("batch-paxos-acceptor-accept")
-                .build();
+        DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
+                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
+                        .safeLoggablePurpose("batch-paxos-acceptor-accept")
+                        .build();
 
-        DisruptorAutobatcher<Client, Long> latestSequenceAutobatcher =
-                Autobatchers.coalescing(new BatchingPaxosLatestSequenceCache(batchPaxosAcceptor))
-                .safeLoggablePurpose("batch-paxos-acceptor-latest-sequence-cache")
-                .build();
+        DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
+                Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new))
+                        .safeLoggablePurpose("batch-paxos-acceptor-latest-sequence-cache")
+                        .build();
 
-        return new BatchingPaxosAcceptorFactory(prepareAutobatcher, acceptAutobatcher, latestSequenceAutobatcher);
+        return new BatchingPaxosAcceptorFactory(prepare, accept, latestSequenceAutobatcher);
     }
 
-    public PaxosAcceptor paxosAcceptorForClient(Client client) {
-        return new BatchingPaxosAcceptor(client);
+    public PaxosAcceptorNetworkClient paxosAcceptorForClient(Client client) {
+        return new AutobatchingPaxosAcceptorNetworkClient(client);
     }
 
-    private final class BatchingPaxosAcceptor implements PaxosAcceptor {
+    private final class AutobatchingPaxosAcceptorNetworkClient implements PaxosAcceptorNetworkClient {
 
         private final Client client;
 
-        private BatchingPaxosAcceptor(Client client) {
+        private AutobatchingPaxosAcceptorNetworkClient(Client client) {
             this.client = client;
         }
 
         @Override
-        public PaxosPromise prepare(long seq, PaxosProposalId pid) {
+        public PaxosResponses<PaxosPromise> prepare(long seq, PaxosProposalId proposalId) {
             try {
-                return prepareAutobatcher.apply(Maps.immutableEntry(client, WithSeq.of(seq, pid))).get();
+                return prepare.apply(Maps.immutableEntry(client, WithSeq.of(seq, proposalId))).get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
@@ -92,10 +102,10 @@ public class BatchingPaxosAcceptorFactory {
         }
 
         @Override
-        public BooleanPaxosResponse accept(long seq, PaxosProposal proposal) {
+        public PaxosResponses<BooleanPaxosResponse> accept(long seq, PaxosProposal proposal) {
             Preconditions.checkArgument(seq == proposal.getValue().getRound(), "seq does not match round in paxos value inside proposal");
             try {
-                return acceptAutobatcher.apply(Maps.immutableEntry(client, proposal)).get();
+                return accept.apply(Maps.immutableEntry(client, proposal)).get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
@@ -109,9 +119,9 @@ public class BatchingPaxosAcceptorFactory {
         }
 
         @Override
-        public long getLatestSequencePreparedOrAccepted() {
+        public PaxosResponses<PaxosLong> getLatestSequencePreparedOrAccepted() {
             try {
-                return latestSequenceAutobatcher.apply(client).get();
+                return latestSequence.apply(client).get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
@@ -124,4 +134,5 @@ public class BatchingPaxosAcceptorFactory {
             }
         }
     }
+
 }

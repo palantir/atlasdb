@@ -32,10 +32,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.RemoteException;
+import com.palantir.paxos.PaxosLong;
 
 @NotThreadSafe
-final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, Long> {
+final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
 
     @VisibleForTesting
     static final String ERROR_NAME = "TimelockPartitioning:InvalidCacheKey";
@@ -44,7 +46,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
     @Nullable
     private AcceptorCacheKey cacheKey = null;
-    private Map<Client, Long> cachedEntries = Maps.newHashMap();
+    private Map<Client, PaxosLong> cachedEntries = Maps.newHashMap();
     private BatchPaxosAcceptor delegate;
 
     BatchingPaxosLatestSequenceCache(BatchPaxosAcceptor delegate) {
@@ -52,12 +54,12 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     }
 
     @Override
-    public Long defaultValue() {
-        return BatchPaxosAcceptor.NO_LOG_ENTRY;
+    public PaxosLong defaultValue() {
+        return PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
-    public Map<Client, Long> apply(Set<Client> clients) {
+    public Map<Client, PaxosLong> apply(Set<Client> clients) {
         try {
             return unsafeGetLatest(clients);
         } catch (RemoteException e) {
@@ -76,7 +78,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
         }
     }
 
-    private Map<Client, Long> unsafeGetLatest(Set<Client> clients) {
+    private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) {
         if (cacheKey == null) {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clients));
             return Collections.unmodifiableMap(cachedEntries); // do we want a copy here? :S
@@ -94,6 +96,9 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
     private void processDigest(AcceptorCacheDigest digest) {
         cacheKey = AcceptorCacheKey.of(digest.newCacheKey());
-        cachedEntries.putAll(digest.updates());
+        Map<Client, PaxosLong> asPaxosLong = KeyedStream.stream(digest.updates())
+                .map(PaxosLong::of)
+                .collectToMap();
+        cachedEntries.putAll(asPaxosLong);
     }
 }
