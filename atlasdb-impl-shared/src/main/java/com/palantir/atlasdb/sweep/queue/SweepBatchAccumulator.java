@@ -34,6 +34,7 @@ class SweepBatchAccumulator {
 
     private long progressTimestamp;
     private boolean anyBatchesPresent = false;
+    private boolean nextBatchAvailable = true;
 
     SweepBatchAccumulator(long sweepTimestamp, long progressTimestamp) {
         this.sweepTimestamp = sweepTimestamp;
@@ -55,6 +56,7 @@ class SweepBatchAccumulator {
         addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
         anyBatchesPresent = true;
+        nextBatchAvailable = sweepBatch.hasNext();
     }
 
     long getProgressTimestamp() {
@@ -65,12 +67,14 @@ class SweepBatchAccumulator {
         SweepBatch sweepBatch = SweepBatch.of(
                 getLatestWritesByCellReference(),
                 DedicatedRows.of(accumulatedDedicatedRows),
-                getLastSweptTimestamp());
+                getLastSweptTimestamp(),
+                nextBatchAvailable);
         return SweepBatchWithPartitionInfo.of(sweepBatch, finePartitions);
     }
 
     boolean shouldAcceptAdditionalBatch() {
         return accumulatedWrites.size() < SweepQueueUtils.SWEEP_BATCH_SIZE
+                && nextBatchAvailable
                 && progressTimestamp < (sweepTimestamp - 1);
     }
 

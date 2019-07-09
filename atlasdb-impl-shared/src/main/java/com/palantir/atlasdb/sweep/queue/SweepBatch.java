@@ -29,15 +29,22 @@ public interface SweepBatch {
     List<WriteInfo> writes();
     DedicatedRows dedicatedRows();
     long lastSweptTimestamp();
+    boolean hasNext();
 
     default boolean isEmpty() {
         return writes().isEmpty();
     }
 
     static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp) {
+        return of(writes, dedicatedRows, timestamp, true);
+    }
+
+    static SweepBatch of(Collection<WriteInfo> writes, DedicatedRows dedicatedRows, long timestamp, boolean next) {
         return ImmutableSweepBatch.builder()
                 .writes(writes)
                 .dedicatedRows(dedicatedRows)
-                .lastSweptTimestamp(timestamp).build();
+                .lastSweptTimestamp(timestamp)
+                .hasNext(next)
+                .build();
     }
 }

@@ -45,15 +45,8 @@ class SweepQueueReader {
             SweepBatch batch = sweepableCells.getBatchForPartition(
                     shardStrategy, nextFinePartition.get(), previousProgress, sweepTs);
             accumulator.accumulateBatch(batch);
-            if (noProgressMadeThisIteration(accumulator, previousProgress)) {
-                return accumulator.toSweepBatch();
-            }
             previousProgress = accumulator.getProgressTimestamp();
         }
         return accumulator.toSweepBatch();
-    }
-
-    private static boolean noProgressMadeThisIteration(SweepBatchAccumulator accumulator, long previousProgress) {
-        return accumulator.getProgressTimestamp() == previousProgress;
     }
 }
