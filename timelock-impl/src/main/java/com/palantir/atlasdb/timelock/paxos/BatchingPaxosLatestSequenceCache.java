@@ -95,7 +95,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     }
 
     private void processDigest(AcceptorCacheDigest digest) {
-        cacheKey = AcceptorCacheKey.of(digest.newCacheKey());
+        cacheKey = digest.newCacheKey();
         Map<Client, PaxosLong> asPaxosLong = KeyedStream.stream(digest.updates())
                 .map(PaxosLong::of)
                 .collectToMap();
