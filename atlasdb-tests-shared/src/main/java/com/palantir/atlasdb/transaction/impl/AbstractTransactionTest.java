@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -638,7 +640,7 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testEmptyColumnRangePagingTransaction() {
+    public void testEmptyColumnRangePagingTransaction_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         Transaction t = startTransaction();
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
@@ -663,7 +665,32 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testColumnRangePagingTransaction() {
+    public void testEmptyColumnRangePagingTransaction_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        List<Map.Entry<Cell, byte[]>> expected = ImmutableList.of();
+        verifyMatchingResultForIterator(expected, row, columnRange);
+
+        put(t, "row1", "col1", "v1");
+        t.commit();
+
+        t = startTransaction();
+        delete(t, "row1", "col1");
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        verifyMatchingResultForIterator(expected, row, columnRange);
+        t.commit();
+
+        t = startTransaction();
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        verifyMatchingResultForIterator(expected, row, columnRange);
+    }
+
+    @Test
+    public void testColumnRangePagingTransaction_batchingVisitable() {
         Transaction t = startTransaction();
         int totalPuts = 101;
         byte[] row = PtBytes.toBytes("row1");
@@ -701,6 +728,45 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         verifyMatchingResult(ImmutableList.copyOf(Iterables.limit(expected, 100)), row, columnRange);
     }
 
+    @Test
+    public void testColumnRangePagingTransaction_iterator() {
+        Transaction t = startTransaction();
+        int totalPuts = 101;
+        byte[] row = PtBytes.toBytes("row1");
+        // Record expected results using byte ordering
+        ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap
+                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+        for (int i = 0 ; i < totalPuts ; i++) {
+            put(t, "row1", "col" + i, "v" + i);
+            writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
+        }
+        t.commit();
+
+        t = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
+        verifyMatchingResultForIterator(expected, row, columnRange);
+
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 1));
+        verifyMatchingResultForIterator(expected, row, columnRange);
+
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.EMPTY_BYTE_ARRAY, 101));
+        verifyMatchingResultForIterator(expected, row, columnRange);
+
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
+                        RangeRequests.nextLexicographicName(expected.get(expected.size() - 1).getKey().getColumnName()), 1));
+        verifyMatchingResultForIterator(expected, row, columnRange);
+
+        columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY,
+                        expected.get(expected.size() - 1).getKey().getColumnName(), 1));
+        verifyMatchingResultForIterator(ImmutableList.copyOf(Iterables.limit(expected, 100)), row, columnRange);
+    }
+
     protected void verifyMatchingResult(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange) {
         assertEquals(1, columnRange.size());
         assertArrayEquals(row, Iterables.getOnlyElement(columnRange.keySet()));
@@ -713,8 +779,20 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         }
     }
 
+    protected void verifyMatchingResultForIterator(List<Map.Entry<Cell, byte[]>> expected, byte[] row, Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange) {
+        assertEquals(1, columnRange.size());
+        assertArrayEquals(row, Iterables.getOnlyElement(columnRange.keySet()));
+        Iterator<Map.Entry<Cell, byte[]>> iterator = Iterables.getOnlyElement(columnRange.values());
+        List<Map.Entry<Cell, byte[]>> results = Lists.newArrayList(iterator);
+        assertEquals(expected.size(), results.size());
+        for (int i = 0 ; i < expected.size() ; i++) {
+            assertEquals(expected.get(i).getKey(), results.get(i).getKey());
+            assertArrayEquals(expected.get(i).getValue(), results.get(i).getValue());
+        }
+    }
+
     @Test
-    public void testReadMyWritesColumnRangePagingTransaction() {
+    public void testReadMyWritesColumnRangePagingTransaction_batchingVisitable() {
         Transaction t = startTransaction();
         int totalPuts = 101;
         byte[] row = PtBytes.toBytes("row1");
@@ -745,7 +823,38 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void testReadMyDeletesColumnRangePagingTransaction() {
+    public void testReadMyWritesColumnRangePagingTransaction_iterator() {
+        Transaction t = startTransaction();
+        int totalPuts = 101;
+        byte[] row = PtBytes.toBytes("row1");
+        // Record expected results using byte ordering
+        ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap
+                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+        for (int i = 0 ; i < totalPuts ; i++) {
+            put(t, "row1", "col" + i, "v" + i);
+            if (i % 2 == 0) {
+                writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
+            }
+        }
+        t.commit();
+
+        t = startTransaction();
+
+        for (int i = 0 ; i < totalPuts ; i++) {
+            if (i % 2 == 1) {
+                put(t, "row1", "col" + i, "t_v" + i);
+                writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("t_v" + i));
+            }
+        }
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
+        verifyMatchingResultForIterator(expected, row, columnRange);
+    }
+
+    @Test
+    public void testReadMyDeletesColumnRangePagingTransaction_batchingVisitable() {
         Transaction t = startTransaction();
         int totalPuts = 101;
         byte[] row = PtBytes.toBytes("row1");
@@ -772,6 +881,36 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
                 t.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
         List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
         verifyMatchingResult(expected, row, columnRange);
+    }
+
+    @Test
+    public void testReadMyDeletesColumnRangePagingTransaction_iterator() {
+        Transaction t = startTransaction();
+        int totalPuts = 101;
+        byte[] row = PtBytes.toBytes("row1");
+        // Record expected results using byte ordering
+        ImmutableSortedMap.Builder<Cell, byte[]> writes = ImmutableSortedMap
+                .orderedBy(Ordering.from(UnsignedBytes.lexicographicalComparator()).onResultOf(key -> key.getColumnName()));
+        for (int i = 0 ; i < totalPuts ; i++) {
+            put(t, "row1", "col" + i, "v" + i);
+            if (i % 2 == 0) {
+                writes.put(Cell.create(row, PtBytes.toBytes("col" + i)), PtBytes.toBytes("v" + i));
+            }
+        }
+        t.commit();
+
+        t = startTransaction();
+
+        for (int i = 0 ; i < totalPuts ; i++) {
+            if (i % 2 == 1) {
+                delete(t, "row1", "col" + i);
+            }
+        }
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        List<Map.Entry<Cell, byte[]>> expected = ImmutableList.copyOf(writes.build().entrySet());
+        verifyMatchingResultForIterator(expected, row, columnRange);
     }
 
     @Test
