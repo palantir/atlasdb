@@ -37,7 +37,7 @@ final class LearnedValuesCoalescingFunction implements
 
     @Override
     public PaxosContainer<Optional<PaxosValue>> defaultValue() {
-        return new PaxosContainer<>(Optional.empty());
+        return PaxosContainer.of(Optional.empty());
     }
 
     @Override
@@ -46,7 +46,7 @@ final class LearnedValuesCoalescingFunction implements
         return KeyedStream.stream(learnedValues)
                 .mapKeys((client, paxosValue) -> WithSeq.of(paxosValue.getRound(), client))
                 .map(Optional::ofNullable)
-                .map(PaxosContainer::new)
+                .map(PaxosContainer::of)
                 .collectToMap();
     }
 

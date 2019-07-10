@@ -76,6 +76,6 @@ public class LearnedValuesCoalescingFunctionTests {
     }
 
     private static PaxosContainer<Optional<PaxosValue>> asResult(PaxosValue value) {
-        return new PaxosContainer<>(Optional.of(value));
+        return PaxosContainer.of(Optional.of(value));
     }
 }

@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
+import org.immutables.value.Value;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
@@ -60,7 +62,7 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
     public Map<REQUEST, PaxosResponses<RESPONSE>> apply(Set<REQUEST> request) {
         PaxosResponses<PaxosContainer<Map<REQUEST, RESPONSE>>> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(delegates),
-                delegate -> new PaxosContainer<>(delegate.apply(request)),
+                delegate -> PaxosContainer.of(delegate.apply(request)),
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
@@ -91,21 +93,18 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
                                 quorumSize)));
     }
 
-    public static class PaxosContainer<T> implements PaxosResponse {
-
-        private final T response;
-
-        PaxosContainer(T response) {
-            this.response = response;
-        }
+    @Value.Immutable
+    public interface PaxosContainer<T> extends PaxosResponse {
+        @Value.Parameter
+        T get();
 
         @Override
-        public boolean isSuccessful() {
+        default boolean isSuccessful() {
             return true;
         }
 
-        public T get() {
-            return response;
+        static <T> PaxosContainer<T> of(T contents) {
+            return ImmutablePaxosContainer.of(contents);
         }
     }
 
