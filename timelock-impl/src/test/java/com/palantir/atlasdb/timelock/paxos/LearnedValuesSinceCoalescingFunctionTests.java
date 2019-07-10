@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -75,8 +76,9 @@ public class LearnedValuesSinceCoalescingFunctionTests {
                 .thenReturn(remoteResponse);
 
         LearnedValuesSinceCoalescingFunction function = new LearnedValuesSinceCoalescingFunction(remote);
-        Map<WithSeq<Client>, Collection<PaxosValue>> results = function.apply(request);
+        Map<WithSeq<Client>, PaxosUpdate> results = function.apply(request);
         SetMultimap<WithSeq<Client>, PaxosValue> asMultimap = KeyedStream.stream(results)
+                .map(PaxosUpdate::getValues)
                 .flatMap(Collection::stream)
                 .collectToSetMultimap();
 

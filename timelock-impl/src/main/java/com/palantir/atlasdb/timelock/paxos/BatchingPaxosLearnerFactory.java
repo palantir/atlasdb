@@ -16,79 +16,86 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Collection;
+import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
+
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
-import com.palantir.paxos.PaxosLearner;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
+import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosResponses;
+import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 
 public class BatchingPaxosLearnerFactory {
 
-    private final PaxosComponents paxosComponents;
-    private final DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, Void> learnAutobatcher;
-    private final DisruptorAutobatcher<WithSeq<Client>, PaxosValue> getLearnedValueAutobatcher;
-    private final DisruptorAutobatcher<WithSeq<Client>, Collection<PaxosValue>> getLearnedValuesSinceAutobatcher;
+    private final DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn;
+    private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> getLearnedValues;
+    private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> getLearnedValuesSince;
 
     private BatchingPaxosLearnerFactory(
-            PaxosComponents paxosComponents,
-            DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, Void> learnAutobatcher,
-            DisruptorAutobatcher<WithSeq<Client>, PaxosValue> getLearnedValueAutobatcher,
-            DisruptorAutobatcher<WithSeq<Client>, Collection<PaxosValue>> getLearnedValuesSinceAutobatcher) {
-        this.paxosComponents = paxosComponents;
-        this.learnAutobatcher = learnAutobatcher;
-        this.getLearnedValueAutobatcher = getLearnedValueAutobatcher;
-        this.getLearnedValuesSinceAutobatcher = getLearnedValuesSinceAutobatcher;
+            DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn,
+            DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> getLearnedValues,
+            DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> getLearnedValuesSince) {
+        this.learn = learn;
+        this.getLearnedValues = getLearnedValues;
+        this.getLearnedValuesSince = getLearnedValuesSince;
     }
 
-    public static BatchingPaxosLearnerFactory create(BatchPaxosLearner batchPaxosLearner, PaxosComponents components) {
-        DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, Void> learnAutobatcher =
-                Autobatchers.coalescing(new LearnCoalescingConsumer(batchPaxosLearner))
+    public static BatchingPaxosLearnerFactory create(
+            List<BatchPaxosLearner> learners,
+            ExecutorService executor,
+            int quorumSize) {
+        DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn =
+                Autobatchers.coalescing(wrap(learners, executor, quorumSize, LearnCoalescingConsumer::new))
                         .safeLoggablePurpose("batch-paxos-learner.learn")
                         .build();
 
-        DisruptorAutobatcher<WithSeq<Client>, PaxosValue> learnedValuesAutobatcher =
-                Autobatchers.coalescing(new LearnedValuesCoalescingFunction(batchPaxosLearner))
+        DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> learnedValues =
+                Autobatchers.coalescing(wrap(learners, executor, quorumSize, LearnedValuesCoalescingFunction::new))
                         .safeLoggablePurpose("batch-paxos-learner.learned-values")
                         .build();
 
-        DisruptorAutobatcher<WithSeq<Client>, Collection<PaxosValue>> learnedValuesSinceAutobatcher =
-                Autobatchers.coalescing(new LearnedValuesSinceCoalescingFunction(batchPaxosLearner))
+        DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> learnedValuesSince =
+                Autobatchers.coalescing(wrap(learners, executor, quorumSize, LearnedValuesSinceCoalescingFunction::new))
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
                 .build();
 
         return new BatchingPaxosLearnerFactory(
-                components,
-                learnAutobatcher,
-                learnedValuesAutobatcher,
-                learnedValuesSinceAutobatcher);
+                learn,
+                learnedValues,
+                learnedValuesSince);
     }
 
-    public PaxosLearner paxosLearnerForClient(Client client, boolean isLocal) {
-        return new BatchingPaxosLearner(client, isLocal);
+    public PaxosLearnerNetworkClient paxosLearnerForClient(Client client) {
+        return new AutobatchingPaxosLearnerNetworkClient(client);
     }
 
-    private final class BatchingPaxosLearner implements PaxosLearner {
+    private final class AutobatchingPaxosLearnerNetworkClient implements PaxosLearnerNetworkClient {
         private final Client client;
-        private final boolean isLocal;
 
-        private BatchingPaxosLearner(Client client, boolean isLocal) {
+        private AutobatchingPaxosLearnerNetworkClient(Client client) {
             this.client = client;
-            this.isLocal = isLocal;
         }
 
         @Override
-        public void learn(long seq, PaxosValue val) {
+        public void learn(long seq, PaxosValue value) {
+
+        }
+
+        @Override
+        public <T extends PaxosResponse> PaxosResponses<T> getLearnedValue(
+                long seq,
+                Function<Optional<PaxosValue>, T> mapper) {
             try {
-                Preconditions.checkArgument(seq == val.getRound(), "seq differs from PaxosValue.round");
-                learnAutobatcher.apply(Maps.immutableEntry(client, val)).get();
+                return getLearnedValues.apply(WithSeq.of(seq, client)).get().map(c -> mapper.apply(c.get()));
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
@@ -101,11 +108,10 @@ public class BatchingPaxosLearnerFactory {
             }
         }
 
-        @Nullable
         @Override
-        public PaxosValue getLearnedValue(long seq) {
+        public PaxosResponses<PaxosUpdate> getLearnedValuesSince(long seq) {
             try {
-                return getLearnedValueAutobatcher.apply(WithSeq.of(seq, client)).get();
+                return getLearnedValuesSince.apply(WithSeq.of(seq, client)).get();
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
@@ -118,31 +124,23 @@ public class BatchingPaxosLearnerFactory {
             }
         }
 
-        @Nullable
-        @Override
-        public PaxosValue getGreatestLearnedValue() {
-            if (isLocal) {
-                return paxosComponents.learner(client).getGreatestLearnedValue();
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        }
+        //        @Override
+//        public void learn(long seq, PaxosValue val) {
+//            try {
+//                Preconditions.checkArgument(seq == val.getRound(), "seq differs from PaxosValue.round");
+//                learn.apply(Maps.immutableEntry(client, val)).get();
+//            } catch (ExecutionException e) {
+//                Throwable cause = e.getCause();
+//                if (cause instanceof RuntimeException) {
+//                    throw (RuntimeException) cause;
+//                }
+//                throw new RuntimeException(cause);
+//            } catch (InterruptedException e) {
+//                // TODO(fdesouza): handle
+//                throw new RuntimeException(e);
+//            }
+//        }
+//
 
-        @Nonnull
-        @Override
-        public Collection<PaxosValue> getLearnedValuesSince(long seq) {
-            try {
-                return getLearnedValuesSinceAutobatcher.apply(WithSeq.of(seq, client)).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
-            }
-        }
     }
 }

@@ -24,15 +24,16 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 
 final class LearnedValuesSinceCoalescingFunction
-        implements CoalescingRequestFunction<WithSeq<Client>, Collection<PaxosValue>> {
+        implements CoalescingRequestFunction<WithSeq<Client>, PaxosUpdate> {
 
     private final BatchPaxosLearner delegate;
 
@@ -41,12 +42,12 @@ final class LearnedValuesSinceCoalescingFunction
     }
 
     @Override
-    public Collection<PaxosValue> defaultValue() {
-        return ImmutableSet.of();
+    public PaxosUpdate defaultValue() {
+        return new PaxosUpdate(ImmutableList.of());
     }
 
     @Override
-    public Map<WithSeq<Client>, Collection<PaxosValue>> apply(Set<WithSeq<Client>> request) {
+    public Map<WithSeq<Client>, PaxosUpdate> apply(Set<WithSeq<Client>> request) {
         Map<Client, Long> remoteRequest = request.stream()
                 .collect(toMap(WithSeq::value, WithSeq::seq, Math::min));
 
@@ -59,6 +60,7 @@ final class LearnedValuesSinceCoalescingFunction
         return KeyedStream.of(request)
                 .map(clientWithSeq -> results.getOrDefault(clientWithSeq.value(), ImmutableSortedMap.of()))
                 .map((clientWithSeq, paxosValuesByRound) -> paxosValuesByRound.tailMap(clientWithSeq.seq()).values())
+                .map(values -> new PaxosUpdate(ImmutableList.copyOf(values)))
                 .collectToMap();
     }
 

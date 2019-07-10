@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -31,6 +32,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.paxos.PaxosValue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -61,15 +63,19 @@ public class LearnedValuesCoalescingFunctionTests {
                 .thenReturn(remoteResponse);
 
         LearnedValuesCoalescingFunction function = new LearnedValuesCoalescingFunction(remote);
-        Map<WithSeq<Client>, PaxosValue> results = function.apply(remoteRequest);
+        Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> results = function.apply(remoteRequest);
 
         assertThat(results)
-                .containsEntry(WithSeq.of(10, CLIENT_1), paxosValue1)
-                .containsEntry(WithSeq.of(12, CLIENT_1), paxosValue2)
-                .containsEntry(WithSeq.of(10, CLIENT_2), paxosValue1);
+                .containsEntry(WithSeq.of(10, CLIENT_1), asResult(paxosValue1))
+                .containsEntry(WithSeq.of(12, CLIENT_1), asResult(paxosValue2))
+                .containsEntry(WithSeq.of(10, CLIENT_2), asResult(paxosValue1));
     }
 
     private static PaxosValue paxosValue(long round) {
         return new PaxosValue(UUID.randomUUID().toString(), round, null);
+    }
+
+    private static PaxosContainer<Optional<PaxosValue>> asResult(PaxosValue value) {
+        return new PaxosContainer<>(Optional.of(value));
     }
 }

@@ -20,10 +20,14 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSetMultimap;
-import com.palantir.atlasdb.autobatch.CoalescingRequestConsumer;
+import com.google.common.collect.Maps;
+import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.paxos.PaxosResponse;
+import com.palantir.paxos.PaxosResponseImpl;
 import com.palantir.paxos.PaxosValue;
 
-final class LearnCoalescingConsumer implements CoalescingRequestConsumer<Map.Entry<Client, PaxosValue>> {
+final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Entry<Client, PaxosValue>, PaxosResponse> {
+    private static final PaxosResponse SUCCESSFUL_RESPONSE = new PaxosResponseImpl(true);
 
     private final BatchPaxosLearner delegate;
 
@@ -32,7 +36,13 @@ final class LearnCoalescingConsumer implements CoalescingRequestConsumer<Map.Ent
     }
 
     @Override
-    public void accept(Set<Map.Entry<Client, PaxosValue>> elements) {
-        delegate.learn(ImmutableSetMultimap.copyOf(elements));
+    public PaxosResponse defaultValue() {
+        return new PaxosResponseImpl(false);
+    }
+
+    @Override
+    public Map<Map.Entry<Client, PaxosValue>, PaxosResponse> apply(Set<Map.Entry<Client, PaxosValue>> request) {
+        delegate.learn(ImmutableSetMultimap.copyOf(request));
+        return Maps.toMap(request, $ -> SUCCESSFUL_RESPONSE);
     }
 }

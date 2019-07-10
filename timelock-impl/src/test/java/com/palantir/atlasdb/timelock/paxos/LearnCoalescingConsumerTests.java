@@ -46,7 +46,7 @@ public class LearnCoalescingConsumerTests {
         PaxosValue paxosValue2 = paxosValue(14);
 
         LearnCoalescingConsumer consumer = new LearnCoalescingConsumer(remote);
-        consumer.accept(ImmutableSet.of(
+        consumer.apply(ImmutableSet.of(
                 entry(CLIENT_1, paxosValue1),
                 entry(CLIENT_1, paxosValue2),
                 entry(CLIENT_2, paxosValue1)));

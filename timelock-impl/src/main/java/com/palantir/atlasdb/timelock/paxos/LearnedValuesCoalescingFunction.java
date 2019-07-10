@@ -17,16 +17,17 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosValue;
 
-final class LearnedValuesCoalescingFunction implements CoalescingRequestFunction<WithSeq<Client>, PaxosValue> {
+final class LearnedValuesCoalescingFunction implements
+        CoalescingRequestFunction<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> {
 
     private final BatchPaxosLearner delegate;
 
@@ -34,17 +35,19 @@ final class LearnedValuesCoalescingFunction implements CoalescingRequestFunction
         this.delegate = delegate;
     }
 
-    @Nullable
     @Override
-    public PaxosValue defaultValue() {
-        return null;
+    public PaxosContainer<Optional<PaxosValue>> defaultValue() {
+        return new PaxosContainer<>(Optional.empty());
     }
 
     @Override
-    public Map<WithSeq<Client>, PaxosValue> apply(Set<WithSeq<Client>> request) {
+    public Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> apply(Set<WithSeq<Client>> request) {
         SetMultimap<Client, PaxosValue> learnedValues = delegate.getLearnedValues(request);
         return KeyedStream.stream(learnedValues)
                 .mapKeys((client, paxosValue) -> WithSeq.of(paxosValue.getRound(), client))
+                .map(Optional::ofNullable)
+                .map(PaxosContainer::new)
                 .collectToMap();
     }
+
 }
