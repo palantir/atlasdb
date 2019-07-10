@@ -21,8 +21,10 @@ import java.util.Map;
 
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.common.base.BatchingVisitable;
 
@@ -43,6 +45,14 @@ public interface AtlasDbImmutableTable<ROW, COLUMN_VALUE, ROW_RESULT> extends Co
      */
     Map<ROW, BatchingVisitable<COLUMN_VALUE>> getRowsColumnRange(Iterable<ROW> rows,
                                                                  BatchColumnRangeSelection columnRangeSelection);
+
+
+    /*
+     * This returns an iterator for each row. It should be used if you want to visit a number of the first
+     * matched columns instead of all the columns per row.
+     */
+    Map<ROW, Iterator<COLUMN_VALUE>> getRowsColumnRangeIterator(Iterable<ROW> rows,
+                                                                BatchColumnRangeSelection columnRangeSelection);
 
     /*
      * This returns an iterator that visits the result columns row by row.

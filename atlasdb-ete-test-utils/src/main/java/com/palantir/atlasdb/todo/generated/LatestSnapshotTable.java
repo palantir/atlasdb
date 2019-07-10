@@ -546,6 +546,20 @@ public final class LatestSnapshotTable implements
         });
     }
 
+    @Override
+    public Map<LatestSnapshotRow, Iterator<LatestSnapshotNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<LatestSnapshotRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<LatestSnapshotRow, Iterator<LatestSnapshotNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            LatestSnapshotRow row = LatestSnapshotRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<LatestSnapshotNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<LatestSnapshotRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -657,5 +671,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "G425LkwW0GRVAmmRAB+j7w==";
+    static String __CLASS_HASH = "KXheO4Y05y+Ho61RbNUHvw==";
 }

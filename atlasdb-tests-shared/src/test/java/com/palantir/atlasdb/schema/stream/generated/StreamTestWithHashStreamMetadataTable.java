@@ -584,6 +584,20 @@ public final class StreamTestWithHashStreamMetadataTable implements
         });
     }
 
+    @Override
+    public Map<StreamTestWithHashStreamMetadataRow, Iterator<StreamTestWithHashStreamMetadataNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<StreamTestWithHashStreamMetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamMetadataRow, Iterator<StreamTestWithHashStreamMetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<StreamTestWithHashStreamMetadataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestWithHashStreamMetadataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -695,5 +709,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Zzb6mucVERw8UOL/5DyMbA==";
+    static String __CLASS_HASH = "uksCFZvSGkqIR3JxnEcOsg==";
 }

@@ -109,6 +109,13 @@ public class ReadTransaction extends ForwardingTransaction {
     }
 
     @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
+            Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+        checkTableName(tableRef);
+        return delegate().getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
+    }
+
+    @Override
     public Iterator<Map.Entry<Cell, byte[]>> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int batchHint) {
         checkTableName(tableRef);

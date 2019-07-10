@@ -558,6 +558,20 @@ public final class SnapshotsStreamValueTable implements
         });
     }
 
+    @Override
+    public Map<SnapshotsStreamValueRow, Iterator<SnapshotsStreamValueNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<SnapshotsStreamValueRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SnapshotsStreamValueRow, Iterator<SnapshotsStreamValueNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SnapshotsStreamValueRow row = SnapshotsStreamValueRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SnapshotsStreamValueNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SnapshotsStreamValueRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -669,5 +683,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "LtSr8KW84jJ1kASsEGryAA==";
+    static String __CLASS_HASH = "6WzLizs91Udk6a7R1JjvYw==";
 }

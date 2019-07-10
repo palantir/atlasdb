@@ -546,6 +546,20 @@ public final class AuditedDataTable implements
         });
     }
 
+    @Override
+    public Map<AuditedDataRow, Iterator<AuditedDataNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<AuditedDataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<AuditedDataRow, Iterator<AuditedDataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            AuditedDataRow row = AuditedDataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<AuditedDataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<AuditedDataRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -657,5 +671,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6Nc5O+7Y+IxfjkHR4bjHiw==";
+    static String __CLASS_HASH = "EGnx5lzRwirDKf6FLStpYQ==";
 }

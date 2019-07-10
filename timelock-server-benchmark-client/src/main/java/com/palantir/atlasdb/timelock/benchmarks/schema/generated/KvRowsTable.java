@@ -602,6 +602,20 @@ public final class KvRowsTable implements
         });
     }
 
+    @Override
+    public Map<KvRowsRow, Iterator<KvRowsNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<KvRowsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<KvRowsRow, Iterator<KvRowsNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            KvRowsRow row = KvRowsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<KvRowsNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<KvRowsRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -762,5 +776,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "m8yeo8CW8a+4SZzBshzfRA==";
+    static String __CLASS_HASH = "X+7b5V2BwgN8XOpNroaF/g==";
 }
