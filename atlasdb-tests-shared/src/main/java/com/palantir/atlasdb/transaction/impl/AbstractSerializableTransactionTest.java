@@ -38,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
@@ -811,7 +812,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMultipleReadsToSameColumnRange() {
+    public void testMultipleReadsToSameColumnRange_batchingVisitable() {
         String rowString = "row1";
         byte[] row = PtBytes.toBytes(rowString);
         byte[] rowDifferentReference = PtBytes.toBytes(rowString);
@@ -830,7 +831,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMultipleReadsToSameColumnRangeAcrossRows() {
+    public void testMultipleReadsToSameColumnRange_iterator() {
+        String rowString = "row1";
+        byte[] row = PtBytes.toBytes(rowString);
+        byte[] rowDifferentReference = PtBytes.toBytes(rowString);
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        columnRange.values().forEach(Iterators::getLast);
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeAgain =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(rowDifferentReference),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        columnRangeAgain.values().forEach(Iterators::getLast);
+        put(t1, "mutation to ensure", "conflict", "handling");
+        t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row");
         byte[] differentRow = PtBytes.toBytes("differentRow");
 
@@ -845,6 +865,27 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
                 transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(differentRow), sameColumnRangeSelection);
         columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(transaction, "mutation to ensure", "conflict", "handling");
+        transaction.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows_iterator() {
+        byte[] row = PtBytes.toBytes("row");
+        byte[] differentRow = PtBytes.toBytes("differentRow");
+
+        Transaction transaction = startTransaction();
+        BatchColumnRangeSelection sameColumnRangeSelection =
+                BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1);
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
+                transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
+        columnRangeResultForRow.values().forEach(Iterators::getLast);
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
+                transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(differentRow),
+                        sameColumnRangeSelection);
+        columnRangeResultForDifferentRow.values().forEach(Iterators::getLast);
         put(transaction, "mutation to ensure", "conflict", "handling");
         transaction.commit();
     }
