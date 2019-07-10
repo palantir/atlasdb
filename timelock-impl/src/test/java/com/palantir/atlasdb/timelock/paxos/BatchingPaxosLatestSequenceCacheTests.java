@@ -38,6 +38,7 @@ import com.palantir.conjure.java.api.errors.ErrorType;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.conjure.java.api.errors.SerializableError;
 import com.palantir.conjure.java.api.errors.ServiceException;
+import com.palantir.paxos.ImmutablePaxosLong;
 import com.palantir.paxos.PaxosLong;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -136,7 +137,7 @@ public class BatchingPaxosLatestSequenceCacheTests {
 
         assertThat(cache.apply(ImmutableSet.of(CLIENT_1)).get(CLIENT_1))
                 .as("we should get 52 which results from calling the non cached version")
-                .isEqualTo(52);
+                .isEqualTo(ImmutablePaxosLong.of(52));
     }
 
     private BatchingPaxosLatestSequenceCache initialCache() {
