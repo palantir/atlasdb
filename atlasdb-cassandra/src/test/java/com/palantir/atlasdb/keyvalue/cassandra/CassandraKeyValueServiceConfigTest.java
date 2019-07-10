@@ -23,20 +23,27 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
+import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
 public class CassandraKeyValueServiceConfigTest {
     private static final InetSocketAddress SERVER_ADDRESS = InetSocketAddress.createUnresolved("localhost", 9160);
     private static final SslConfiguration SSL_CONFIGURATION = SslConfiguration.of(Paths.get("./trustStore.jks"));
+    private static final CassandraCredentialsConfig CREDENTIALS =
+            ImmutableCassandraCredentialsConfig.builder()
+                    .username("username")
+                    .password("password")
+                    .build();
 
     private static final ImmutableCassandraKeyValueServiceConfig CASSANDRA_CONFIG =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .addServers(SERVER_ADDRESS)
                     .replicationFactor(1)
                     .keyspace("atlasdb")
+                    .credentials(CREDENTIALS)
                     .build();
-
 
     @Test
     public void usingSslIfSslParamPresentAndTrue() {

@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,73 +41,54 @@ public class SweepQueueCleaner {
      * Cleans up all the sweep queue data from the last update of progress up to and including the given sweep
      * partition. Then, updates the sweep queue progress.
      * @param shardStrategy shard and strategy to clean for.
-     * @param oldProgress last swept timestamp for the previous iteration of sweep.
-     * @param newProgress last swept timestamp for this iteration of sweep.
+     * @param partitions set of fine partitions that need to be cleaned up.
+     * @param lastTs last swept timestamp for this iteration of sweep.
      * @param dedicatedRows the dedicated rows that have now been swept that should now be removed.
      */
-    public void clean(ShardAndStrategy shardStrategy, long oldProgress, long newProgress, DedicatedRows dedicatedRows) {
+    public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
         cleanDedicatedRows(dedicatedRows);
-        cleanSweepableCells(shardStrategy, oldProgress, newProgress);
-        cleanSweepableTimestamps(shardStrategy, oldProgress, newProgress);
-        progressTo(shardStrategy, newProgress);
+        cleanSweepableCells(shardStrategy, partitions);
+        cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
+        progressTo(shardStrategy, lastTs);
     }
 
-    private void cleanSweepableCells(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        if (firstIterationOfSweep(oldProgress)) {
-            return;
-        }
-        long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionFine(oldProgress);
-        long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionFine(newProgress + 1);
-        if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
-            // This is present for backcompat; we now clean up dedicated rows early, but this is
-            cleanDedicatedRows(shardStrategy, lastSweptPartitionPreviously);
-            cleanNonDedicatedRow(shardStrategy, lastSweptPartitionPreviously);
-            log.info("Deleted persisted sweep queue information in table {} for partition {}.",
-                    LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
-                    SafeArg.of("partition", lastSweptPartitionPreviously));
-        }
+    private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
+        sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
+        log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
+                LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
+                SafeArg.of("partitions", partitions));
     }
 
     private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
         sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
-    private void cleanDedicatedRows(ShardAndStrategy shardStrategy, long partitionToDelete) {
-        sweepableCells.deleteDedicatedRows(shardStrategy, partitionToDelete);
+    private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, Set<Long> finePartitions, long lastTs) {
+        Set<Long> coarsePartitions = finePartitions.stream()
+                .map(SweepQueueUtils::partitionFineToCoarse)
+                .collect(Collectors.toSet());
+        coarsePartitions = removeLastPartitionIfNotComplete(coarsePartitions, lastTs);
+
+        sweepableTimestamps.deleteCoarsePartitions(shardStrategy, coarsePartitions);
+        log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
+                LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
+                SafeArg.of("partitions", coarsePartitions));
     }
 
-    private void cleanNonDedicatedRow(ShardAndStrategy shardStrategy, long partitionToDelete) {
-        sweepableCells.deleteNonDedicatedRow(shardStrategy, partitionToDelete);
+    private static Set<Long> removeLastPartitionIfNotComplete(Set<Long> coarsePartitions, long lastTs) {
+        coarsePartitions.remove(SweepQueueUtils.tsPartitionCoarse(lastTs + 1));
+        return coarsePartitions;
     }
 
-    private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, long oldProgress, long newProgress) {
-        if (firstIterationOfSweep(oldProgress)) {
-            return;
-        }
-        long lastSweptPartitionPreviously = SweepQueueUtils.tsPartitionCoarse(oldProgress);
-        long minimumSweepPartitionNextIteration = SweepQueueUtils.tsPartitionCoarse(newProgress + 1);
-        if (minimumSweepPartitionNextIteration > lastSweptPartitionPreviously) {
-            sweepableTimestamps.deleteRow(shardStrategy, lastSweptPartitionPreviously);
-            log.info("Deleted persisted sweep queue information in table {} for partition {}.",
-                    LoggingArgs.tableRef(TargetedSweepTableFactory.of()
-                            .getSweepableTimestampsTable(null).getTableRef()),
-                    SafeArg.of("partition", lastSweptPartitionPreviously));
-        }
-    }
-
-    private void progressTo(ShardAndStrategy shardStrategy, long newProgress) {
-        if (newProgress < 0) {
+    private void progressTo(ShardAndStrategy shardStrategy, long lastTs) {
+        if (lastTs < 0) {
             log.warn("Wasn't able to progress targeted sweep for {} since last swept timestamp {} is negative.",
-                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", newProgress));
+                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
             return;
         }
-        progress.updateLastSweptTimestamp(shardStrategy, newProgress);
+        progress.updateLastSweptTimestamp(shardStrategy, lastTs);
         log.debug("Progressed last swept timestamp for {} to {}.",
-                SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", newProgress));
+                SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
 
-    }
-
-    private boolean firstIterationOfSweep(long oldProgress) {
-        return oldProgress == SweepQueueUtils.INITIAL_TIMESTAMP;
     }
 }

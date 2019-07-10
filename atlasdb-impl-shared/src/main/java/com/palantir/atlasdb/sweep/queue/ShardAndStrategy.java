@@ -19,6 +19,8 @@ import org.immutables.value.Value;
 
 import com.google.common.base.Preconditions;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 
 @Value.Immutable
 public abstract class ShardAndStrategy {
@@ -33,6 +35,10 @@ public abstract class ShardAndStrategy {
 
     public String toText() {
         return "shard " + shard() + " and strategy " + strategy();
+    }
+
+    public LockDescriptor toLockDescriptor() {
+        return StringLockDescriptor.of(toText());
     }
 
     public boolean isConservative() {

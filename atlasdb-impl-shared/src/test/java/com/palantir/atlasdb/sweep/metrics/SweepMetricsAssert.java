@@ -27,6 +27,7 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -106,12 +107,12 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
     }
 
-    public void hasTargetedOutcomeEqualTo(SweepOutcome outcome, Long value) {
-        objects.assertEqual(info, getGaugeForTargetedOutcome(outcome).getValue(), value);
+    public void hasTargetedOutcomeEqualTo(SweepStrategy strategy, SweepOutcome outcome, Long value) {
+        objects.assertEqual(info, getGaugeForTargetedOutcome(strategy, outcome).getValue(), value);
     }
 
-    public void hasNotRegisteredTargetedOutcome(SweepOutcome outcome) {
-        objects.assertNull(info, getGaugeForTargetedOutcome(outcome));
+    public void hasNotRegisteredTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
+        objects.assertNull(info, getGaugeForTargetedOutcome(strategy, outcome));
     }
 
     private Gauge<Long> getGaugeConservative(String name) {
@@ -132,9 +133,16 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                 ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
     }
 
-    private Gauge<Long> getGaugeForTargetedOutcome(SweepOutcome outcome) {
+    private Gauge<Long> getGaugeForTargetedOutcome(SweepStrategy strategy, SweepOutcome outcome) {
         return getGauge(TargetedSweepMetrics.class, AtlasDbMetricNames.SWEEP_OUTCOME,
-                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
+                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name(),
+                        AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
+    }
+
+    private static String getTagForStrategy(SweepStrategy strategy) {
+        return strategy == SweepStrategy.CONSERVATIVE
+                ? AtlasDbMetricNames.TAG_CONSERVATIVE
+                : AtlasDbMetricNames.TAG_THOROUGH;
     }
 
     private <T> Gauge<Long> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {

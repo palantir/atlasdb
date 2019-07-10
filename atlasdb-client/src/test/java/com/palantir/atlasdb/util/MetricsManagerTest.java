@@ -27,11 +27,9 @@ import org.junit.Test;
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
 public class MetricsManagerTest {
@@ -61,54 +59,11 @@ public class MetricsManagerTest {
     }
 
     @Test
-    public void registersMetricsByPrefixAndName() {
-        metricsManager.registerMetric(LIST_CLASS, ERROR_PREFIX, OUT_OF_BOUNDS, GAUGE);
-
-        assertThat(registry.getNames()).containsExactly(MetricRegistry.name(LIST_CLASS, ERROR_OUT_OF_BOUNDS));
-    }
-
-    @Test
     public void registersMeters() {
         metricsManager.registerOrGetMeter(LIST_CLASS, RUNTIME, METER_NAME);
 
         assertThat(registry.getMeters().keySet()).containsExactly(
                 MetricRegistry.name(LIST_CLASS, RUNTIME, METER_NAME));
-    }
-
-    @Test
-    public void registersSingleTaggedGauge() {
-        ImmutableMap<String, String> oneTag = ImmutableMap.of("tag1", "value");
-        metricsManager.registerMetric(LIST_CLASS, METER_NAME, GAUGE, oneTag);
-
-        assertThat(taggedMetricRegistry.getMetrics().keySet())
-                .contains(MetricName.builder()
-                        .safeName(MetricRegistry.name(LIST_CLASS, METER_NAME))
-                        .safeTags(oneTag)
-                        .build());
-    }
-
-    @Test
-    public void registersMultipleTaggedGauge() {
-        ImmutableMap<String, String> oneTag = ImmutableMap.of("tag1", "value", "tag2", "value2");
-        metricsManager.registerMetric(LIST_CLASS, METER_NAME, GAUGE, oneTag);
-
-        assertThat(taggedMetricRegistry.getMetrics().keySet())
-                .contains(MetricName.builder()
-                        .safeName(MetricRegistry.name(LIST_CLASS, METER_NAME))
-                        .safeTags(oneTag)
-                        .build());
-    }
-
-    @Test
-    public void registersSameGaugeMultipleTimesWithDifferentTags() {
-        ImmutableMap<String, String> gauge1Tags = ImmutableMap.of("tag1", "value");
-        ImmutableMap<String, String> gauge2Tags = ImmutableMap.of("tag2", "value2");
-        metricsManager.registerMetric(LIST_CLASS, METER_NAME, GAUGE, gauge1Tags);
-        metricsManager.registerMetric(LIST_CLASS, METER_NAME, GAUGE, gauge2Tags);
-
-        assertThat(taggedMetricRegistry.getMetrics().keySet())
-                .contains(MetricName.builder().safeName(MetricRegistry.name(LIST_CLASS, METER_NAME)).safeTags(gauge1Tags).build(),
-                        MetricName.builder().safeName(MetricRegistry.name(LIST_CLASS, METER_NAME)).safeTags(gauge2Tags).build());
     }
 
     @Test
@@ -144,7 +99,7 @@ public class MetricsManagerTest {
         assertThat(tag.get("tableName")).isEqualTo("unsafeTable");
     }
 
-    private TableReference table(String tableName) {
+    private static TableReference table(String tableName) {
         return TableReference.create(Namespace.create("foo"), tableName);
     }
 

@@ -34,16 +34,23 @@ public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";
     private static final String KEYSPACE_2 = "ks2";
     private static final ImmutableSet<InetSocketAddress> SERVERS = ImmutableSet.of(new InetSocketAddress("foo", 42));
+    private static final CassandraCredentialsConfig CREDENTIALS =
+            ImmutableCassandraCredentialsConfig.builder()
+                    .username("username")
+                    .password("password")
+                    .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITHOUT_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .servers(SERVERS)
                     .replicationFactor(1)
+                    .credentials(CREDENTIALS)
                     .build();
     private static final CassandraKeyValueServiceConfig CONFIG_WITH_KEYSPACE =
             ImmutableCassandraKeyValueServiceConfig.builder()
                     .servers(SERVERS)
                     .keyspace(KEYSPACE)
                     .replicationFactor(1)
+                    .credentials(CREDENTIALS)
                     .build();
 
     @Test
@@ -52,6 +59,7 @@ public class CassandraKeyValueServiceConfigsTest {
                 .servers(SERVERS)
                 .addressTranslation(ImmutableMap.of("test", Iterables.getOnlyElement(SERVERS)))
                 .replicationFactor(1)
+                .credentials(CREDENTIALS)
                 .build();
 
         URL configUrl = CassandraKeyValueServiceConfigsTest.class.getClassLoader().getResource("testConfig.yml");

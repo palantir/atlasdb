@@ -42,6 +42,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -159,7 +160,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         long startTs = putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
 
         serializableTxManager.setUnreadableTimestamp(startTs + 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
         assertNoEntryForCellInKvs(TABLE_CONS, TEST_CELL);
     }
 
@@ -174,7 +175,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         long freshFailedTs = putWriteAndFailOnPreCommitConditionReturningStartTimestamp(SINGLE_WRITE);
 
         serializableTxManager.setUnreadableTimestamp(freshFailedTs + 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
         assertLatestEntryForCellInKvsAtTimestamp(TABLE_CONS, TEST_CELL, freshCommittedTs);
         assertOnlySentinelBeforeTs(TABLE_CONS, TEST_CELL, freshCommittedTs);
     }
@@ -191,7 +192,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         assertLatestEntryBeforeTsIs(secondStart, TABLE_THOR, TEST_CELL, TEST_DATA, firstStart);
 
         serializableTxManager.setUnreadableTimestamp(secondStart + 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0));
+        sweepNextBatch(ShardAndStrategy.thorough(0));
         assertNoEntryForCellInKvs(TABLE_THOR, TEST_CELL);
     }
 
@@ -204,7 +205,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         keyValueService.dropTable(TABLE_CONS);
 
         serializableTxManager.setUnreadableTimestamp(startTimestamp + 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
     @Test
@@ -215,7 +216,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         long timestamp = writeInTransactionAndGetStartTimestamp(write);
 
         serializableTxManager.setUnreadableTimestamp(timestamp + 1);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0));
+        sweepNextBatch(ShardAndStrategy.conservative(0));
     }
 
     private void put(Transaction txn, WriteReference write) {
@@ -284,5 +285,9 @@ public class TargetedSweepTest extends AtlasDbTestCase {
         public void cleanup() {
 
         }
+    }
+
+    private void sweepNextBatch(ShardAndStrategy shardStrategy) {
+        sweepQueue.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
     }
 }

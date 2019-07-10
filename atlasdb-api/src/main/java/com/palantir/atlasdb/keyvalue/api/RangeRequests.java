@@ -218,4 +218,11 @@ public final class RangeRequests {
         }
         return UnsignedBytes.lexicographicalComparator().compare(startInclusive, endExclusive) == 0;
     }
+
+    public static RangeRequest ofSingleRow(@Nonnull byte[] row) {
+        return RangeRequest.builder()
+                .startRowInclusive(row)
+                .endRowExclusive(RangeRequests.nextLexicographicName(row))
+                .build();
+    }
 }

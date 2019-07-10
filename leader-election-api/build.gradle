@@ -1,5 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
+apply plugin: 'org.inferred.processors'
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
@@ -16,4 +17,6 @@ dependencies {
   compile group: 'javax.ws.rs', name: 'javax.ws.rs-api'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'net.jcip', name: 'jcip-annotations'
+
+  processor group: 'org.immutables', name: 'value'
 }

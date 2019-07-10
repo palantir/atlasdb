@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: For bad targeted sweep clients on `0.145.0` to `0.147.x`, they are
+    rate limited by timelock to the old behaviour i.e. each thread has an effective
+    pause time of 500ms.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4110

@@ -18,9 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.util.List;
 
 import org.apache.cassandra.thrift.TokenRange;
+import org.apache.cassandra.thrift.UnavailableException;
 
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.exception.AtlasDbDependencyException;
 
 public final class CassandraUtils {
     private CassandraUtils() {}
@@ -36,5 +40,12 @@ public final class CassandraUtils {
     public static FunctionCheckedException<CassandraClient, List<TokenRange>, Exception> getDescribeRing(
             CassandraKeyValueServiceConfig config) {
         return client -> client.describe_ring(config.getKeyspaceOrThrow());
+    }
+
+    public static AtlasDbDependencyException wrapInIceForDeleteOrRethrow(RetryLimitReachedException ex) {
+        if (ex.suppressed(UnavailableException.class) || ex.suppressed(InsufficientConsistencyException.class)) {
+            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", ex);
+        }
+        throw ex;
     }
 }
