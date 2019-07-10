@@ -330,6 +330,26 @@ public interface KeyValueService extends AutoCloseable {
     void deleteRange(TableReference tableRef, RangeRequest range);
 
     /**
+     * Deletes multiple complete rows from the key-value store.
+     *
+     * Does not guarantee atomicity in any way (deletes may be partial within *any* of the rows provided, and
+     * there is no guarantee of any correlation or lack thereof between success of the deletes for each of the rows
+     * provided).
+     *
+     * Some systems may require more nodes to be up to ensure that a delete is successful. If this is the case then
+     * this method may throw if the delete can't be completed on all nodes. Please be aware that if it does throw,
+     * some deletes may have been applied on some nodes.
+     *
+     * This method MAY require linearly many calls to the database in the number of rows, so should be used with
+     * caution.
+     *
+     * @param tableRef the name of the table to delete values from.
+     * @param rows rows to delete
+     */
+    @Idempotent
+    void deleteRows(TableReference tableRef, Iterable<byte[]> rows);
+
+    /**
      * For each cell, deletes all timestamps prior to the associated maximum timestamp. If this
      * operation fails, it's acceptable for this method to leave an inconsistent state, however
      * implementations of this method <b>must</b> guarantee that, for each cell, if a value at the

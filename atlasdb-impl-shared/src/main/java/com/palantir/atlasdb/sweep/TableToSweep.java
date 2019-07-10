@@ -43,7 +43,7 @@ public final class TableToSweep {
         this.sweepLock = sweepLock;
         this.hasPreviousProgress = progress.isPresent();
         this.previousResults = progress.map(SweepProgress::getPreviousResults)
-                .orElse(SweepResults.createEmptySweepResultWithMoreToSweep());
+                .orElseGet(SweepResults::createEmptySweepResultWithMoreToSweep);
     }
 
     public TableReference getTableRef() {

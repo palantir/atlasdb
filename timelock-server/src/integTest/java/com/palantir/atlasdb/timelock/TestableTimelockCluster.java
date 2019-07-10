@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -33,13 +34,16 @@ import org.junit.rules.TemporaryFolder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.LockServiceAdapter;
+import com.palantir.lock.client.AsyncTimeLockUnlocker;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
+import com.palantir.lock.client.TimeLockUnlocker;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -61,6 +65,8 @@ public class TestableTimelockCluster {
     private final String client = UUID.randomUUID().toString();
     private final List<TemporaryConfigurationHolder> configs;
     private final List<TestableTimelockServer> servers;
+    private final Map<String, TimelockService> timelockServicesForClient = Maps.newConcurrentMap();
+    private final Map<String, TimeLockUnlocker> unlockerForClient = Maps.newConcurrentMap();
     private final TestProxies proxies;
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
@@ -214,7 +220,15 @@ public class TestableTimelockCluster {
     }
 
     TimelockService timelockServiceForClient(String name) {
-        return RemoteTimelockServiceAdapter.create(proxies.failoverForClient(name, TimelockRpcClient.class));
+        return timelockServicesForClient.computeIfAbsent(
+                name,
+                clientName -> RemoteTimelockServiceAdapter.create(
+                        proxies.failoverForClient(clientName, TimelockRpcClient.class)));
+    }
+
+    TimeLockUnlocker unlockerForClient(String name) {
+        return unlockerForClient.computeIfAbsent(name,
+                clientName -> AsyncTimeLockUnlocker.create(timelockServiceForClient(clientName)));
     }
 
     <T> CompletableFuture<T> runWithRpcClientAsync(Function<TimelockRpcClient, T> function) {

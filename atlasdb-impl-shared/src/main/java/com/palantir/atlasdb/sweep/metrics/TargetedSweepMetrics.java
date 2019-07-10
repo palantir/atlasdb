@@ -47,7 +47,6 @@ public class TargetedSweepMetrics {
     private static final Logger log = LoggerFactory.getLogger(TargetedSweepMetrics.class);
     private static final long ONE_WEEK = TimeUnit.DAYS.toMillis(7L);
     private final Map<TableMetadataPersistence.SweepStrategy, MetricsForStrategy> metricsForStrategyMap;
-    private final SweepOutcomeMetrics outcomeMetrics;
 
     private TargetedSweepMetrics(MetricsManager metricsManager,
                 Function<Long, Long> tsToMillis, Clock clock, long millis) {
@@ -56,7 +55,6 @@ public class TargetedSweepMetrics {
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_CONSERVATIVE, tsToMillis, clock, millis),
                 TableMetadataPersistence.SweepStrategy.THOROUGH,
                 new MetricsForStrategy(metricsManager, AtlasDbMetricNames.TAG_THOROUGH, tsToMillis, clock, millis));
-        outcomeMetrics = SweepOutcomeMetrics.registerTargeted(metricsManager);
     }
 
     public static TargetedSweepMetrics create(MetricsManager metricsManager, TimelockService timelock,
@@ -102,12 +100,20 @@ public class TargetedSweepMetrics {
         getMetrics(shardStrategy).updateProgressForShard(shardStrategy.shard(), lastSweptTs);
     }
 
-    public void registerOccurrenceOf(SweepOutcome outcome) {
-        outcomeMetrics.registerOccurrenceOf(outcome);
+    public void registerOccurrenceOf(ShardAndStrategy shardStrategy, SweepOutcome outcome) {
+        registerOccurrenceOf(shardStrategy.strategy(), outcome);
+    }
+
+    public void registerOccurrenceOf(TableMetadataPersistence.SweepStrategy strategy, SweepOutcome outcome) {
+        getMetrics(strategy).registerOccurrenceOf(outcome);
     }
 
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
-        return metricsForStrategyMap.get(shardStrategy.strategy());
+        return getMetrics(shardStrategy.strategy());
+    }
+
+    private MetricsForStrategy getMetrics(TableMetadataPersistence.SweepStrategy strategy) {
+        return metricsForStrategyMap.get(strategy);
     }
 
     private static Long minimum(Collection<Long> currentValues) {
@@ -122,6 +128,7 @@ public class TargetedSweepMetrics {
         private final AccumulatingValueMetric abortedWritesDeleted;
         private final CurrentValueMetric<Long> sweepTimestamp;
         private final AggregatingVersionedMetric<Long> lastSweptTs;
+        private final SweepOutcomeMetrics outcomeMetrics;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -143,6 +150,8 @@ public class TargetedSweepMetrics {
                     recomputeMillis, wallClock);
 
             register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
+
+            outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
         }
 
         private AccumulatingValueMetric registerAccumulating(String name, Map<String, String> tag) {
@@ -192,6 +201,10 @@ public class TargetedSweepMetrics {
 
         private void updateProgressForShard(int shard, long sweptTs) {
             lastSweptTs.update(shard, sweptTs);
+        }
+
+        public void registerOccurrenceOf(SweepOutcome outcome) {
+            outcomeMetrics.registerOccurrenceOf(outcome);
         }
     }
 }

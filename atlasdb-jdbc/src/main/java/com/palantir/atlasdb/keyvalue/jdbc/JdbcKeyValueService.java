@@ -695,6 +695,11 @@ public class JdbcKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        rows.forEach(row -> deleteRange(tableRef, RangeRequests.ofSingleRow(row)));
+    }
+
+    @Override
     public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes) {
         if (deletes.isEmpty()) {
             return;

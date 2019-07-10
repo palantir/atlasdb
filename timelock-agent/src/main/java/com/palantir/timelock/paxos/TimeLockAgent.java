@@ -35,6 +35,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.NotInitializedExceptionMapper;
 import com.palantir.atlasdb.timelock.TimeLockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.paxos.PaxosResource;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -104,7 +105,11 @@ public class TimeLockAgent {
         this.timestampCreator = getTimestampCreator(metricsManager.getRegistry());
         LockLog lockLog = new LockLog(metricsManager.getRegistry(),
                 Suppliers.compose(TimeLockRuntimeConfiguration::slowLockLogTriggerMillis, runtime::get));
-        this.timelockCreator = new AsyncTimeLockServicesCreator(metricsManager, lockLog, leadershipCreator);
+
+        Supplier<TargetedSweepLockControlConfig> targetedSweepLockControlConfig = Suppliers.compose(
+                TimeLockRuntimeConfiguration::targetedSweepLockControlConfig, runtime::get);
+        this.timelockCreator = new AsyncTimeLockServicesCreator(
+                metricsManager, lockLog, leadershipCreator, targetedSweepLockControlConfig);
     }
 
     private static ExecutorService createSharedExecutor(MetricsManager metricsManager) {
