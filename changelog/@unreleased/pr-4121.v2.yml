@@ -1,7 +1,6 @@
 type: fix
 fix:
-  description: |2
-
+  description: |
     TimeLock now interrupts lock reaper threads in the legacy lock service when losing leadership. Previously, it did not, meaning that if a node repeatedly gained and lost leadership, lock reaper threads would still execute their polling for expired tokens or grants, possibly manifesting in performance issues if this continues in the absence of bounces.
   links:
   - https://github.com/palantir/atlasdb/pull/4121
