@@ -38,7 +38,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
@@ -70,6 +69,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
 
+@SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
@@ -840,11 +840,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
                 t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRange.values().forEach(Iterators::getLast);
+        assertThat(Iterables.getOnlyElement(columnRange.values()).hasNext()).isFalse();
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeAgain =
                 t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(rowDifferentReference),
                         BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
-        columnRangeAgain.values().forEach(Iterators::getLast);
+        assertThat(Iterables.getOnlyElement(columnRangeAgain.values()).hasNext()).isFalse();
         put(t1, "mutation to ensure", "conflict", "handling");
         t1.commit();
     }
@@ -880,12 +880,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
                 transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
-        columnRangeResultForRow.values().forEach(Iterators::getLast);
+        assertThat(Iterables.getOnlyElement(columnRangeResultForRow.values()).hasNext()).isFalse();
 
         Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
                 transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(differentRow),
                         sameColumnRangeSelection);
-        columnRangeResultForDifferentRow.values().forEach(Iterators::getLast);
+        assertThat(Iterables.getOnlyElement(columnRangeResultForDifferentRow.values()).hasNext()).isFalse();
         put(transaction, "mutation to ensure", "conflict", "handling");
         transaction.commit();
     }
