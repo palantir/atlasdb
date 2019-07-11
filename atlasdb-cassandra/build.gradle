@@ -11,7 +11,7 @@ configurations {
 }
 
 dependencies {
-  compile group: 'com.palantir.safe-logging', name: 'safe-logging'
+  implementation group: 'com.palantir.safe-logging', name: 'safe-logging'
 
   explicitShadow (group: 'de.jflex', name: 'jflex', version: '1.6.0') {
     exclude(group: 'org.apache.ant', module: 'ant')

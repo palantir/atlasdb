@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     processor group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc3'
-    compile group: 'com.squareup', name: 'javapoet'
     compile group: 'com.google.guava', name: 'guava'
+
+    implementation group: 'com.squareup', name: 'javapoet'
 }
