@@ -155,7 +155,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.SUCCESS);
         }
 
-        return true;
+        return lastSweptTs != sweepBatch.lastSweptTimestamp() && sweepBatch.hasNext();
     }
 
     /**

@@ -165,7 +165,7 @@ public class SweepableCells extends SweepQueueTable {
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs);
+        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, tsToSweep.processedAll());
     }
 
     private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {
@@ -262,6 +262,7 @@ public class SweepableCells extends SweepQueueTable {
                 committedTimestamps.add(startTs);
             } else {
                 processedAll = false;
+                lastSweptTs = startTs - 1;
                 break;
             }
         }
