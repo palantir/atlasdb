@@ -46,11 +46,11 @@ public interface BatchPingableLeader {
     Set<Client> ping(Set<Client> clients);
 
     /**
-     * Re-exported version of {@link PingableLeader#getUUID}. Returns the remote servers unique leadership identifier.
-     * This will be the same across all clients that the remote server it is currently aware of. It is therefore safe to
-     * coalesce ping calls to the same remote server for different clients.
+     * Re-exported version of {@link PingableLeader#getUUID}. Returns unique leadership identifier for the remote
+     * server. This can be reused across all clients because it still uniquely identifies a leader. Having a different
+     * leadership identifier per client is therefore wasteful.
      *
-     * @return the remote servers' unique leadership identifier
+     * @return the remote server's unique leadership identifier
      */
     @GET
     @Path("uuid")
