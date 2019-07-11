@@ -7,6 +7,8 @@ apply plugin: 'application'
 mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
 applicationName = 'atlasdb-perf'
 
+schemas = ['com.palantir.atlasdb.performance.schema.StreamTestSchema']
+
 configurations.all {
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
         if (details.requested.group == 'com.google.code.findbugs' && details.requested.name == 'annotations') {

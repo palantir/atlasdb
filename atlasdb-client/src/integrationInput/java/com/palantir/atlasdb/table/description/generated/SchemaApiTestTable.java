@@ -673,6 +673,20 @@ public final class SchemaApiTestTable implements
         });
     }
 
+    @Override
+    public Map<SchemaApiTestRow, Iterator<SchemaApiTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<SchemaApiTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SchemaApiTestRow, Iterator<SchemaApiTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SchemaApiTestRow row = SchemaApiTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SchemaApiTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SchemaApiTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -833,5 +847,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "h9whmxJpFX2yqVXafsa5AQ==";
+    static String __CLASS_HASH = "G9lxb99ucQ5q+GVyaV8Exg==";
 }

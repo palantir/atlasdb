@@ -602,6 +602,22 @@ public final class DataStreamHashAidxTable implements
         });
     }
 
+    @Override
+    public Map<DataStreamHashAidxRow, Iterator<DataStreamHashAidxColumnValue>> getRowsColumnRangeIterator(Iterable<DataStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<DataStreamHashAidxRow, Iterator<DataStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            DataStreamHashAidxRow row = DataStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<DataStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                DataStreamHashAidxColumn col = DataStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = DataStreamHashAidxColumnValue.hydrateValue(result.getValue());
+                return DataStreamHashAidxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<DataStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class DataStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lvvjngrfkSQr/c1LTQJLEQ==";
+    static String __CLASS_HASH = "UJ0zX1QLrV2zFX1isVv/MQ==";
 }

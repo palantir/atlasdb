@@ -574,6 +574,20 @@ public final class MetadataTable implements
         });
     }
 
+    @Override
+    public Map<MetadataRow, Iterator<MetadataNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<MetadataRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<MetadataRow, Iterator<MetadataNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            MetadataRow row = MetadataRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<MetadataNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<MetadataRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -734,5 +748,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hvf+4PjLdUtmIOq08NC5kA==";
+    static String __CLASS_HASH = "UZuTxEuqfi5EFgXzP/IndA==";
 }

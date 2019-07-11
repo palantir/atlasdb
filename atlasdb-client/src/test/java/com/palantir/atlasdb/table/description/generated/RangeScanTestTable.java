@@ -546,6 +546,20 @@ public final class RangeScanTestTable implements
         });
     }
 
+    @Override
+    public Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<RangeScanTestRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<RangeScanTestRow, Iterator<RangeScanTestNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            RangeScanTestRow row = RangeScanTestRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<RangeScanTestNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<RangeScanTestRowResult> getRange(RangeRequest range) {
         if (range.getColumnNames().isEmpty()) {
             range = range.getBuilder().retainColumns(allColumns).build();
@@ -706,5 +720,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "a190vUgJKD3lViaxZJkgww==";
+    static String __CLASS_HASH = "ZKMoPN41jtJEy0pXuPnlGw==";
 }

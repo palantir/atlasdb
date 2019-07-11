@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -202,6 +204,44 @@ public class SerializableTransaction extends SnapshotTransaction {
             throw new UnsupportedOperationException("This method does not support serializable conflict handling");
         }
         return super.getRowsColumnRange(tableRef, rows, columnRangeSelection, batchHint);
+    }
+
+    @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Entry<Cell, byte[]>>> ret =
+                super.getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection);
+        return Maps.transformEntries(ret, (row, iterator) -> new Iterator<Entry<Cell, byte[]>>() {
+            Entry<Cell, byte[]> next = null;
+
+            @Override
+            public boolean hasNext() {
+                if (next != null) {
+                    return true;
+                }
+
+                if (iterator.hasNext()) {
+                    next = iterator.next();
+                    markRowColumnRangeRead(tableRef, row, columnRangeSelection, Collections.singletonList(next));
+                    return true;
+                }
+
+                reachedEndOfColumnRange(tableRef, row, columnRangeSelection);
+                return false;
+            }
+
+            @Override
+            public Entry<Cell, byte[]> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                Entry<Cell, byte[]> result = next;
+                next = null;
+                return result;
+            }
+        });
     }
 
     @Override

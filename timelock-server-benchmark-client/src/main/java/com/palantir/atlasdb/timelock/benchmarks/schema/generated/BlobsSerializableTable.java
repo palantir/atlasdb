@@ -546,6 +546,20 @@ public final class BlobsSerializableTable implements
         });
     }
 
+    @Override
+    public Map<BlobsSerializableRow, Iterator<BlobsSerializableNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<BlobsSerializableRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<BlobsSerializableRow, Iterator<BlobsSerializableNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            BlobsSerializableRow row = BlobsSerializableRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<BlobsSerializableNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<BlobsSerializableRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -657,5 +671,5 @@ public final class BlobsSerializableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SdgUSR8Y7V+fu2C7iUMTDg==";
+    static String __CLASS_HASH = "jLyPGNDSC0XzpNlnUjHbCw==";
 }

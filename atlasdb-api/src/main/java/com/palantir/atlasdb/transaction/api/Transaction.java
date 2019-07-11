@@ -60,6 +60,12 @@ public interface Transaction {
             int batchHint);
 
     @Idempotent
+    Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection);
+
+    @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
