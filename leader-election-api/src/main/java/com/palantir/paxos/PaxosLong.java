@@ -29,4 +29,8 @@ public interface PaxosLong extends PaxosResponse {
     @Value.Parameter
     long getValue();
 
+    static PaxosLong of(long value) {
+        return ImmutablePaxosLong.of(value);
+    }
+
 }

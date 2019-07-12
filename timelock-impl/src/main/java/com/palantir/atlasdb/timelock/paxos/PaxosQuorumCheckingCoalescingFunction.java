@@ -26,8 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
+
+import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
@@ -36,13 +40,13 @@ import com.palantir.paxos.PaxosResponses;
 public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends PaxosResponse> implements
         CoalescingRequestFunction<REQUEST, PaxosResponses<RESPONSE>> {
 
-    private final List<CoalescingRequestFunction<REQUEST, RESPONSE>> delegates;
-    private final Map<CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors;
+    private final List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates;
+    private final Map<? extends CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors;
     private final int quorumSize;
 
     public PaxosQuorumCheckingCoalescingFunction(
-            List<CoalescingRequestFunction<REQUEST, RESPONSE>> delegates,
-            Map<CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors,
+            List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates,
+            Map<? extends CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors,
             int quorumSize) {
         this.delegates = delegates;
         this.executors = executors;
@@ -58,7 +62,7 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
     public Map<REQUEST, PaxosResponses<RESPONSE>> apply(Set<REQUEST> request) {
         PaxosResponses<PaxosContainer<Map<REQUEST, RESPONSE>>> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(delegates),
-                delegate -> new PaxosContainer<>(delegate.apply(request)),
+                delegate -> PaxosContainer.of(delegate.apply(request)),
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
@@ -74,21 +78,33 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
                                 responseForSingleRequest -> PaxosResponses.of(quorumSize, responseForSingleRequest)))));
     }
 
-    private class PaxosContainer<T> implements PaxosResponse {
+    public static <REQUEST, RESPONSE extends PaxosResponse, SERVICE>
+    PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE> wrap(
+            List<SERVICE> services,
+            ExecutorService executor,
+            int quorumSize,
+            Function<SERVICE, ? extends CoalescingRequestFunction<REQUEST, RESPONSE>> function) {
+        return services.stream()
+                .map(function)
+                .collect(collectingAndThen(
+                        toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
+                                functions,
+                                Maps.toMap(functions, $ -> executor),
+                                quorumSize)));
+    }
 
-        private final T response;
-
-        PaxosContainer(T response) {
-            this.response = response;
-        }
+    @Value.Immutable
+    public interface PaxosContainer<T> extends PaxosResponse {
+        @Value.Parameter
+        T get();
 
         @Override
-        public boolean isSuccessful() {
+        default boolean isSuccessful() {
             return true;
         }
 
-        public T get() {
-            return response;
+        static <T> PaxosContainer<T> of(T contents) {
+            return ImmutablePaxosContainer.of(contents);
         }
     }
 

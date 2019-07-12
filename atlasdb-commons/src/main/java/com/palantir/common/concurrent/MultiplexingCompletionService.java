@@ -50,7 +50,7 @@ public class MultiplexingCompletionService<K, V> {
     }
 
     public static <K, V> MultiplexingCompletionService<K, V> create(
-            Map<K, ExecutorService> executors) {
+            Map<? extends K, ExecutorService> executors) {
         return new MultiplexingCompletionService<>(ImmutableMap.copyOf(executors), new LinkedBlockingQueue<>());
     }
 
