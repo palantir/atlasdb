@@ -131,6 +131,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
+        metrics.updateSweepBatchSize(shardStrategy, sweepBatch.writes().size());
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 

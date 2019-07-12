@@ -33,10 +33,12 @@ import com.palantir.atlasdb.util.MetricsManager;
  * Note that we unfortunately can't use a histogram directly because of limitations of the internal logging framework
  * which expects users to be interested in high percentiles.
  *
- * If batches are very small and Targeted Sweep is not already up to date, it is likely to be incurring unnecessary
- * overhead in alternating between sleeping and deleting values, and can probably afford to read from more partitions
- * at a time. Note that batches may safely be very small when Targeted Sweep is up to date (because there is simply
- * nothing more to sweep).
+ * Generally, very small batches in situations where Targeted Sweep is not already up to date may be indicative of
+ * poor read batching; Targeted Sweep is likely to be incurring unnecessary overhead in alternating between reading
+ * and deleting values, and can probably afford to read from more partitions at a time.
+ *
+ * Note that batches may safely be very small if Targeted Sweep is up to date (because there is simply nothing more to
+ * sweep), or if the number of cells your AtlasDB client touches is small.
  */
 final class SweepBatchTracker {
     private final MetricsManager metricsManager;
@@ -65,6 +67,10 @@ final class SweepBatchTracker {
         SweepBatchTracker tracker = new SweepBatchTracker(metricsManager, histogram, memoizedSupplier, tags);
         tracker.registerMetrics();
         return tracker;
+    }
+
+    void updateSweepBatchSize(long sweepBatchSize) {
+        sweepBatchSizes.update(sweepBatchSize);
     }
 
     private void registerMetrics() {

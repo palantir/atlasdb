@@ -108,6 +108,10 @@ public class TargetedSweepMetrics {
         getMetrics(strategy).registerOccurrenceOf(outcome);
     }
 
+    public void updateSweepBatchSize(ShardAndStrategy shardStrategy, long sweepBatchSize) {
+        getMetrics(shardStrategy).updateSweepBatchSize(sweepBatchSize);
+    }
+
     private MetricsForStrategy getMetrics(ShardAndStrategy shardStrategy) {
         return getMetrics(shardStrategy.strategy());
     }
@@ -129,6 +133,7 @@ public class TargetedSweepMetrics {
         private final CurrentValueMetric<Long> sweepTimestamp;
         private final AggregatingVersionedMetric<Long> lastSweptTs;
         private final SweepOutcomeMetrics outcomeMetrics;
+        private final SweepBatchTracker sweepBatchTracker;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -152,6 +157,7 @@ public class TargetedSweepMetrics {
             register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get, tag);
 
             outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
+            sweepBatchTracker = SweepBatchTracker.create(manager, tag);
         }
 
         private AccumulatingValueMetric registerAccumulating(String name, Map<String, String> tag) {
@@ -205,6 +211,10 @@ public class TargetedSweepMetrics {
 
         public void registerOccurrenceOf(SweepOutcome outcome) {
             outcomeMetrics.registerOccurrenceOf(outcome);
+        }
+
+        private void updateSweepBatchSize(long sweepBatchSize) {
+            sweepBatchTracker.updateSweepBatchSize(sweepBatchSize);
         }
     }
 }
