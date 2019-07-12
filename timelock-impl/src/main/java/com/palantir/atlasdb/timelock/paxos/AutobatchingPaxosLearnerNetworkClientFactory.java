@@ -92,13 +92,13 @@ public class AutobatchingPaxosLearnerNetworkClientFactory {
             Preconditions.checkArgument(seq == value.getRound(), "seq differs from PaxosValue.round");
             try {
                 learn.apply(Maps.immutableEntry(client, value)).get();
-            } catch (InterruptedException e) {
+            } catch (ExecutionException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof RuntimeException) {
                     throw (RuntimeException) cause;
                 }
                 throw new RuntimeException(cause);
-            } catch (ExecutionException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
