@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -28,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -36,6 +36,10 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.paxos.PaxosLong;
 
+/*
+    This is not thread safe, but it is okay because it is run within an autobatcher, which is configured to not process
+    multiple batches in parallel.
+ */
 @NotThreadSafe
 final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunction<Client, PaxosLong> {
 
@@ -81,16 +85,16 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) {
         if (cacheKey == null) {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clients));
-            return Collections.unmodifiableMap(cachedEntries); // do we want a copy here? :S
+            return ImmutableMap.copyOf(cachedEntries);
         }
 
         Set<Client> newClients = Sets.difference(clients, cachedEntries.keySet());
         if (newClients.isEmpty()) {
             delegate.latestSequencesPreparedOrAcceptedCached(cacheKey).ifPresent(this::processDigest);
-            return Collections.unmodifiableMap(cachedEntries);
+            return ImmutableMap.copyOf(cachedEntries);
         } else {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.of(cacheKey), newClients));
-            return Collections.unmodifiableMap(cachedEntries);
+            return ImmutableMap.copyOf(cachedEntries);
         }
     }
 

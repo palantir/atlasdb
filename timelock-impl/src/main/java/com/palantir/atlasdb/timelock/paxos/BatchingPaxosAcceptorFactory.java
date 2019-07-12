@@ -89,15 +89,8 @@ public class BatchingPaxosAcceptorFactory {
         public PaxosResponses<PaxosPromise> prepare(long seq, PaxosProposalId proposalId) {
             try {
                 return prepare.apply(Maps.immutableEntry(client, WithSeq.of(seq, proposalId))).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
@@ -106,15 +99,8 @@ public class BatchingPaxosAcceptorFactory {
             Preconditions.checkArgument(seq == proposal.getValue().getRound(), "seq does not match round in paxos value inside proposal");
             try {
                 return accept.apply(Maps.immutableEntry(client, proposal)).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
@@ -122,15 +108,8 @@ public class BatchingPaxosAcceptorFactory {
         public PaxosResponses<PaxosLong> getLatestSequencePreparedOrAccepted() {
             try {
                 return latestSequence.apply(client).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
     }
