@@ -33,6 +33,10 @@ public final class AtlasDbMetricNames {
         public static final String EMPTY_VALUE = "emptyValuesCellFilterCount";
     }
 
+    private static final String MEAN = "mean";
+    private static final String P05 = "p05";
+    private static final String P01 = "p01";
+
     public static final String SNAPSHOT_TRANSACTION_CELLS_READ = "numCellsRead";
     public static final String SNAPSHOT_TRANSACTION_CELLS_RETURNED = "numCellsReturnedAfterFiltering";
     public static final String SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ = "tooManyBytesRead";
@@ -58,6 +62,11 @@ public final class AtlasDbMetricNames {
     public static final String SWEEP_TS = "sweepTimestamp";
     public static final String LAST_SWEPT_TS = "lastSweptTimestamp";
     public static final String LAG_MILLIS = "millisSinceLastSweptTs";
+
+    private static final String SWEEP_BATCH_SIZE = "sweepBatchSize";
+    public static final String SWEEP_BATCH_SIZE_MEAN = SWEEP_BATCH_SIZE + "." + MEAN;
+    public static final String SWEEP_BATCH_SIZE_P05 = SWEEP_BATCH_SIZE + "." + P05;
+    public static final String SWEEP_BATCH_SIZE_P01 = SWEEP_BATCH_SIZE + "." + P01;
 
     public static final String SWEEP_OUTCOME = "outcome";
     public static final String TAG_OUTCOME = "status";
