@@ -18,11 +18,12 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static java.util.stream.Collectors.toMap;
 
+import static com.google.common.collect.ImmutableSortedMap.toImmutableSortedMap;
+
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
@@ -53,20 +54,27 @@ final class LearnedValuesSinceCoalescingFunction
 
         SetMultimap<Client, PaxosValue> learnedValuesSince = delegate.getLearnedValuesSince(remoteRequest);
 
-        Map<Client, NavigableMap<Long, PaxosValue>> results = KeyedStream.stream(learnedValuesSince.asMap())
-                .map(LearnedValuesSinceCoalescingFunction::toTreeMapBySeq)
+        Map<Client, ImmutableSortedMap<Long, PaxosValue>> results = KeyedStream.stream(learnedValuesSince.asMap())
+                .map(LearnedValuesSinceCoalescingFunction::toNavigableMapBySeq)
                 .collectToMap();
 
         return KeyedStream.of(request)
                 .map(clientWithSeq -> results.getOrDefault(clientWithSeq.value(), ImmutableSortedMap.of()))
-                .map((clientWithSeq, paxosValuesByRound) -> paxosValuesByRound.tailMap(clientWithSeq.seq()).values())
+                .map(LearnedValuesSinceCoalescingFunction::getPaxosValuesSinceSeq)
                 .map(values -> new PaxosUpdate(ImmutableList.copyOf(values)))
                 .collectToMap();
     }
 
-    private static NavigableMap<Long, PaxosValue> toTreeMapBySeq(Collection<PaxosValue> values) {
+    private static Collection<PaxosValue> getPaxosValuesSinceSeq(
+            WithSeq<Client> clientWithSeq,
+            ImmutableSortedMap<Long, PaxosValue> paxosValuesByRound) {
+        return paxosValuesByRound.tailMap(clientWithSeq.seq()).values();
+    }
+
+    private static ImmutableSortedMap<Long, PaxosValue> toNavigableMapBySeq(Collection<PaxosValue> values) {
         return KeyedStream.of(values)
                 .mapKeys(PaxosValue::getRound)
-                .<NavigableMap<Long, PaxosValue>>collectTo(TreeMap::new);
+                .entries()
+                .collect(toImmutableSortedMap(Comparator.naturalOrder(), Map.Entry::getKey, Map.Entry::getValue));
     }
 }

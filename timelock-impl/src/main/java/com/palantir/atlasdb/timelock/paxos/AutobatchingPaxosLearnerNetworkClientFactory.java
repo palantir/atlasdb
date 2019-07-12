@@ -25,22 +25,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 
-public class BatchingPaxosLearnerFactory {
+public class AutobatchingPaxosLearnerNetworkClientFactory {
 
     private final DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn;
     private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> getLearnedValues;
     private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> getLearnedValuesSince;
 
-    private BatchingPaxosLearnerFactory(
+    private AutobatchingPaxosLearnerNetworkClientFactory(
             DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn,
             DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> getLearnedValues,
             DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosUpdate>> getLearnedValuesSince) {
@@ -49,7 +51,7 @@ public class BatchingPaxosLearnerFactory {
         this.getLearnedValuesSince = getLearnedValuesSince;
     }
 
-    public static BatchingPaxosLearnerFactory create(
+    public static AutobatchingPaxosLearnerNetworkClientFactory create(
             List<BatchPaxosLearner> learners,
             ExecutorService executor,
             int quorumSize) {
@@ -68,7 +70,7 @@ public class BatchingPaxosLearnerFactory {
                 .safeLoggablePurpose("batch-paxos-learner.learned-values-since")
                 .build();
 
-        return new BatchingPaxosLearnerFactory(
+        return new AutobatchingPaxosLearnerNetworkClientFactory(
                 learn,
                 learnedValues,
                 learnedValuesSince);
@@ -87,7 +89,19 @@ public class BatchingPaxosLearnerFactory {
 
         @Override
         public void learn(long seq, PaxosValue value) {
-
+            Preconditions.checkArgument(seq == value.getRound(), "seq differs from PaxosValue.round");
+            try {
+                learn.apply(Maps.immutableEntry(client, value)).get();
+            } catch (InterruptedException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) {
+                    throw (RuntimeException) cause;
+                }
+                throw new RuntimeException(cause);
+            } catch (ExecutionException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
@@ -103,7 +117,7 @@ public class BatchingPaxosLearnerFactory {
                 }
                 throw new RuntimeException(cause);
             } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         }
@@ -119,28 +133,10 @@ public class BatchingPaxosLearnerFactory {
                 }
                 throw new RuntimeException(cause);
             } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         }
-
-        //        @Override
-//        public void learn(long seq, PaxosValue val) {
-//            try {
-//                Preconditions.checkArgument(seq == val.getRound(), "seq differs from PaxosValue.round");
-//                learn.apply(Maps.immutableEntry(client, val)).get();
-//            } catch (ExecutionException e) {
-//                Throwable cause = e.getCause();
-//                if (cause instanceof RuntimeException) {
-//                    throw (RuntimeException) cause;
-//                }
-//                throw new RuntimeException(cause);
-//            } catch (InterruptedException e) {
-//                // TODO(fdesouza): handle
-//                throw new RuntimeException(e);
-//            }
-//        }
-//
 
     }
 }

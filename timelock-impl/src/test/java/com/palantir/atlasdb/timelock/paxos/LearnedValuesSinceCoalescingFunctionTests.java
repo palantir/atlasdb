@@ -43,12 +43,13 @@ public class LearnedValuesSinceCoalescingFunctionTests {
 
     private static final Client CLIENT_1 = Client.of("client-1");
     private static final Client CLIENT_2 = Client.of("client-2");
+    private static final Client CLIENT_3 = Client.of("client-3");
 
     @Mock(answer = Answers.RETURNS_SMART_NULLS)
     private BatchPaxosLearner remote;
 
     @Test
-    public void canProcessBatch() {
+    public void batchesAndReturnsPreciselyValuesLearnedSinceSeq() {
         PaxosValue paxosValue1 = paxosValue(10);
         PaxosValue paxosValue2 = paxosValue(12);
         PaxosValue paxosValue3 = paxosValue(20);
@@ -59,12 +60,14 @@ public class LearnedValuesSinceCoalescingFunctionTests {
                 WithSeq.of(12, CLIENT_1),
                 WithSeq.of(14, CLIENT_1),
                 WithSeq.of(15, CLIENT_2),
-                WithSeq.of(23, CLIENT_2));
+                WithSeq.of(23, CLIENT_2),
+                WithSeq.of(1, CLIENT_3));
 
         // we pick the lowest sequence number from the set per client
         Map<Client, Long> minimumRequest = ImmutableMap.<Client, Long>builder()
                 .put(CLIENT_1, 10L)
                 .put(CLIENT_2, 15L)
+                .put(CLIENT_3, 1L)
                 .build();
 
         SetMultimap<Client, PaxosValue> remoteResponse = ImmutableSetMultimap.<Client, PaxosValue>builder()
@@ -76,8 +79,7 @@ public class LearnedValuesSinceCoalescingFunctionTests {
                 .thenReturn(remoteResponse);
 
         LearnedValuesSinceCoalescingFunction function = new LearnedValuesSinceCoalescingFunction(remote);
-        Map<WithSeq<Client>, PaxosUpdate> results = function.apply(request);
-        SetMultimap<WithSeq<Client>, PaxosValue> asMultimap = KeyedStream.stream(results)
+        SetMultimap<WithSeq<Client>, PaxosValue> asMultimap = KeyedStream.stream(function.apply(request))
                 .map(PaxosUpdate::getValues)
                 .flatMap(Collection::stream)
                 .collectToSetMultimap();
@@ -92,6 +94,11 @@ public class LearnedValuesSinceCoalescingFunctionTests {
                         .build();
 
         assertThat(asMultimap).isEqualTo(expectedResult);
+
+        assertThat(asMultimap.keySet())
+                .as("despite requesting learnt values for client-3, we still learn nothing, if remote server hasn't "
+                        + "learnt anything for that client")
+                .doesNotContain(WithSeq.of(1, CLIENT_3));
     }
 
     private static PaxosValue paxosValue(long round) {
