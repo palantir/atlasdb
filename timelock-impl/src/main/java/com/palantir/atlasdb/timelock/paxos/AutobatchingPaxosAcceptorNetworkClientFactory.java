@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,13 +36,13 @@ import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosResponses;
 
-public class BatchingPaxosAcceptorFactory {
+public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable {
 
     private final DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare;
     private final DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept;
     private final DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequence;
 
-    private BatchingPaxosAcceptorFactory(
+    private AutobatchingPaxosAcceptorNetworkClientFactory(
             DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare,
             DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept,
             DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequence) {
@@ -50,7 +51,7 @@ public class BatchingPaxosAcceptorFactory {
         this.latestSequence = latestSequence;
     }
 
-    public static BatchingPaxosAcceptorFactory create(
+    public static AutobatchingPaxosAcceptorNetworkClientFactory create(
             List<BatchPaxosAcceptor> acceptors,
             ExecutorService executor,
             int quorumSize) {
@@ -70,11 +71,18 @@ public class BatchingPaxosAcceptorFactory {
                         .safeLoggablePurpose("batch-paxos-acceptor-latest-sequence-cache")
                         .build();
 
-        return new BatchingPaxosAcceptorFactory(prepare, accept, latestSequenceAutobatcher);
+        return new AutobatchingPaxosAcceptorNetworkClientFactory(prepare, accept, latestSequenceAutobatcher);
     }
 
     public PaxosAcceptorNetworkClient paxosAcceptorForClient(Client client) {
         return new AutobatchingPaxosAcceptorNetworkClient(client);
+    }
+
+    @Override
+    public void close() {
+        prepare.close();
+        accept.close();
+        latestSequence.close();
     }
 
     private final class AutobatchingPaxosAcceptorNetworkClient implements PaxosAcceptorNetworkClient {

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.wrap;
 
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,7 +37,7 @@ import com.palantir.paxos.PaxosResponses;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
 
-public class AutobatchingPaxosLearnerNetworkClientFactory {
+public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
 
     private final DisruptorAutobatcher<Map.Entry<Client, PaxosValue>, PaxosResponses<PaxosResponse>> learn;
     private final DisruptorAutobatcher<WithSeq<Client>, PaxosResponses<PaxosContainer<Optional<PaxosValue>>>> getLearnedValues;
@@ -78,6 +79,13 @@ public class AutobatchingPaxosLearnerNetworkClientFactory {
 
     public PaxosLearnerNetworkClient paxosLearnerForClient(Client client) {
         return new AutobatchingPaxosLearnerNetworkClient(client);
+    }
+
+    @Override
+    public void close() {
+        learn.close();
+        getLearnedValues.close();
+        getLearnedValuesSince.close();
     }
 
     private final class AutobatchingPaxosLearnerNetworkClient implements PaxosLearnerNetworkClient {
