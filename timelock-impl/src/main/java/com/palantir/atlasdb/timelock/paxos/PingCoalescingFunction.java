@@ -38,6 +38,6 @@ final class PingCoalescingFunction implements CoalescingRequestFunction<Client, 
     @Override
     public Map<Client, Boolean> apply(Set<Client> request) {
         Set<Client> ping = batchPingableLeader.ping(request);
-        return Maps.asMap(request, ping::contains);
+        return Maps.toMap(request, ping::contains);
     }
 }
