@@ -96,8 +96,8 @@ public class BatchPaxosAcceptorResourceTests {
 
     @Test
     public void weProxyAcceptRequests() {
-        PaxosProposal proposal1 = proposal(PROPOSAL_ID_1);
-        PaxosProposal proposal2 = proposal(PROPOSAL_ID_2);
+        PaxosProposal proposal1 = proposal(PROPOSAL_ID_1, 1);
+        PaxosProposal proposal2 = proposal(PROPOSAL_ID_2, 2);
 
         when(components.acceptor(CLIENT_1).accept(1, proposal1)).thenReturn(success());
         when(components.acceptor(CLIENT_2).accept(1, proposal1)).thenReturn(success());
@@ -106,11 +106,11 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
-        SetMultimap<Client, WithSeq<PaxosProposal>> request = ImmutableSetMultimap
-                .<Client, WithSeq<PaxosProposal>>builder()
-                .put(CLIENT_1, WithSeq.of(1, proposal1))
-                .put(CLIENT_2, WithSeq.of(1, proposal1))
-                .put(CLIENT_2, WithSeq.of(2, proposal2))
+        SetMultimap<Client, PaxosProposal> request = ImmutableSetMultimap
+                .<Client, PaxosProposal>builder()
+                .put(CLIENT_1, proposal1)
+                .put(CLIENT_2, proposal1)
+                .put(CLIENT_2, proposal2)
                 .build();
 
         SetMultimap<Client, WithSeq<BooleanPaxosResponse>> expected = ImmutableSetMultimap
@@ -208,12 +208,12 @@ public class BatchPaxosAcceptorResourceTests {
         return new BooleanPaxosResponse(true);
     }
 
-    private static PaxosProposal proposal(PaxosProposalId proposalId) {
-        return new PaxosProposal(proposalId, paxosValue());
+    private static PaxosProposal proposal(PaxosProposalId proposalId, long seq) {
+        return new PaxosProposal(proposalId, paxosValue(seq));
     }
 
-    private static PaxosValue paxosValue() {
-        return new PaxosValue(UUID.randomUUID().toString(), new Random().nextLong(), null);
+    private static PaxosValue paxosValue(long seq) {
+        return new PaxosValue(UUID.randomUUID().toString(), seq, null);
     }
 
     private static AcceptorCacheDigest digest() {
