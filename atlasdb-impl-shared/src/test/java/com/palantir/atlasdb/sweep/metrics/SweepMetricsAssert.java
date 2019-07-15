@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
-import java.util.Arrays;
 import java.util.Map;
 
 import javax.annotation.CheckReturnValue;
@@ -25,14 +24,12 @@ import org.assertj.core.api.WritableAssertionInfo;
 import org.assertj.core.data.Offset;
 import org.assertj.core.internal.Doubles;
 import org.assertj.core.internal.LongArrays;
-import org.assertj.core.internal.ObjectArrays;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;

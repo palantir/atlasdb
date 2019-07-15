@@ -144,7 +144,7 @@ public class TargetedSweepMetrics {
             sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>());
             lastSweptTs = registerLastSweptTsMetric(recomputeMillis);
 
-            registerMillisSinceLastSweptMetric(tsToMillis, wallClock, lastSweptTs, recomputeMillis);
+            registerMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
 
             outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
             batchSizeMetrics = registerBatchSizeMetrics();
@@ -164,16 +164,15 @@ public class TargetedSweepMetrics {
         }
 
         private AggregatingVersionedMetric<Long> registerLastSweptTsMetric(long millis) {
-            AggregatingVersionedSupplier<Long> lastSweptTs = AggregatingVersionedSupplier.min(millis);
-            return register(AtlasDbMetricNames.LAST_SWEPT_TS, new AggregatingVersionedMetric<>(lastSweptTs));
+            AggregatingVersionedSupplier<Long> lastSweptTimestamp = AggregatingVersionedSupplier.min(millis);
+            return register(AtlasDbMetricNames.LAST_SWEPT_TS, new AggregatingVersionedMetric<>(lastSweptTimestamp));
         }
 
-        private void registerMillisSinceLastSweptMetric(Function<Long, Long> tsToMillis, Clock wallClock,
-                AggregatingVersionedMetric<Long> lastSweptTs, long recomputeMillis) {
+        private void registerMillisSinceLastSweptMetric(Function<Long, Long> tsToMillis, Clock wallClock, long millis) {
             Supplier<Long> millisSinceLastSweptTs = new CachedComposedSupplier<>(
                     sweptTs -> estimateMillisSinceTs(sweptTs, wallClock, tsToMillis),
                     lastSweptTs::getVersionedValue,
-                    recomputeMillis,
+                    millis,
                     wallClock);
 
             register(AtlasDbMetricNames.LAG_MILLIS, millisSinceLastSweptTs::get);
