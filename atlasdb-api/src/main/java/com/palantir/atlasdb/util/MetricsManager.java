@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -176,6 +177,16 @@ public class MetricsManager {
             Map<String, String> tags) {
         MetricName name = getTaggedMetricName(clazz, metricName, tags);
         Histogram histogram = taggedMetricRegistry.histogram(name);
+        registerTaggedMetricName(name);
+        return histogram;
+    }
+
+    public Histogram registerOrGetTaggedHistogram(
+            Class clazz, String metricName,
+            Map<String, String> tags,
+            Supplier<Histogram> supplier) {
+        MetricName name = getTaggedMetricName(clazz, metricName, tags);
+        Histogram histogram = taggedMetricRegistry.histogram(name, supplier);
         registerTaggedMetricName(name);
         return histogram;
     }

@@ -158,14 +158,15 @@ public class SweepableCells extends SweepQueueTable {
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
         WriteBatch writeBatch = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         Multimap<Long, WriteInfo> writesByStartTs = writeBatch.writesByStartTs;
-        maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, writesByStartTs.size()));
-        log.debug("Read {} entries from the sweep queue.", SafeArg.of("number", writesByStartTs.size()));
+        int entriesRead = writesByStartTs.size();
+        maybeMetrics.ifPresent(metrics -> metrics.updateEntriesRead(shardStrategy, entriesRead));
+        log.debug("Read {} entries from the sweep queue.", SafeArg.of("number", entriesRead));
         TimestampsToSweep tsToSweep = getTimestampsToSweepDescendingAndCleanupAborted(
                 shardStrategy, minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
         long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
-        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, tsToSweep.processedAll());
+        return SweepBatch.of(writes, filteredDedicatedRows, lastSweptTs, tsToSweep.processedAll(), entriesRead);
     }
 
     private DedicatedRows getDedicatedRowsToClear(List<SweepableCellsRow> rows, TimestampsToSweep tsToSweep) {

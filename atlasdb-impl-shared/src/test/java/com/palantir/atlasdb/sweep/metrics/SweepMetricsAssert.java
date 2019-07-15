@@ -15,17 +15,24 @@
  */
 package com.palantir.atlasdb.sweep.metrics;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.annotation.CheckReturnValue;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.WritableAssertionInfo;
+import org.assertj.core.data.Offset;
+import org.assertj.core.internal.Doubles;
+import org.assertj.core.internal.LongArrays;
+import org.assertj.core.internal.ObjectArrays;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
@@ -35,6 +42,8 @@ import com.palantir.tritium.metrics.registry.MetricName;
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
     private final MetricsManager metrics;
     private final Objects objects = Objects.instance();
+    private final LongArrays arrays = LongArrays.instance();
+    private final Doubles doubles = Doubles.instance();
     private final WritableAssertionInfo info = new WritableAssertionInfo();
 
     public SweepMetricsAssert(MetricsManager actual) {
@@ -103,6 +112,26 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
+    public void hasEntriesReadInBatchConservativeEqualTo(long... outcomes) {
+        arrays.assertContainsExactlyInAnyOrder(info,
+                getBatchSizeHistogram(SweepStrategy.CONSERVATIVE).getSnapshot().getValues(),
+                outcomes);
+    }
+
+    public void hasEntriesReadInBatchThoroughEqualTo(long... outcomes) {
+        arrays.assertContainsExactlyInAnyOrder(info,
+                getBatchSizeHistogram(SweepStrategy.THOROUGH).getSnapshot().getValues(),
+                outcomes);
+    }
+
+    public void hasEntriesReadInBatchMeanConservativeEqualTo(double value) {
+        doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanConservative(), value, Offset.offset(0.1));
+    }
+
+    public void hasEntriesReadInBatchMeanThoroughEqualTo(double value) {
+        doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanThorough(), value, Offset.offset(0.1));
+    }
+
     public void hasLegacyOutcomeEqualTo(SweepOutcome outcome, long value) {
         objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
     }
@@ -115,15 +144,15 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertNull(info, getGaugeForTargetedOutcome(strategy, outcome));
     }
 
-    private Gauge<Long> getGaugeConservative(String name) {
+    private <N> Gauge<N> getGaugeConservative(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_CONSERVATIVE, name);
     }
 
-    private Gauge<Long> getGaugeThorough(String name) {
+    private <N> Gauge<N> getGaugeThorough(String name) {
         return getGaugeForTargetedSweep(AtlasDbMetricNames.TAG_THOROUGH, name);
     }
 
-    private Gauge<Long> getGaugeForTargetedSweep(String strategy, String name) {
+    private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
         return getGauge(TargetedSweepMetrics.class, name, tag);
     }
@@ -139,18 +168,37 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
                         AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy)));
     }
 
+    private Double getEntriesReadInBatchMeanConservative() {
+        return (Double) getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN).getValue();
+    }
+
+    private Double getEntriesReadInBatchMeanThorough() {
+        return (Double) getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN).getValue();
+    }
+
+    private Histogram getBatchSizeHistogram(SweepStrategy strategy) {
+        Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy));
+        MetricName metricName = getMetricName(TargetedSweepMetrics.class, AtlasDbMetricNames.BATCH_SIZE, tag);
+
+        return (Histogram) metrics.getTaggedRegistry().getMetrics().get(metricName);
+    }
+
     private static String getTagForStrategy(SweepStrategy strategy) {
         return strategy == SweepStrategy.CONSERVATIVE
                 ? AtlasDbMetricNames.TAG_CONSERVATIVE
                 : AtlasDbMetricNames.TAG_THOROUGH;
     }
 
-    private <T> Gauge<Long> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
-        MetricName metricName = MetricName.builder()
+    private <T, N> Gauge<N> getGauge(Class<T> metricClass, String name, Map<String, String> tag) {
+        MetricName metricName = getMetricName(metricClass, name, tag);
+
+        return (Gauge<N>) metrics.getTaggedRegistry().getMetrics().get(metricName);
+    }
+
+    private <T> MetricName getMetricName(Class<T> metricClass, String name, Map<String, String> tag) {
+        return MetricName.builder()
                 .safeName(MetricRegistry.name(metricClass, name))
                 .safeTags(tag)
                 .build();
-
-        return (Gauge<Long>) metrics.getTaggedRegistry().getMetrics().get(metricName);
     }
 }

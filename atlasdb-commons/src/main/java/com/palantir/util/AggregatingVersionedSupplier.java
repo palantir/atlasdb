@@ -16,6 +16,7 @@
 package com.palantir.util;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +47,14 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
         this.aggregator = aggregator;
         this.memoizedValue = Suppliers
                 .memoizeWithExpiration(this::recalculate, expirationMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public static <C extends Comparable<C>> AggregatingVersionedSupplier<C> min(long expirationMillis) {
+        return new AggregatingVersionedSupplier<>(AggregatingVersionedSupplier::minimum, expirationMillis);
+    }
+
+    private static <C extends Comparable<C>> C minimum(Collection<C> currentValues) {
+        return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
     }
 
     /**
