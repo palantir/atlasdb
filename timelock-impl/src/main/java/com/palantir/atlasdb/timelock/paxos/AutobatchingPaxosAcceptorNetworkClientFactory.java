@@ -96,7 +96,7 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
         @Override
         public PaxosResponses<PaxosPromise> prepare(long seq, PaxosProposalId proposalId) {
             try {
-                return prepare.apply(Maps.immutableEntry(client, WithSeq.of(seq, proposalId))).get();
+                return prepare.apply(Maps.immutableEntry(client, WithSeq.of(proposalId, seq))).get();
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }

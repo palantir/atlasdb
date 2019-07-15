@@ -45,13 +45,13 @@ final class AcceptCoalescingFunction implements
             Set<Map.Entry<Client, PaxosProposal>> request) {
         SetMultimap<Client, PaxosProposal> requests = ImmutableSetMultimap.copyOf(request);
         Map<WithSeq<Client>, BooleanPaxosResponse> results = KeyedStream.stream(delegate.accept(requests))
-                .mapKeys((client, booleanResponseWithSeq) -> WithSeq.of(booleanResponseWithSeq.seq(), client))
+                .mapKeys((client, booleanResponseWithSeq) -> WithSeq.of(client, booleanResponseWithSeq.seq()))
                 .map(WithSeq::value)
                 .collectToMap();
 
         return KeyedStream.of(request)
                 .map(clientAndProposal -> results.get(
-                        WithSeq.of(clientAndProposal.getValue().getValue().getRound(), clientAndProposal.getKey())))
+                        WithSeq.of(clientAndProposal.getKey(), clientAndProposal.getValue().getValue().getRound())))
                 .collectToMap();
     }
 

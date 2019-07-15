@@ -85,10 +85,10 @@ public class AcceptCoalescingFunctionTests {
     }
 
     private static WithSeq<BooleanPaxosResponse> success(PaxosProposal proposal) {
-        return WithSeq.of(proposal.getValue().getRound(), SUCCESS);
+        return WithSeq.of(SUCCESS, proposal.getValue().getRound());
     }
 
     private static WithSeq<BooleanPaxosResponse> failure(PaxosProposal proposal) {
-        return WithSeq.of(proposal.getValue().getRound(), FAILURE);
+        return WithSeq.of(FAILURE, proposal.getValue().getRound());
     }
 }

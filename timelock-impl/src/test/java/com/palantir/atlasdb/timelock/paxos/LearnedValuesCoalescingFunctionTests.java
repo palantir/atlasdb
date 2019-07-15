@@ -47,9 +47,9 @@ public class LearnedValuesCoalescingFunctionTests {
     @Test
     public void canProcessBatch() {
         Set<WithSeq<Client>> remoteRequest = ImmutableSet.of(
-                WithSeq.of(10, CLIENT_1),
-                WithSeq.of(12, CLIENT_1),
-                WithSeq.of(10, CLIENT_2));
+                WithSeq.of(CLIENT_1, 10),
+                WithSeq.of(CLIENT_1, 12),
+                WithSeq.of(CLIENT_2, 10));
 
         PaxosValue paxosValue1 = paxosValue(10);
         PaxosValue paxosValue2 = paxosValue(12);
@@ -66,9 +66,9 @@ public class LearnedValuesCoalescingFunctionTests {
         Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> results = function.apply(remoteRequest);
 
         assertThat(results)
-                .containsEntry(WithSeq.of(10, CLIENT_1), asResult(paxosValue1))
-                .containsEntry(WithSeq.of(12, CLIENT_1), asResult(paxosValue2))
-                .containsEntry(WithSeq.of(10, CLIENT_2), asResult(paxosValue1));
+                .containsEntry(WithSeq.of(CLIENT_1, 10), asResult(paxosValue1))
+                .containsEntry(WithSeq.of(CLIENT_1, 12), asResult(paxosValue2))
+                .containsEntry(WithSeq.of(CLIENT_2, 10), asResult(paxosValue1));
     }
 
     private static PaxosValue paxosValue(long round) {

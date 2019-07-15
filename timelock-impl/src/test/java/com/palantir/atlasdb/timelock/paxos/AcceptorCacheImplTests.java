@@ -74,14 +74,14 @@ public class AcceptorCacheImplTests {
         AcceptorCacheDigest digest = cache.getAllUpdates();
 
         cache.updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(10L, Client.of("client1")),
-                WithSeq.of(3L, Client.of("client2"))));
+                WithSeq.of(Client.of("client1"), 10L),
+                WithSeq.of(Client.of("client2"), 3L)));
 
         AcceptorCacheDigest secondDigest = cache.updatesSinceCacheKey(digest.newCacheKey()).get();
         assertThat(secondDigest.updates())
                 .containsOnly(entry(Client.of("client1"), 10L));
 
-        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(5L, Client.of("client3"))));
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client3"), 5L)));
 
         assertThat(cache.updatesSinceCacheKey(secondDigest.newCacheKey()))
                 .as("there are no actionable changes, cache is the same")
@@ -98,10 +98,10 @@ public class AcceptorCacheImplTests {
 
         AcceptorCacheKey initialCacheKey = cache.getAllUpdates().newCacheKey();
 
-        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(20L, Client.of("client1"))));
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client1"), 20L)));
         AcceptorCacheKey cacheKeyAfterFirstUpdate = cache.getAllUpdates().newCacheKey();
 
-        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(25L, Client.of("client4"))));
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client4"), 25L)));
         AcceptorCacheKey cacheKeyAfterSecondUpdate = cache.getAllUpdates().newCacheKey();
 
         assertThat(cache.updatesSinceCacheKey(initialCacheKey))
@@ -124,8 +124,8 @@ public class AcceptorCacheImplTests {
         AcceptorCache cache = cache(ImmutableMap.of());
 
         AcceptorCacheKey cacheKey = cache.getAllUpdates().newCacheKey();
-        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(20L, Client.of("client1"))));
-        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(25L, Client.of("client4"))));
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client1"), 20L)));
+        cache.updateSequenceNumbers(ImmutableSet.of(WithSeq.of(Client.of("client4"), 25L)));
 
         Map<Client, Long> diffAfterFirstUpdate = ImmutableMap.<Client, Long>builder()
                 .put(Client.of("client1"), 20L)
@@ -138,8 +138,8 @@ public class AcceptorCacheImplTests {
                 .contains(diffAfterFirstUpdate);
 
         cache.updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(30L, Client.of("client4")),
-                WithSeq.of(50L, Client.of("client3"))));
+                WithSeq.of(Client.of("client4"), 30L),
+                WithSeq.of(Client.of("client3"), 50L)));
 
         Map<Client, Long> diffAfterSecondUpdate = ImmutableMap.<Client, Long>builder()
                 .put(Client.of("client1"), 20L)
@@ -157,7 +157,7 @@ public class AcceptorCacheImplTests {
         AcceptorCacheImpl acceptorCache = new AcceptorCacheImpl();
 
         Set<WithSeq<Client>> clientsAndSeq = latestSequencesForClients.entrySet().stream()
-                .map(clientAndSeq -> WithSeq.of(clientAndSeq.getValue(), clientAndSeq.getKey()))
+                .map(clientAndSeq -> WithSeq.of(clientAndSeq.getKey(), clientAndSeq.getValue()))
                 .collect(Collectors.toSet());
         acceptorCache.updateSequenceNumbers(clientsAndSeq);
         return acceptorCache;
