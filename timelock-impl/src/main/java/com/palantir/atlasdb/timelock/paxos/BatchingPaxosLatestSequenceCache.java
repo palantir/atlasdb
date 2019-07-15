@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -47,6 +46,7 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     static final String ERROR_NAME = "TimelockPartitioning:InvalidCacheKey";
 
     private static final Logger log = LoggerFactory.getLogger(BatchingPaxosLatestSequenceCache.class);
+    private static final PaxosLong DEFAULT_VALUE = PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
 
     @Nullable
     private AcceptorCacheKey cacheKey = null;
@@ -55,11 +55,6 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
 
     BatchingPaxosLatestSequenceCache(BatchPaxosAcceptor delegate) {
         this.delegate = delegate;
-    }
-
-    @Override
-    public PaxosLong defaultValue() {
-        return PaxosLong.of(BatchPaxosAcceptor.NO_LOG_ENTRY);
     }
 
     @Override
@@ -85,17 +80,21 @@ final class BatchingPaxosLatestSequenceCache implements CoalescingRequestFunctio
     private Map<Client, PaxosLong> unsafeGetLatest(Set<Client> clients) {
         if (cacheKey == null) {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.empty(), clients));
-            return ImmutableMap.copyOf(cachedEntries);
+            return getResponseMap(clients);
         }
 
         Set<Client> newClients = Sets.difference(clients, cachedEntries.keySet());
         if (newClients.isEmpty()) {
             delegate.latestSequencesPreparedOrAcceptedCached(cacheKey).ifPresent(this::processDigest);
-            return ImmutableMap.copyOf(cachedEntries);
+            return getResponseMap(clients);
         } else {
             processDigest(delegate.latestSequencesPreparedOrAccepted(Optional.of(cacheKey), newClients));
-            return ImmutableMap.copyOf(cachedEntries);
+            return getResponseMap(clients);
         }
+    }
+
+    private Map<Client, PaxosLong> getResponseMap(Set<Client> clientsInRequest) {
+        return Maps.toMap(clientsInRequest, client -> cachedEntries.getOrDefault(client, DEFAULT_VALUE));
     }
 
     private void processDigest(AcceptorCacheDigest digest) {

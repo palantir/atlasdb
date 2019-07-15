@@ -29,15 +29,12 @@ import com.palantir.paxos.PaxosProposal;
 final class AcceptCoalescingFunction implements
         CoalescingRequestFunction<Map.Entry<Client, PaxosProposal>, BooleanPaxosResponse> {
 
+    private static final BooleanPaxosResponse FALSE_PAXOS_RESPONSE = new BooleanPaxosResponse(false);
+
     private final BatchPaxosAcceptor delegate;
 
     AcceptCoalescingFunction(BatchPaxosAcceptor delegate) {
         this.delegate = delegate;
-    }
-
-    @Override
-    public BooleanPaxosResponse defaultValue() {
-        return new BooleanPaxosResponse(false);
     }
 
     @Override
@@ -50,8 +47,9 @@ final class AcceptCoalescingFunction implements
                 .collectToMap();
 
         return KeyedStream.of(request)
-                .map(clientAndProposal -> results.get(
-                        WithSeq.of(clientAndProposal.getKey(), clientAndProposal.getValue().getValue().getRound())))
+                .map(clientAndProposal -> results.getOrDefault(
+                        WithSeq.of(clientAndProposal.getKey(), clientAndProposal.getValue().getValue().getRound()),
+                        FALSE_PAXOS_RESPONSE))
                 .collectToMap();
     }
 

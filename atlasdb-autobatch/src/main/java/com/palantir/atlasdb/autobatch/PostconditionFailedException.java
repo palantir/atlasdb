@@ -16,23 +16,12 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
+public class PostconditionFailedException extends RuntimeException {
 
-import com.google.common.base.Preconditions;
+    public PostconditionFailedException(Class<? extends CoalescingRequestFunction> clazz) {
 
-public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunction<Autobatchers.SupplierKey, T> {
+        super(clazz.getCanonicalName() + " has violated the autobatching coalescing invariant of an result entry "
+                + "existing for each request.");
 
-    private final Supplier<T> supplier;
-
-    public CoalescingRequestSupplier(Supplier<T> supplier) {
-        this.supplier = supplier;
-    }
-
-    @Override
-    public Map<Autobatchers.SupplierKey, T> apply(Set<Autobatchers.SupplierKey> request) {
-        Preconditions.checkArgument(request.size() == 1, "invalid request");
-        return Autobatchers.SupplierKey.wrap(supplier.get());
     }
 }

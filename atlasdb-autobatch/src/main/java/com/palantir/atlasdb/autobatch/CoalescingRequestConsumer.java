@@ -20,10 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 public interface CoalescingRequestConsumer<REQUEST> extends CoalescingRequestFunction<REQUEST, Void> {
-    @Override
-    default Void defaultValue() {
-        return null;
-    }
 
     @Override
     default Map<REQUEST, Void> apply(Set<REQUEST> input) {

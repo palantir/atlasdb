@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -134,20 +133,10 @@ public class PaxosQuorumCheckingCoalescingFunctionTests {
 
     private static CoalescingRequestFunction<Long, PaxosLong> functionFor(Map.Entry<Long, Long>... mappings) {
         Map<Long, Long> function = ImmutableMap.copyOf(ImmutableList.copyOf(mappings));
-        return new CoalescingRequestFunction<Long, PaxosLong>() {
-            @Override
-            public PaxosLong defaultValue() {
-                throw new AssertionError("should never get here");
-            }
-
-            @Override
-            public Map<Long, PaxosLong> apply(Set<Long> request) {
-                return KeyedStream.stream(function)
-                        .filterKeys(request::contains)
-                        .<PaxosLong>map(ImmutablePaxosLong::of)
-                        .collectToMap();
-            }
-        };
+        return request -> KeyedStream.stream(function)
+                .filterKeys(request::contains)
+                .<PaxosLong>map(ImmutablePaxosLong::of)
+                .collectToMap();
     }
 
     private static PaxosResponses<PaxosLong> responsesFor(Long... longs) {
