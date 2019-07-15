@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import java.io.Closeable;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -24,19 +25,19 @@ import com.palantir.atlasdb.autobatch.Autobatchers.SupplierKey;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.leader.PingableLeader;
 
-public class BatchingPaxosPingableLeaderFactory {
+public class AutobatchingPaxosPingableLeaderFactory implements Closeable {
 
     private final DisruptorAutobatcher<Client, Boolean> pingAutobatcher;
     private final DisruptorAutobatcher<SupplierKey, UUID> uuidAutobatcher;
 
-    public BatchingPaxosPingableLeaderFactory(
+    public AutobatchingPaxosPingableLeaderFactory(
             DisruptorAutobatcher<Client, Boolean> pingAutobatcher,
             DisruptorAutobatcher<SupplierKey, UUID> uuidAutobatcher) {
         this.pingAutobatcher = pingAutobatcher;
         this.uuidAutobatcher = uuidAutobatcher;
     }
 
-    public static BatchingPaxosPingableLeaderFactory create(BatchPingableLeader batchPingableLeader) {
+    public static AutobatchingPaxosPingableLeaderFactory create(BatchPingableLeader batchPingableLeader) {
         DisruptorAutobatcher<Client, Boolean> pingAutobatcher =
                 Autobatchers.coalescing(new PingCoalescingFunction(batchPingableLeader))
                         .safeLoggablePurpose("batch-paxos-pingable-leader.ping")
@@ -47,11 +48,17 @@ public class BatchingPaxosPingableLeaderFactory {
                         .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                         .build();
 
-        return new BatchingPaxosPingableLeaderFactory(pingAutobatcher, uuidAutobatcher);
+        return new AutobatchingPaxosPingableLeaderFactory(pingAutobatcher, uuidAutobatcher);
     }
 
     public PingableLeader pingableLeaderFor(Client client) {
         return new BatchingPingableLeader(client);
+    }
+
+    @Override
+    public void close() {
+        pingAutobatcher.close();
+        uuidAutobatcher.close();
     }
 
     private final class BatchingPingableLeader implements PingableLeader {
@@ -66,15 +73,8 @@ public class BatchingPaxosPingableLeaderFactory {
         public boolean ping() {
             try {
                 return pingAutobatcher.apply(client).get();
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
@@ -82,15 +82,8 @@ public class BatchingPaxosPingableLeaderFactory {
         public String getUUID() {
             try {
                 return uuidAutobatcher.apply(SupplierKey.INSTANCE).get().toString();
-            } catch (InterruptedException e) {
-                // TODO(fdesouza): handle
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
     }
