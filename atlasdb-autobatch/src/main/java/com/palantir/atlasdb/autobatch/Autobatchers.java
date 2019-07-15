@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
@@ -63,7 +64,7 @@ public final class Autobatchers {
         return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize));
     }
 
-    public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(java.util.function.Supplier<O> supplier) {
+    public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
         return coalescing(new CoalescingRequestSupplier<>(supplier));
     }
 
