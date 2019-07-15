@@ -30,7 +30,7 @@ class AutobatcherExecutionExceptions {
             }
             throw new RuntimeException(cause);
         } else {
-            // handle interrupted
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }

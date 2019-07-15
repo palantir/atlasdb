@@ -89,6 +89,7 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
     }
 
     private final class AutobatchingPaxosLearnerNetworkClient implements PaxosLearnerNetworkClient {
+
         private final Client client;
 
         private AutobatchingPaxosLearnerNetworkClient(Client client) {
@@ -100,15 +101,8 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
             Preconditions.checkArgument(seq == value.getRound(), "seq differs from PaxosValue.round");
             try {
                 learn.apply(Maps.immutableEntry(client, value)).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
@@ -118,15 +112,8 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                 Function<Optional<PaxosValue>, T> mapper) {
             try {
                 return getLearnedValues.apply(WithSeq.of(seq, client)).get().map(c -> mapper.apply(c.get()));
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
@@ -134,15 +121,8 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
         public PaxosResponses<PaxosUpdate> getLearnedValuesSince(long seq) {
             try {
                 return getLearnedValuesSince.apply(WithSeq.of(seq, client)).get();
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                }
-                throw new RuntimeException(cause);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+            } catch (ExecutionException | InterruptedException e) {
+                throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
         }
 
