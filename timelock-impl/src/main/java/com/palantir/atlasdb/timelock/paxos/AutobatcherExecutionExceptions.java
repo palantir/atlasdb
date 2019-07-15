@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.concurrent.ExecutionException;
 
+import com.palantir.logsafe.Preconditions;
+
 class AutobatcherExecutionExceptions {
 
     private AutobatcherExecutionExceptions() { }
@@ -30,7 +32,8 @@ class AutobatcherExecutionExceptions {
             }
             throw new RuntimeException(cause);
         } else {
-            // handle interrupted
+            Preconditions.checkArgument(e instanceof InterruptedException, "expected Interrupted exception");
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
