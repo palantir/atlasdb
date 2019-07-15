@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Targeted sweep metrics now expose a histogram `batchSizeHistogram`
+    of the number of entries read in each iteration of targeted sweep, as well as
+    a gauge `batchSizeMean` that samples the mean of that histogram.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4128
