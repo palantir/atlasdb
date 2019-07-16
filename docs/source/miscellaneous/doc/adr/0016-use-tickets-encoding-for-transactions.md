@@ -453,6 +453,19 @@ The values themselves are stored as dynamic columns with a var-long dynamic colu
   value and the validity bound.
 - Values are stored at column IDs equal to a fresh timestamp at the time they're written.
 
+For example, the Cassandra representation of the coordination table may look as follows.
+
+|  key | column1 | column2 |                                                                  value |
+|-----:|--------:|--------:|-----------------------------------------------------------------------:|
+| 0x6d |    0x00 |      -1 | 0x7b2273657175656e6365223a31333030372c22626f756e64223a353031333030377d |
+| 0x6d |  0xa711 |      -1 |                                     0x7b2276657...3334227d (216 bytes) |
+| 0x6d |  0xb2cf |      -1 |                                     0x7b2276657...3930227d (380 bytes) |
+
+The single ``key`` reflects that these values are all part of the same sequence of values. The column IDs are
+``VAR_LONG`` encoded; ``0x00`` maps to zero, and the associated value decodes to a ``SequenceAndBound``, in this
+example ``{"sequence":13007,"bound":5013007}``. This means that the value at the column associated with sequence
+``13007`` (which encodes to ``b2cf``) is the currently agreed value; the value in column ``a711`` is not current.
+
 The main reason for this scheme is that while the validity bound itself changes frequently (approximately every
 ``ADVANCEMENT_QUANTUM`` timestamps, which is 5,000,000 at time of writing), the value itself changes much less often.
 For example, with transactions2, in the absence of rollbacks, the value is expected to change just once in the
