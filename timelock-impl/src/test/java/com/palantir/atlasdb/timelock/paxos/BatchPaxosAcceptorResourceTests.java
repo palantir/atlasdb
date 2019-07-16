@@ -76,22 +76,22 @@ public class BatchPaxosAcceptorResourceTests {
 
         SetMultimap<Client, WithSeq<PaxosProposalId>> request = ImmutableSetMultimap
                 .<Client, WithSeq<PaxosProposalId>>builder()
-                .put(CLIENT_1, WithSeq.of(1, PROPOSAL_ID_1))
-                .putAll(CLIENT_2, WithSeq.of(1, PROPOSAL_ID_1), WithSeq.of(2, PROPOSAL_ID_2))
+                .put(CLIENT_1, WithSeq.of(PROPOSAL_ID_1, 1))
+                .putAll(CLIENT_2, WithSeq.of(PROPOSAL_ID_1, 1), WithSeq.of(PROPOSAL_ID_2, 2))
                 .build();
 
         SetMultimap<Client, WithSeq<PaxosPromise>> expected = ImmutableSetMultimap
                 .<Client, WithSeq<PaxosPromise>>builder()
-                .put(CLIENT_1, WithSeq.of(1, promise(PROPOSAL_ID_1)))
-                .putAll(CLIENT_2, WithSeq.of(1, promise(PROPOSAL_ID_1)), WithSeq.of(2, promise(PROPOSAL_ID_2)))
+                .put(CLIENT_1, WithSeq.of(promise(PROPOSAL_ID_1), 1))
+                .putAll(CLIENT_2, WithSeq.of(promise(PROPOSAL_ID_1), 1), WithSeq.of(promise(PROPOSAL_ID_2), 2))
                 .build();
 
         assertThat(resource.prepare(request))
                 .isEqualTo(expected);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
@@ -115,17 +115,17 @@ public class BatchPaxosAcceptorResourceTests {
 
         SetMultimap<Client, WithSeq<BooleanPaxosResponse>> expected = ImmutableSetMultimap
                 .<Client, WithSeq<BooleanPaxosResponse>>builder()
-                .put(CLIENT_1, WithSeq.of(1, success()))
-                .put(CLIENT_2, WithSeq.of(1, success()))
-                .put(CLIENT_2, WithSeq.of(2, success()))
+                .put(CLIENT_1, WithSeq.of(success(), 1))
+                .put(CLIENT_2, WithSeq.of(success(), 1))
+                .put(CLIENT_2, WithSeq.of(success(), 2))
                 .build();
 
         assertThat(resource.accept(request))
                 .isEqualTo(expected);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
@@ -167,8 +167,8 @@ public class BatchPaxosAcceptorResourceTests {
                 .isEqualTo(digest);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
@@ -192,8 +192,8 @@ public class BatchPaxosAcceptorResourceTests {
                 .isEqualTo(digest);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     private static PaxosProposalId proposalId() {

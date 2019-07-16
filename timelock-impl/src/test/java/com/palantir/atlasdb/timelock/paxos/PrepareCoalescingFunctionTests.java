@@ -46,9 +46,9 @@ public class PrepareCoalescingFunctionTests {
 
     @Test
     public void canReturnBatch() {
-        WithSeq<PaxosProposalId> client1seq1Id = WithSeq.of(1, proposalId());
-        WithSeq<PaxosProposalId> client1seq2Id = WithSeq.of(2, proposalId());
-        WithSeq<PaxosProposalId> client2seq1Id = WithSeq.of(1, proposalId());
+        WithSeq<PaxosProposalId> client1seq1Id = WithSeq.of(proposalId(), 1);
+        WithSeq<PaxosProposalId> client1seq2Id = WithSeq.of(proposalId(), 2);
+        WithSeq<PaxosProposalId> client2seq1Id = WithSeq.of(proposalId(), 1);
 
         SetMultimap<Client, WithSeq<PaxosProposalId>> requests =
                 ImmutableSetMultimap.<Client, WithSeq<PaxosProposalId>>builder()
@@ -85,6 +85,6 @@ public class PrepareCoalescingFunctionTests {
     }
 
     private static <T, U> WithSeq<U> map(WithSeq<T> container, Function<T, U> mapper) {
-        return WithSeq.of(container.seq(), mapper.apply(container.value()));
+        return WithSeq.of(mapper.apply(container.value()), container.seq());
     }
 }

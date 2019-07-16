@@ -85,9 +85,9 @@ public class BatchPaxosLearnerResourceTests {
                 .build();
 
         Set<WithSeq<Client>> request = ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(1, CLIENT_2),
-                WithSeq.of(2, CLIENT_2));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 1),
+                WithSeq.of(CLIENT_2, 2));
 
         assertThat(resource.getLearnedValues(request)).isEqualTo(expected);
     }

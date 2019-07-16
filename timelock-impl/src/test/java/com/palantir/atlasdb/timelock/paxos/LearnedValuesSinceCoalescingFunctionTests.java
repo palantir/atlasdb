@@ -56,12 +56,12 @@ public class LearnedValuesSinceCoalescingFunctionTests {
         PaxosValue paxosValue4 = paxosValue(25);
 
         Set<WithSeq<Client>> request = ImmutableSet.of(
-                WithSeq.of(10, CLIENT_1),
-                WithSeq.of(12, CLIENT_1),
-                WithSeq.of(14, CLIENT_1),
-                WithSeq.of(15, CLIENT_2),
-                WithSeq.of(23, CLIENT_2),
-                WithSeq.of(1, CLIENT_3));
+                WithSeq.of(CLIENT_1, 10),
+                WithSeq.of(CLIENT_1, 12),
+                WithSeq.of(CLIENT_1, 14),
+                WithSeq.of(CLIENT_2, 15),
+                WithSeq.of(CLIENT_2, 23),
+                WithSeq.of(CLIENT_3, 1));
 
         // we pick the lowest sequence number from the set per client
         Map<Client, Long> minimumRequest = ImmutableMap.<Client, Long>builder()
@@ -86,11 +86,11 @@ public class LearnedValuesSinceCoalescingFunctionTests {
 
         SetMultimap<WithSeq<Client>, PaxosValue> expectedResult =
                 ImmutableSetMultimap.<WithSeq<Client>, PaxosValue>builder()
-                        .putAll(WithSeq.of(10, CLIENT_1), paxosValue1, paxosValue2, paxosValue4)
-                        .putAll(WithSeq.of(12, CLIENT_1), paxosValue2, paxosValue4)
-                        .putAll(WithSeq.of(14, CLIENT_1), paxosValue4)
-                        .putAll(WithSeq.of(15, CLIENT_2), paxosValue3, paxosValue4)
-                        .putAll(WithSeq.of(23, CLIENT_2), paxosValue4)
+                        .putAll(WithSeq.of(CLIENT_1, 10), paxosValue1, paxosValue2, paxosValue4)
+                        .putAll(WithSeq.of(CLIENT_1, 12), paxosValue2, paxosValue4)
+                        .putAll(WithSeq.of(CLIENT_1, 14), paxosValue4)
+                        .putAll(WithSeq.of(CLIENT_2, 15), paxosValue3, paxosValue4)
+                        .putAll(WithSeq.of(CLIENT_2, 23), paxosValue4)
                         .build();
 
         assertThat(asMultimap).isEqualTo(expectedResult);
@@ -98,7 +98,7 @@ public class LearnedValuesSinceCoalescingFunctionTests {
         assertThat(asMultimap.keySet())
                 .as("despite requesting learnt values for client-3, we still learn nothing, if remote server hasn't "
                         + "learnt anything for that client")
-                .doesNotContain(WithSeq.of(1, CLIENT_3));
+                .doesNotContain(WithSeq.of(CLIENT_3, 1));
     }
 
     private static PaxosValue paxosValue(long round) {

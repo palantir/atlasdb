@@ -70,15 +70,15 @@ public class AcceptorCacheImpl implements AcceptorCache {
                 WithSeq<Long> clientLatestWithTs = clientToTimeAndSeq.get(client);
 
                 if (clientLatestWithTs == null) {
-                    clientToTimeAndSeq.put(client, WithSeq.of(incomingSequenceNumber, nextTimestamp));
+                    clientToTimeAndSeq.put(client, WithSeq.of(nextTimestamp, incomingSequenceNumber));
                     clientsByLatestTimestamp.put(nextTimestamp, clientAndSeq);
                     updated.set(true);
                 } else if (incomingSequenceNumber > clientLatestWithTs.seq()) {
-                    clientToTimeAndSeq.put(client, WithSeq.of(incomingSequenceNumber, nextTimestamp));
+                    clientToTimeAndSeq.put(client, WithSeq.of(nextTimestamp, incomingSequenceNumber));
                     clientsByLatestTimestamp.put(nextTimestamp, clientAndSeq);
                     clientsByLatestTimestamp.remove(
                             clientLatestWithTs.value(),
-                            WithSeq.of(clientLatestWithTs.seq(), client));
+                            WithSeq.of(client, clientLatestWithTs.seq()));
                     updated.set(true);
                 }
             });

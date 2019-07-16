@@ -111,7 +111,7 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
                 long seq,
                 Function<Optional<PaxosValue>, T> mapper) {
             try {
-                return getLearnedValues.apply(WithSeq.of(seq, client)).get().map(c -> mapper.apply(c.get()));
+                return getLearnedValues.apply(WithSeq.of(client, seq)).get().map(c -> mapper.apply(c.get()));
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }
@@ -120,7 +120,7 @@ public class AutobatchingPaxosLearnerNetworkClientFactory implements Closeable {
         @Override
         public PaxosResponses<PaxosUpdate> getLearnedValuesSince(long seq) {
             try {
-                return getLearnedValuesSince.apply(WithSeq.of(seq, client)).get();
+                return getLearnedValuesSince.apply(WithSeq.of(client, seq)).get();
             } catch (ExecutionException | InterruptedException e) {
                 throw AutobatcherExecutionExceptions.handleAutobatcherExceptions(e);
             }

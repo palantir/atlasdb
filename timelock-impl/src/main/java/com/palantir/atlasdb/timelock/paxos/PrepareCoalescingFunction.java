@@ -48,7 +48,7 @@ final class PrepareCoalescingFunction implements
 
         return KeyedStream.stream(delegate.prepare(requests))
                 .mapKeys((client, paxosPromiseWithSeq) -> Maps.immutableEntry(client,
-                        WithSeq.of(paxosPromiseWithSeq.seq(), paxosPromiseWithSeq.value().getPromisedId())))
+                        WithSeq.of(paxosPromiseWithSeq.value().getPromisedId(), paxosPromiseWithSeq.seq())))
                 .map(WithSeq::value)
                 .collectToMap();
     }

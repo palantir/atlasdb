@@ -32,7 +32,7 @@ public interface WithSeq<T> {
     @Value.Parameter
     T value();
 
-    static <T> WithSeq<T> of(long seq, T value) {
+    static <T> WithSeq<T> of(T value, long seq) {
         return ImmutableWithSeq.of(seq, value);
     }
 
