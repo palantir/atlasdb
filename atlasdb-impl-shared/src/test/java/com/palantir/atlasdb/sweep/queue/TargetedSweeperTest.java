@@ -341,7 +341,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @Test
     public void sweepsOnlyThePrescribedNumberOfBatchesAtATime() {
-        for (int partition = 0; partition < readBatchSize + 1; partition++) {
+        for (int partition = 0; partition <= readBatchSize; partition++) {
             enqueueWriteCommitted(TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(partition));
             enqueueWriteCommitted(TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(partition) + 1);
         }
@@ -353,6 +353,11 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(readBatchSize - 1) + 1);
         assertTestValueEnqueuedAtGivenTimestampStillPresent(
                 TABLE_CONS, LOW_TS + SweepQueueUtils.minTsForFinePartition(readBatchSize));
+
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(readBatchSize * 2);
+        assertThat(metricsManager).containsEntriesReadInBatchThorough();
+        assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(readBatchSize * 2);
+        assertThat(metricsManager).hasEntriesReadInBatchMeanThoroughEqualTo(0.0);
     }
 
     @Test
@@ -468,6 +473,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(2 * readBatchSize + 2);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(
                 maxTsForFinePartition(permittedPartitions.get(2 * readBatchSize)));
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(readBatchSize, readBatchSize, 2L);
+        assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo((2 * readBatchSize + 2) / 3.0);
 
         setTimelockTime(5000L);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(5000L - finalValueWallClockTime);
