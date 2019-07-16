@@ -16,47 +16,54 @@
 
 package com.palantir.paxos;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Predicate;
 
-final class PaxosResponseAccumulator<T extends PaxosResponse> {
+import javax.annotation.concurrent.NotThreadSafe;
+
+import com.palantir.logsafe.Preconditions;
+
+@NotThreadSafe
+final class PaxosResponseAccumulator<S, T extends PaxosResponse> {
 
     private final int totalRequests;
     private final int quorum;
-    private final boolean shortcut;
+    private final Predicate<InProgressResponseState<S, T>> shouldShortcutPredicate;
+    private final Map<S, T> responsesByService;
 
     private int successes = 0;
     private int failures = 0;
-    private List<T> responses = new LinkedList<>();
 
-    private PaxosResponseAccumulator(int totalRequests, int quorum, boolean shortcut) {
+    private PaxosResponseAccumulator(
+            int totalRequests,
+            int quorum,
+            Predicate<InProgressResponseState<S, T>> shouldShortcutPredicate) {
         this.totalRequests = totalRequests;
         this.quorum = quorum;
-        this.shortcut = shortcut;
+        this.shouldShortcutPredicate = shouldShortcutPredicate;
+        this.responsesByService = new LinkedHashMap<>(totalRequests);
     }
 
-    static <T extends PaxosResponse> PaxosResponseAccumulator<T> newResponse(
+    static <S, T extends PaxosResponse> PaxosResponseAccumulator<S, T> newResponse(
             int totalRequests,
             int quorumSize,
-            boolean shortcut) {
-        return new PaxosResponseAccumulator<>(totalRequests, quorumSize, shortcut);
+            Predicate<InProgressResponseState<S, T>> customShortcutPredicate) {
+        return new PaxosResponseAccumulator<>(totalRequests, quorumSize, customShortcutPredicate);
     }
 
-    void add(T response) {
+    void add(S service, T response) {
         if (response.isSuccessful()) {
             successes++;
         } else {
             failures++;
         }
-        responses.add(response);
+        T oldValue = responsesByService.put(service, response);
+        Preconditions.checkState(oldValue == null, "Received response for same service multiple times!");
     }
 
     boolean hasMoreRequests() {
         return successes + failures < totalRequests;
-    }
-
-    private boolean shouldGiveUpOnAchievingQuorum() {
-        return shortcut && failures > totalRequests - quorum;
     }
 
     boolean hasQuorum() {
@@ -64,15 +71,24 @@ final class PaxosResponseAccumulator<T extends PaxosResponse> {
     }
 
     boolean shouldProcessNextRequest() {
-        return !hasQuorum() && !shouldGiveUpOnAchievingQuorum();
+        return !shouldShortcutPredicate.test(currentState());
     }
 
     void markFailure() {
         failures++;
     }
 
-    PaxosResponses<T> collect() {
-        return PaxosResponses.of(quorum, responses);
+    PaxosResponsesWithRemote<S, T> collect() {
+        return PaxosResponsesWithRemote.of(quorum, responsesByService);
+    }
+
+    private InProgressResponseState<S, T> currentState() {
+        return ImmutableInProgressResponseState.<S, T>builder()
+                .responses(responsesByService)
+                .successes(successes)
+                .failures(failures)
+                .totalRequests(totalRequests)
+                .build();
     }
 
 }

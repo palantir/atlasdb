@@ -20,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
@@ -27,7 +28,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.net.HostAndPort;
+import com.google.common.collect.Maps;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosProposer;
 
@@ -37,7 +38,7 @@ public class PaxosLeaderEventsTest {
     PaxosLeaderElectionService electionService = new PaxosLeaderElectionServiceBuilder()
             .proposer(mock(PaxosProposer.class))
             .knowledge(mock(PaxosLearner.class))
-            .potentialLeadersToHosts(ImmutableMap.<PingableLeader, HostAndPort>of())
+            .potentialLeadersToHosts(ImmutableMap.of())
             .acceptors(ImmutableList.of())
             .learners(ImmutableList.of())
             .executor(Executors.newSingleThreadExecutor())
@@ -50,7 +51,7 @@ public class PaxosLeaderEventsTest {
     @Test
     public void recordsLeaderPingFailure() throws InterruptedException {
         RuntimeException error = new RuntimeException("foo");
-        CompletableFuture<Boolean> pingFuture = new CompletableFuture<>();
+        CompletableFuture<Map.Entry<PingableLeader, Boolean>> pingFuture = new CompletableFuture<>();
         pingFuture.completeExceptionally(error);
 
         boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
@@ -63,7 +64,7 @@ public class PaxosLeaderEventsTest {
     @Test
     public void recordsLeaderPingTimeout() throws InterruptedException {
         // a null result from ExecutorCompletionService indicates that no results were available before the timeout
-        CompletableFuture<Boolean> pingFuture = null;
+        CompletableFuture<Map.Entry<PingableLeader, Boolean>> pingFuture = null;
 
         boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
         assertThat(result).isFalse();
@@ -74,7 +75,8 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void recordsLeaderPingReturnedFalse() throws InterruptedException {
-        CompletableFuture<Boolean> pingFuture = CompletableFuture.completedFuture(false);
+        CompletableFuture<Map.Entry<PingableLeader, Boolean>> pingFuture = CompletableFuture.completedFuture(
+                Maps.immutableEntry(mock(PingableLeader.class), false));
 
         boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
         assertThat(result).isFalse();
@@ -85,7 +87,8 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void doesNotRecordLeaderPingSuccess() throws InterruptedException {
-        CompletableFuture<Boolean> pingFuture = CompletableFuture.completedFuture(true);
+        CompletableFuture<Map.Entry<PingableLeader, Boolean>> pingFuture = CompletableFuture.completedFuture(
+                Maps.immutableEntry(mock(PingableLeader.class), true));
 
         boolean result = electionService.getAndRecordLeaderPingResult(pingFuture);
         assertThat(result).isTrue();

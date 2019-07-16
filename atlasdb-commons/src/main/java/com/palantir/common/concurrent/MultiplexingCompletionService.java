@@ -26,6 +26,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * A MultiplexingCompletionService is much like a {@link java.util.concurrent.ExecutorCompletionService}, but
@@ -41,10 +42,10 @@ import com.google.common.collect.ImmutableMap;
  */
 public class MultiplexingCompletionService<K, V> {
     private final ImmutableMap<K, ExecutorService> executors;
-    private final BlockingQueue<Future<V>> taskQueue;
+    private final BlockingQueue<Future<Map.Entry<K, V>>> taskQueue;
 
     private MultiplexingCompletionService(
-            ImmutableMap<K, ExecutorService> executors, BlockingQueue<Future<V>> taskQueue) {
+            ImmutableMap<K, ExecutorService> executors, BlockingQueue<Future<Map.Entry<K, V>>> taskQueue) {
         this.executors = executors;
         this.taskQueue = taskQueue;
     }
@@ -63,32 +64,35 @@ public class MultiplexingCompletionService<K, V> {
      *
      * @throws IllegalStateException if the key provided is not associated with any executor
      */
-    public Future<V> submit(K key, Callable<V> task) {
+    public Future<Map.Entry<K, V>> submit(K key, Callable<V> task) {
         ExecutorService targetExecutor = executors.get(key);
         if (targetExecutor == null) {
             throw new IllegalStateException("The key provided to the multiplexing completion service doesn't exist!");
         }
-        return submitAndPrepareForQueueing(targetExecutor, task);
+        return submitAndPrepareForQueueing(targetExecutor, key, task);
     }
 
-    public Future<V> poll() {
+    public Future<Map.Entry<K, V>> poll() {
         return taskQueue.poll();
     }
 
-    public Future<V> poll(long timeout, TimeUnit unit) throws InterruptedException {
+    public Future<Map.Entry<K, V>> poll(long timeout, TimeUnit unit) throws InterruptedException {
         return taskQueue.poll(timeout, unit);
     }
 
-    private Future<V> submitAndPrepareForQueueing(ExecutorService delegate, Callable<V> callable) {
-        FutureTask<V> futureTask = new FutureTask<>(callable);
+    private Future<Map.Entry<K, V>> submitAndPrepareForQueueing(
+            ExecutorService delegate,
+            K key,
+            Callable<V> callable) {
+        FutureTask<Map.Entry<K, V>> futureTask = new FutureTask<>(() -> Maps.immutableEntry(key, callable.call()));
         delegate.submit(new QueueTask(futureTask), null);
         return futureTask;
     }
 
-    private class QueueTask extends FutureTask<V> {
-        private final RunnableFuture<V> runnable;
+    private class QueueTask extends FutureTask<Map.Entry<K, V>> {
+        private final RunnableFuture<Map.Entry<K, V>> runnable;
 
-        private QueueTask(RunnableFuture<V> runnable) {
+        private QueueTask(RunnableFuture<Map.Entry<K, V>> runnable) {
             super(runnable, null);
             this.runnable = runnable;
         }
