@@ -40,8 +40,8 @@ public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
 
     /*
-        By memoizing thread factories per loggable purpose, the names are correct for multiple instances of the same
-        autobatcher function.
+        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
+        instances of the same autobatcher function.
      */
     private static final ConcurrentMap<String, ThreadFactory> threadFactories = Maps.newConcurrentMap();
 

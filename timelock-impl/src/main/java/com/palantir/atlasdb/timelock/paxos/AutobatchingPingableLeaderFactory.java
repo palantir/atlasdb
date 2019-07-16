@@ -25,19 +25,19 @@ import com.palantir.atlasdb.autobatch.Autobatchers.SupplierKey;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.leader.PingableLeader;
 
-public class AutobatchingPaxosPingableLeaderFactory implements Closeable {
+public class AutobatchingPingableLeaderFactory implements Closeable {
 
     private final DisruptorAutobatcher<Client, Boolean> pingAutobatcher;
     private final DisruptorAutobatcher<SupplierKey, UUID> uuidAutobatcher;
 
-    public AutobatchingPaxosPingableLeaderFactory(
+    public AutobatchingPingableLeaderFactory(
             DisruptorAutobatcher<Client, Boolean> pingAutobatcher,
             DisruptorAutobatcher<SupplierKey, UUID> uuidAutobatcher) {
         this.pingAutobatcher = pingAutobatcher;
         this.uuidAutobatcher = uuidAutobatcher;
     }
 
-    public static AutobatchingPaxosPingableLeaderFactory create(BatchPingableLeader batchPingableLeader) {
+    public static AutobatchingPingableLeaderFactory create(BatchPingableLeader batchPingableLeader) {
         DisruptorAutobatcher<Client, Boolean> pingAutobatcher =
                 Autobatchers.coalescing(new PingCoalescingFunction(batchPingableLeader))
                         .safeLoggablePurpose("batch-paxos-pingable-leader.ping")
@@ -48,7 +48,7 @@ public class AutobatchingPaxosPingableLeaderFactory implements Closeable {
                         .safeLoggablePurpose("batch-paxos-pingable-leader.uuid")
                         .build();
 
-        return new AutobatchingPaxosPingableLeaderFactory(pingAutobatcher, uuidAutobatcher);
+        return new AutobatchingPingableLeaderFactory(pingAutobatcher, uuidAutobatcher);
     }
 
     public PingableLeader pingableLeaderFor(Client client) {

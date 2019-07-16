@@ -58,17 +58,17 @@ public class AutobatchingPaxosAcceptorNetworkClientFactory implements Closeable 
 
         DisruptorAutobatcher<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosResponses<PaxosPromise>> prepare =
                 Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, PrepareCoalescingFunction::new))
-                        .safeLoggablePurpose("batch-paxos-acceptor-prepare")
+                        .safeLoggablePurpose("batch-paxos-acceptor.prepare")
                         .build();
 
         DisruptorAutobatcher<Map.Entry<Client, PaxosProposal>, PaxosResponses<BooleanPaxosResponse>> accept =
                 Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, AcceptCoalescingFunction::new))
-                        .safeLoggablePurpose("batch-paxos-acceptor-accept")
+                        .safeLoggablePurpose("batch-paxos-acceptor.accept")
                         .build();
 
         DisruptorAutobatcher<Client, PaxosResponses<PaxosLong>> latestSequenceAutobatcher =
                 Autobatchers.coalescing(wrap(acceptors, executor, quorumSize, BatchingPaxosLatestSequenceCache::new))
-                        .safeLoggablePurpose("batch-paxos-acceptor-latest-sequence-cache")
+                        .safeLoggablePurpose("batch-paxos-acceptor.latest-sequence-cache")
                         .build();
 
         return new AutobatchingPaxosAcceptorNetworkClientFactory(prepare, accept, latestSequenceAutobatcher);
