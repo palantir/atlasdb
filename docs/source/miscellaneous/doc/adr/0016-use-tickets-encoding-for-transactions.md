@@ -501,23 +501,26 @@ the Cassandra cluster was unable to actually have these therads all do work conc
 
 ### Determining Which Transaction Service To Use
 
-Effectively, we want to define  an internal schema version for AtlasDB, and implement a mechanism for performing schema
+Effectively, we want to define an internal schema version for AtlasDB, and implement a mechanism for performing schema
 transitions while ensuring nodes that want to commit transactions agree on the state of the world - or at least,
 agree sufficiently that they won't contradict one another.
+
+For a given start timestamp, we want to be able to decide what mechanism to use to find the commit timestamp (or,
+alternatively, if the transaction was aborted).
 
 #### Coordination Service
 
 We introduce a notion of a coordination service, which agrees on values being relevant or correct at a given timestamp.
 The sequence of values being agreed needs to evolve in a *backwards consistent* manner - that is, one should avoid
 changes that may affect behaviour for decisions made at timestamps before the point where one is making one's update.
-More formally, if we read a value for some timestamp TS, then all future values written must then ensure that decisions
-made at TS would be done in a way consistent with our initial read.
+More formally, if we read a value for some timestamp ``TS``, then all future values written must then ensure that
+decisions made at ``TS`` would be done in a way consistent with our initial read.
 
 Values provided are valid up to a specific timestamp, called the validity bound. When a transform is applied, a fresh
-timestamp F is taken, and the new value will be written with a validity bound F + C for some constant C. Going forward,
-the behaviour for updates up to the previous bound must be preserved (which means decisions would be the same whether
-other service nodes read the new value or not). Nodes must not make decisions based on values read with a validity
-bound less than their timestamp of interest.
+timestamp ``F`` is taken, and the new value will be written with a validity bound ``F + C`` for some constant ``C``.
+Going forward, the behaviour for updates up to the previous bound must be preserved (which means decisions would be the
+same whether other service nodes read the new value or not). Nodes must not make decisions based on values read with a
+validity bound less than their timestamp of interest.
 
 ```java
 public interface CoordinationService<T> {
@@ -560,17 +563,29 @@ time) depending on the specific timestamps involved in calls.
 The mechanism for determining which ``TransactionService`` to use goes through the aforementioned
 ``CoordinationService``. We agree on a ``TimestampPartitioningMap``, which is a mapping of timestamps to transaction
 schema versions. This is a range map, as we want to support rollbacks easily. The map also is guaranteed to span the
-ranges [1, +∞) and be connected; note that this does not mean future behaviour is fixed, since in practice this map
-is read together with a validity bound. Thus, even though the map will contain as a key some range [C, +∞) for a
-constant C, it should be valid up to some point V > C - and behaviour at timestamps after V may subsequently be changed.
+ranges ``[1, +∞)`` and be connected; note that this does not mean future behaviour is fixed, since in practice this map
+is read together with a validity bound. Thus, even though the map will contain as a key some range ``[C, +∞)`` for a
+constant ``C``, it should be valid up to some point ``V > C`` - and behaviour at timestamps after ``V`` may subsequently
+be changed.
+
+Note that the ranges are based on the start timestamp. To give a concrete example, if our range map is
+``{[1, 5000) = 1, [5000, +∞) = 2}`` and we want to commit a transaction that started at timestamp 4990 and finished
+at 5010, it is still stored under schema version 1 (even if other transactions that started later may have already
+written to schema version 2 - if they started at 5000 and finished at 5001, for instance).
 
 We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
 retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
 current value. We then read the value again, and keep trying until we know what version to use. If we read a version
 we don't support yet, we throw (presumably, this is part of a rolling upgrade and should resolve itself soon).
 
-Installing transactions2 itself is done by a background thread that submits a transform that installs version 2 (or
-whatever specific version is included in config).
+#### Changing Transaction Schema Versions
+
+AtlasDB clients continuously run a background thread that polls the runtime configuration. If that sets the
+target schema version to a specific version (which at time of writing can be 1 or 2), a transform will be run
+setting the transactions schema version going forward to that version.
+
+This is optional; if not configured, we will not attempt to run any transforms so the transaction schema version will
+remain what it is.
 
 ### Live Migrations
 
