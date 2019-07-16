@@ -110,11 +110,11 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         objects.assertEqual(info, getGaugeThorough(AtlasDbMetricNames.LAG_MILLIS).getValue(), value);
     }
 
-    public void hasEntriesReadInBatchConservativeEqualTo(long... outcomes) {
+    public void containsEntriesReadInBatchConservative(long... outcomes) {
         arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotConservative().getValues(), outcomes);
     }
 
-    public void hasEntriesReadInBatchThoroughEqualTo(long... outcomes) {
+    public void containsEntriesReadInBatchThorough(long... outcomes) {
         arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotThorough().getValues(), outcomes);
     }
 
@@ -163,21 +163,23 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     private Double getEntriesReadInBatchMeanConservative() {
-        return (Double) getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN).getValue();
+        Gauge<Double> gauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return gauge.getValue();
     }
 
     private Double getEntriesReadInBatchMeanThorough() {
-        return (Double) getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN).getValue();
+        Gauge<Double> gauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return gauge.getValue();
     }
 
     private Snapshot getBatchSizeSnapshotConservative() {
-        Gauge<Double> asGauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
-        return ((SlidingWindowMeanGauge) asGauge).getSnapshot();
+        Gauge<Double> gauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) gauge).getSnapshot();
     }
 
     private Snapshot getBatchSizeSnapshotThorough() {
-        Gauge<Double> asGauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
-        return ((SlidingWindowMeanGauge) asGauge).getSnapshot();
+        Gauge<Double> gauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) gauge).getSnapshot();
     }
 
     private static String getTagForStrategy(SweepStrategy strategy) {

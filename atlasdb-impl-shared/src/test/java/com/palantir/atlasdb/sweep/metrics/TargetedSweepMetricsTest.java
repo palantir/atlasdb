@@ -70,7 +70,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(null);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(null);
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(null);
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo();
+        assertThat(metricsManager).containsEntriesReadInBatchConservative();
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(0.0);
     }
 
@@ -91,7 +91,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
         assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(4L);
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo(100L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(100L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(100.0);
 
         puncherStore.put(3, 2);
@@ -117,7 +117,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasAbortedWritesDeletedThoroughEqualTo(3);
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(9);
         assertThat(metricsManager).hasLastSweptTimestampThoroughEqualTo(6);
-        assertThat(metricsManager).hasEntriesReadInBatchThoroughEqualTo(50L);
+        assertThat(metricsManager).containsEntriesReadInBatchThorough(50L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanThoroughEqualTo(50.0);
 
         puncherStore.put(5, 1);
@@ -220,7 +220,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1);
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(7L);
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo(20L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(20L);
 
         secondMetrics.updateEnqueuedWrites(CONS_ZERO, 5);
         secondMetrics.updateEntriesRead(CONS_ZERO, 5);
@@ -234,7 +234,7 @@ public class TargetedSweepMetricsTest {
         assertThat(metricsManager).hasTombstonesPutConservativeEqualTo(1 + 5);
         assertThat(metricsManager).hasAbortedWritesDeletedConservativeEquals(2 + 5);
         assertThat(metricsManager).hasSweepTimestampConservativeEqualTo(5L);
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo(20L, 15L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(20L, 15L);
     }
 
     @Test
@@ -434,7 +434,7 @@ public class TargetedSweepMetricsTest {
         metrics.registerEntriesReadInBatch(CONS_ZERO, 10);
         metrics.registerEntriesReadInBatch(CONS_ONE, 15);
 
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo(5L, 10L, 15L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(5L, 10L, 15L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(10.0);
     }
 
@@ -445,8 +445,8 @@ public class TargetedSweepMetricsTest {
         metrics.registerEntriesReadInBatch(THOR_ZERO, 15);
         metrics.registerEntriesReadInBatch(THOR_ZERO, 25);
 
-        assertThat(metricsManager).hasEntriesReadInBatchConservativeEqualTo(5L, 10L);
-        assertThat(metricsManager).hasEntriesReadInBatchThoroughEqualTo(15L, 25L);
+        assertThat(metricsManager).containsEntriesReadInBatchConservative(5L, 10L);
+        assertThat(metricsManager).containsEntriesReadInBatchThorough(15L, 25L);
         assertThat(metricsManager).hasEntriesReadInBatchMeanConservativeEqualTo(7.5);
         assertThat(metricsManager).hasEntriesReadInBatchMeanThoroughEqualTo(20.0);
     }

@@ -50,10 +50,10 @@ public class AggregatingVersionedSupplier<T> implements Supplier<VersionedType<T
     }
 
     public static <C extends Comparable<C>> AggregatingVersionedSupplier<C> min(long expirationMillis) {
-        return new AggregatingVersionedSupplier<>(AggregatingVersionedSupplier::minimum, expirationMillis);
+        return new AggregatingVersionedSupplier<>(AggregatingVersionedSupplier::min, expirationMillis);
     }
 
-    private static <C extends Comparable<C>> C minimum(Collection<C> currentValues) {
+    private static <C extends Comparable<C>> C min(Collection<C> currentValues) {
         return currentValues.stream().min(Comparator.naturalOrder()).orElse(null);
     }
 
