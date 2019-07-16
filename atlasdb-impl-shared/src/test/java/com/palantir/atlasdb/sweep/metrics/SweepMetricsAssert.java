@@ -27,13 +27,14 @@ import org.assertj.core.internal.LongArrays;
 import org.assertj.core.internal.Objects;
 
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Snapshot;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.tritium.metrics.registry.MetricName;
 
 public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert, MetricsManager> {
@@ -110,15 +111,11 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     }
 
     public void hasEntriesReadInBatchConservativeEqualTo(long... outcomes) {
-        arrays.assertContainsExactlyInAnyOrder(info,
-                getBatchSizeHistogram(SweepStrategy.CONSERVATIVE).getSnapshot().getValues(),
-                outcomes);
+        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotConservative().getValues(), outcomes);
     }
 
     public void hasEntriesReadInBatchThoroughEqualTo(long... outcomes) {
-        arrays.assertContainsExactlyInAnyOrder(info,
-                getBatchSizeHistogram(SweepStrategy.THOROUGH).getSnapshot().getValues(),
-                outcomes);
+        arrays.assertContainsExactlyInAnyOrder(info, getBatchSizeSnapshotThorough().getValues(), outcomes);
     }
 
     public void hasEntriesReadInBatchMeanConservativeEqualTo(double value) {
@@ -173,11 +170,14 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         return (Double) getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN).getValue();
     }
 
-    private Histogram getBatchSizeHistogram(SweepStrategy strategy) {
-        Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, getTagForStrategy(strategy));
-        MetricName metricName = getMetricName(TargetedSweepMetrics.class, AtlasDbMetricNames.BATCH_SIZE, tag);
+    private Snapshot getBatchSizeSnapshotConservative() {
+        Gauge<Double> asGauge = getGaugeConservative(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) asGauge).getSnapshot();
+    }
 
-        return (Histogram) metrics.getTaggedRegistry().getMetrics().get(metricName);
+    private Snapshot getBatchSizeSnapshotThorough() {
+        Gauge<Double> asGauge = getGaugeThorough(AtlasDbMetricNames.BATCH_SIZE_MEAN);
+        return ((SlidingWindowMeanGauge) asGauge).getSnapshot();
     }
 
     private static String getTagForStrategy(SweepStrategy strategy) {

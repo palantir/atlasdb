@@ -24,9 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.Gauge;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
@@ -36,6 +33,7 @@ import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.util.AccumulatingValueMetric;
 import com.palantir.atlasdb.util.CurrentValueMetric;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.atlasdb.util.SlidingWindowMeanGauge;
 import com.palantir.common.time.Clock;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -131,7 +129,7 @@ public class TargetedSweepMetrics {
         private final CurrentValueMetric<Long> sweepTimestamp;
         private final AggregatingVersionedMetric<Long> lastSweptTs;
         private final SweepOutcomeMetrics outcomeMetrics;
-        private final Histogram batchSizeMetrics;
+        private final SlidingWindowMeanGauge batchSizeMean;
 
         private MetricsForStrategy(MetricsManager manager, String strategy, Function<Long, Long> tsToMillis,
                 Clock wallClock, long recomputeMillis) {
@@ -143,15 +141,9 @@ public class TargetedSweepMetrics {
             abortedWritesDeleted = registerAccumulating(AtlasDbMetricNames.ABORTED_WRITES_DELETED);
             sweepTimestamp = register(AtlasDbMetricNames.SWEEP_TS, new CurrentValueMetric<>());
             lastSweptTs = registerLastSweptTsMetric(recomputeMillis);
-
             registerMillisSinceLastSweptMetric(tsToMillis, wallClock, recomputeMillis);
-
             outcomeMetrics = SweepOutcomeMetrics.registerTargeted(manager, tag);
-            batchSizeMetrics = registerBatchSizeMetrics();
-
-            Supplier<Double> meanBatchSize = Suppliers.memoizeWithExpiration(
-                    () -> batchSizeMetrics.getSnapshot().getMean(), 30, TimeUnit.SECONDS);
-            register(AtlasDbMetricNames.BATCH_SIZE_MEAN, meanBatchSize::get);
+            batchSizeMean = register(AtlasDbMetricNames.BATCH_SIZE_MEAN, new SlidingWindowMeanGauge());
         }
 
         private AccumulatingValueMetric registerAccumulating(String name) {
@@ -194,12 +186,6 @@ public class TargetedSweepMetrics {
             return result;
         }
 
-        private Histogram registerBatchSizeMetrics() {
-            Supplier<Histogram> supplier = () -> new Histogram(new SlidingTimeWindowArrayReservoir(1, TimeUnit.HOURS));
-            return manager.registerOrGetTaggedHistogram(TargetedSweepMetrics.class, AtlasDbMetricNames.BATCH_SIZE, tag,
-                    supplier);
-        }
-
         private void updateEnqueuedWrites(long writes) {
             enqueuedWrites.accumulateValue(writes);
         }
@@ -229,7 +215,7 @@ public class TargetedSweepMetrics {
         }
 
         public void registerEntriesReadInBatch(long batchSize) {
-            batchSizeMetrics.update(batchSize);
+            batchSizeMean.update(batchSize);
         }
     }
 }
