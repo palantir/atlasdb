@@ -18,20 +18,24 @@ package com.palantir.atlasdb.autobatch;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.SettableFuture;
 import com.lmax.disruptor.EventHandler;
+import com.palantir.logsafe.SafeArg;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
+    private static final Logger log = LoggerFactory.getLogger(CoalescingBatchingEventHandler.class);
+
     private final CoalescingRequestFunction<T, R> function;
     private final SetMultimap<T, SettableFuture<R>> pending;
-    private final R defaultValue;
 
     CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize) {
         this.function = function;
-        this.defaultValue = function.defaultValue();
         this.pending = HashMultimap.create(bufferSize, 5);
     }
 
@@ -46,7 +50,15 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     private void flush() {
         try {
             Map<T, R> results = function.apply(pending.keySet());
-            pending.forEach((argument, future) -> future.set(results.getOrDefault(argument, defaultValue)));
+            pending.forEach((argument, future) -> {
+                if (results.containsKey(argument)) {
+                    future.set(results.get(argument));
+                } else {
+                    log.warn("Coalescing function has violated coalescing function postcondition",
+                            SafeArg.of("functionClass", function.getClass().getCanonicalName()));
+                    future.setException(new PostconditionFailedException(function.getClass()));
+                }
+            });
         } catch (Throwable t) {
             pending.forEach((unused, future) -> future.setException(t));
         }

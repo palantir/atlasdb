@@ -37,19 +37,18 @@ final class PrepareCoalescingFunction implements
     }
 
     @Override
-    public PaxosPromise defaultValue() {
-        throw new AssertionError("no default value");
-    }
-
-    @Override
     public Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> apply(
-            Set<Map.Entry<Client, WithSeq<PaxosProposalId>>> request) {
-        SetMultimap<Client, WithSeq<PaxosProposalId>> requests = ImmutableSetMultimap.copyOf(request);
+            Set<Map.Entry<Client, WithSeq<PaxosProposalId>>> requestEntries) {
+        SetMultimap<Client, WithSeq<PaxosProposalId>> requests = ImmutableSetMultimap.copyOf(requestEntries);
 
-        return KeyedStream.stream(delegate.prepare(requests))
+        SetMultimap<Client, WithSeq<PaxosPromise>> prepareResult = delegate.prepare(requests);
+        Map<Map.Entry<Client, WithSeq<PaxosProposalId>>, PaxosPromise> responsesMap = KeyedStream.stream(prepareResult)
                 .mapKeys((client, paxosPromiseWithSeq) -> Maps.immutableEntry(client,
                         WithSeq.of(paxosPromiseWithSeq.value().getPromisedId(), paxosPromiseWithSeq.seq())))
                 .map(WithSeq::value)
                 .collectToMap();
+
+        return Maps.toMap(requestEntries, requestEntry ->
+                responsesMap.getOrDefault(requestEntry, PaxosPromise.reject(requestEntry.getValue().value())));
     }
 }

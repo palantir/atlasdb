@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
@@ -29,6 +30,8 @@ import com.palantir.paxos.PaxosValue;
 final class LearnedValuesCoalescingFunction implements
         CoalescingRequestFunction<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> {
 
+    private static final PaxosContainer<Optional<PaxosValue>> DEFAULT_VALUE = PaxosContainer.of(Optional.empty());
+
     private final BatchPaxosLearner delegate;
 
     LearnedValuesCoalescingFunction(BatchPaxosLearner delegate) {
@@ -36,18 +39,16 @@ final class LearnedValuesCoalescingFunction implements
     }
 
     @Override
-    public PaxosContainer<Optional<PaxosValue>> defaultValue() {
-        return PaxosContainer.of(Optional.empty());
-    }
-
-    @Override
     public Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> apply(Set<WithSeq<Client>> request) {
         SetMultimap<Client, PaxosValue> learnedValues = delegate.getLearnedValues(request);
-        return KeyedStream.stream(learnedValues)
+
+        Map<WithSeq<Client>, PaxosContainer<Optional<PaxosValue>>> resultMap = KeyedStream.stream(learnedValues)
                 .mapKeys((client, paxosValue) -> WithSeq.of(client, paxosValue.getRound()))
                 .map(Optional::ofNullable)
                 .map(PaxosContainer::of)
                 .collectToMap();
+
+        return Maps.toMap(request, clientWithSeq -> resultMap.getOrDefault(clientWithSeq, DEFAULT_VALUE));
     }
 
 }

@@ -36,11 +36,6 @@ final class LearnCoalescingConsumer implements CoalescingRequestFunction<Map.Ent
     }
 
     @Override
-    public PaxosResponse defaultValue() {
-        return new PaxosResponseImpl(false);
-    }
-
-    @Override
     public Map<Map.Entry<Client, PaxosValue>, PaxosResponse> apply(Set<Map.Entry<Client, PaxosValue>> request) {
         delegate.learn(ImmutableSetMultimap.copyOf(request));
         return Maps.toMap(request, $ -> SUCCESSFUL_RESPONSE);

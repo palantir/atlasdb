@@ -43,11 +43,6 @@ final class LearnedValuesSinceCoalescingFunction
     }
 
     @Override
-    public PaxosUpdate defaultValue() {
-        return new PaxosUpdate(ImmutableList.of());
-    }
-
-    @Override
     public Map<WithSeq<Client>, PaxosUpdate> apply(Set<WithSeq<Client>> request) {
         Map<Client, Long> remoteRequest = request.stream()
                 .collect(toMap(WithSeq::value, WithSeq::seq, Math::min));

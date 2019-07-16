@@ -43,6 +43,7 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
     private final List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates;
     private final Map<? extends CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors;
     private final int quorumSize;
+    private final PaxosResponses<RESPONSE> defaultValue;
 
     public PaxosQuorumCheckingCoalescingFunction(
             List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates,
@@ -51,23 +52,19 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
         this.delegates = delegates;
         this.executors = executors;
         this.quorumSize = quorumSize;
+        this.defaultValue = PaxosResponses.of(quorumSize, ImmutableList.of());
     }
 
     @Override
-    public PaxosResponses<RESPONSE> defaultValue() {
-        return PaxosResponses.of(quorumSize, ImmutableList.of());
-    }
-
-    @Override
-    public Map<REQUEST, PaxosResponses<RESPONSE>> apply(Set<REQUEST> request) {
+    public Map<REQUEST, PaxosResponses<RESPONSE>> apply(Set<REQUEST> requests) {
         PaxosResponses<PaxosContainer<Map<REQUEST, RESPONSE>>> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(delegates),
-                delegate -> PaxosContainer.of(delegate.apply(request)),
+                delegate -> PaxosContainer.of(delegate.apply(requests)),
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
 
-        return responses.stream()
+        Map<REQUEST, PaxosResponses<RESPONSE>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
@@ -76,6 +73,8 @@ public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends Pax
                         mapping(Map.Entry::getValue, collectingAndThen(
                                 toList(),
                                 responseForSingleRequest -> PaxosResponses.of(quorumSize, responseForSingleRequest)))));
+
+        return Maps.toMap(requests, request -> responseMap.getOrDefault(request, defaultValue));
     }
 
     public static <REQUEST, RESPONSE extends PaxosResponse, SERVICE>
