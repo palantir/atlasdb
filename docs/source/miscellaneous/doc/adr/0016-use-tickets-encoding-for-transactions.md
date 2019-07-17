@@ -443,17 +443,50 @@ public interface CoordinationService<T> {
 }
 ```
 
-#### Physical Implementation
+##### Coordination Service Persistence
 
 The coordination service needs to persist state; we've implemented this as a non-transactional table in the AtlasDB
 key-value service called ``_coordination``. Within this table, each sequence of values being agreed on takes up one row.
 The values themselves are stored as dynamic columns with a var-long dynamic column key.
 
-- The value stored at column 0 is a ``SequenceAndBound`` which indicates the sequence number of the currently valid
-  value and the validity bound.
-- Values are stored at column IDs equal to a fresh timestamp at the time they're written.
+- The dynamic column value stored with dynamic column key 0 is a ``SequenceAndBound`` which indicates the sequence
+  number of the currently valid value and the validity bound.
+- The values to be agreed upon are stored as dynamic column values. These are stored at dynamic column keys which
+  correspond to fresh timestamps taken at the time they were written. Dynamic column keys are stored as ``VAR_LONG``s.
 
-For example, the Cassandra representation of the coordination table may look as follows.
+Conceptually, the state of the table may look as follows:
+
+| Sequence Id | Sequence Number |                              Value |
+|------------:|----------------:|-----------------------------------:|
+|           m |               0 | {"sequence":13007,"bound":5013007} |
+|           m |           10001 |                  <metadata object> |
+|           m |           13007 |        <different metadata object> |
+
+The sequence ID is the same, to reflect that these values are a part of the same sequence; ``m`` is chosen for
+AtlasDB's internal schema metadata in general, and isn't particularly meaningful in and of itself.
+
+The dynamic column value stored at dynamic column key 0 indicates that the ``<different metadata object>`` stored with
+dynamic column key ``13007`` is the value currently agreed on, and may be used to make decisions for timestamps up to
+``5013007``. The dynamic column value stored at dynamic column key ``10001`` is not active (also note that it may never
+actually have been agreed on, if its write was concurrent with that of the value at ``13007``).
+
+The main reason for this scheme is that while the validity bound itself changes frequently (approximately every
+``ADVANCEMENT_QUANTUM`` timestamps, which is ``5,000,000`` at time of writing), the value itself changes much less
+often. For example, with transactions2, in the absence of rollbacks, the value is expected to change just once in the
+service's lifetime, keeping track of the point where reading from transactions2 should begin.
+To further support this scheme, the coordination service recognises identity transformations from the current value,
+and doesn't write a new value in these cases.
+
+We have not implemented cleanup of the coordination service at this time, as we don't expect the number of values
+in a coordination sequence to be large. Furthermore, we don't ever range scan this table.
+
+##### Physical Implementation
+
+The schema above may be implemented in a mostly straightforward way. Note that this table is read and written
+non-transactionally, so the timestamp column is unused and always zero.
+
+Recall that for dynamic columns in Cassandra, ``key`` corresponds to the row, ``column1`` to dynamic column keys,
+``column2`` to timestamps and ``value`` to dynamic column values.
 
 |  key | column1 | column2 |                                                                  value |
 |-----:|--------:|--------:|-----------------------------------------------------------------------:|
@@ -461,20 +494,11 @@ For example, the Cassandra representation of the coordination table may look as 
 | 0x6d |  0xa711 |      -1 |                                     0x7b2276657...3334227d (216 bytes) |
 | 0x6d |  0xb2cf |      -1 |                                     0x7b2276657...3930227d (380 bytes) |
 
-The single ``key`` reflects that these values are all part of the same sequence of values. The column IDs are
-``VAR_LONG`` encoded; ``0x00`` maps to zero, and the associated value decodes to a ``SequenceAndBound``, in this
-example ``{"sequence":13007,"bound":5013007}``. This means that the value at the column associated with sequence
-``13007`` (which encodes to ``b2cf``) is the currently agreed value; the value in column ``a711`` is not current.
+The sequence IDs are encoded as a ``STRING``. The column IDs are ``VAR_LONG`` encoded.
 
-The main reason for this scheme is that while the validity bound itself changes frequently (approximately every
-``ADVANCEMENT_QUANTUM`` timestamps, which is 5,000,000 at time of writing), the value itself changes much less often.
-For example, with transactions2, in the absence of rollbacks, the value is expected to change just once in the
-service's lifetime, keeping track of the point where reading from transactions2 should begin.
-To further support this scheme, the coordination service recognises identity transformations from the current value,
-and doesn't write a new value in these cases.
-
-We have not implemented cleanup of the coordination service at this time, as we don't expect the number of values
-in a coordination sequence to be large. Furthermore, we don't ever range scan this table.
+A consequence of this in Cassandra KVS is that all entries for a single coordination sequence will be stored in the
+same replication group. However, this is expected to be acceptable as we don't range scan this table, and the number
+of values to be written is small.
 
 #### Determining Transaction Schema Versions
 
