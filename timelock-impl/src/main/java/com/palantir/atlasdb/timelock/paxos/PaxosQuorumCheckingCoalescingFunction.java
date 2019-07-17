@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import java.util.Collection;
 import java.util.List;
@@ -31,65 +32,93 @@ import java.util.function.Function;
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.PaxosQuorumChecker;
 import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
+import com.palantir.paxos.PaxosResponsesWithRemote;
 
-public class PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE extends PaxosResponse> implements
-        CoalescingRequestFunction<REQUEST, PaxosResponses<RESPONSE>> {
+public class PaxosQuorumCheckingCoalescingFunction<
+        REQ, RESP extends PaxosResponse, FUNC extends CoalescingRequestFunction<REQ, RESP>> implements
+        CoalescingRequestFunction<REQ, PaxosResponsesWithRemote<FUNC, RESP>> {
 
-    private final List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates;
-    private final Map<? extends CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors;
+    private final List<FUNC> delegates;
+    private final Map<FUNC, ExecutorService> executors;
     private final int quorumSize;
-    private final PaxosResponses<RESPONSE> defaultValue;
+    private final PaxosResponsesWithRemote<FUNC, RESP> defaultValue;
 
     public PaxosQuorumCheckingCoalescingFunction(
-            List<? extends CoalescingRequestFunction<REQUEST, RESPONSE>> delegates,
-            Map<? extends CoalescingRequestFunction<REQUEST, RESPONSE>, ExecutorService> executors,
+            List<FUNC> delegateFunctions,
+            Map<FUNC, ExecutorService> executors,
             int quorumSize) {
-        this.delegates = delegates;
+        this.delegates = delegateFunctions;
         this.executors = executors;
         this.quorumSize = quorumSize;
-        this.defaultValue = PaxosResponses.of(quorumSize, ImmutableList.of());
+        this.defaultValue = PaxosResponsesWithRemote.of(quorumSize, ImmutableMap.of());
     }
 
     @Override
-    public Map<REQUEST, PaxosResponses<RESPONSE>> apply(Set<REQUEST> requests) {
-        PaxosResponses<PaxosContainer<Map<REQUEST, RESPONSE>>> responses = PaxosQuorumChecker.collectQuorumResponses(
+    public Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> apply(Set<REQ> requests) {
+        PaxosResponsesWithRemote<FUNC, PaxosContainer<Map<REQ, RESP>>> responses = PaxosQuorumChecker.collectQuorumResponses(
                 ImmutableList.copyOf(delegates),
                 delegate -> PaxosContainer.of(delegate.apply(requests)),
                 quorumSize,
                 executors,
                 PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
 
-        Map<REQUEST, PaxosResponses<RESPONSE>> responseMap = responses.stream()
+        Map<REQ, PaxosResponsesWithRemote<FUNC, RESP>> responseMap = responses.stream()
                 .map(PaxosContainer::get)
+                .map(PaxosQuorumCheckingCoalescingFunction::attachFunctionToEntry)
+                .values()
                 .map(Map::entrySet)
                 .flatMap(Collection::stream)
                 .collect(groupingBy(
                         Map.Entry::getKey,
                         mapping(Map.Entry::getValue, collectingAndThen(
-                                toList(),
-                                responseForSingleRequest -> PaxosResponses.of(quorumSize, responseForSingleRequest)))));
+                                toMap(Map.Entry::getKey, Map.Entry::getValue),
+                                singleResponse -> PaxosResponsesWithRemote.of(quorumSize, singleResponse)))));
 
         return Maps.toMap(requests, request -> responseMap.getOrDefault(request, defaultValue));
     }
 
-    public static <REQUEST, RESPONSE extends PaxosResponse, SERVICE>
-    PaxosQuorumCheckingCoalescingFunction<REQUEST, RESPONSE> wrap(
+    private static <REQ, RESP, FUNC> Map<REQ, Map.Entry<FUNC, RESP>> attachFunctionToEntry(
+            FUNC function,
+            Map<REQ, RESP> map) {
+        return KeyedStream.stream(map)
+                .map(resp -> Maps.immutableEntry(function, resp))
+                .collectToMap();
+    }
+
+    public static <REQ, RESP extends PaxosResponse, SERVICE, F extends CoalescingRequestFunction<REQ, RESP>>
+    PaxosQuorumCheckingCoalescingFunction<REQ, RESP, F> wrapWithRemotes(
             List<SERVICE> services,
             ExecutorService executor,
             int quorumSize,
-            Function<SERVICE, ? extends CoalescingRequestFunction<REQUEST, RESPONSE>> function) {
+            Function<SERVICE, F> functionFactory) {
         return services.stream()
-                .map(function)
+                .map(functionFactory)
                 .collect(collectingAndThen(
                         toList(), functions -> new PaxosQuorumCheckingCoalescingFunction<>(
                                 functions,
                                 Maps.toMap(functions, $ -> executor),
                                 quorumSize)));
+    }
+
+    public static <REQ, RESP extends PaxosResponse, SERVICE, FUNCTION extends CoalescingRequestFunction<REQ, RESP>>
+    CoalescingRequestFunction<REQ, PaxosResponses<RESP>> wrap(
+            List<SERVICE> services,
+            ExecutorService executor,
+            int quorumSize,
+            Function<SERVICE, FUNCTION> functionFactory) {
+
+        PaxosQuorumCheckingCoalescingFunction<REQ, RESP, FUNCTION> wrap =
+                wrapWithRemotes(services, executor, quorumSize, functionFactory);
+
+        return request ->
+                KeyedStream.stream(wrap.apply(request)).map(PaxosResponsesWithRemote::withoutRemotes).collectToMap();
     }
 
     @Value.Immutable

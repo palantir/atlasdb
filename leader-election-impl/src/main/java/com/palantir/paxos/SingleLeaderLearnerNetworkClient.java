@@ -84,7 +84,7 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                 learner -> mapper.apply(Optional.ofNullable(learner.getLearnedValue(seq))),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
     }
 
     @Override
@@ -94,6 +94,6 @@ public class SingleLeaderLearnerNetworkClient implements PaxosLearnerNetworkClie
                 learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(seq))),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
     }
 }

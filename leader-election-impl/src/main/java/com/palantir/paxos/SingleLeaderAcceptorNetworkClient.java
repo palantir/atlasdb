@@ -44,7 +44,7 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.prepare(seq, proposalId),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
     }
 
     @Override
@@ -54,16 +54,16 @@ public class SingleLeaderAcceptorNetworkClient implements PaxosAcceptorNetworkCl
                 acceptor -> acceptor.accept(seq, proposal),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
     }
 
     @Override
     public PaxosResponses<PaxosLong> getLatestSequencePreparedOrAccepted() {
-        return PaxosQuorumChecker.collectQuorumResponses(
+        return PaxosQuorumChecker.<PaxosAcceptor, PaxosLong>collectQuorumResponses(
                 acceptors,
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 quorumSize,
                 executors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
     }
 }
