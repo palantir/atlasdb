@@ -336,6 +336,10 @@ We attempted to run the tests using various configurations of the optimisations 
 |         250 |    p95 | 21.538 | 20.365 |   19.167 |      18.15 |           21.634 |           19.999 |
 |         250 |    p99 | 37.190 | 33.597 |   27.177 |     31.870 |           34.593 |           36.446 |
 
+These results may be better visualised with a graph - for example, for 100 concurrent readers:
+
+![Graph reflecting response times for various Cassandra configurations](0016-cassandra-params.png)
+
 These benchmarks were run with a 50% hit rate. Note that this is rare in practice, as in practice after each miss we
 will try to roll back the transaction by inserting a -1 entry into the transactions table.
 
