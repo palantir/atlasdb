@@ -260,7 +260,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     private Optional<PingableLeader> getSuspectedLeaderOverNetwork(String uuid) {
         PaxosResponsesWithRemote<PingableLeader, PaxosString> responses = PaxosQuorumChecker.collectUntil(
-                ImmutableList.copyOf(leaderPingExecutors.keySet()),
+                otherPingables,
                 pingableLeader -> new PaxosString(pingableLeader.getUUID()),
                 leaderPingExecutors,
                 Duration.ofMillis(leaderPingResponseWaitMs),
