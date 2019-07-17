@@ -164,8 +164,8 @@ public final class PaxosQuorumChecker {
 
     /**
      * Collects a list of responses from remote services.
-     * This method may short-circuit if a quorum can no longer be obtained (depending on the
-     * shortcircuitIfQuorumImpossible parameter) and cancels pending requests once a quorum has been obtained.
+     * This method may short-circuit depending on the {@code shouldSkipNextRequest} predicate parameter and cancels
+     * pending requests once the predicate is satisfied.
      *
      * @param remotes a list of endpoints to make the remote call on
      * @param request the request to make on each of the remote endpoints
