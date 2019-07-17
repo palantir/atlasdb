@@ -348,8 +348,8 @@ will try to roll back the transaction by inserting a -1 entry into the transacti
 |         250 |    p95 | 18.917 | 22.379 |   20.847 |     20.801 |           20.192 |           20.215 |
 |         250 |    p99 | 35.315 | 35.510 |   32.391 |     32.369 |           31.115 |           32.746 |
 
-We determined that our final choice of settings (BFIICK[64]) brought transactions2 read performance mostly in line with
-that of transactions1 for a 100% hit rate. Also notice that there seems to be some regression in un-optimised
+We determined that our final choice of settings (``BFIICK[64]``) brought transactions2 read performance mostly in line
+with that of transactions1 for a 100% hit rate. Also notice that there seems to be some regression in un-optimised
 transactions2, so our optimisations have probably been useful.
 
 It seems that there is a performance hit at lower percentiles for the 50% hit rate test, though we deem this to not
@@ -422,43 +422,69 @@ to read performance, even when the Cassandra nodes are actually able to handle h
 We thus settled on a compromise between sending large singular requests and inundating Cassandra with smaller ones;
 unlike in the original ``CellLoader``, we make the batch parameters configurable. There are two parameters:
 
-- cross column load batch limit (CC); we may combine requests for different columns in one call to the DB, but merged
-  calls will not exceed this size.
-- single query load batch limit (SQ); a single request should never be larger than this size. We expect SQ >= CC.
+- cross column load batch limit (``CC``); we may combine requests for different columns in one call to the DB, but
+  merged calls will not exceed this size.
+- single query load batch limit (``SQ``); a single request should never be larger than this size.
+  We expect ``SQ >= CC``.
 
 We still partition requests to load cells by column first. Thereafter,
 
-- if for a given column the number of cells is at least CC, then the cells for that column will exclusively take up
-  one or more batches, with no batch having size greater than SQ.
-- otherwise, the cells may be combined with cells in other columns, in batches of size up to CC. There is no guarantee
-  that all cells for a given column will be in the same batch.
+- if for a given column the number of cells is at least ``CC``, then the cells for that column will exclusively take up
+  one or more batches, with no batch having size greater than ``SQ``.
+- otherwise, the cells may be combined with cells in other columns, in batches of size up to ``CC``. There is no
+  guarantee that all cells for a given column will be in the same batch.
 
 In terms of implementation, we simply maintain a list of cells eligible for cross-column batching, and partition this
-list into contiguous groups of size CC. In this way, no row key will be included more than twice. It may be possible
+list into contiguous groups of size ``CC``. In this way, no row key will be included more than twice. It may be possible
 to reduce the amount of data sent over the wire to Cassandra and possibly some of the internal read bandwidth by
 solving the underlying bin-packing problem to ensure that each row-key only occurs once; consider that we duplicate
-many keys if we want to load CC - 1 cells from many columns. This may be worth considering in the future (while
+many keys if we want to load ``CC - 1`` cells from many columns. This may be worth considering in the future (while
 bin-packing is NP-complete, an algorithm like first-fit decreasing will give us a good approximation), but we have not
 implemented it yet as the overhead is only a constant factor, and in many cases with transactions2 we expect the
 number of cells per column to be small. Consider that assuming a uniform distribution, even if a single transaction 
 reads 1,000,000 values with PQ / NP = 312,500, the maximum batch size will probably not exceed 20.
 
+For example, supposing one has cells partitioned by column, such that the number of cells with each column is as
+follows. Further suppose that ``CC = 100`` and ``SQ = 300``.
+
+| Column | # Cells |
+|-------:|--------:|
+|      A |      80 |
+|      B |     200 |
+|      C |      70 |
+|      D |     688 |
+|      E |      30 |
+
+Columns ``B`` and ``D`` have at least ``CC`` cells. Column ``B`` has fewer than ``SQ`` cells, so they will be loaded
+in a single request. Column ``D`` has between ``2 * SQ + 1`` and ``3 * SQ`` cells, so its cells will be loaded in
+three parallel requests.
+
+The remaining columns all have fewer than ``CC`` cells each. If we visit these columns in lexicographical order,
+we will have a first batch consisting of 80 cells from column ``A`` and 20 cells from column ``C``. We will have a
+second batch consisting of 50 cells from column ``C`` and the 30 cells from column ``E`` (though note that the
+requests are done in parallel).
+
+Notice that this is not optimal; we end up sending requests for cells from column ``C`` twice, which incurs a network
+and serialization overhead. It is possible to combine the requests for columns ``C`` and ``E`` in a single batch of
+size up to ``CC``, thereby removing this overhead. However, as discussed above this problem is computationally
+difficult in general.
+
 #### Benchmarking
 
 We tested the selective batching cell loader ("CL2") against the original algorithm ("CL1") and a full-batching
-algorithm that always batches cells up to CC, regardless of what rows or columns they are from. We tested these loaders
-against both general AtlasDB user workloads (100 rows/100 static columns and 1000 rows/10 static columns), and
+algorithm that always batches cells up to ``CC``, regardless of what rows or columns they are from. We tested these
+loaders against both general AtlasDB user workloads (100 rows/100 static columns and 1000 rows/10 static columns), and
 workloads more specific to transactions2 (16 rows/500 dynamic columns). This is important as we would prefer not to
 have to use a separate codepath for transactions2; current behaviour with loading queries on rows with many different
 columns (regardless of table) had also previously been observed to be inefficient.
 
 We first ran the benchmarks with a single thread against the aforementioned workflows. In our tests, CC = 50,000 and
-SQ = 200; the dynamic columns are random and are unlikely to have overlaps.
+SQ = 200; the dynamic columns are random and are unlikely to have overlaps. Times are reported in milliseconds.
 
 | Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
 |-----:|------------:|-------:|-------------:|---------------:|-------------:|
 |  100 |  100 static |    p50 |        124.2 |          164.4 |        118.9 |
-|  100 |  100 static |    p95 |        169.7 |            204 |        163.5 |
+|  100 |  100 static |    p95 |        169.7 |          204.0 |        163.5 |
 |  100 |  100 static |    p99 |        204.1 |          237.2 |        195.2 |
 | 1000 |   10 static |    p50 |        122.6 |          169.4 |        118.6 |
 | 1000 |   10 static |    p95 |        164.3 |          222.7 |        161.5 |
@@ -484,7 +510,7 @@ many as 8,000 distinct RPCs owing to the different column keys. The full batchin
 just one requestor thread. CellLoader 2 is able to divide this into approximately 40 parallel RPCs, and performs
 best overall.
 
-We also ran the benchmarks with 10 concurrent readers on the same workflows:
+We also ran the benchmarks with 10 concurrent readers on the same workflows. Times are reported in milliseconds.
 
 | Rows |     Columns | Metric | CellLoader 1 | Full Batching  | CellLoader 2 |
 |-----:|------------:|-------:|-------------:|---------------:|-------------:|
