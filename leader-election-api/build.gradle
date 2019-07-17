@@ -15,5 +15,6 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations'
   compile group: 'net.jcip', name: 'jcip-annotations'
 
-  processor group: 'org.immutables', name: 'value'
+  annotationProcessor group: 'org.immutables', name: 'value'
+  compileOnly 'org.immutables:value::annotations'
 }

@@ -14,7 +14,8 @@ dependencies {
     compile group: 'com.palantir.docker.proxy', name: 'docker-proxy-rule'
     compile group: 'org.awaitility', name: 'awaitility'
 
-    processor group: 'org.immutables', name: 'value'
+    annotationProcessor group: 'org.immutables', name: 'value'
+    compileOnly 'org.immutables:value::annotations'
 
     testCompile group: 'com.github.stefanbirkner', name: 'system-rules'
     testCompile group: 'org.assertj', name: 'assertj-core'
