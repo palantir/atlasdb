@@ -515,10 +515,12 @@ is read together with a validity bound. Thus, even though the map will contain a
 constant ``C``, it should be valid up to some point ``V > C`` - and behaviour at timestamps after ``V`` may subsequently
 be changed.
 
-Note that the ranges are based on the start timestamp. To give a concrete example, if our range map is
-``{[1, 5000) = 1, [5000, +∞) = 2}`` and we want to commit a transaction that started at timestamp 4990 and finished
-at 5010, it is still stored under schema version 1 (even if other transactions that started later may have already
-written to schema version 2 - if they started at 5000 and finished at 5001, for instance).
+Note that the ranges are based on the start timestamp; since we accessed the original ``TransactionService`` via the
+start timestamp, we will use the start timestamp against the range map to find out the behaviour at that point.
+To give a concrete example, if our range map is ``{[1, 5000) = 1, [5000, +∞) = 2}`` and we want to commit a transaction
+that started at timestamp 4990 and finished at 5010, it is still stored under schema version 1 (even if other
+transactions that started later may have already written to schema version 2 - if they started at 5000 and finished at
+5001, for instance).
 
 We attempt to read the latest version of the range map, and if our timestamp falls within the validity bound, we
 retrieve the version. If it does not, we submit an identity transformation, which extends the validity bound of the
@@ -532,14 +534,15 @@ target schema version to a specific version (which at time of writing can be 1 o
 setting the transactions schema version going forward to that version.
 
 This is optional; if not configured, we will not attempt to run any transforms so the transaction schema version will
-remain what it is.
+remain what it is. If this was never configured at all, we default to using transactions1, to be consistent with
+previous behaviour.
 
 ### Live Migrations
 
 Transactions2 was written with some of the heaviest users of AtlasDB in mind. These are core Palantir services where
 shutdown upgrades are costly or even verboten, and we thus implemented a mechanism for performing upgrades without
-downtime. The key problem here involves reasoning about service nodes running different binary versions that are
-concurrently operating on an AtlasDB deployment.
+downtime. The key problem here involves reasoning about service nodes running different binary versions that
+may be running different AtlasDB versions, that are concurrently operating on an AtlasDB deployment.
 
 #### Legacy Versions
 
