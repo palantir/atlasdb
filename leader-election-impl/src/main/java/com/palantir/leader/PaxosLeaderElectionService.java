@@ -117,13 +117,13 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
-            List<PingableLeader> otherPingables,
+            List<PingableLeader> remotePingables,
             Function<String, ExecutorService> executorServiceFactory) {
         Map<PingableLeader, ExecutorService> executors = Maps.newHashMap();
         executors.put(this, executorServiceFactory.apply("leader-ping-0"));
 
         int index = 1;
-        for (PingableLeader leader : otherPingables) {
+        for (PingableLeader leader : remotePingables) {
             executors.put(leader, executorServiceFactory.apply("leader-ping-" + index));
             index++;
         }
