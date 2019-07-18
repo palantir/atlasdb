@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.common.base.Throwables;
@@ -50,11 +49,11 @@ public class SingleLeaderPinger implements LeaderPinger {
     private final UUID localUuid;
 
     public SingleLeaderPinger(
-            Map<PingableLeader, ExecutorService> leaderPingExecutors,
+            Map<PingableLeader, ExecutorService> otherPingableExecutors,
             Duration leaderPingResponseWait,
             PaxosLeaderElectionEventRecorder eventRecorder,
             UUID localUuid) {
-        this.leaderPingExecutors = leaderPingExecutors;
+        this.leaderPingExecutors = otherPingableExecutors;
         this.leaderPingResponseWait = leaderPingResponseWait;
         this.eventRecorder = eventRecorder;
         this.localUuid = localUuid;
@@ -84,8 +83,7 @@ public class SingleLeaderPinger implements LeaderPinger {
         }
     }
 
-    @VisibleForTesting
-    boolean getAndRecordLeaderPingResult(@Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture)
+    private boolean getAndRecordLeaderPingResult(@Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture)
             throws InterruptedException {
         if (pingFuture == null) {
             eventRecorder.recordLeaderPingTimeout();

@@ -156,7 +156,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
 
     @Override
     public Set<PingableLeader> getPotentialLeaders() {
-        return Sets.union(ImmutableSet.of(this), ImmutableSet.copyOf(otherPingables));
+        return Sets.union(ImmutableSet.of(localPingable), ImmutableSet.copyOf(otherPingables));
     }
 
     @Override
