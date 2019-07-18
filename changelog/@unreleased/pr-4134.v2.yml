@@ -1,5 +1,6 @@
 type: break
 break:
-  description: `LeaderElectionService` no longer exposes `getSuspectedLeaderInMemory`.
+  description: |
+    `LeaderElectionService` no longer exposes `getSuspectedLeaderInMemory`.
   links:
   - https://github.com/palantir/atlasdb/pull/4134
