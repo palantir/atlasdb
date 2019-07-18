@@ -166,16 +166,9 @@ public class PaxosLeaderElectionServiceBuilder {
         return new PaxosLatestRoundVerifierImpl(acceptorClient);
     }
 
-    private LeaderPinger buildLeaderPinger(
-            PingableLeader localPingable,
-            List<PingableLeader> otherPingables) {
-
-        List<PingableLeader> allPingables = ImmutableList.<PingableLeader>builder()
-                .add(localPingable)
-                .addAll(otherPingables)
-                .build();
+    private LeaderPinger buildLeaderPinger(List<PingableLeader> otherPingables) {
         return new SingleLeaderPinger(
-                createLeaderPingExecutors(allPingables, executorServiceFactory),
+                createLeaderPingExecutors(otherPingables, executorServiceFactory),
                 leaderPingResponseWait,
                 eventRecorder,
                 UUID.fromString(proposer.getUuid()));
@@ -215,12 +208,11 @@ public class PaxosLeaderElectionServiceBuilder {
     }
 
     public PaxosLeaderElectionService build() {
-        LocalPingableLeader localPingable = new LocalPingableLeader(knowledge, UUID.fromString(proposer.getUuid()));
         return new PaxosLeaderElectionService(
                 proposer,
                 knowledge,
-                buildLeaderPinger(localPingable, otherPingables),
-                localPingable,
+                buildLeaderPinger(otherPingables),
+                new LocalPingableLeader(knowledge, UUID.fromString(proposer.getUuid())),
                 otherPingables,
                 acceptors,
                 buildLatestRoundVerifier(),
