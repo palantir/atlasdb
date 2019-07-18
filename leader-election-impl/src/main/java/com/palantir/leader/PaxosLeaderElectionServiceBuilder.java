@@ -38,7 +38,7 @@ import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 public class PaxosLeaderElectionServiceBuilder {
     private PaxosProposer proposer;
     private PaxosLearner knowledge;
-    private Map<PingableLeader, HostAndPort> potentialLeadersToHosts;
+    private List<PingableLeader> otherPingables;
     private List<PaxosAcceptor> acceptors;
     private List<PaxosLearner> learners;
     private Function<String, ExecutorService> executorServiceFactory;
@@ -62,7 +62,7 @@ public class PaxosLeaderElectionServiceBuilder {
      */
     public PaxosLeaderElectionServiceBuilder potentialLeadersToHosts(
             Map<PingableLeader, HostAndPort> potentialLeadersToHosts) {
-        this.potentialLeadersToHosts = potentialLeadersToHosts;
+        this.otherPingables = ImmutableList.copyOf(potentialLeadersToHosts.keySet());
         return this;
     }
 
@@ -153,7 +153,7 @@ public class PaxosLeaderElectionServiceBuilder {
         return new PaxosLeaderElectionService(
                 proposer,
                 knowledge,
-                potentialLeadersToHosts,
+                otherPingables,
                 acceptors,
                 buildLatestRoundVerifier(),
                 buildLearnerNetworkClient(),
