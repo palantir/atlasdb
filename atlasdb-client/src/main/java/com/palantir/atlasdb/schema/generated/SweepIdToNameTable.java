@@ -617,6 +617,22 @@ public final class SweepIdToNameTable implements
         });
     }
 
+    @Override
+    public Map<SweepIdToNameRow, Iterator<SweepIdToNameColumnValue>> getRowsColumnRangeIterator(Iterable<SweepIdToNameRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SweepIdToNameRow, Iterator<SweepIdToNameColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SweepIdToNameRow row = SweepIdToNameRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SweepIdToNameColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                SweepIdToNameColumn col = SweepIdToNameColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                String val = SweepIdToNameColumnValue.hydrateValue(result.getValue());
+                return SweepIdToNameColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SweepIdToNameRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -728,5 +744,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CDKO6wCjNHixix7orYR6Tw==";
+    static String __CLASS_HASH = "IK9kLlZUUg/BMhVdL0EVpA==";
 }

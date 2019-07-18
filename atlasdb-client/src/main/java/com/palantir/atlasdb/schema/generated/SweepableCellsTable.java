@@ -652,6 +652,22 @@ public final class SweepableCellsTable implements
         });
     }
 
+    @Override
+    public Map<SweepableCellsRow, Iterator<SweepableCellsColumnValue>> getRowsColumnRangeIterator(Iterable<SweepableCellsRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SweepableCellsRow, Iterator<SweepableCellsColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SweepableCellsRow row = SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SweepableCellsColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                SweepableCellsColumn col = SweepableCellsColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                com.palantir.atlasdb.keyvalue.api.StoredWriteReference val = SweepableCellsColumnValue.hydrateValue(result.getValue());
+                return SweepableCellsColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SweepableCellsRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -763,5 +779,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "C6Klz1ercH0E5BGUB3kcvg==";
+    static String __CLASS_HASH = "s80dMU7egHiRuFMttydzLw==";
 }

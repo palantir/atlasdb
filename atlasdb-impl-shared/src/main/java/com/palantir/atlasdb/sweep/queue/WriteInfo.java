@@ -66,4 +66,8 @@ public interface WriteInfo {
     static WriteInfo write(TableReference tableRef, Cell cell, long timestamp) {
         return WriteInfo.of(WriteReference.of(tableRef, cell, false), timestamp);
     }
+
+    static WriteInfo higherTimestamp(WriteInfo fst, WriteInfo snd) {
+        return fst.timestamp() > snd.timestamp() ? fst : snd;
+    }
 }

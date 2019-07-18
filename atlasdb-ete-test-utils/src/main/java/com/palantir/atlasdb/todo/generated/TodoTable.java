@@ -546,6 +546,20 @@ public final class TodoTable implements
         });
     }
 
+    @Override
+    public Map<TodoRow, Iterator<TodoNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<TodoRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<TodoRow, Iterator<TodoNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            TodoRow row = TodoRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<TodoNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<TodoRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -657,5 +671,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "W4nZk/S4/IXkgnEvSLR5ZA==";
+    static String __CLASS_HASH = "rR2G1n7lDkzKW4J0Z4aReg==";
 }

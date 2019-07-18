@@ -66,12 +66,12 @@ Optional parameters:
 
     *    - serversList::sslConfiguration
          - The SSL configuration of the service. This should follow the
-           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/ssl-config/src/main/java/com/palantir/remoting/api/config/ssl/SslConfiguration.java>`__
+           `palantir/http-remoting-api <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/ssl-config/src/main/java/com/palantir/conjure/java/api/config/ssl/SslConfiguration.java>`__
            library. This should also be in alignment with the protocol used when configuring the servers.
 
     *    - serversList::proxyConfiguration
          - The proxy configuration of the service. This should follow the
-           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__
+           `palantir/http-remoting-api <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ProxyConfiguration.java>`__
            library.
 
 Runtime Configuration
@@ -109,12 +109,12 @@ Note that if this block is present, then the ``ServerListConfiguration`` in the 
 
     *    - serversList::sslConfiguration
          - The SSL configuration of the service. This should follow the
-           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/ssl-config/src/main/java/com/palantir/remoting/api/config/ssl/SslConfiguration.java>`__
+           `palantir/http-remoting-api <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/ssl-config/src/main/java/com/palantir/conjure/java/api/config/ssl/SslConfiguration.java>`__
            library. This should also be in alignment with the protocol used when configuring the servers.
 
     *    - serversList::proxyConfiguration
          - The proxy configuration of the service. This should follow the
-           `palantir/http-remoting-api <https://github.com/palantir/http-remoting-api/blob/1.4.0/service-config/src/main/java/com/palantir/remoting/api/config/service/ProxyConfiguration.java>`__
+           `palantir/http-remoting-api <https://github.com/palantir/conjure-java-runtime-api/blob/2.3.0/service-config/src/main/java/com/palantir/conjure/java/api/config/service/ProxyConfiguration.java>`__
            library.
 
 

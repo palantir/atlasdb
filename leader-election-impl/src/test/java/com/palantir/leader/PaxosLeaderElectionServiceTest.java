@@ -30,7 +30,7 @@ import com.palantir.paxos.PaxosProposer;
 
 public class PaxosLeaderElectionServiceTest {
     @Test
-    public void weAreOneOfThePotentialLeaders() throws Exception {
+    public void weAreOneOfThePotentialLeaders() {
         PingableLeader other = mock(PingableLeader.class);
         PaxosLeaderElectionService service = new PaxosLeaderElectionServiceBuilder()
                 .proposer(mock(PaxosProposer.class))
@@ -47,5 +47,4 @@ public class PaxosLeaderElectionServiceTest {
 
         assertThat(service.getPotentialLeaders()).containsExactlyInAnyOrder(other, service);
     }
-
 }

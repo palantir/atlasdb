@@ -15,21 +15,18 @@
  */
 package com.palantir.leader;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -42,21 +39,24 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptor;
-import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosQuorumChecker;
+import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
+import com.palantir.paxos.PaxosResponsesWithRemote;
 import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosUpdate;
 import com.palantir.paxos.PaxosValue;
@@ -75,21 +75,20 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     private final ReentrantLock lock;
     private final CoalescingPaxosLatestRoundVerifier latestRoundVerifier;
 
-    final PaxosProposer proposer;
-    final PaxosLearner knowledge;
+    private final PaxosProposer proposer;
+    private final PaxosLearner knowledge;
 
-    final Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts;
-    final ImmutableList<PaxosAcceptor> acceptors;
-    final ImmutableList<PaxosLearner> learners;
+    private final Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts;
+    private final ImmutableList<PaxosAcceptor> acceptors;
+    private final PaxosLearnerNetworkClient learnerClient;
 
-    final long updatePollingRateInMs;
-    final long randomWaitBeforeProposingLeadership;
-    final long leaderPingResponseWaitMs;
+    private final long updatePollingRateInMs;
+    private final long randomWaitBeforeProposingLeadership;
+    private final long leaderPingResponseWaitMs;
 
-    final Map<PingableLeader, ExecutorService> leaderPingExecutors;
-    final Map<PaxosLearner, ExecutorService> knowledgeUpdatingExecutors;
+    private final Map<PingableLeader, ExecutorService> leaderPingExecutors;
 
-    final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<String, PingableLeader> uuidToServiceCache = Maps.newConcurrentMap();
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
@@ -101,7 +100,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             PaxosLearner knowledge,
             Map<PingableLeader, HostAndPort> otherPotentialLeadersToHosts,
             List<PaxosAcceptor> acceptors,
-            List<PaxosLearner> learners,
+            PaxosLatestRoundVerifier latestRoundVerifier,
+            PaxosLearnerNetworkClient learnerClient,
             Function<String, ExecutorService> executorServiceFactory,
             long updatePollingWaitInMs,
             long randomWaitBeforeProposingLeadership,
@@ -112,19 +112,14 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         // XXX This map uses something that may be proxied as a key! Be very careful if making a new map from this.
         this.otherPotentialLeadersToHosts = Collections.unmodifiableMap(otherPotentialLeadersToHosts);
         this.acceptors = ImmutableList.copyOf(acceptors);
-        this.learners = ImmutableList.copyOf(learners);
+        this.learnerClient = learnerClient;
         this.leaderPingExecutors = createLeaderPingExecutors(otherPotentialLeadersToHosts, executorServiceFactory);
-        this.knowledgeUpdatingExecutors = createKnowledgeUpdateExecutors(learners, executorServiceFactory);
         this.updatePollingRateInMs = updatePollingWaitInMs;
         this.randomWaitBeforeProposingLeadership = randomWaitBeforeProposingLeadership;
         this.leaderPingResponseWaitMs = leaderPingResponseWaitMs;
         lock = new ReentrantLock();
         this.eventRecorder = eventRecorder;
-        this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(
-                new PaxosLatestRoundVerifierImpl(
-                        acceptors,
-                        proposer.getQuorumSize(),
-                        createLatestRoundVerifierExecutors(acceptors, executorServiceFactory)));
+        this.latestRoundVerifier = new CoalescingPaxosLatestRoundVerifier(latestRoundVerifier);
     }
 
     private Map<PingableLeader, ExecutorService> createLeaderPingExecutors(
@@ -139,26 +134,6 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
             index++;
         }
 
-        return executors;
-    }
-
-    private Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
-            List<PaxosLearner> paxosLearners,
-            Function<String, ExecutorService> executorServiceFactory) {
-        return IntStream.range(0, paxosLearners.size())
-                .boxed()
-                .collect(Collectors.toMap(
-                        paxosLearners::get,
-                        index -> executorServiceFactory.apply("knowledge-update-" + index)));
-    }
-
-    private Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
-            List<PaxosAcceptor> paxosAcceptors,
-            Function<String, ExecutorService> executorServiceFactory) {
-        Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
-        for (int i = 0; i < paxosAcceptors.size(); i++) {
-            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("latest-round-verifier-" + i));
-        }
         return executors;
     }
 
@@ -227,7 +202,8 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         multiplexingCompletionService.submit(leader, leader::ping);
 
         try {
-            Future<Boolean> pingFuture = multiplexingCompletionService.poll(
+
+            Future<Map.Entry<PingableLeader, Boolean>> pingFuture = multiplexingCompletionService.poll(
                     leaderPingResponseWaitMs,
                     TimeUnit.MILLISECONDS);
             return getAndRecordLeaderPingResult(pingFuture);
@@ -237,14 +213,15 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     @VisibleForTesting
-    boolean getAndRecordLeaderPingResult(@Nullable Future<Boolean> pingFuture) throws InterruptedException {
+    boolean getAndRecordLeaderPingResult(@Nullable Future<Map.Entry<PingableLeader, Boolean>> pingFuture)
+            throws InterruptedException {
         if (pingFuture == null) {
             eventRecorder.recordLeaderPingTimeout();
             return false;
         }
 
         try {
-            boolean isLeader = pingFuture.get();
+            boolean isLeader = pingFuture.get().getValue();
             if (!isLeader) {
                 eventRecorder.recordLeaderPingReturnedFalse();
             }
@@ -283,63 +260,40 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
     }
 
-    private Optional<PingableLeader> getSuspectedLeaderOverNetwork(String uuid) {
-        MultiplexingCompletionService<PingableLeader, Entry<String, PingableLeader>> pingService
-                = MultiplexingCompletionService.create(leaderPingExecutors);
+    private static class PaxosString implements PaxosResponse {
 
-        // kick off requests to get leader uuids
-        List<Future<Entry<String, PingableLeader>>> allFutures = Lists.newArrayList();
-        for (final PingableLeader potentialLeader : otherPotentialLeadersToHosts.keySet()) {
-            try {
-                allFutures.add(pingService.submit(potentialLeader,
-                        () -> Maps.immutableEntry(potentialLeader.getUUID(), potentialLeader)));
-            } catch (RejectedExecutionException e) {
-                if (logRateLimiter.tryAcquire()) {
-                    log.info("Leader ping executor rejected task. "
-                            + "This may signal a problem with cluster if happens frequently");
-                }
-            }
+        private final String string;
+
+        PaxosString(String string) {
+            this.string = string;
         }
 
-        // collect responses
-        boolean interrupted = false;
-        try {
-            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(leaderPingResponseWaitMs);
-            for (int i = 0; i < allFutures.size(); i++) {
-                try {
-                    Future<Entry<String, PingableLeader>> pingFuture = pingService.poll(
-                            deadline - System.nanoTime(),
-                            TimeUnit.NANOSECONDS);
-                    if (pingFuture == null) {
-                        break;
-                    }
+        @Override
+        public boolean isSuccessful() {
+            return true;
+        }
 
-                    // cache remote leader uuid
-                    Entry<String, PingableLeader> cacheEntry = pingFuture.get();
-                    PingableLeader service = uuidToServiceCache.putIfAbsent(cacheEntry.getKey(), cacheEntry.getValue());
-                    throwIfInvalidSetup(service, cacheEntry.getValue(), cacheEntry.getKey());
+        public String get() {
+            return string;
+        }
+    }
 
-                    // return the leader if it matches
-                    if (uuid.equals(cacheEntry.getKey())) {
-                        return Optional.of(cacheEntry.getValue());
-                    }
-                } catch (InterruptedException e) {
-                    log.warn("uuid request interrupted", e);
-                    interrupted = true;
-                    break;
-                } catch (ExecutionException e) {
-                    log.warn("unable to get uuid from server", e);
-                }
-            }
-        } finally {
-            // cancel pending futures
-            for (Future<Entry<String, PingableLeader>> future : allFutures) {
-                future.cancel(false);
-            }
+    private Optional<PingableLeader> getSuspectedLeaderOverNetwork(String uuid) {
+        PaxosResponsesWithRemote<PingableLeader, PaxosString> responses = PaxosQuorumChecker.collectUntil(
+                ImmutableList.copyOf(otherPotentialLeadersToHosts.keySet()),
+                pingableLeader -> new PaxosString(pingableLeader.getUUID()),
+                leaderPingExecutors,
+                Duration.ofMillis(leaderPingResponseWaitMs),
+                state -> state.responses().values().stream().map(PaxosString::get).anyMatch(uuid::equals));
 
-            // reset interrupted flag
-            if (interrupted) {
-                Thread.currentThread().interrupt();
+        for (Map.Entry<PingableLeader, PaxosString> cacheEntry : responses.responses().entrySet()) {
+            String uuidFromRequest = cacheEntry.getValue().get();
+            PingableLeader service = uuidToServiceCache.putIfAbsent(uuidFromRequest, cacheEntry.getKey());
+            throwIfInvalidSetup(service, cacheEntry.getKey(), uuidFromRequest);
+
+            // return the leader if it matches
+            if (uuid.equals(uuidFromRequest)) {
+                return Optional.of(cacheEntry.getKey());
             }
         }
 
@@ -398,7 +352,7 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
                 return;
             }
 
-            long seq = value.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
+            long seq = getNextSequenceNumber(value);
 
             eventRecorder.recordProposalAttempt(seq);
             proposer.propose(seq, null);
@@ -482,13 +436,9 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
      * @returns true if new state was learned, otherwise false
      */
     public boolean updateLearnedStateFromPeers(Optional<PaxosValue> greatestLearned) {
-        final long nextToLearnSeq = greatestLearned.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
-        PaxosResponses<PaxosUpdate> updates = PaxosQuorumChecker.collectQuorumResponses(
-                learners,
-                learner -> new PaxosUpdate(ImmutableList.copyOf(learner.getLearnedValuesSince(nextToLearnSeq))),
-                proposer.getQuorumSize(),
-                knowledgeUpdatingExecutors,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+        final long nextToLearnSeq = getNextSequenceNumber(greatestLearned);
+
+        PaxosResponses<PaxosUpdate> updates = learnerClient.getLearnedValuesSince(nextToLearnSeq);
 
         // learn the state accumulated from peers
         boolean learned = false;
@@ -503,6 +453,28 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
         }
 
         return learned;
+    }
+
+    @Override
+    public boolean stepDown() {
+        LeadershipState leadershipState = determineLeadershipState();
+        StillLeadingStatus status = leadershipState.status();
+        if (status == StillLeadingStatus.LEADING) {
+            try {
+                proposer.proposeAnonymously(getNextSequenceNumber(leadershipState.greatestLearnedValue()), null);
+                return true;
+            } catch (PaxosRoundFailureException e) {
+                log.info("Couldn't relinquish leadership because a quorum could not be obtained. Last observed"
+                        + " state was {}.",
+                        SafeArg.of("leadershipState", leadershipState));
+                throw new ServiceNotAvailableException("Couldn't relinquish leadership", e);
+            }
+        }
+        return false;
+    }
+
+    private static long getNextSequenceNumber(Optional<PaxosValue> paxosValue) {
+        return paxosValue.map(PaxosValue::getRound).orElse(PaxosAcceptor.NO_LOG_ENTRY) + 1;
     }
 
     @Value.Immutable

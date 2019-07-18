@@ -602,6 +602,22 @@ public final class ValueStreamIdxTable implements
         });
     }
 
+    @Override
+    public Map<ValueStreamIdxRow, Iterator<ValueStreamIdxColumnValue>> getRowsColumnRangeIterator(Iterable<ValueStreamIdxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<ValueStreamIdxRow, Iterator<ValueStreamIdxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            ValueStreamIdxRow row = ValueStreamIdxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<ValueStreamIdxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                ValueStreamIdxColumn col = ValueStreamIdxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = ValueStreamIdxColumnValue.hydrateValue(result.getValue());
+                return ValueStreamIdxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<ValueStreamIdxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class ValueStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cH7jR4yF5ffaobDqwgeAnA==";
+    static String __CLASS_HASH = "HGrflX8QSRRYqWQZuZiVMQ==";
 }

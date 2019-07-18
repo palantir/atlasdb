@@ -6,10 +6,7 @@ apply from: "../gradle/non-client-dist.gradle"
 apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'org.inferred.processors'
 
-schemas = [
-        'com.palantir.atlasdb.cas.CheckAndSetSchema',
-        'com.palantir.atlasdb.blob.BlobSchema'
-]
+schemas = ['com.palantir.atlasdb.blob.BlobSchema']
 
 dependencies {
     compile project(':lock-impl')

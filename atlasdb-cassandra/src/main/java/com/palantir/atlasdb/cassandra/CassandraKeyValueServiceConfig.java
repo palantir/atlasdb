@@ -142,7 +142,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @Deprecated
     Optional<String> keyspace();
 
-    Optional<CassandraCredentialsConfig> credentials();
+    CassandraCredentialsConfig credentials();
 
     /**
      * A boolean declaring whether or not to use ssl to communicate with cassandra.
@@ -303,7 +303,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     @JsonIgnore
     @Value.Derived
     default boolean usingSsl() {
-        return ssl().orElse(sslConfiguration().isPresent());
+        return ssl().orElseGet(sslConfiguration()::isPresent);
     }
 
     @Value.Check

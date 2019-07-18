@@ -41,13 +41,14 @@ public class TimeLockServerConfigurationTest {
     private static final ClusterConfiguration CLUSTER = ImmutableClusterConfiguration.builder()
             .localServer(ADDRESS)
             .addServers(ADDRESS)
+            .enableNonstandardAndPossiblyDangerousTopology(true)
             .build();
     private static final Set<String> CLIENTS = ImmutableSet.of("client1", "client2");
 
     private static final TimeLockServerConfiguration CONFIGURATION_WITH_REQUEST_LIMIT =
-            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, true);
+            new TimeLockServerConfiguration(CLUSTER, CLIENTS, null, null, true);
     private static final TimeLockServerConfiguration CONFIGURATION_WITHOUT_REQUEST_LIMIT =
-            new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null, null, false);
+            new TimeLockServerConfiguration(CLUSTER, CLIENTS, null, null, false);
     private static final KeyValueServiceConfig POSTGRES_KVS_CONFIG = ImmutableDbKeyValueServiceConfig.builder()
             .connection(ImmutablePostgresConnectionConfig.builder()
                     .dbName("atlas")
@@ -73,13 +74,6 @@ public class TimeLockServerConfigurationTest {
             .fetchBatchCount(1000)
             .autoRefreshNodes(false)
             .build();
-
-
-    @Test
-    public void shouldAddDefaultConfigurationIfNotIncluded() {
-        TimeLockServerConfiguration configuration = createSimpleConfig(CLUSTER, CLIENTS);
-        assertThat(configuration.algorithm()).isEqualTo(ImmutablePaxosConfiguration.DEFAULT);
-    }
 
     @Test
     public void shouldStartWithNoClients() {
@@ -149,7 +143,7 @@ public class TimeLockServerConfigurationTest {
 
     @Test
     public void shouldAllowDbKvsTimestampPeristerToBeSpecified() {
-        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(null, CLUSTER, CLIENTS, null,
+        TimeLockServerConfiguration configuration = new TimeLockServerConfiguration(CLUSTER, CLIENTS, null,
                 ImmutableDatabaseTsBoundPersisterConfiguration.builder()
                         .keyValueServiceConfig(POSTGRES_KVS_CONFIG)
                         .build(), null);
@@ -168,6 +162,6 @@ public class TimeLockServerConfigurationTest {
     }
 
     private static TimeLockServerConfiguration createSimpleConfig(ClusterConfiguration cluster, Set<String> clients) {
-        return new TimeLockServerConfiguration(null, cluster, clients, null, null, null);
+        return new TimeLockServerConfiguration(cluster, clients, null, null, null);
     }
 }

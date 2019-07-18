@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BrokenBarrierException;
@@ -36,6 +38,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.primitives.UnsignedBytes;
@@ -67,6 +70,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.impl.LegacyTimelockService;
 
+@SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
 
     public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
@@ -569,7 +573,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testColumnRangeReadWriteConflict() {
+    public void testColumnRangeReadWriteConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         writeColumns();
 
@@ -596,7 +600,34 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testColumnRangeReadWriteConflictOnNewCell() {
+    public void testColumnRangeReadWriteConflict_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        writeColumns();
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Serializable transaction records only the first column as read.
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
+        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col0", "v0_0");
+        t2.commit();
+
+        try {
+            t1.commit();
+            fail();
+        } catch (TransactionSerializableConflictException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadWriteConflictOnNewCell_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         writeColumns();
 
@@ -624,7 +655,35 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testColumnRangeReadWriteNoConflict() {
+    public void testColumnRangeReadWriteConflictOnNewCell_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        writeColumns();
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Serializable transaction records only the first column as read.
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
+        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        // Write on the start of the range.
+        put(t2, "row1", "col", "v");
+        t2.commit();
+
+        try {
+            t1.commit();
+            fail();
+        } catch (TransactionSerializableConflictException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadWriteNoConflict_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
         writeColumns();
 
@@ -646,7 +705,29 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testColumnRangeReadWriteEmptyRange() {
+    public void testColumnRangeReadWriteNoConflict_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        writeColumns();
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Serializable transaction records only the first column as read.
+        Map.Entry<Cell, byte[]> read = Iterables.getOnlyElement(columnRange.values()).next();
+        assertEquals(Cell.create(row, PtBytes.toBytes("col0")), read.getKey());
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col1", "v0_0");
+        t2.commit();
+
+        t1.commit();
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEmptyRange_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
@@ -670,7 +751,135 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testColumnRangeReadWriteEmptyRangeUnread() {
+    public void testColumnRangeReadWriteEmptyRange_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        assertThat(Iterables.getOnlyElement(columnRange.values()).hasNext()).isFalse();
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col", "v0");
+        t2.commit();
+
+        try {
+            t1.commit();
+            fail();
+        } catch (TransactionSerializableConflictException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEndOfRangeNoConflict_batchingVisitable() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        put(t1, "row1", "col", "v0");
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+                t2.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Read the first element but not the end of range following it
+        BatchingVisitables.getFirst(Iterables.getOnlyElement(columnRange.values()));
+        // Write to avoid the read only path.
+        put(t2, "row1_1", "col0", "v0");
+
+        Transaction t3 = startTransaction();
+        put(t3, "row1", "col0", "v0");
+        t3.commit();
+
+        // No conflict since we didn't attempt to read the range where t3 wrote
+        t2.commit();
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEndOfRangeNoConflict_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        put(t1, "row1", "col", "v0");
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t2.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Read the first element but not the end of range following it
+        Iterables.getOnlyElement(columnRange.values()).next();
+        // Write to avoid the read only path.
+        put(t2, "row1_1", "col0", "v0");
+
+        Transaction t3 = startTransaction();
+        put(t3, "row1", "col0", "v0");
+        t3.commit();
+
+        // No conflict since we didn't attempt to read the range where t3 wrote
+        t2.commit();
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEndOfRangeWithConflict_batchingVisitable() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        put(t1, "row1", "col", "v0");
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRange =
+                t2.getRowsColumnRange(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Attempt to read all results to cause conflicts with t3
+        BatchingVisitables.getLast(Iterables.getOnlyElement(columnRange.values()));
+        // Write to avoid the read only path.
+        put(t2, "row1_1", "col0", "v0");
+
+        Transaction t3 = startTransaction();
+        put(t3, "row1", "col0", "v0");
+        t3.commit();
+
+        try {
+            t2.commit();
+            fail();
+        } catch (TransactionSerializableConflictException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEndOfRangeWithConflict_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+        Transaction t1 = startTransaction();
+        put(t1, "row1", "col", "v0");
+        t1.commit();
+
+        Transaction t2 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t2.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1));
+        // Attempt to read all results to cause conflicts with t3
+        Iterators.getLast(Iterables.getOnlyElement(columnRange.values()));
+        // Write to avoid the read only path.
+        put(t2, "row1_1", "col0", "v0");
+
+        Transaction t3 = startTransaction();
+        put(t3, "row1", "col0", "v0");
+        t3.commit();
+
+        try {
+            t2.commit();
+            fail();
+        } catch (TransactionSerializableConflictException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testColumnRangeReadWriteEmptyRangeUnread_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row1");
 
         Transaction t1 = startTransaction();
@@ -689,7 +898,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMultipleReadsToSameColumnRange() {
+    public void testColumnRangeReadWriteEmptyRangeUnread_iterator() {
+        byte[] row = PtBytes.toBytes("row1");
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        // Intentionally not reading anything from the result, so we shouldn't get a conflict.
+        // Write to avoid the read only path.
+        put(t1, "row1_1", "col0", "v0");
+
+        Transaction t2 = startTransaction();
+        put(t2, "row1", "col", "v0");
+        t2.commit();
+
+        t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRange_batchingVisitable() {
         String rowString = "row1";
         byte[] row = PtBytes.toBytes(rowString);
         byte[] rowDifferentReference = PtBytes.toBytes(rowString);
@@ -708,7 +936,26 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     @Test
-    public void testMultipleReadsToSameColumnRangeAcrossRows() {
+    public void testMultipleReadsToSameColumnRange_iterator() {
+        String rowString = "row1";
+        byte[] row = PtBytes.toBytes(rowString);
+        byte[] rowDifferentReference = PtBytes.toBytes(rowString);
+
+        Transaction t1 = startTransaction();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRange =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        assertThat(Iterables.getOnlyElement(columnRange.values()).hasNext()).isFalse();
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeAgain =
+                t1.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(rowDifferentReference),
+                        BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1));
+        assertThat(Iterables.getOnlyElement(columnRangeAgain.values()).hasNext()).isFalse();
+        put(t1, "mutation to ensure", "conflict", "handling");
+        t1.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows_batchingVisitable() {
         byte[] row = PtBytes.toBytes("row");
         byte[] differentRow = PtBytes.toBytes("differentRow");
 
@@ -723,6 +970,27 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
                 transaction.getRowsColumnRange(TEST_TABLE, ImmutableList.of(differentRow), sameColumnRangeSelection);
         columnRangeResultForDifferentRow.values().forEach(visitable -> visitable.batchAccept(10, t -> true));
+        put(transaction, "mutation to ensure", "conflict", "handling");
+        transaction.commit();
+    }
+
+    @Test
+    public void testMultipleReadsToSameColumnRangeAcrossRows_iterator() {
+        byte[] row = PtBytes.toBytes("row");
+        byte[] differentRow = PtBytes.toBytes("differentRow");
+
+        Transaction transaction = startTransaction();
+        BatchColumnRangeSelection sameColumnRangeSelection =
+                BatchColumnRangeSelection.create(PtBytes.toBytes("col"), PtBytes.toBytes("col0"), 1);
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForRow =
+                transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(row), sameColumnRangeSelection);
+        assertThat(Iterables.getOnlyElement(columnRangeResultForRow.values()).hasNext()).isFalse();
+
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> columnRangeResultForDifferentRow =
+                transaction.getRowsColumnRangeIterator(TEST_TABLE, ImmutableList.of(differentRow),
+                        sameColumnRangeSelection);
+        assertThat(Iterables.getOnlyElement(columnRangeResultForDifferentRow.values()).hasNext()).isFalse();
         put(transaction, "mutation to ensure", "conflict", "handling");
         transaction.commit();
     }

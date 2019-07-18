@@ -74,7 +74,7 @@ public final class BackgroundCompactor implements AutoCloseable {
                 compactPriorityCalculator);
         backgroundCompactor.runInBackground();
 
-        log.info("Created and started the background compactor.");
+        log.debug("Created and started the background compactor.");
 
         return Optional.of(backgroundCompactor);
     }
@@ -98,7 +98,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     @Override
     public void close() {
         compactionOutcomeMetrics.registerOccurrenceOf(CompactionOutcome.SHUTDOWN);
-        log.info("Closing BackgroundCompactor");
+        log.debug("Closing BackgroundCompactor");
         daemon.interrupt();
         // Ensure we do not accidentally abort shutdown if any code incorrectly swallows InterruptedExceptions
         // on the daemon thread.
@@ -121,16 +121,16 @@ public final class BackgroundCompactor implements AutoCloseable {
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");
         daemon.start();
-        log.info("Set up the background compactor to be run.");
+        log.debug("Set up the background compactor to be run.");
     }
 
     public void run() {
         try (SingleLockService compactorLock = createSimpleLocks()) {
             // Wait a while before starting so short lived clis don't try to compact
             sleepForMillis(getSleepTimeWhenCompactionHasNotRun());
-            log.info("Attempting to start the background compactor for the very first time.");
+            log.debug("Attempting to start the background compactor for the very first time.");
             waitUntilTransactionManagerIsReady();
-            log.info("Starting background compactor");
+            log.debug("Starting background compactor");
             while (true) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.warn("Shutting down background compactor because someone interrupted its thread");
@@ -159,7 +159,7 @@ public final class BackgroundCompactor implements AutoCloseable {
 
     private void waitUntilTransactionManagerIsReady() throws InterruptedException {
         while (!transactionManager.isInitialized()) {
-            log.info("Waiting for transaction manager to be initialized; going to sleep for {} ms while waiting",
+            log.debug("Waiting for transaction manager to be initialized; going to sleep for {} ms while waiting",
                     SafeArg.of("sleepTimeMillis", SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS));
             sleepForMillis(SLEEP_TIME_WHEN_NOTHING_TO_COMPACT_MIN_MILLIS);
         }
@@ -183,7 +183,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             throws InterruptedException {
         CompactorConfig config = compactorConfigSupplier.get();
         if (!config.enableCompaction()) {
-            log.info("Skipping compaction because it is currently disabled.");
+            log.debug("Skipping compaction because it is currently disabled.");
             return CompactionOutcome.DISABLED;
         }
 
@@ -206,16 +206,16 @@ public final class BackgroundCompactor implements AutoCloseable {
             return CompactionOutcome.NOTHING_TO_COMPACT;
         }
         if (!tableToCompactOptional.isPresent()) {
-            log.info("No table to compact.");
+            log.debug("No table to compact.");
             return CompactionOutcome.NOTHING_TO_COMPACT;
         }
 
         String tableToCompact = tableToCompactOptional.get();
 
         try {
-            log.info("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+            log.debug("Compacting table {}", LoggingArgs.safeInternalTableName(tableToCompact));
             compactTable(tableToCompact, config);
-            log.info("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
+            log.debug("Compacted table {}", LoggingArgs.safeInternalTableName(tableToCompact));
         } catch (Exception e) {
             log.warn("Encountered exception when compacting table {}",
                     LoggingArgs.safeInternalTableName(tableToCompact),
@@ -227,7 +227,7 @@ public final class BackgroundCompactor implements AutoCloseable {
             registerCompactedTable(tableToCompact);
             return CompactionOutcome.SUCCESS;
         } catch (Exception e) {
-            log.info("Successfully compacted table {}, but failed to register this."
+            log.debug("Successfully compacted table {}, but failed to register this."
                     + "Nothing bad will happen; we'll probably do a no-op compaction of this very shortly.",
                     LoggingArgs.safeInternalTableName(tableToCompact),
                     e);

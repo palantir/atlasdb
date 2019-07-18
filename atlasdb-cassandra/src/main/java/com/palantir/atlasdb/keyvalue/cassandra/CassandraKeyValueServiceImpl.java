@@ -30,6 +30,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -38,10 +39,10 @@ import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,6 +90,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -123,6 +125,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -1556,9 +1559,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     client.remove("deleteRange", tableRef, row, timestamp, DELETE_CONSISTENCY);
                     return null;
                 });
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException(
-                        "Deleting requires all Cassandra nodes to be up and available.", e);
+            } catch (RetryLimitReachedException e) {
+                throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
                 throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
             }
@@ -1572,6 +1574,39 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             return false;
         }
         return Arrays.equals(endExclusive, RangeRequests.nextLexicographicName(startInclusive));
+    }
+
+    @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        Set<ByteBuffer> actualKeys = StreamSupport.stream(rows.spliterator(), false)
+                .map(ByteBuffer::wrap)
+                .collect(Collectors.toSet());
+        if (actualKeys.isEmpty()) {
+            return;
+        }
+        long timestamp = mutationTimestampProvider.getRemoveTimestamp();
+
+        Map<ByteBuffer, Map<String, List<Mutation>>> mutationMap = KeyedStream.of(actualKeys)
+                .map(row -> new Deletion().setTimestamp(timestamp))
+                .map(deletion -> new Mutation().setDeletion(deletion))
+                .map(mutation -> keyMutationMapByColumnFamily(tableRef, mutation))
+                .collectToMap();
+
+        try {
+            clientPool.runWithRetry(client -> {
+                client.batch_mutate("deleteRows", mutationMap, DELETE_CONSISTENCY);
+                return null;
+            });
+        } catch (RetryLimitReachedException e) {
+            throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
+        } catch (TException e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    private Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
+            Mutation mutation) {
+        return ImmutableMap.of(AbstractKeyValueService.internalTableName(tableRef), ImmutableList.of(mutation));
     }
 
     @Override

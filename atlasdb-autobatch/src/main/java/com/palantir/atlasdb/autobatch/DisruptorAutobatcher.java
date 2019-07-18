@@ -19,13 +19,11 @@ package com.palantir.atlasdb.autobatch;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -40,17 +38,30 @@ import com.lmax.disruptor.dsl.Disruptor;
  */
 public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
-    private static final int BUFFER_SIZE = 1024;
-    private static final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-            .setDaemon(true)
-            .setNameFormat("autobatcher-%d")
-            .build();
+
+    /*
+        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
+        instances of the same autobatcher function.
+     */
+    private static final ConcurrentMap<String, ThreadFactory> threadFactories = Maps.newConcurrentMap();
+
+    private static ThreadFactory threadFactory(String safeLoggablePurpose) {
+        return threadFactories.computeIfAbsent(safeLoggablePurpose, DisruptorAutobatcher::createThreadFactory);
+    }
+
+    private static ThreadFactory createThreadFactory(String safeLoggablePurpose) {
+        String namePrefix = String.format("autobatcher.%s-", safeLoggablePurpose);
+        return new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat(namePrefix + "%d")
+                .build();
+    }
 
     private final Disruptor<DefaultBatchElement<T, R>> disruptor;
     private final RingBuffer<DefaultBatchElement<T, R>> buffer;
     private volatile boolean closed = false;
 
-    public DisruptorAutobatcher(
+    DisruptorAutobatcher(
             Disruptor<DefaultBatchElement<T, R>> disruptor,
             RingBuffer<DefaultBatchElement<T, R>> buffer) {
         this.disruptor = disruptor;
@@ -89,36 +100,13 @@ public final class DisruptorAutobatcher<T, R>
         }
     }
 
-    private static final class BatchingEventHandler<T, R> implements EventHandler<DefaultBatchElement<T, R>> {
-        private final Consumer<List<BatchElement<T, R>>> batchFunction;
-        private final List<DefaultBatchElement<T, R>> pending = new ArrayList<>(BUFFER_SIZE);
-
-        private BatchingEventHandler(Consumer<List<BatchElement<T, R>>> batchFunction) {
-            this.batchFunction = batchFunction;
-        }
-
-        @Override
-        public void onEvent(DefaultBatchElement<T, R> event, long sequence, boolean endOfBatch) {
-            pending.add(event);
-            if (endOfBatch) {
-                flush();
-            }
-        }
-
-        private void flush() {
-            try {
-                batchFunction.accept(Collections.unmodifiableList(pending));
-            } catch (Throwable t) {
-                pending.forEach(p -> p.result.setException(t));
-            }
-            pending.clear();
-        }
-    }
-
-    public static <T, R> DisruptorAutobatcher<T, R> create(Consumer<List<BatchElement<T, R>>> batchFunction) {
+    static <T, R> DisruptorAutobatcher<T, R> create(
+            EventHandler<BatchElement<T, R>> eventHandler,
+            int bufferSize,
+            String safeLoggablePurpose) {
         Disruptor<DefaultBatchElement<T, R>> disruptor =
-                new Disruptor<>(DefaultBatchElement::new, BUFFER_SIZE, threadFactory);
-        disruptor.handleEventsWith(new BatchingEventHandler<>(batchFunction));
+                new Disruptor<>(DefaultBatchElement::new, bufferSize, threadFactory(safeLoggablePurpose));
+        disruptor.handleEventsWith(eventHandler);
         disruptor.start();
         return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer());
     }

@@ -1,6 +1,6 @@
 import java.util.stream.Collectors;
 
-apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven-publish'

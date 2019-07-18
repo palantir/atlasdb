@@ -6,6 +6,8 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
+schemas = ['com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema']
+
 dependencies {
     compile project(":timelock-server")
     compile (project(":atlasdb-cassandra")) {

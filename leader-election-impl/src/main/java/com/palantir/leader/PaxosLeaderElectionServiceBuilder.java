@@ -19,12 +19,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.common.net.HostAndPort;
 import com.palantir.paxos.PaxosAcceptor;
+import com.palantir.paxos.PaxosLatestRoundVerifier;
+import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
 import com.palantir.paxos.PaxosLearner;
+import com.palantir.paxos.PaxosLearnerNetworkClient;
 import com.palantir.paxos.PaxosProposer;
+import com.palantir.paxos.SingleLeaderAcceptorNetworkClient;
+import com.palantir.paxos.SingleLeaderLearnerNetworkClient;
 
 @SuppressWarnings("HiddenField")
 public class PaxosLeaderElectionServiceBuilder {
@@ -102,13 +110,53 @@ public class PaxosLeaderElectionServiceBuilder {
         return this;
     }
 
+    private static Map<PaxosLearner, ExecutorService> createKnowledgeUpdateExecutors(
+            List<PaxosLearner> paxosLearners,
+            Function<String, ExecutorService> executorServiceFactory) {
+        return IntStream.range(0, paxosLearners.size())
+                .boxed()
+                .collect(Collectors.toMap(
+                        paxosLearners::get,
+                        index -> executorServiceFactory.apply("knowledge-update-" + index)));
+    }
+
+    private static Map<PaxosAcceptor, ExecutorService> createLatestRoundVerifierExecutors(
+            List<PaxosAcceptor> paxosAcceptors,
+            Function<String, ExecutorService> executorServiceFactory) {
+        Map<PaxosAcceptor, ExecutorService> executors = Maps.newHashMap();
+        for (int i = 0; i < paxosAcceptors.size(); i++) {
+            executors.put(paxosAcceptors.get(i), executorServiceFactory.apply("latest-round-verifier-" + i));
+        }
+        return executors;
+    }
+
+    private PaxosLearnerNetworkClient buildLearnerNetworkClient() {
+        List<PaxosLearner> remoteLearners = learners.stream()
+                .filter(learner -> !learner.equals(knowledge))
+                .collect(ImmutableList.toImmutableList());
+        return new SingleLeaderLearnerNetworkClient(
+                knowledge,
+                remoteLearners,
+                proposer.getQuorumSize(),
+                createKnowledgeUpdateExecutors(learners, executorServiceFactory));
+    }
+
+    private PaxosLatestRoundVerifier buildLatestRoundVerifier() {
+        SingleLeaderAcceptorNetworkClient acceptorClient = new SingleLeaderAcceptorNetworkClient(
+                acceptors,
+                proposer.getQuorumSize(),
+                createLatestRoundVerifierExecutors(acceptors, executorServiceFactory));
+        return new PaxosLatestRoundVerifierImpl(acceptorClient);
+    }
+
     public PaxosLeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposer,
                 knowledge,
                 potentialLeadersToHosts,
                 acceptors,
-                learners,
+                buildLatestRoundVerifier(),
+                buildLearnerNetworkClient(),
                 executorServiceFactory::apply,
                 pingRateMs,
                 randomWaitBeforeProposingLeadershipMs,

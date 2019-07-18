@@ -1,15 +1,14 @@
 package com.palantir.atlasdb.performance.schema.generated;
 
-import java.util.List;
-
-import javax.annotation.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import java.lang.Override;
+import java.util.List;
+import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class StreamTestTableFactory {
@@ -19,18 +18,21 @@ public final class StreamTestTableFactory {
 
     private final Namespace namespace;
 
-    private StreamTestTableFactory(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    private StreamTestTableFactory(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         this.sharedTriggers = sharedTriggers;
         this.namespace = namespace;
     }
 
-    public static StreamTestTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
+    public static StreamTestTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers,
             Namespace namespace) {
         return new StreamTestTableFactory(sharedTriggers, namespace);
     }
 
-    public static StreamTestTableFactory of(List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
+    public static StreamTestTableFactory of(
+            List<Function<? super Transaction, SharedTriggers>> sharedTriggers) {
         return new StreamTestTableFactory(sharedTriggers, defaultNamespace);
     }
 
@@ -72,27 +74,32 @@ public final class StreamTestTableFactory {
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
-        public void putKeyValue(Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
+        public void putKeyValue(
+                Multimap<KeyValueTable.KeyValueRow, ? extends KeyValueTable.KeyValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putValueStreamHashAidx(Multimap<ValueStreamHashAidxTable.ValueStreamHashAidxRow, ? extends ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue> newRows) {
+        public void putValueStreamHashAidx(
+                Multimap<ValueStreamHashAidxTable.ValueStreamHashAidxRow, ? extends ValueStreamHashAidxTable.ValueStreamHashAidxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putValueStreamIdx(Multimap<ValueStreamIdxTable.ValueStreamIdxRow, ? extends ValueStreamIdxTable.ValueStreamIdxColumnValue> newRows) {
+        public void putValueStreamIdx(
+                Multimap<ValueStreamIdxTable.ValueStreamIdxRow, ? extends ValueStreamIdxTable.ValueStreamIdxColumnValue> newRows) {
             // do nothing
         }
 
         @Override
-        public void putValueStreamMetadata(Multimap<ValueStreamMetadataTable.ValueStreamMetadataRow, ? extends ValueStreamMetadataTable.ValueStreamMetadataNamedColumnValue<?>> newRows) {
+        public void putValueStreamMetadata(
+                Multimap<ValueStreamMetadataTable.ValueStreamMetadataRow, ? extends ValueStreamMetadataTable.ValueStreamMetadataNamedColumnValue<?>> newRows) {
             // do nothing
         }
 
         @Override
-        public void putValueStreamValue(Multimap<ValueStreamValueTable.ValueStreamValueRow, ? extends ValueStreamValueTable.ValueStreamValueNamedColumnValue<?>> newRows) {
+        public void putValueStreamValue(
+                Multimap<ValueStreamValueTable.ValueStreamValueRow, ? extends ValueStreamValueTable.ValueStreamValueNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

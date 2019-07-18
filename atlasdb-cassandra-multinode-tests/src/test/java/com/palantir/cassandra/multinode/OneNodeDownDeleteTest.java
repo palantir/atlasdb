@@ -32,13 +32,13 @@ public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
 
     @Test
     public void deletingThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().delete(TEST_TABLE, ImmutableMultimap.of(CELL_1_1, TIMESTAMP)));
     }
 
     @Test
     public void deleteAllTimestampsThrows() {
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(() ->
+        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(() ->
                 getTestKvs().deleteAllTimestamps(
                         TEST_TABLE,
                         ImmutableMap.of(CELL_1_1, new TimestampRangeDelete.Builder()
