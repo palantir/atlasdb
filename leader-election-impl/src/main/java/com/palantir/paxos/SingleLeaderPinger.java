@@ -79,6 +79,7 @@ public class SingleLeaderPinger implements LeaderPinger {
                     TimeUnit.MILLISECONDS);
             return getAndRecordLeaderPingResult(pingFuture);
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             return false;
         }
     }
