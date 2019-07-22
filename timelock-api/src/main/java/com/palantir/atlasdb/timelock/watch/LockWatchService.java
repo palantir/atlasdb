@@ -19,14 +19,6 @@ package com.palantir.atlasdb.timelock.watch;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-
 /**
  * A service that allows users of a {@link com.palantir.lock.v2.TimelockService} to track what is happening with their
  * locks. Specifically, users can register a watch over some lock IDs. Whenever a watched lock is locked or unlocked,
@@ -38,19 +30,12 @@ public interface LockWatchService {
      * @param predicates indicates which locks should be watched
      * @return Identifiers for watches
      */
-    @PUT
-    @Path("/register")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     Map<LockPredicate, RegisterWatchResponse> getOrRegisterWatches(Set<LockPredicate> predicates);
 
     /**
      * Unregisters watches.
      * @return watches that were unregistered
      */
-    @DELETE
-    @Path("/unregister")
-    @Consumes(MediaType.APPLICATION_JSON)
     Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers);
 
     /**
@@ -60,9 +45,5 @@ public interface LockWatchService {
      * @param identifiers watch identifiers
      * @return true if and only if some lock guarded by this watch was locked
      */
-    @POST
-    @Path("/status")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
     Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers);
 }

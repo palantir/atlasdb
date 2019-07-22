@@ -38,8 +38,17 @@ import org.junit.rules.RuleChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
+import com.palantir.atlasdb.timelock.watch.ExplicitLockPredicate;
+import com.palantir.atlasdb.timelock.watch.ImmutableWatchIndexState;
+import com.palantir.atlasdb.timelock.watch.ImmutableWatchStateQuery;
+import com.palantir.atlasdb.timelock.watch.LockPredicate;
+import com.palantir.atlasdb.timelock.watch.RegisterWatchResponse;
+import com.palantir.atlasdb.timelock.watch.WatchIdentifier;
+import com.palantir.atlasdb.timelock.watch.WatchStateResponse;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -375,33 +384,44 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(differences).containsOnly((long) TransactionConstants.V2_TRANSACTION_NUM_PARTITIONS);
     }
 
-//    @Test
-//    public void lockWatchesAreResetAfterLeaderElection() {
-//        int numTrials = 6;
-//        Set<UUID> previousWatches = Sets.newHashSet();
-//        for (int i = 0; i < numTrials; i++) {
-//            UUID watch = CLUSTER.lockWatchService().registerWatch(
-//                    ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK).build());
-//            assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                    .addLockStates(WatchIndexState.createDefaultForLockDescriptor(LOCK))
-//                    .build());
-//            LockResponse response = CLUSTER.lock(LockRequest.of(ImmutableSet.of(LOCK), 1234L));
-//            CLUSTER.unlock(response.getToken());
-//            assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                    .addLockStates(
-//                            ImmutableWatchIndexState.builder()
-//                                    .lockDescriptor(LOCK)
-//                                    .lastLockSequence(1)
-//                                    .lastUnlockSequence(2).build())
-//                    .build());
-//            for (UUID previousWatch : previousWatches) {
-//                assertThatThrownBy(() -> CLUSTER.lockWatchService().getWatchState(previousWatch))
-//                        .hasMessageContaining("404");
-//            }
-//            CLUSTER.failoverToNewLeader();
-//            previousWatches.add(watch);
-//        }
-//    }
+    @Test
+    public void lockWatchesAreResetAfterLeaderElection() {
+        int numTrials = 6;
+        Set<WatchIdentifier> previousWatches = Sets.newHashSet();
+        for (int i = 0; i < numTrials; i++) {
+            LockPredicate lockPredicate = ExplicitLockPredicate.of(LOCK);
+            WatchStateResponse watchStateResponse = CLUSTER.lockWatchRpcClient().registerOrGetStates(
+                    ImmutableWatchStateQuery.builder().addNewPredicates(lockPredicate).build());
+
+            RegisterWatchResponse registerWatchResponse
+                    = Iterables.getOnlyElement(watchStateResponse.registerResponses());
+            assertThat(registerWatchResponse).satisfies(resp -> {
+                assertThat(resp.predicate()).isEqualTo(lockPredicate);
+                assertThat(resp.indexState()).isEqualTo(ImmutableWatchIndexState.builder()
+                        .lastUnlockSequence(0).lastLockSequence(0).build());
+            });
+
+            LockResponse response = CLUSTER.lock(LockRequest.of(ImmutableSet.of(LOCK), 1234L));
+            CLUSTER.unlock(response.getToken());
+
+            WatchStateResponse secondWatchStateResponse = CLUSTER.lockWatchRpcClient().registerOrGetStates(
+                    ImmutableWatchStateQuery.builder().addKnownIdentifiers(registerWatchResponse.identifier())
+                    .build());
+
+            assertThat(secondWatchStateResponse.getStateResponses().get(registerWatchResponse.identifier()))
+                    .isEqualTo(ImmutableWatchIndexState.builder().lastLockSequence(1).lastUnlockSequence(2).build());
+
+            for (WatchIdentifier previousWatch : previousWatches) {
+                WatchStateResponse oldWatchResponse = CLUSTER.lockWatchRpcClient().registerOrGetStates(
+                        ImmutableWatchStateQuery.builder().addKnownIdentifiers(previousWatch).build());
+
+                assertThat(oldWatchResponse.getStateResponses()).isEmpty();
+            }
+
+            CLUSTER.failoverToNewLeader();
+            previousWatches.add(registerWatchResponse.identifier());
+        }
+    }
 
     private List<Long> getSortedBatchedStartTimestamps(UUID requestorUuid, int numRequestedTimestamps) {
         StartTransactionRequestV4 request = StartTransactionRequestV4.createForRequestor(
