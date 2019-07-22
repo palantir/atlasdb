@@ -17,8 +17,6 @@
 package com.palantir.atlasdb.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -41,7 +39,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 public class LiveMigratorTest extends TransactionTestSetup {
     private static final TableReference OLD_TABLE_REF = TableReference.createFromFullyQualifiedName("old.table");
     private static final TableReference NEW_TABLE_REF = TableReference.createFromFullyQualifiedName("new.table");
-    private static final Cell CELL = createCell(Integer.toString(0), Integer.toString(0));
+    private static final Cell CELL = createCell(0, 0);
 
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();
@@ -49,7 +47,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
     private KeyValueService kvs;
     private TransactionManager transactionManager;
 
-    private final ProgressCheckPoint checkPoint = mock(ProgressCheckPoint.class);
+    private final ProgressCheckPoint checkPoint = new InMemoryCheckpointer();
 
     private LiveMigrator liveMigrator;
 
@@ -77,9 +75,8 @@ public class LiveMigratorTest extends TransactionTestSetup {
         assertThat(value)
                 .containsExactly(PtBytes.toBytes(0L));
 
-        when(checkPoint.getNextStartRow())
-                .thenReturn(Optional.of(PtBytes.EMPTY_BYTE_ARRAY))
-                .thenReturn(Optional.empty());
+//        when(checkPoint.getNextStartRow())
+
 
         liveMigrator.startMigration();
 
@@ -93,24 +90,42 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
     @Test
     public void migrationRunsMultipleIterations() {
-//        writeToOldTable(CELL, PtBytes.toBytes("value"));
-//        writeToOldTable(
+        writeToOldTable(5, 5);
+
+
+
     }
 
     private void writeToOldTable(int rows, int cols) {
 
         transactionManager.runTaskWithRetry(transaction -> {
             IntStream.range(0, rows)
-                    .forEach(row -> IntStream.range(0, cols)
-                            .forEach(col ->
-                                    transaction.put(OLD_TABLE_REF, ImmutableMap.of(
-                                            createCell(Integer.toString(row), Integer.toString(col)),
-                                            PtBytes.toBytes(row * col)))));
+                    .forEach(row -> {
+                        IntStream.range(0, cols)
+                                .forEach(col ->
+                                        transaction.put(OLD_TABLE_REF, ImmutableMap.of(
+                                                createCell(row, col),
+                                                PtBytes.toBytes(row * col))));
+                    });
             return null;
         });
     }
 
-    private static Cell createCell(String rowName, String columnName) {
+    private static Cell createCell(long rowName, long columnName) {
         return Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
+    }
+
+    private static class InMemoryCheckpointer implements ProgressCheckPoint {
+        private Optional<byte[]> nextRow = Optional.of(PtBytes.EMPTY_BYTE_ARRAY);
+
+        @Override
+        public Optional<byte[]> getNextStartRow() {
+            return nextRow;
+        }
+
+        @Override
+        public void setNextStartRow(Optional<byte[]> row) {
+            nextRow = row;
+        }
     }
 }

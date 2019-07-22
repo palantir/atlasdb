@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -84,7 +85,7 @@ public class LiveMigrator {
                     }
             );
 
-            progressCheckPoint.setNextStartRow(lastRead);
+            progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
         }
     }
 
