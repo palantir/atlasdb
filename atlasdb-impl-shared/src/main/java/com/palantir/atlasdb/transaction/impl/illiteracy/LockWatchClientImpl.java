@@ -69,6 +69,9 @@ public class LockWatchClientImpl implements LockWatchClient {
 
     @Override
     public void enableWatchForRow(RowReference rowReference) {
+        if (interestingRows.contains(rowReference)) {
+            return;
+        }
         // TODO (jkong): Autobatch
         TableReference tableReference = rowReference.tableReference();
         ConflictHandler conflictHandler = conflictDetectionManager.get(tableReference);
@@ -116,7 +119,7 @@ public class LockWatchClientImpl implements LockWatchClient {
                     rowStateCache.get(entry.getKey(), response.getStateResponses().get(entry.getValue()), timestamp);
             if (cache.isPresent()) {
                 skippedRows.add(entry.getKey().row());
-                Map<Cell, Value> relevantResults = KeyedStream.stream(result)
+                Map<Cell, Value> relevantResults = KeyedStream.stream(cache.get())
                         .filterKeys(cell -> columnSelection.contains(cell.getColumnName()))
                         .collectToMap();
                 result.putAll(relevantResults);
@@ -127,7 +130,9 @@ public class LockWatchClientImpl implements LockWatchClient {
         Set<byte[]> rowsToQueryFor = StreamSupport.stream(rows.spliterator(), false)
                 .filter(t -> !skippedRows.contains(t))
                 .collect(Collectors.toCollection(() -> new TreeSet<>(UnsignedBytes.lexicographicalComparator())));
-        result.putAll(kvs.getRows(tableRef, rowsToQueryFor, columnSelection, timestamp));
+        if (!rowsToQueryFor.isEmpty()) {
+            result.putAll(kvs.getRows(tableRef, rowsToQueryFor, columnSelection, timestamp));
+        }
         return result;
     }
 

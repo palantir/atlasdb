@@ -31,6 +31,8 @@ dependencies {
   processor 'com.google.auto.service:auto-service:1.0-rc2'
   processor project(":atlasdb-processors")
 
+  testCompile project(":flake-rule")
+
   testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
   testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
   testCompile group: 'org.assertj', name: 'assertj-core'
