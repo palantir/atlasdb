@@ -23,10 +23,10 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(as = ImmutableRegisterWatchRequest.class)
-@JsonDeserialize(as = ImmutableRegisterWatchRequest.class)
+@JsonSerialize(as = ImmutableWatchStateQuery.class)
+@JsonDeserialize(as = ImmutableWatchStateQuery.class)
 @Value.Immutable
-public interface RegisterWatchRequest {
+public interface WatchStateQuery {
     Set<WatchIdentifier> knownIdentifiers();
 
     // Some of these may end up being mapped to already extant watches.

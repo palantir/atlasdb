@@ -21,8 +21,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.NotFoundException;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
@@ -61,7 +59,43 @@ public class LockWatchResourceImpl implements LockWatchResource {
     }
 
     @Override
-    public Map<LockPredicate, RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
+    public WatchStateResponse registerOrGetStates(WatchStateQuery query) {
+        Map<LockPredicate, RegisterWatchResponse> registrationStates = registerWatches(query.newPredicates());
+        Map<WatchIdentifier, WatchIndexState> assumedExtantStates = getWatchStates(query.knownIdentifiers());
+        return ImmutableWatchStateResponse.builder()
+                .putAllRegisterResponses(registrationStates)
+                .putAllStateResponses(assumedExtantStates)
+                .build();
+    }
+
+    @Override
+    public Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers) {
+        Set<WatchIdentifier> unregistered = Sets.newHashSet();
+        for (WatchIdentifier identifier : identifiers) {
+            LockWatch watch = activeWatches.remove(identifier);
+            if (watch != null) {
+                knownPredicates.inverse().remove(identifier);
+            }
+        }
+        return unregistered;
+    }
+
+    private Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers) {
+        Map<WatchIdentifier, WatchIndexState> states = Maps.newHashMap();
+        for (WatchIdentifier identifier : identifiers) {
+            LockWatch watch = activeWatches.get(identifier);
+            if (watch != null) {
+                states.put(identifier, watch.getState());
+            }
+        }
+        return states;
+    }
+
+    public LockEventProcessor getEventProcessor() {
+        return eventProcessor;
+    }
+
+    private Map<LockPredicate, RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
         // TODO (jkong): Be stricter in respecting the limit in the presence of concurrent registrations.
 
         Map<LockPredicate, RegisterWatchResponse> result = Maps.newHashMap();
@@ -81,7 +115,6 @@ public class LockWatchResourceImpl implements LockWatchResource {
         }
         return result;
     }
-
 
     private Optional<RegisterWatchResponse> registerNewWatchIdentifier(LockPredicate predicate) {
         // TODO (jkong): Be stricter with concurrency
@@ -108,34 +141,5 @@ public class LockWatchResourceImpl implements LockWatchResource {
                         .indexState(watch.getState())
                         .build()
         );
-    }
-
-    @Override
-    public Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers) {
-        Set<WatchIdentifier> unregistered = Sets.newHashSet();
-        for (WatchIdentifier identifier : identifiers) {
-            LockWatch watch = activeWatches.remove(identifier);
-            if (watch != null) {
-                knownPredicates.inverse().remove(identifier);
-            }
-        }
-        return unregistered;
-    }
-
-    @Override
-    public Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers)
-            throws NotFoundException {
-        Map<WatchIdentifier, WatchIndexState> states = Maps.newHashMap();
-        for (WatchIdentifier identifier : identifiers) {
-            LockWatch watch = activeWatches.get(identifier);
-            if (watch != null) {
-                states.put(identifier, watch.getState());
-            }
-        }
-        return states;
-    }
-
-    public LockEventProcessor getEventProcessor() {
-        return eventProcessor;
     }
 }

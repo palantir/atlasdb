@@ -16,13 +16,11 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
-import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -39,7 +37,7 @@ public interface LockWatchResource {
     @Path("/register")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Map<LockPredicate, RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates);
+    WatchStateResponse registerOrGetStates(WatchStateQuery query);
 
     /**
      * Unregisters watches.
@@ -49,19 +47,6 @@ public interface LockWatchResource {
     @Path("/unregister")
     @Consumes(MediaType.APPLICATION_JSON)
     Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers);
-
-    /**
-     * Gets the state specified watches are in.
-     *
-     * @param identifiers watch identifiers
-     * @return true if and only if some lock guarded by this watch was locked
-     * @throws NotFoundException if we do not recognise the watch identifier the user provides
-     */
-    @POST
-    @Path("/status")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers) throws NotFoundException;
 
     // Not intended for remote callers, at least not right now.
     LockEventProcessor getEventProcessor();
