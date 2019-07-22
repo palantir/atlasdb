@@ -16,6 +16,10 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
+import java.util.Comparator;
+
+import javax.annotation.Nonnull;
+
 import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -25,7 +29,11 @@ import com.palantir.lock.LockDescriptor;
 @JsonSerialize(as = ImmutableWatchIndexState.class)
 @JsonDeserialize(as = ImmutableWatchIndexState.class)
 @Value.Immutable
-public interface WatchIndexState {
+public interface WatchIndexState extends Comparable<WatchIndexState> {
+    Comparator<WatchIndexState> WATCH_INDEX_STATE_COMPARATOR
+            = Comparator.comparing(WatchIndexState::lastUnlockSequence)
+            .thenComparing(WatchIndexState::lastLockSequence);
+
     long lastLockSequence();
     long lastUnlockSequence();
 
@@ -48,5 +56,10 @@ public interface WatchIndexState {
                 .from(this)
                 .lastUnlockSequence(unlockSequence)
                 .build();
+    }
+
+    @Override
+    default int compareTo(@Nonnull WatchIndexState other) {
+        return WATCH_INDEX_STATE_COMPARATOR.compare(this, other);
     }
 }

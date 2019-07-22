@@ -18,6 +18,7 @@ dependencies {
   compile project(":atlasdb-coordination-impl")
   compile project(":atlasdb-persistent-lock-api")
   compile project(":lock-impl")
+  compile project(":timelock-api")
   compile project(":timestamp-api")
   compile project(":timestamp-client")
 
