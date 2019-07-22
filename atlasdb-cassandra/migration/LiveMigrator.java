@@ -36,6 +36,7 @@ public class LiveMigrator {
     private final TableReference startTable;
     private final TableReference targetTable;
     private final ProgressCheckPoint progressCheckPoint;
+    private static final int BATCH_SIZE = 1000;
 
     public LiveMigrator(TransactionManager transactionManager, TableReference startTable,
             TableReference targetTable, ProgressCheckPoint progressCheckPoint) {
@@ -56,7 +57,7 @@ public class LiveMigrator {
 
             RangeRequest request = RangeRequest.builder()
                     .startRowInclusive(nextStartRow.get())
-                    .batchHint(1000)
+                    .batchHint(BATCH_SIZE)
                     .build();
 
             Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
@@ -64,7 +65,7 @@ public class LiveMigrator {
                         AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
                         BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
 
-                        range.batchAccept(1000, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
+                        range.batchAccept(BATCH_SIZE, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
                             @Override
                             public boolean visit(List<RowResult<byte[]>> item) {
                                 item.forEach(
