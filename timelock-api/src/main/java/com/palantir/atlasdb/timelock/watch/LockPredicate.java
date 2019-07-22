@@ -18,12 +18,12 @@ package com.palantir.atlasdb.timelock.watch;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.palantir.lock.LockDescriptor;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(ExplicitLockPredicate.class)
+        @JsonSubTypes.Type(ExplicitLockPredicate.class),
+        @JsonSubTypes.Type(PrefixLockPredicate.class)
         })
 public interface LockPredicate {
-    boolean matches(LockDescriptor lockDescriptor);
+    // Marker Interface
 }

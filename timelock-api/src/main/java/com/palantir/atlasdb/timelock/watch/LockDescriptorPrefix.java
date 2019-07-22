@@ -16,19 +16,20 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
-import java.util.Set;
-
 import org.immutables.value.Value;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.lock.LockDescriptor;
+import com.google.common.base.Preconditions;
 
-@JsonSerialize(as = ImmutableExplicitLockPredicate.class)
-@JsonDeserialize(as = ImmutableExplicitLockPredicate.class)
+@JsonSerialize(as = ImmutableLockDescriptorPrefix.class)
+@JsonDeserialize(as = ImmutableLockDescriptorPrefix.class)
 @Value.Immutable
-@JsonTypeName("explicit")
-public interface ExplicitLockPredicate extends LockPredicate {
-    Set<LockDescriptor> descriptors();
+interface LockDescriptorPrefix {
+    String prefix();
+
+    @Value.Check
+    default void nonEmpty() {
+        Preconditions.checkState(!prefix().isEmpty(), "Watching ALL the locks is not allowed!");
+    }
 }
