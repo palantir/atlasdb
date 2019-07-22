@@ -61,7 +61,7 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.lock.AtlasRowLockDescriptor;
 
-// TODO (jkong): Flaky flaky flaky flaky flaky
+// TODO (jkong): Uninterruptibles! Probably better to implement a more deterministic cache flushing
 public class LockWatchClientImplTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("a.b");
 
