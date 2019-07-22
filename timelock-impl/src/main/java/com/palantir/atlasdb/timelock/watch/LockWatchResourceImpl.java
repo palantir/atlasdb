@@ -17,34 +17,31 @@
 package com.palantir.atlasdb.timelock.watch;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import com.palantir.lock.LockDescriptor;
 
-@Path("/lock-watch")
 public class LockWatchResourceImpl implements LockWatchResource {
     private static final int WATCH_LIMIT = 50;
 
+    private final BiMap<LockPredicate, WatchIdentifier> knownPredicates;
     private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
-    private final Map<UUID, LockWatch> activeWatches;
+    private final Map<WatchIdentifier, LockWatch> activeWatches;
     private final LockEventProcessor eventProcessor;
 
     public LockWatchResourceImpl() {
+        this.knownPredicates = HashBiMap.create();
         this.explicitDescriptorsToWatches = Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys()
                 .arrayListValues()
                 .build());
@@ -63,17 +60,39 @@ public class LockWatchResourceImpl implements LockWatchResource {
         };
     }
 
-    @PUT
-    @Path("watch")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    public UUID registerWatch(LockPredicate predicate) {
-        if (activeWatches.size() > WATCH_LIMIT) {
-            throw new IllegalStateException("Cannot register watch, too many watches registered.");
+    @Override
+    public Map<LockPredicate, RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
+        // TODO (jkong): Be stricter in respecting the limit in the presence of concurrent registrations.
+
+        Map<LockPredicate, RegisterWatchResponse> result = Maps.newHashMap();
+        // TODO (jkong): Refactor this crap
+        for (LockPredicate predicate : predicates) {
+            if (knownPredicates.containsKey(predicate)) {
+                WatchIdentifier identifier = knownPredicates.get(predicate);
+                LockWatch watch = activeWatches.get(identifier);
+                result.put(predicate,
+                        ImmutableRegisterWatchResponse.builder()
+                                .identifier(identifier).indexState(watch.getState()).build());
+                continue;
+            }
+
+            Optional<RegisterWatchResponse> watchIdentifier = registerNewWatchIdentifier(predicate);
+            watchIdentifier.ifPresent(watchIdentifier1 -> result.put(predicate, watchIdentifier1));
+        }
+        return result;
+    }
+
+
+    private Optional<RegisterWatchResponse> registerNewWatchIdentifier(LockPredicate predicate) {
+        // TODO (jkong): Be stricter with concurrency
+        if (activeWatches.size() >= WATCH_LIMIT) {
+            return Optional.empty();
         }
 
         UUID idToAssign = UUID.randomUUID();
+        WatchIdentifier watchIdentifier = WatchIdentifier.of(idToAssign);
 
+        // TODO (jkong): Handle prefix scans
         if (!(predicate instanceof ExplicitLockPredicate)) {
             throw new IllegalArgumentException("Non-explicit lock predicates not supported yet!");
         }
@@ -81,31 +100,39 @@ public class LockWatchResourceImpl implements LockWatchResource {
 
         Set<LockDescriptor> descriptors = explicitLockPredicate.descriptors();
         LockWatch watch = new LockWatch(descriptors);
-        activeWatches.put(idToAssign, watch);
+        activeWatches.put(watchIdentifier, watch);
+        knownPredicates.put(predicate, watchIdentifier);
         descriptors.forEach(descriptor -> explicitDescriptorsToWatches.put(descriptor, watch));
-        return idToAssign;
+        return Optional.of(
+                ImmutableRegisterWatchResponse.builder()
+                        .indexState(watch.getState())
+                        .build()
+        );
     }
 
-    @DELETE
-    @Path("watch/{id}")
-    public void unregisterWatch(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
-        LockWatch removed = activeWatches.remove(watchIdentifier);
-        if (removed == null) {
-            throw new NotFoundException("lock watch does not exist");
+    @Override
+    public Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers) {
+        Set<WatchIdentifier> unregistered = Sets.newHashSet();
+        for (WatchIdentifier identifier : identifiers) {
+            LockWatch watch = activeWatches.remove(identifier);
+            if (watch != null) {
+                knownPredicates.inverse().remove(identifier);
+            }
         }
-        removed.getState().lockStates()
-                .forEach(state -> explicitDescriptorsToWatches.remove(state.lockDescriptor(), removed));
+        return unregistered;
     }
 
-    @POST
-    @Path("watch/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public LockWatchState getWatchState(@PathParam("id") UUID watchIdentifier) throws NotFoundException {
-        LockWatch watch = activeWatches.get(watchIdentifier);
-        if (watch == null) {
-            throw new NotFoundException("lock watch does not exist");
+    @Override
+    public Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers)
+            throws NotFoundException {
+        Map<WatchIdentifier, WatchIndexState> states = Maps.newHashMap();
+        for (WatchIdentifier identifier : identifiers) {
+            LockWatch watch = activeWatches.get(identifier);
+            if (watch != null) {
+                states.put(identifier, watch.getState());
+            }
         }
-        return watch.getState();
+        return states;
     }
 
     public LockEventProcessor getEventProcessor() {

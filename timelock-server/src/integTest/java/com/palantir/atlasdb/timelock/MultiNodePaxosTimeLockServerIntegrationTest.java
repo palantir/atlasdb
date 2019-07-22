@@ -42,9 +42,9 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.watch.ImmutableExplicitLockPredicate;
-import com.palantir.atlasdb.timelock.watch.ImmutableLockIndexState;
+import com.palantir.atlasdb.timelock.watch.ImmutableWatchIndexState;
 import com.palantir.atlasdb.timelock.watch.ImmutableLockWatchState;
-import com.palantir.atlasdb.timelock.watch.LockIndexState;
+import com.palantir.atlasdb.timelock.watch.WatchIndexState;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -388,13 +388,13 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
             UUID watch = CLUSTER.lockWatchService().registerWatch(
                     ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK).build());
             assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-                    .addLockStates(LockIndexState.createDefaultForLockDescriptor(LOCK))
+                    .addLockStates(WatchIndexState.createDefaultForLockDescriptor(LOCK))
                     .build());
             LockResponse response = CLUSTER.lock(LockRequest.of(ImmutableSet.of(LOCK), 1234L));
             CLUSTER.unlock(response.getToken());
             assertThat(CLUSTER.lockWatchService().getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
                     .addLockStates(
-                            ImmutableLockIndexState.builder()
+                            ImmutableWatchIndexState.builder()
                                     .lockDescriptor(LOCK)
                                     .lastLockSequence(1)
                                     .lastUnlockSequence(2).build())

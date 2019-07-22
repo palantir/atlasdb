@@ -31,4 +31,10 @@ import com.palantir.lock.LockDescriptor;
 @JsonTypeName("explicit")
 public interface ExplicitLockPredicate extends LockPredicate {
     Set<LockDescriptor> descriptors();
+
+    static LockPredicate of(LockDescriptor... descriptors) {
+        return ImmutableExplicitLockPredicate.builder()
+                .addDescriptors(descriptors)
+                .build();
+    }
 }

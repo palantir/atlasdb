@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
-import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
@@ -37,32 +36,34 @@ import javax.ws.rs.core.MediaType;
 public interface LockWatchService {
     /**
      * Registers a watch for the provided {@link LockPredicate}.
-     * @param predicate indicates which locks should be watched by this watch
-     * @return UUID of the watch, that can be used for queries to
+     * @param predicates indicates which locks should be watched
+     * @return Identifiers for watches
      */
     @PUT
-    @Path("watch")
+    @Path("/register")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    UUID registerWatch(LockPredicate predicate);
+    Map<LockPredicate, RegisterWatchResponse> getOrRegisterWatches(Set<LockPredicate> predicates);
 
     /**
-     * Unregisters the watch with the specified UUID.
-     * @throws NotFoundException if we do not recognise the watch identifier the user provides
+     * Unregisters watches.
+     * @return watches that were unregistered
      */
     @DELETE
-    @Path("watch/{id}")
-    void unregisterWatch(@PathParam("id") UUID watchIdentifier) throws NotFoundException;
+    @Path("/unregister")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Set<WatchIdentifier> unregisterWatch(Set<WatchIdentifier> identifiers);
 
     /**
-     * Gets the state a given watch is in.
+     * Gets the state specified watches are in.
+     * Keys won't be included if we don't know of a watch with that id.
      *
-     * @param watchIdentifier watch identifier
+     * @param identifiers watch identifiers
      * @return true if and only if some lock guarded by this watch was locked
-     * @throws NotFoundException if we do not recognise the watch identifier the user provides
      */
     @POST
-    @Path("watch/{id}")
+    @Path("/status")
     @Produces(MediaType.APPLICATION_JSON)
-    LockWatchState getWatchState(@PathParam("id") UUID watchIdentifier) throws NotFoundException;
+    @Consumes(MediaType.APPLICATION_JSON)
+    Map<WatchIdentifier, WatchIndexState> getWatchStates(Set<WatchIdentifier> identifiers);
 }

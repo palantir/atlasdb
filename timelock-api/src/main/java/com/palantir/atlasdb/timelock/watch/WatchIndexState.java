@@ -22,31 +22,29 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.lock.LockDescriptor;
 
-@JsonSerialize(as = ImmutableLockIndexState.class)
-@JsonDeserialize(as = ImmutableLockIndexState.class)
+@JsonSerialize(as = ImmutableWatchIndexState.class)
+@JsonDeserialize(as = ImmutableWatchIndexState.class)
 @Value.Immutable
-public interface LockIndexState {
-    LockDescriptor lockDescriptor();
+public interface WatchIndexState {
     long lastLockSequence();
     long lastUnlockSequence();
 
-    static LockIndexState createDefaultForLockDescriptor(LockDescriptor descriptor) {
-        return ImmutableLockIndexState.builder()
-                .lockDescriptor(descriptor)
+    static WatchIndexState createDefaultForLockDescriptor(LockDescriptor descriptor) {
+        return ImmutableWatchIndexState.builder()
                 .lastLockSequence(0)
                 .lastUnlockSequence(0)
                 .build();
     }
 
-    default LockIndexState withLockSequence(long lockSequence) {
-        return ImmutableLockIndexState.builder()
+    default WatchIndexState withLockSequence(long lockSequence) {
+        return ImmutableWatchIndexState.builder()
                 .from(this)
                 .lastLockSequence(lockSequence)
                 .build();
     }
 
-    default LockIndexState withUnlockSequence(long unlockSequence) {
-        return ImmutableLockIndexState.builder()
+    default WatchIndexState withUnlockSequence(long unlockSequence) {
+        return ImmutableWatchIndexState.builder()
                 .from(this)
                 .lastUnlockSequence(unlockSequence)
                 .build();

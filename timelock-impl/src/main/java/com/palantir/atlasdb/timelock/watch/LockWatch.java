@@ -25,12 +25,12 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 
 class LockWatch {
-    private Map<LockDescriptor, LockIndexState> indexStates;
+    private Map<LockDescriptor, WatchIndexState> indexStates;
     private Map<LockDescriptor, AtomicLong> counters;
 
     LockWatch(Set<LockDescriptor> lockDescriptors) {
         this.indexStates = KeyedStream.of(lockDescriptors)
-                .map(LockIndexState::createDefaultForLockDescriptor)
+                .map(WatchIndexState::createDefaultForLockDescriptor)
                 .collectTo(Maps::newConcurrentMap);
         this.counters = KeyedStream.of(lockDescriptors)
                 .map(unused -> new AtomicLong())
@@ -49,9 +49,7 @@ class LockWatch {
                 (unused, oldState) -> oldState.withUnlockSequence(counters.get(descriptor).incrementAndGet()));
     }
 
-    LockWatchState getState() {
-        return ImmutableLockWatchState.builder()
-                .addAllLockStates(indexStates.values())
-                .build();
+    WatchIndexState getState() {
+        return null;
     }
 }
