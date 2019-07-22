@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
@@ -39,9 +40,12 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 public class RowStateCache {
     private final KeyValueService keyValueService;
     private final TransactionService transactionService;
-    private final ConcurrentMap<RowReference, RowStateCacheValue> backingMap;
 
-    private final DisruptorAutobatcher<RowCacheUpdateRequest, Void> updater;
+    @VisibleForTesting
+    final ConcurrentMap<RowReference, RowStateCacheValue> backingMap;
+
+    @VisibleForTesting
+    final DisruptorAutobatcher<RowCacheUpdateRequest, Void> updater;
 
     public RowStateCache(KeyValueService keyValueService,
             TransactionService transactionService) {
@@ -55,13 +59,13 @@ public class RowStateCache {
         RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
         if (currentCacheValue == null) {
             // Nothing is cached, so we don't know
-            updateCache(rowReference, readState);
+            updateCache(rowReference, readState, startTimestamp);
             return Optional.empty();
         }
 
         // there is a cache value, but things have changed since
         if (readState.compareTo(currentCacheValue.watchIndexState()) > 0) {
-            updateCache(rowReference, readState);
+            updateCache(rowReference, readState, startTimestamp);
             return Optional.empty();
         }
 
@@ -76,7 +80,7 @@ public class RowStateCache {
         return Optional.of(currentCacheValue.data());
     }
 
-    private void updateCache(RowReference rowReference, WatchIndexState readState) {
+    private void updateCache(RowReference rowReference, WatchIndexState readState, long readTimestamp) {
         // TODO (jkong): We need some way to handle this under high load
         RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
         if (currentCacheValue != null) {
@@ -89,6 +93,7 @@ public class RowStateCache {
         updater.apply(ImmutableRowCacheUpdateRequest.builder()
                 .rowReference(rowReference)
                 .watchIndexState(readState)
+                .readTimestamp(readTimestamp)
                 .build());
     }
 
@@ -123,9 +128,11 @@ public class RowStateCache {
                 List<Long> interestingTimestamps = data.values().stream().map(Value::getTimestamp)
                         .collect(Collectors.toList());
 
+                // TODO (jkong): Need some way of handling failure to commit. Probably do the usual lookback you do
+                // in Atlas.
                 long timestampAtWhichCachedDataWasFirstValid =
                         transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
-                                .orElse(0);
+                                .orElse(request.readTimestamp());
                 RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
                         .earliestValidTimestamp(timestampAtWhichCachedDataWasFirstValid)
                         .data(data)
@@ -144,8 +151,9 @@ public class RowStateCache {
     }
 
     @org.immutables.value.Value.Immutable
-    interface RowCacheUpdateRequest {
+    public interface RowCacheUpdateRequest {
         RowReference rowReference();
         WatchIndexState watchIndexState();
+        long readTimestamp();
     }
 }

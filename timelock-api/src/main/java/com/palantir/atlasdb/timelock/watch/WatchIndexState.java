@@ -38,23 +38,13 @@ public interface WatchIndexState extends Comparable<WatchIndexState> {
     long lastUnlockSequence();
 
     static WatchIndexState createDefaultForLockDescriptor(LockDescriptor descriptor) {
-        return ImmutableWatchIndexState.builder()
-                .lastLockSequence(0)
-                .lastUnlockSequence(0)
-                .build();
+        return of(0, 0);
     }
 
-    default WatchIndexState withLockSequence(long lockSequence) {
+    static WatchIndexState of(long lastLock, long lastUnlock) {
         return ImmutableWatchIndexState.builder()
-                .from(this)
-                .lastLockSequence(lockSequence)
-                .build();
-    }
-
-    default WatchIndexState withUnlockSequence(long unlockSequence) {
-        return ImmutableWatchIndexState.builder()
-                .from(this)
-                .lastUnlockSequence(unlockSequence)
+                .lastLockSequence(lastLock)
+                .lastUnlockSequence(lastUnlock)
                 .build();
     }
 
