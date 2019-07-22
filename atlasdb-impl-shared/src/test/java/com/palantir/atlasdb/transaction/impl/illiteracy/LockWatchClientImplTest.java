@@ -207,11 +207,13 @@ public class LockWatchClientImplTest {
         }
 
         // A bit of leeway in case the cache is slow
+        verify(kvs, atLeast(3)).getRows(eq(TEST_TABLE), any(), any(), anyLong());
         verify(kvs, atMost(6)).getRows(eq(TEST_TABLE), any(), any(), anyLong());
     }
 
     @Test
-    public void dontCacheTooMuch() {
+    public void doNotCacheIfItIsIllegal() {
+        // TODO (jkong): wat
         when(rpcClient.registerOrGetStates(any())).thenReturn(ImmutableWatchStateResponse.builder()
                 .addRegisterResponses(ImmutableRegisterWatchResponse.builder()
                         .identifier(WatchIdentifier.of("o"))
