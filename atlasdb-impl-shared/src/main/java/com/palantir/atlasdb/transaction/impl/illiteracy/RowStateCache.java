@@ -69,6 +69,13 @@ public class RowStateCache {
             return Optional.empty();
         }
 
+        if (readState.lastLockSequence() > readState.lastUnlockSequence()) {
+            // Some transaction has taken out the lock, and is still holding it.
+            // We have taken our start, but we don't know where they took their commit
+            // So in this case we just shrug and say we can't be sure
+            return Optional.empty();
+        }
+
         // there is a cache value that is at our read or newer.
         if (currentCacheValue.earliestValidTimestamp() > startTimestamp) {
             // The most recent value actually committed after our start, so we can't use it.
@@ -131,8 +138,9 @@ public class RowStateCache {
                 // TODO (jkong): Need some way of handling failure to commit. Probably do the usual lookback you do
                 // in Atlas.
                 long timestampAtWhichCachedDataWasFirstValid =
+                        interestingTimestamps.size() == 0 ? request.readTimestamp() :
                         transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
-                                .orElse(request.readTimestamp());
+                                .orElse(Long.MAX_VALUE); // nothing committed, so it's only valid at infinity
                 RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
                         .earliestValidTimestamp(timestampAtWhichCachedDataWasFirstValid)
                         .data(data)
@@ -141,7 +149,7 @@ public class RowStateCache {
 
                 backingMap.merge(request.rowReference(), cacheValue, (existing, current) -> {
                     int cv = existing.watchIndexState().compareTo(current.watchIndexState());
-                    if (cv > 0) {
+                    if (cv >= 0) {
                         return existing;
                     }
                     return current;

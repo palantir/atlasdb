@@ -98,6 +98,7 @@ public class LockWatchClientImplTest {
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
+        transactionService.putUnlessExists(42, 43);
 
         Map<Cell, Value> v1 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 14);
         Map<Cell, Value> v2 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 1234);
@@ -120,6 +121,7 @@ public class LockWatchClientImplTest {
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
+        transactionService.putUnlessExists(42, 43);
 
         Map<Cell, Value> v1 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 99);
         Map<Cell, Value> v2 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 1234);
@@ -144,6 +146,7 @@ public class LockWatchClientImplTest {
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
+        transactionService.putUnlessExists(42, 43);
 
         Map<Cell, Value> v1 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 99);
         assertThat(v1).isNotEmpty();
@@ -193,6 +196,7 @@ public class LockWatchClientImplTest {
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
+        transactionService.putUnlessExists(42, 43);
 
         Map<Cell, Value> v1 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 99);
         assertThat(v1).isNotEmpty();
@@ -248,6 +252,7 @@ public class LockWatchClientImplTest {
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
+        transactionService.putUnlessExists(42, 43);
 
         Map<Cell, Value> v1 = lockWatchClient.getRows(TEST_TABLE, ImmutableList.of(BYTES), ColumnSelection.all(), 99);
         assertThat(v1).isNotEmpty();
