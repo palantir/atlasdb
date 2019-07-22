@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -40,7 +41,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 public class LiveMigratorTest extends TransactionTestSetup {
     private static final TableReference OLD_TABLE_REF = TableReference.createFromFullyQualifiedName("old.table");
     private static final TableReference NEW_TABLE_REF = TableReference.createFromFullyQualifiedName("new.table");
-    private static final Cell CELL = createCell("rowName", "columnName");
+    private static final Cell CELL = createCell(Integer.toString(0), Integer.toString(0));
 
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();
@@ -67,19 +68,14 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
     @Test
     public void testMigrationRuns() {
-        transactionManager.runTaskWithRetry(transaction -> {
-            transaction.put(OLD_TABLE_REF,
-                    ImmutableMap.of(CELL, PtBytes.toBytes("value")));
-
-            return null;
-        });
+        writeToOldTable(1, 1);
 
 
         byte[] value = transactionManager.runTaskWithRetry(
                 transaction -> transaction.get(OLD_TABLE_REF, ImmutableSet.of(CELL)).get(CELL));
 
         assertThat(value)
-                .containsExactly(PtBytes.toBytes("value"));
+                .containsExactly(PtBytes.toBytes(0L));
 
         when(checkPoint.getNextStartRow())
                 .thenReturn(Optional.of(PtBytes.EMPTY_BYTE_ARRAY))
@@ -91,8 +87,27 @@ public class LiveMigratorTest extends TransactionTestSetup {
                 transaction -> transaction.get(NEW_TABLE_REF, ImmutableSet.of(CELL)).get(CELL));
 
         assertThat(valueInNewTable)
-                .containsExactly(PtBytes.toBytes("value"));
+                .containsExactly(PtBytes.toBytes(0L));
 
+    }
+
+    @Test
+    public void migrationRunsMultipleIterations() {
+//        writeToOldTable(CELL, PtBytes.toBytes("value"));
+//        writeToOldTable(
+    }
+
+    private void writeToOldTable(int rows, int cols) {
+
+        transactionManager.runTaskWithRetry(transaction -> {
+            IntStream.range(0, rows)
+                    .forEach(row -> IntStream.range(0, cols)
+                            .forEach(col ->
+                                    transaction.put(OLD_TABLE_REF, ImmutableMap.of(
+                                            createCell(Integer.toString(row), Integer.toString(col)),
+                                            PtBytes.toBytes(row * col)))));
+            return null;
+        });
     }
 
     private static Cell createCell(String rowName, String columnName) {
