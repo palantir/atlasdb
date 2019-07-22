@@ -48,22 +48,22 @@ public class LockWatchResourceImpl implements LockWatchResource {
             @Override
             public void registerLock(LockDescriptor descriptor) {
                 System.out.println(activeWatches);
-                explicitDescriptorsToWatches.get(descriptor).forEach(watch -> watch.registerLock(descriptor));
+                explicitDescriptorsToWatches.get(descriptor).forEach(LockWatch::registerLock);
             }
 
             @Override
             public void registerUnlock(LockDescriptor descriptor) {
-                explicitDescriptorsToWatches.get(descriptor).forEach(watch -> watch.registerUnlock(descriptor));
+                explicitDescriptorsToWatches.get(descriptor).forEach(LockWatch::registerUnlock);
             }
         };
     }
 
     @Override
     public WatchStateResponse registerOrGetStates(WatchStateQuery query) {
-        Map<LockPredicate, RegisterWatchResponse> registrationStates = registerWatches(query.newPredicates());
+        Set<RegisterWatchResponse> registrationStates = registerWatches(query.newPredicates());
         Map<WatchIdentifier, WatchIndexState> assumedExtantStates = getWatchStates(query.knownIdentifiers());
         return ImmutableWatchStateResponse.builder()
-                .putAllRegisterResponses(registrationStates)
+                .addAllRegisterResponses(registrationStates)
                 .putAllStateResponses(assumedExtantStates)
                 .build();
     }
@@ -75,6 +75,7 @@ public class LockWatchResourceImpl implements LockWatchResource {
             LockWatch watch = activeWatches.remove(identifier);
             if (watch != null) {
                 knownPredicates.inverse().remove(identifier);
+                unregistered.add(identifier);
             }
         }
         return unregistered;
@@ -95,23 +96,25 @@ public class LockWatchResourceImpl implements LockWatchResource {
         return eventProcessor;
     }
 
-    private Map<LockPredicate, RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
+    private Set<RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
         // TODO (jkong): Be stricter in respecting the limit in the presence of concurrent registrations.
 
-        Map<LockPredicate, RegisterWatchResponse> result = Maps.newHashMap();
+        Set<RegisterWatchResponse> result = Sets.newHashSet();
         // TODO (jkong): Refactor this crap
         for (LockPredicate predicate : predicates) {
             if (knownPredicates.containsKey(predicate)) {
                 WatchIdentifier identifier = knownPredicates.get(predicate);
                 LockWatch watch = activeWatches.get(identifier);
-                result.put(predicate,
-                        ImmutableRegisterWatchResponse.builder()
-                                .identifier(identifier).indexState(watch.getState()).build());
+                result.add(ImmutableRegisterWatchResponse.builder()
+                        .predicate(predicate)
+                        .identifier(identifier)
+                        .indexState(watch.getState())
+                        .build());
                 continue;
             }
 
             Optional<RegisterWatchResponse> watchIdentifier = registerNewWatchIdentifier(predicate);
-            watchIdentifier.ifPresent(watchIdentifier1 -> result.put(predicate, watchIdentifier1));
+            watchIdentifier.ifPresent(result::add);
         }
         return result;
     }
@@ -132,12 +135,14 @@ public class LockWatchResourceImpl implements LockWatchResource {
         ExplicitLockPredicate explicitLockPredicate = (ExplicitLockPredicate) predicate;
 
         Set<LockDescriptor> descriptors = explicitLockPredicate.descriptors();
-        LockWatch watch = new LockWatch(descriptors);
+        LockWatch watch = new LockWatch();
         activeWatches.put(watchIdentifier, watch);
         knownPredicates.put(predicate, watchIdentifier);
         descriptors.forEach(descriptor -> explicitDescriptorsToWatches.put(descriptor, watch));
         return Optional.of(
                 ImmutableRegisterWatchResponse.builder()
+                        .predicate(predicate)
+                        .identifier(watchIdentifier)
                         .indexState(watch.getState())
                         .build()
         );

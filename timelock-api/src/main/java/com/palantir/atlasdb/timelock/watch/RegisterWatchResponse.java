@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableRegisterWatchResponse.class)
 @Value.Immutable
 public interface RegisterWatchResponse {
+    LockPredicate predicate();
     WatchIdentifier identifier();
     WatchIndexState indexState();
 }

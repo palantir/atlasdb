@@ -20,11 +20,24 @@ import java.util.UUID;
 
 import org.immutables.value.Value;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+@JsonSerialize(as = ImmutableWatchIdentifier.class)
+@JsonDeserialize(as = ImmutableWatchIdentifier.class)
 @Value.Immutable
 public interface WatchIdentifier {
-    UUID identifier();
+    @JsonValue
+    String identifier();
 
     static WatchIdentifier of(UUID uuid) {
-        return ImmutableWatchIdentifier.builder().identifier(uuid).build();
+        return ImmutableWatchIdentifier.builder().identifier(uuid.toString()).build();
+    }
+
+    @JsonCreator
+    static WatchIdentifier of(String id) {
+        return ImmutableWatchIdentifier.builder().identifier(id).build();
     }
 }

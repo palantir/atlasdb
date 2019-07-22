@@ -22,13 +22,20 @@ import org.immutables.value.Value;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.collect.ImmutableSet;
 
 @JsonSerialize(as = ImmutableWatchStateQuery.class)
 @JsonDeserialize(as = ImmutableWatchStateQuery.class)
 @Value.Immutable
 public interface WatchStateQuery {
-    Set<WatchIdentifier> knownIdentifiers();
+    @Value.Default
+    default Set<WatchIdentifier> knownIdentifiers() {
+        return ImmutableSet.of();
+    }
 
     // Some of these may end up being mapped to already extant watches.
-    Set<LockPredicate> newPredicates();
+    @Value.Default
+    default Set<LockPredicate> newPredicates() {
+        return ImmutableSet.of();
+    }
 }

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -48,12 +49,21 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
-import com.palantir.atlasdb.timelock.watch.LockWatchService;
+import com.palantir.atlasdb.timelock.watch.ExplicitLockPredicate;
+import com.palantir.atlasdb.timelock.watch.ImmutableWatchIndexState;
+import com.palantir.atlasdb.timelock.watch.ImmutableWatchStateQuery;
+import com.palantir.atlasdb.timelock.watch.LockPredicate;
+import com.palantir.atlasdb.timelock.watch.LockWatchRpcClient;
+import com.palantir.atlasdb.timelock.watch.RegisterWatchResponse;
+import com.palantir.atlasdb.timelock.watch.WatchIdentifier;
+import com.palantir.atlasdb.timelock.watch.WatchIndexState;
+import com.palantir.atlasdb.timelock.watch.WatchStateResponse;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -63,6 +73,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
@@ -92,7 +103,7 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final int FORTY_TWO = 42;
 
     private static final String LOCK_CLIENT_NAME = "remoteLock-client-name";
-    public static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
+    private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
     private static final SortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
     private static final File TIMELOCK_CONFIG_TEMPLATE =
@@ -112,7 +123,7 @@ public class PaxosTimeLockServerIntegrationTest {
 
     private final TimestampService timestampService = getTimestampService(CLIENT_1);
     private final TimestampManagementService timestampManagementService = getTimestampManagementService(CLIENT_1);
-    private final LockWatchService lockWatchService = getLockWatchService(CLIENT_1);
+    private final LockWatchRpcClient lockWatchClient = getLockWatchRpcClient(CLIENT_1);
 
     @ClassRule
     public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
@@ -454,85 +465,98 @@ public class PaxosTimeLockServerIntegrationTest {
         getTimelockService(CLIENT_1).unlock(ImmutableSet.of(token));
     }
 
-//    @Test
-//    public void canRegisterWatches() {
-//        Map<LockPredicate, WatchIdentifier> identifierMap = lockWatchService.registerWatches(
-//                ImmutableSet.of(ExplicitLockPredicate.of(LOCK_1)));
-//        LockWatchState watchState = lockWatchService.getWatchState(watch);
-//        assertThat(watchState).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(WatchIndexState.createDefaultForLockDescriptor(LOCK_1))
-//                .build());
-//        lockWatchService.unregisterWatch(watch);
-//    }
-//
-//    @Test
-//    public void requestingWatchThatDoesNotExistThrows404() {
-//        // Sigh. Dropwizard and remoting2 errors.
-//        assertThatThrownBy(() -> lockWatchService.getWatchState(UUID.randomUUID()))
-//                .hasMessageContaining("404")
-//                .hasMessageContaining("NOT_FOUND");
-//    }
-//
-//    @Test
-//    public void watchesActuallyWatchTheRelevantLock() {
-//        UUID watch = lockWatchService.registerWatch(
-//                ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
-//        LockResponse response = getTimelockService(CLIENT_1).lock(LockRequest.of(ImmutableSet.of(LOCK_1), 1234L));
-//        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(
-//                        ImmutableWatchIndexState.builder()
-//                                .lockDescriptor(LOCK_1)
-//                                .lastLockSequence(1)
-//                                .lastUnlockSequence(0).build())
-//                .build());
-//
-//        getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
-//        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(
-//                        ImmutableWatchIndexState.builder()
-//                                .lockDescriptor(LOCK_1)
-//                                .lastLockSequence(1)
-//                                .lastUnlockSequence(2).build())
-//                .build());
-//        lockWatchService.unregisterWatch(watch);
-//    }
-//
-//    @Test
-//    public void watchesIgnoreLocksThatAreNotRelevantToThem() {
-//        LockDescriptor somethingElse = StringLockDescriptor.of("somethingElse");
-//
-//        UUID watch = lockWatchService.registerWatch(
-//                ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
-//        LockResponse response = getTimelockService(CLIENT_1).lock(LockRequest.of(ImmutableSet.of(somethingElse), 123L));
-//        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(WatchIndexState.createDefaultForLockDescriptor(LOCK_1))
-//                .build());
-//
-//        getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
-//        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(WatchIndexState.createDefaultForLockDescriptor(LOCK_1))
-//                .build());
-//        lockWatchService.unregisterWatch(watch);
-//    }
-//
-//    @Test
-//    public void watchesCanCountManyLocksAndUnlocks() {
-//        UUID watch = lockWatchService.registerWatch(
-//                ImmutableExplicitLockPredicate.builder().addDescriptors(LOCK_1).build());
-//        int numTrials = 100;
-//        for (int i = 0; i < numTrials; i++) {
-//            LockResponse response = getTimelockService(CLIENT_1).lock(LockRequest.of(ImmutableSet.of(LOCK_1), 1234L));
-//            getTimelockService(CLIENT_1).unlock(ImmutableSet.of(response.getToken()));
-//        }
-//        assertThat(lockWatchService.getWatchState(watch)).isEqualTo(ImmutableLockWatchState.builder()
-//                .addLockStates(
-//                        ImmutableWatchIndexState.builder()
-//                                .lockDescriptor(LOCK_1)
-//                                .lastLockSequence(2 * numTrials - 1)
-//                                .lastUnlockSequence(2 * numTrials).build())
-//                .build());
-//        lockWatchService.unregisterWatch(watch);
-//    }
+    @Test
+    public void canRegisterWatches() {
+        String randomString = UUID.randomUUID().toString();
+        LockDescriptor descriptor = StringLockDescriptor.of(randomString);
+
+        WatchStateResponse response = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addNewPredicates(ExplicitLockPredicate.of(descriptor)).build());
+
+        assertThat(response.getStateResponses()).isEmpty();
+
+        RegisterWatchResponse registerWatchResponse = Iterables.getOnlyElement(response.registerResponses());
+        assertThat(registerWatchResponse.predicate()).isEqualTo(ExplicitLockPredicate.of(descriptor));
+        assertThat(registerWatchResponse.indexState())
+                .isEqualTo(WatchIndexState.createDefaultForLockDescriptor(descriptor));
+
+        lockWatchClient.unregisterWatch(ImmutableSet.of(registerWatchResponse.identifier()));
+    }
+
+    @Test
+    public void registeredWatchesStayInMemory() {
+        String randomString = UUID.randomUUID().toString();
+        LockDescriptor descriptor = StringLockDescriptor.of(randomString);
+        LockPredicate predicate = ExplicitLockPredicate.of(descriptor);
+
+        WatchStateResponse response = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addNewPredicates(predicate).build());
+        WatchIdentifier id = Iterables.getOnlyElement(response.registerResponses()).identifier();
+
+        WatchStateResponse secondResponse = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addKnownIdentifiers(id).build());
+        assertThat(secondResponse.getStateResponses()).hasSize(1)
+                .hasEntrySatisfying(id,
+                        value -> assertThat(value).isEqualTo(WatchIndexState.createDefaultForLockDescriptor(LOCK_1)));
+
+        lockWatchClient.unregisterWatch(ImmutableSet.of(id));
+    }
+
+    @Test
+    public void watchesTrackRelevantLocks() {
+        String randomString = UUID.randomUUID().toString();
+        LockDescriptor descriptor = StringLockDescriptor.of(randomString);
+        LockPredicate predicate = ExplicitLockPredicate.of(descriptor);
+
+        WatchStateResponse response = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addNewPredicates(predicate).build());
+        WatchIdentifier id = Iterables.getOnlyElement(response.registerResponses()).identifier();
+
+        LockRequest lockRequest = LockRequest.of(ImmutableSet.of(descriptor), 1000);
+        for (int i = 0; i < 20; i++) {
+            LockResponse lockResponse = getTimelockService(CLIENT_1).lock(lockRequest);
+            assertThat(lockResponse.wasSuccessful()).isTrue();
+            LockToken token = lockResponse.getToken();
+            getTimelockService(CLIENT_1).unlock(ImmutableSet.of(token));
+        }
+
+        WatchStateResponse secondResponse = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addKnownIdentifiers(id).build());
+        assertThat(secondResponse.getStateResponses()).hasSize(1)
+                .hasEntrySatisfying(id,
+                        value -> assertThat(value).isEqualTo(
+                                ImmutableWatchIndexState.builder()
+                                        .lastLockSequence(39)
+                                        .lastUnlockSequence(40)
+                                        .build()));
+        lockWatchClient.unregisterWatch(ImmutableSet.of(id));
+    }
+
+    @Test
+    public void watchesDoNotTrackIrrelevantLocks() {
+        String randomString = UUID.randomUUID().toString();
+        LockDescriptor descriptor = StringLockDescriptor.of(randomString);
+        LockPredicate predicate = ExplicitLockPredicate.of(descriptor);
+
+        WatchStateResponse response = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addNewPredicates(predicate).build());
+        WatchIdentifier id = Iterables.getOnlyElement(response.registerResponses()).identifier();
+
+        LockRequest lockRequest = LockRequest.of(ImmutableSet.of(LOCK_1), 1000);
+        for (int i = 0; i < 20; i++) {
+            LockResponse lockResponse = getTimelockService(CLIENT_1).lock(lockRequest);
+            assertThat(lockResponse.wasSuccessful()).isTrue();
+            LockToken token = lockResponse.getToken();
+            getTimelockService(CLIENT_1).unlock(ImmutableSet.of(token));
+        }
+
+        WatchStateResponse secondResponse = lockWatchClient.registerOrGetStates(
+                ImmutableWatchStateQuery.builder().addKnownIdentifiers(id).build());
+        assertThat(secondResponse.getStateResponses()).hasSize(1)
+                .hasEntrySatisfying(id,
+                        value -> assertThat(value).isEqualTo(WatchIndexState.createDefaultForLockDescriptor(LOCK_1)));
+        lockWatchClient.unregisterWatch(ImmutableSet.of(id));
+    }
 
     private static String getFastForwardUriForClientOne() {
         return getRootUriForClient(CLIENT_1) + "/timestamp-management/fast-forward";
@@ -564,8 +588,8 @@ public class PaxosTimeLockServerIntegrationTest {
         return getProxyForService(client, LockService.class);
     }
 
-    private static LockWatchService getLockWatchService(String client) {
-        return getProxyForService(client, LockWatchService.class);
+    private static LockWatchRpcClient getLockWatchRpcClient(String client) {
+        return getProxyForService(client, LockWatchRpcClient.class);
     }
 
     private static TimestampService getTimestampService(String client) {

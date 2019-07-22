@@ -32,7 +32,6 @@ import javax.ws.rs.core.MediaType;
  * locks. Specifically, users can register a watch over some lock IDs. Whenever a watched lock is locked or unlocked,
  * an event is published to this service.
  */
-@Path("/lock-watch")
 public interface LockWatchService {
     /**
      * Registers a watch for the provided {@link LockPredicate}.

@@ -20,8 +20,7 @@ import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.PUT;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -29,11 +28,9 @@ import javax.ws.rs.core.MediaType;
 @Path("/lock-watch")
 public interface LockWatchResource {
     /**
-     * Registers a watch for the provided {@link LockPredicate}.
-     * @param predicates indicates which locks should be watched
-     * @return Identifiers for watches
+     * In a single call checks the state of open watches and registers new ones.
      */
-    @PUT
+    @POST
     @Path("/register")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
@@ -41,7 +38,6 @@ public interface LockWatchResource {
 
     /**
      * Unregisters watches.
-     * @throws NotFoundException if we do not recognise the watch identifier the user provides
      */
     @DELETE
     @Path("/unregister")

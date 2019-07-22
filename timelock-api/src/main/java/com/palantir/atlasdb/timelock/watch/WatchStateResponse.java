@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.timelock.watch;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.immutables.value.Value;
 
@@ -28,5 +29,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @Value.Immutable
 public interface WatchStateResponse {
     Map<WatchIdentifier, WatchIndexState> getStateResponses();
-    Map<LockPredicate, RegisterWatchResponse> registerResponses();
+    Set<RegisterWatchResponse> registerResponses();
 }

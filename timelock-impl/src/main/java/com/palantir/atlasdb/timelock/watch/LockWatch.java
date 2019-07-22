@@ -16,40 +16,35 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.collect.Maps;
-import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.LockDescriptor;
-
 class LockWatch {
-    private Map<LockDescriptor, WatchIndexState> indexStates;
-    private Map<LockDescriptor, AtomicLong> counters;
+    public static final int NO_VALUE = 0;
 
-    LockWatch(Set<LockDescriptor> lockDescriptors) {
-        this.indexStates = KeyedStream.of(lockDescriptors)
-                .map(WatchIndexState::createDefaultForLockDescriptor)
-                .collectTo(Maps::newConcurrentMap);
-        this.counters = KeyedStream.of(lockDescriptors)
-                .map(unused -> new AtomicLong())
-                .collectTo(Maps::newConcurrentMap);
+    private final AtomicLong counter;
+
+    private volatile long lastLock;
+    private volatile long lastUnlock;
+
+    LockWatch() {
+        this.counter = new AtomicLong();
+        this.lastLock = NO_VALUE;
+        this.lastUnlock = NO_VALUE;
     }
 
-    void registerLock(LockDescriptor descriptor) {
-        indexStates.computeIfPresent(
-                descriptor,
-                (unused, oldState) -> oldState.withLockSequence(counters.get(descriptor).incrementAndGet()));
+    void registerLock() {
+        this.lastLock = counter.incrementAndGet();
     }
 
-    void registerUnlock(LockDescriptor descriptor) {
-        indexStates.computeIfPresent(
-                descriptor,
-                (unused, oldState) -> oldState.withUnlockSequence(counters.get(descriptor).incrementAndGet()));
+    void registerUnlock() {
+        this.lastUnlock = counter.incrementAndGet();
     }
 
     WatchIndexState getState() {
-        return null;
+        // Possible that this reads lock THEN unlock is updated THEN this reads unlock. That's okay.
+        return ImmutableWatchIndexState.builder()
+                .lastLockSequence(lastLock)
+                .lastUnlockSequence(lastUnlock)
+                .build();
     }
 }
