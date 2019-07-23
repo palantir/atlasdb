@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl.illiteracy;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -34,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.timelock.watch.WatchIndexState;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class RowStateCache {
@@ -55,7 +55,8 @@ public class RowStateCache {
         this.updater = Autobatchers.coalescing(new UpdateFunction()).safeLoggablePurpose("row-state-cache").build();
     }
 
-    public Optional<Map<Cell, Value>> get(RowReference rowReference, WatchIndexState readState, long startTimestamp) {
+    public Optional<Map<Cell, Value>> get(
+            RowReference rowReference, WatchIdentifierAndState readState, long startTimestamp) {
         RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
         if (currentCacheValue == null) {
             // Nothing is cached, so we don't know
@@ -63,39 +64,30 @@ public class RowStateCache {
             return Optional.empty();
         }
 
-        // there is a cache value, but things have changed since
-        if (readState.compareTo(currentCacheValue.watchIndexState()) > 0) {
-            updateCache(rowReference, readState, startTimestamp);
-            return Optional.empty();
-        }
+        CacheValidity validity = currentCacheValue.validityConditions().evaluate(readState, startTimestamp);
 
-        if (readState.lastLockSequence() > readState.lastUnlockSequence()) {
-            // Some transaction has taken out the lock, and is still holding it.
-            // We have taken our start, but we don't know where they took their commit
-            // So in this case we just shrug and say we can't be sure
-            return Optional.empty();
+        switch(validity) {
+            case USABLE:
+                return Optional.of(currentCacheValue.data());
+            case VALID_BUT_NOT_USABLE_HERE:
+                return Optional.empty();
+            case NO_LONGER_VALID:
+                updateCache(rowReference, readState, startTimestamp);
+                return Optional.empty();
+            default:
+                throw new AssertionError("wat");
         }
-
-        // there is a cache value that is at our read or newer.
-        if (currentCacheValue.earliestValidTimestamp() > startTimestamp) {
-            // The most recent value actually committed after our start, so we can't use it.
-            // To save memory we only remember one value
-            // BUT in this case we DON'T update the cache as there's no reason to believe it's out of date.
-            return Optional.empty();
-        }
-
-        return Optional.of(currentCacheValue.data());
     }
 
-    private void updateCache(RowReference rowReference, WatchIndexState readState, long readTimestamp) {
+    private void updateCache(RowReference rowReference, WatchIdentifierAndState readState, long readTimestamp) {
         // TODO (jkong): We need some way to handle this under high load
         RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
         if (currentCacheValue != null) {
-            if (currentCacheValue.watchIndexState().compareTo(readState) >= 0) {
+            if (currentCacheValue.validityConditions().watchIdentifierAndState().isAtLeastNewerThan(readState)) {
                 return;
             }
-            // the current value is stale, so update
         }
+
         // there is no currently cached value, so update
         updater.apply(ImmutableRowCacheUpdateRequest.builder()
                 .rowReference(rowReference)
@@ -141,18 +133,27 @@ public class RowStateCache {
                         interestingTimestamps.size() == 0 ? request.readTimestamp() :
                         transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
                                 .orElse(Long.MAX_VALUE); // nothing committed, so it's only valid at infinity
+
+                CacheEntryValidityConditions validity = ImmutableCacheEntryValidityConditions.builder()
+                        .firstTimestampAtWhichReadIsValid(timestampAtWhichCachedDataWasFirstValid)
+                        .watchIdentifierAndState(request.watchIndexState())
+                        .build();
                 RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
-                        .earliestValidTimestamp(timestampAtWhichCachedDataWasFirstValid)
                         .data(data)
-                        .watchIndexState(request.watchIndexState())
+                        .validityConditions(validity)
                         .build();
 
                 backingMap.merge(request.rowReference(), cacheValue, (existing, current) -> {
-                    int cv = existing.watchIndexState().compareTo(current.watchIndexState());
-                    if (cv >= 0) {
-                        return existing;
+                    if (!Objects.equals(current.validityConditions().watchIdentifierAndState().identifier(),
+                            existing.validityConditions().watchIdentifierAndState().identifier())) {
+                        return current;
                     }
-                    return current;
+                    // same identifiers
+                    if (current.validityConditions().watchIdentifierAndState().isAtLeastNewerThan(
+                            existing.validityConditions().watchIdentifierAndState())) {
+                        return current;
+                    }
+                    return existing;
                 });
             }
         }
@@ -161,7 +162,7 @@ public class RowStateCache {
     @org.immutables.value.Value.Immutable
     public interface RowCacheUpdateRequest {
         RowReference rowReference();
-        WatchIndexState watchIndexState();
+        WatchIdentifierAndState watchIndexState();
         long readTimestamp();
     }
 }

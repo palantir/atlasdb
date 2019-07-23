@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
+import java.util.Objects;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.timelock.watch.WatchIdentifier;
@@ -25,6 +27,14 @@ import com.palantir.atlasdb.timelock.watch.WatchIndexState;
 public interface WatchIdentifierAndState {
     WatchIdentifier identifier();
     WatchIndexState indexState();
+
+    default boolean isAtLeastNewerThan(WatchIdentifierAndState other) {
+        if (!Objects.equals(identifier(), other.identifier())) {
+            // Different identifiers, meaning there's no notion of ordering
+            return false;
+        }
+        return indexState().compareTo(other.indexState()) >= 0;
+    }
 
     static WatchIdentifierAndState of(WatchIdentifier identifier, WatchIndexState watchIndexState) {
         return ImmutableWatchIdentifierAndState.builder()

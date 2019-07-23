@@ -21,11 +21,9 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.timelock.watch.WatchIndexState;
 
 @Value.Immutable
 public interface RowStateCacheValue {
     Map<Cell, com.palantir.atlasdb.keyvalue.api.Value> data();
-    long earliestValidTimestamp();
-    WatchIndexState watchIndexState();
+    CacheEntryValidityConditions validityConditions();
 }

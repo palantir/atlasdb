@@ -116,7 +116,9 @@ public class LockWatchClientImpl implements LockWatchClient {
         identifierMap = Maps.filterValues(identifierMap, recognisedIdentifiers::contains);
         for (Map.Entry<RowReference, WatchIdentifier> entry : identifierMap.entrySet()) {
             Optional<Map<Cell, Value>> cache =
-                    rowStateCache.get(entry.getKey(), response.getStateResponses().get(entry.getValue()), timestamp);
+                    rowStateCache.get(entry.getKey(),
+                            WatchIdentifierAndState.of(entry.getValue(), response.getStateResponses().get(entry.getValue())),
+                            timestamp);
             if (cache.isPresent()) {
                 skippedRows.add(entry.getKey().row());
                 Map<Cell, Value> relevantResults = KeyedStream.stream(cache.get())
