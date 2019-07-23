@@ -18,9 +18,6 @@ package com.palantir.atlasdb.migration;
 
 import java.util.Optional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -38,9 +35,6 @@ public class KvsProgressCheckPointImpl implements ProgressCheckPoint {
             .build();
     private static final Cell PROGRESS_CELL = Cell.create(PtBytes.toBytes(ROW_AND_COLUMN_NAME),
             PtBytes.toBytes(ROW_AND_COLUMN_NAME));
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new AfterburnerModule());
 
     private final KeyValueService kvs;
 
