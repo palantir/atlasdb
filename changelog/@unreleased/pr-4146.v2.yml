@@ -1,23 +1,7 @@
 type: improvement
 improvement:
-  description: |-
-    Always specify LEADING with USE_NL
-
-    **Goals (and why)**:
-    Fix bad performance in joins.  It is a best practice to always specify a join order when forcing nested loops, since almost always one join order is better than the other.
-
-
-    **Implementation Description (bullets)**:
-    Added LEADING to all queries in OracleQueryFactory that specify USE_NL
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-    Does not affect correctness.  Will test performance in production.  One of those situations.
-
-    **Concerns (what feedback would you like?)**:
-
-    **Where should we start reviewing?**:
-    Immediately.
-    **Priority (whenever / two weeks / yesterday)**:
-    Now.
+  description: Fix bad performance in joins.  It is a best practice to always specify
+    a join order when forcing nested loops, since almost always one join order is
+    better than the other.
   links:
   - https://github.com/palantir/atlasdb/pull/4146
