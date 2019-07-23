@@ -48,6 +48,11 @@ public interface WatchIndexState extends Comparable<WatchIndexState> {
                 .build();
     }
 
+    @Value.Lazy
+    default boolean lockIsHeld() {
+        return lastLockSequence() > lastUnlockSequence();
+    }
+
     @Override
     default int compareTo(@Nonnull WatchIndexState other) {
         return WATCH_INDEX_STATE_COMPARATOR.compare(this, other);
