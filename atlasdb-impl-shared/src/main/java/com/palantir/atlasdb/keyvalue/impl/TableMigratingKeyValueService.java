@@ -125,7 +125,9 @@ public class TableMigratingKeyValueService implements KeyValueService {
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return null;
+        timestampByCell
+        return
+                delegate.get(readTable(tableRef), timestampByCell);
     }
 
     @Override
