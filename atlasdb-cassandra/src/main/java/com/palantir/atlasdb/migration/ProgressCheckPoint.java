@@ -22,7 +22,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 
 @SuppressWarnings({"OptionalUsedAsFieldOrParameterType"})
 public interface ProgressCheckPoint {
-     Optional<byte[]> getNextStartRow(Transaction transaction);
+    Optional<byte[]> getNextStartRow(Transaction transaction);
 
-     void setNextStartRow(Transaction transaction, Optional<byte[]> row);
+    void setNextStartRow(Transaction transaction, Optional<byte[]> row);
 }

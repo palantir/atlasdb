@@ -25,9 +25,9 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 
@@ -50,12 +50,12 @@ public class KvsProgressCheckPointImplTest extends TransactionTestSetup {
 
     @After
     public void after() {
-        TRM.getDefaultKvs().truncateTable(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE);
+        Schemas.truncateTablesAndIndexes(KvsProgressCheckPointImpl.SCHEMA, TRM.getDefaultKvs());
     }
 
     @Test
     public void testFirstReadReturnsEmpty() {
-        assertThat(getNextRow()).isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
+        assertThat(getNextRow()).contains(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class KvsProgressCheckPointImplTest extends TransactionTestSetup {
 
     @Test
     public void testNoCheckPointIsDifferentThanEndCheckpoint() {
-        assertThat(getNextRow()).isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
+        assertThat(getNextRow()).contains(PtBytes.EMPTY_BYTE_ARRAY);
 
         setNextRow(Optional.empty());
         assertThat(getNextRow()).isEmpty();

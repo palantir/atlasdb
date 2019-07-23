@@ -18,58 +18,55 @@ package com.palantir.atlasdb.migration;
 
 import java.util.Optional;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.table.description.TableDefinition;
-import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.migration.generated.MigrationProgressTableFactory;
+import com.palantir.atlasdb.migration.generated.ProgressTable;
+import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class KvsProgressCheckPointImpl implements ProgressCheckPoint {
-    private static final String ROW_AND_COLUMN_NAME = "s";
-    private static final TableMetadata PROGRESS_METADATA = TableMetadata.internal()
-            .singleRowComponent("dummy", ValueType.STRING)
-            .singleNamedColumn(ROW_AND_COLUMN_NAME, "sweep_progress", ValueType.BLOB)
-            .build();
-    private static final Cell PROGRESS_CELL = Cell.create(PtBytes.toBytes(ROW_AND_COLUMN_NAME),
-            PtBytes.toBytes(ROW_AND_COLUMN_NAME));
-
-    private final KeyValueService kvs;
+    public static final Schema SCHEMA = ProgressCheckpointSchema.INSTANCE.getLatestSchema();
+    private static final ProgressTable.ProgressRow ROW = ProgressTable.ProgressRow.of(PtBytes.toBytes("s"));
 
     public KvsProgressCheckPointImpl(KeyValueService kvs) {
-        this.kvs = kvs;
-        createTable(kvs);
+        Schemas.createTable(SCHEMA, kvs, getProgressTable(null).getTableRef());
     }
 
     @Override
     public Optional<byte[]> getNextStartRow(Transaction transaction) {
-        return Optional.ofNullable(
-                transaction.get(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE, ImmutableSet.of(PROGRESS_CELL))
-                        .getOrDefault(PROGRESS_CELL, null));
+        Optional<ProgressTable.ProgressRowResult> result = getProgressTable(transaction).getRow(ROW);
+
+        if (!result.isPresent()) {
+            return Optional.of(PtBytes.EMPTY_BYTE_ARRAY);
+        }
+
+        if (result.get().getIsDone().equals(1L)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(result.get().getProgress());
     }
 
     @Override
     public void setNextStartRow(Transaction transaction, Optional<byte[]> row) {
-        transaction.put(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE,
-                ImmutableMap.of(PROGRESS_CELL, row.orElse(PtBytes.EMPTY_BYTE_ARRAY)));
+        ProgressTable progressTable = getProgressTable(transaction);
+        if (!row.isPresent()) {
+            progressTable.putIsDone(ROW, 1L);
+            progressTable.deleteProgress(ROW);
+            return;
+        }
+
+        progressTable.putIsDone(ROW, 0L);
+        progressTable.putProgress(ROW, row.get());
     }
 
-    private void createTable(KeyValueService kvs) {
-        kvs.createTable(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE,
-                new TableDefinition() {{
-                    rowName();
-                    rowComponent("row", ValueType.BLOB);
-                    columns();
-                    column("col", "c", ValueType.BLOB);
-                    conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
-                    sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
-                }}.toTableMetadata().persistToBytes()
-        );
+    private ProgressTable getProgressTable(Transaction transaction) {
+        return getFactory().getProgressTable(transaction);
+    }
+
+    private MigrationProgressTableFactory getFactory() {
+        return MigrationProgressTableFactory.of();
     }
 }
