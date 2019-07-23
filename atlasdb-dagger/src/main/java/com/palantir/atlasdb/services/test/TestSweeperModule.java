@@ -80,7 +80,7 @@ public class TestSweeperModule {
 
     @Provides
     @Singleton
-    @SuppressWarnings("checkstyle:optionalorelsemethodinvocation")
+    @SuppressWarnings("OptionalOrElseMethodInvocation")
     public SweepTaskRunner provideSweepTaskRunner(SerializableTransactionManager txm,
                                                   @Named("kvs") KeyValueService kvs,
                                                   TransactionService transactionService,
