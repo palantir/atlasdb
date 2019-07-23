@@ -88,8 +88,8 @@ public class TestSweeperModule {
                                                   Follower follower,
                                                   PersistentLockManager persistentLockManager,
                                                   ServicesConfig config) {
-        LongSupplier unreadable = unreadableTs.orElseGet(txm::getUnreadableTimestamp);
-        LongSupplier immutable = immutableTs.orElseGet(txm::getImmutableTimestamp);
+        LongSupplier unreadable = unreadableTs.orElse(txm::getUnreadableTimestamp);
+        LongSupplier immutable = immutableTs.orElse(txm::getImmutableTimestamp);
         return new SweepTaskRunner(
                 kvs,
                 unreadable,
