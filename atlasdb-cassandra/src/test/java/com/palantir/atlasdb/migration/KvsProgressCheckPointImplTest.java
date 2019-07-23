@@ -55,7 +55,7 @@ public class KvsProgressCheckPointImplTest extends TransactionTestSetup {
 
     @Test
     public void testFirstReadReturnsEmpty() {
-        assertThat(getNextRow()).isEmpty();
+        assertThat(getNextRow()).isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
     }
 
     @Test
@@ -78,9 +78,24 @@ public class KvsProgressCheckPointImplTest extends TransactionTestSetup {
         assertThat(getNextRow()).contains(expectedCheckpointValue);
     }
 
+    @Test
+    public void testNoCheckPointIsDifferentThanEndCheckpoint() {
+        assertThat(getNextRow()).isEqualTo(PtBytes.EMPTY_BYTE_ARRAY);
+
+        setNextRow(Optional.empty());
+        assertThat(getNextRow()).isEmpty();
+    }
+
     private void setNextRow(byte[] checkpointValue) {
         transactionManager.runTaskWithRetry(transaction -> {
             kvsProgressCheckPoint.setNextStartRow(transaction, Optional.of(checkpointValue));
+            return null;
+        });
+    }
+
+    private void setNextRow(Optional<byte[]> checkpointValue) {
+        transactionManager.runTaskWithRetry(transaction -> {
+            kvsProgressCheckPoint.setNextStartRow(transaction, checkpointValue);
             return null;
         });
     }
