@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 
@@ -73,7 +74,6 @@ public class LiveMigratorTest extends TransactionTestSetup {
     @Test
     public void testMigrationRuns() {
         writeToOldTable(1, 1);
-
 
         byte[] value = transactionManager.runTaskWithRetry(
                 transaction -> transaction.get(OLD_TABLE_REF, ImmutableSet.of(CELL)).get(CELL));
@@ -131,7 +131,8 @@ public class LiveMigratorTest extends TransactionTestSetup {
                         PtBytes.toBytes(n * m))));
 
         assertThat(transactionManager.runTaskWithRetry(
-                transaction -> transaction.get(NEW_TABLE_REF, ImmutableSet.of(createCell(rows, 0L)))).size()).isEqualTo(0);
+                transaction -> transaction.get(NEW_TABLE_REF, ImmutableSet.of(createCell(rows, 0L)))).size()
+        ).isEqualTo(0);
     }
 
     private static Cell createCell(long rowName, long columnName) {
@@ -142,12 +143,12 @@ public class LiveMigratorTest extends TransactionTestSetup {
         private Optional<byte[]> nextRow = Optional.of(PtBytes.EMPTY_BYTE_ARRAY);
 
         @Override
-        public Optional<byte[]> getNextStartRow() {
+        public Optional<byte[]> getNextStartRow(Transaction transaction) {
             return nextRow;
         }
 
         @Override
-        public void setNextStartRow(Optional<byte[]> row) {
+        public void setNextStartRow(Transaction transaction, Optional<byte[]> row) {
             nextRow = row;
         }
     }

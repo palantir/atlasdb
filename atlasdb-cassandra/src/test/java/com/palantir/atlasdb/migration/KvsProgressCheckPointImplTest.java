@@ -20,39 +20,74 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 
-public class KvsProgressCheckPointImplTest {
-    private final KeyValueService kvs = new InMemoryKeyValueService(false);
+public class KvsProgressCheckPointImplTest extends TransactionTestSetup {
+    @ClassRule
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    private KvsProgressCheckPointImpl kvsProgressCheckPoint = new KvsProgressCheckPointImpl(kvs);
+    private KvsProgressCheckPointImpl kvsProgressCheckPoint;
+    private TransactionManager transactionManager;
+
+    public KvsProgressCheckPointImplTest() {
+        super(TRM, TRM);
+    }
+
+    @Before
+    public void before() {
+        transactionManager = getManager();
+        kvsProgressCheckPoint = new KvsProgressCheckPointImpl(TRM.getDefaultKvs());
+    }
+
+    @After
+    public void after() {
+        TRM.getDefaultKvs().truncateTable(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE);
+    }
 
     @Test
     public void testFirstReadReturnsEmpty() {
-        assertThat(kvsProgressCheckPoint.getNextStartRow()).isEmpty();
+        assertThat(getNextRow()).isEmpty();
     }
 
     @Test
     public void testWriteThenRead() {
         byte[] checkpointValue = PtBytes.toBytes("something");
 
-        kvsProgressCheckPoint.setNextStartRow(Optional.of(checkpointValue));
+        setNextRow(checkpointValue);
 
-        assertThat(kvsProgressCheckPoint.getNextStartRow()).contains(checkpointValue);
+        assertThat(getNextRow()).contains(checkpointValue);
     }
 
     @Test
     public void testMultipleWritesThenRead() {
         byte[] expectedCheckpointValue = PtBytes.toBytes("something");
 
-        kvsProgressCheckPoint.setNextStartRow(Optional.of(PtBytes.toBytes("something-else")));
-        kvsProgressCheckPoint.setNextStartRow(Optional.of(PtBytes.toBytes("something-else-else")));
-        kvsProgressCheckPoint.setNextStartRow(Optional.of(expectedCheckpointValue));
+        setNextRow(PtBytes.toBytes("something-else"));
+        setNextRow(PtBytes.toBytes("something-else-else"));
+        setNextRow(expectedCheckpointValue);
 
-        assertThat(kvsProgressCheckPoint.getNextStartRow()).contains(expectedCheckpointValue);
+        assertThat(getNextRow()).contains(expectedCheckpointValue);
     }
+
+    private void setNextRow(byte[] checkpointValue) {
+        transactionManager.runTaskWithRetry(transaction -> {
+            kvsProgressCheckPoint.setNextStartRow(transaction, Optional.of(checkpointValue));
+            return null;
+        });
+    }
+
+    private Optional<byte[]> getNextRow() {
+        return transactionManager.runTaskWithRetry(
+                transaction -> kvsProgressCheckPoint.getNextStartRow(transaction));
+    }
+
 }

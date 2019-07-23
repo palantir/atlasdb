@@ -19,13 +19,17 @@ package com.palantir.atlasdb.migration;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.Transaction;
 
 public class KvsProgressCheckPointImpl implements ProgressCheckPoint {
     private static final String ROW_AND_COLUMN_NAME = "s";
@@ -40,22 +44,32 @@ public class KvsProgressCheckPointImpl implements ProgressCheckPoint {
 
     public KvsProgressCheckPointImpl(KeyValueService kvs) {
         this.kvs = kvs;
-        kvs.createTable(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE, PROGRESS_METADATA.persistToBytes());
+        createTable(kvs);
     }
 
     @Override
-    public Optional<byte[]> getNextStartRow() {
+    public Optional<byte[]> getNextStartRow(Transaction transaction) {
         return Optional.ofNullable(
-                kvs.get(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE, ImmutableMap.of(PROGRESS_CELL, 1L))
-                        .getOrDefault(PROGRESS_CELL, null))
-                .map(Value::getContents);
+                transaction.get(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE, ImmutableSet.of(PROGRESS_CELL))
+                        .getOrDefault(PROGRESS_CELL, null));
     }
 
     @Override
-    public void setNextStartRow(Optional<byte[]> row) {
-        kvs.put(
-                AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE,
-                ImmutableMap.of(PROGRESS_CELL, row.orElse(PtBytes.EMPTY_BYTE_ARRAY)),
-                0L);
+    public void setNextStartRow(Transaction transaction, Optional<byte[]> row) {
+        transaction.put(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE,
+                ImmutableMap.of(PROGRESS_CELL, row.orElse(PtBytes.EMPTY_BYTE_ARRAY)));
+    }
+
+    private void createTable(KeyValueService kvs) {
+        kvs.createTable(AtlasDbConstants.LIVE_MIGRATON_PROGRESS_TABLE,
+                new TableDefinition() {{
+                    rowName();
+                    rowComponent("row", ValueType.BLOB);
+                    columns();
+                    column("col", "c", ValueType.BLOB);
+                    conflictHandler(ConflictHandler.SERIALIZABLE_CELL);
+                    sweepStrategy(TableMetadataPersistence.SweepStrategy.THOROUGH);
+                }}.toTableMetadata().persistToBytes()
+        );
     }
 }

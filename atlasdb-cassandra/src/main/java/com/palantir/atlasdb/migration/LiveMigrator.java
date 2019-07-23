@@ -71,19 +71,20 @@ public class LiveMigrator {
     }
 
     private void runOneIteration() {
-        Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
-        if (!nextStartRow.isPresent()) {
-            callback.run();
-            return;
-        }
-
-        RangeRequest request = RangeRequest.builder()
-                .startRowInclusive(nextStartRow.get())
-                .batchHint(batchSize)
-                .build();
-
-        Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
+        transactionManager.runTaskWithRetry(
                 transaction -> {
+
+                    Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow(transaction);
+                    if (!nextStartRow.isPresent()) {
+                        callback.run();
+                        return null;
+                    }
+
+                    RangeRequest request = RangeRequest.builder()
+                            .startRowInclusive(nextStartRow.get())
+                            .batchHint(batchSize)
+                            .build();
+
                     AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
                     BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
 
@@ -102,11 +103,14 @@ public class LiveMigrator {
                         }
                     });
 
-                    return Optional.ofNullable(lastReadRef.get());
+                    progressCheckPoint.setNextStartRow(
+                            transaction,
+                            Optional.ofNullable(lastReadRef.get()).map(RangeRequests::nextLexicographicName));
+
+                    return null;
                 }
         );
 
-        progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
         executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
     }
 
