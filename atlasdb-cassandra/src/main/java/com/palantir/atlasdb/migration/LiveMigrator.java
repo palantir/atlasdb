@@ -37,7 +37,7 @@ public class LiveMigrator {
     private final TableReference startTable;
     private final TableReference targetTable;
     private final ProgressCheckPoint progressCheckPoint;
-    private static final int BATCH_SIZE = 1000;
+    private int batchSize = 1000;
 
     public LiveMigrator(TransactionManager transactionManager, TableReference startTable,
             TableReference targetTable, ProgressCheckPoint progressCheckPoint) {
@@ -48,8 +48,6 @@ public class LiveMigrator {
     }
 
     public void startMigration() {
-        KeyValueService keyValueService = transactionManager.getKeyValueService();
-
         while (true) {
             Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
             if (!nextStartRow.isPresent()) {
@@ -58,7 +56,7 @@ public class LiveMigrator {
 
             RangeRequest request = RangeRequest.builder()
                     .startRowInclusive(nextStartRow.get())
-                    .batchHint(BATCH_SIZE)
+                    .batchHint(batchSize)
                     .build();
 
             Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
@@ -66,7 +64,7 @@ public class LiveMigrator {
                         AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
                         BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
 
-                        range.batchAccept(BATCH_SIZE, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
+                        range.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
                             @Override
                             public boolean visit(List<RowResult<byte[]>> item) {
                                 item.forEach(
@@ -87,6 +85,10 @@ public class LiveMigrator {
 
             progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
         }
+    }
+
+    public void setBatchSize(int n) {
+        batchSize = n;
     }
 
 

@@ -18,7 +18,10 @@ package com.palantir.atlasdb.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.junit.Before;
@@ -72,32 +75,25 @@ public class LiveMigratorTest extends TransactionTestSetup {
         byte[] value = transactionManager.runTaskWithRetry(
                 transaction -> transaction.get(OLD_TABLE_REF, ImmutableSet.of(CELL)).get(CELL));
 
-        assertThat(value)
-                .containsExactly(PtBytes.toBytes(0L));
-
-//        when(checkPoint.getNextStartRow())
-
+        assertThat(value).containsExactly(PtBytes.toBytes(0L));
 
         liveMigrator.startMigration();
 
-        byte[] valueInNewTable = transactionManager.runTaskWithRetry(
-                transaction -> transaction.get(NEW_TABLE_REF, ImmutableSet.of(CELL)).get(CELL));
-
-        assertThat(valueInNewTable)
-                .containsExactly(PtBytes.toBytes(0L));
+        assertValuesInTargetTable(1, 1);
 
     }
 
     @Test
     public void migrationRunsMultipleIterations() {
         writeToOldTable(5, 5);
+        liveMigrator.setBatchSize(1);
 
+        liveMigrator.startMigration();
 
-
+        assertValuesInTargetTable(5, 5);
     }
 
     private void writeToOldTable(int rows, int cols) {
-
         transactionManager.runTaskWithRetry(transaction -> {
             IntStream.range(0, rows)
                     .forEach(row -> {
@@ -109,6 +105,22 @@ public class LiveMigratorTest extends TransactionTestSetup {
                     });
             return null;
         });
+    }
+
+    private void assertValuesInTargetTable(int rows, int cols) {
+        Set<Cell> cells = IntStream.range(0, rows).boxed()
+                .flatMap(n -> IntStream.range(0, cols)
+                        .mapToObj(m -> createCell(n, m)))
+                .collect(Collectors.toSet());
+
+        Map<Cell, byte[]> valueInNewTable = transactionManager.runTaskWithRetry(
+                transaction -> transaction.get(NEW_TABLE_REF, cells));
+
+        assertThat(valueInNewTable.keySet()).containsExactlyElementsOf(cells);
+
+        IntStream.range(0, rows).forEach(n -> IntStream.range(0, cols)
+                .forEach(m -> assertThat(valueInNewTable.get(createCell(n, m))).containsExactly(
+                        PtBytes.toBytes(n * m))));
     }
 
     private static Cell createCell(long rowName, long columnName) {
