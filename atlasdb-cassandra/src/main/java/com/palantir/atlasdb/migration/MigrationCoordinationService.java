@@ -17,10 +17,9 @@
 package com.palantir.atlasdb.migration;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 public interface MigrationCoordinationService {
     void startMigration(TableReference startTable, TableReference targetTable);
     void endMigration(TableReference startTable);
-    TableMigratingKeyValueService.MigrationsState getMigrationState(TableReference startTable, long timestamp);
+    TableMigrationState getMigrationState(TableReference startTable, long timestamp);
 }

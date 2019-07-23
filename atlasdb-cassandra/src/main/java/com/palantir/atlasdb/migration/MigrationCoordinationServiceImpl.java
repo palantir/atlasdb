@@ -16,11 +16,18 @@
 
 package com.palantir.atlasdb.migration;
 
+import java.util.Optional;
+
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
+    private static final TableMigratingKeyValueService.MigrationsState DEFAULT_MIGRATIONS_STATE =
+            TableMigratingKeyValueService.MigrationsState.WRITE_FIRST_ONLY;
+    private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
+            TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
 
     public MigrationCoordinationServiceImpl(CoordinationServiceImpl<TableMigrationStateMap> coordinationService) {
@@ -38,7 +45,20 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     }
 
     @Override
-    public TableMigratingKeyValueService.MigrationsState getMigrationState(TableReference startTable, long timestamp) {
-        return null;
+    public TableMigrationState getMigrationState(TableReference startTable, long timestamp) {
+        Optional<ValueAndBound<TableMigrationStateMap>> maybeTableMigrationStateMapValueAndBound =
+                coordinationService.getValueForTimestamp(timestamp);
+
+        if (!maybeTableMigrationStateMapValueAndBound.isPresent()) {
+            return DEFAULT_TABLE_MIGRATION_STATE;
+        }
+
+        ValueAndBound<TableMigrationStateMap> tableMigrationStateMapValueAndBound =
+                maybeTableMigrationStateMapValueAndBound.get();
+
+        return tableMigrationStateMapValueAndBound.value()
+                .map(value ->
+                        value.tableMigrationStateMap().getOrDefault(startTable, DEFAULT_TABLE_MIGRATION_STATE))
+                .orElse(DEFAULT_TABLE_MIGRATION_STATE);
     }
 }
