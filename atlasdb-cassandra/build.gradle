@@ -49,6 +49,9 @@ dependencies {
 
   explicitShadow group: 'org.jboss.marshalling', name: 'jboss-marshalling', version: '1.4.11.Final'
 
+  compile project(":atlasdb-impl-shared")
+  testCompile project(":atlasdb-tests-shared")
+
   testCompile project(path: ":atlasdb-client", configuration: "testArtifacts")
   testCompile project(":atlasdb-config")
   testCompile group: 'org.mockito', name: 'mockito-core'
