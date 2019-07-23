@@ -176,7 +176,7 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
                         Collectors.toList()));
         SortedMap<byte[], RowColumnRangeIterator> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
         for (Map.Entry<byte[], List<Map.Entry<Cell, Value>>> entry : cellsByRow.entrySet()) {
-            result.put(entry.getKey(), new LocalRowColumnRangeIterator(entry.getValue().iterator());
+            result.put(entry.getKey(), new LocalRowColumnRangeIterator(entry.getValue().iterator()));
         }
         return result;
     }

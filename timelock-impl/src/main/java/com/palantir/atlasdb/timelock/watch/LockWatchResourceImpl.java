@@ -31,7 +31,7 @@ import com.google.common.collect.Sets;
 import com.palantir.lock.LockDescriptor;
 
 public class LockWatchResourceImpl implements LockWatchResource {
-    private static final int WATCH_LIMIT = 50;
+    private static final int WATCH_LIMIT = 1_000;
 
     private final BiMap<LockPredicate, WatchIdentifier> knownPredicates;
     private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
@@ -47,7 +47,6 @@ public class LockWatchResourceImpl implements LockWatchResource {
         this.eventProcessor = new LockEventProcessor() {
             @Override
             public void registerLock(LockDescriptor descriptor) {
-                System.out.println(activeWatches);
                 explicitDescriptorsToWatches.get(descriptor).forEach(LockWatch::registerLock);
             }
 
