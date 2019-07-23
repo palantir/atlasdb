@@ -16,12 +16,26 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
+import java.util.Set;
+
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 
-public interface LockWatchClient {
+public interface WatchRegistry {
     // Precondition: Table must have row level conflict handling
-    void enableWatchForRow(RowReference rowReference);
+    void enableWatchForRows(Set<RowReference> rowReference);
+
+    // Returns true iff the watch was actually removed
+    Set<RowReference> disableWatchForRows(Set<RowReference> rowReference);
+
+    // Returns the rows that are watched
+    Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet);
 
     // Precondition: Table must have cell level conflict handling
-    void enableWatchForCell(CellReference cellReference);
+    void enableWatchForCells(Set<CellReference> cellReference);
+
+    // Returns true iff the watch was actually removed
+    Set<CellReference> disableWatchForCells(Set<CellReference> cellReference);
+
+    // Returns the cells that are watched
+    Set<CellReference> filterToWatchedCells(Set<CellReference> rowReferenceSet);
 }

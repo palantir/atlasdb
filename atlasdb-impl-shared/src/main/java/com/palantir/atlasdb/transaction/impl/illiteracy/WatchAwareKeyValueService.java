@@ -49,9 +49,13 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 // For the most part this could be an AutoDelegate, but that road is fraught with peril.
 public class WatchAwareKeyValueService implements KeyValueService {
     private final KeyValueService delegate;
+    private final WatchRegistry watchRegistry;
 
-    public WatchAwareKeyValueService(KeyValueService delegate) {
+    public WatchAwareKeyValueService(
+            KeyValueService delegate,
+            WatchRegistry watchRegistry) {
         this.delegate = delegate;
+        this.watchRegistry = watchRegistry;
     }
 
     @Override

@@ -39,6 +39,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -142,7 +143,7 @@ public class LockWatchClientImplTest {
                 .putStateResponses(WatchIdentifier.of("o"), WatchIndexState.of(1, 2))
                 .build());
 
-        lockWatchClient.enableWatchForRow(ROW_REFERENCE);
+        lockWatchClient.enableWatchForRows(ImmutableSet.of(ROW_REFERENCE));
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
@@ -190,7 +191,7 @@ public class LockWatchClientImplTest {
                         .putStateResponses(WatchIdentifier.of("p"), WatchIndexState.of(1, 2))
                 .build());
 
-        lockWatchClient.enableWatchForRow(ROW_REFERENCE);
+        lockWatchClient.enableWatchForRows(ImmutableSet.of(ROW_REFERENCE));
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);
@@ -246,7 +247,7 @@ public class LockWatchClientImplTest {
                 .putStateResponses(WatchIdentifier.of("o"), WatchIndexState.of(21, 22))
                 .build());
 
-        lockWatchClient.enableWatchForRow(ROW_REFERENCE);
+        lockWatchClient.enableWatchForRows(ImmutableSet.of(ROW_REFERENCE));
 
         kvs.put(TEST_TABLE, ImmutableMap.of(
                 Cell.create(BYTES, PtBytes.toBytes("q")), PtBytes.toBytes("v")), 42);

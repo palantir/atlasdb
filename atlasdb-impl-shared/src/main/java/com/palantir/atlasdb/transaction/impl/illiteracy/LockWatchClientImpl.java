@@ -24,6 +24,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -39,7 +40,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 
-public class LockWatchClientImpl implements LockWatchClient {
+public class LockWatchClientImpl implements WatchRegistry {
     private final Set<RowReference> interestingRows;
     private final RowStateCache rowStateCache;
 
@@ -58,20 +59,56 @@ public class LockWatchClientImpl implements LockWatchClient {
     }
 
     @Override
-    public void enableWatchForRow(RowReference rowReference) {
-        if (interestingRows.contains(rowReference)) {
-            return;
+    public void enableWatchForRows(Set<RowReference> rowReferences) {
+        for (RowReference rowReference : rowReferences) {
+            if (interestingRows.contains(rowReference)) {
+                return;
+            }
+            TableReference tableReference = rowReference.tableReference();
+            ConflictHandler conflictHandler = conflictDetectionManager.get(tableReference);
+            Preconditions.checkState(conflictHandler.lockRowsForConflicts(),
+                    "For the table " + tableReference + " we don't lock rows so enabling watch for rows is kind of"
+                            + " meaningless");
+            interestingRows.add(rowReference);
         }
-        // TODO (jkong): Autobatch
-        TableReference tableReference = rowReference.tableReference();
-        ConflictHandler conflictHandler = conflictDetectionManager.get(tableReference);
-        Preconditions.checkState(conflictHandler.lockRowsForConflicts(),
-                "For the table " + tableReference + " we don't lock rows so enabling watch for rows is kind of"
-                        + " meaningless");
-        interestingRows.add(rowReference);
     }
 
-    public Map<Cell, Value> getRows(TableReference tableRef,
+    @Override
+    public Set<RowReference> disableWatchForRows(Set<RowReference> rowReference) {
+        Set<RowReference> removed = Sets.newHashSet();
+        for (RowReference reference : rowReference) {
+            boolean removedIndividual = interestingRows.remove(rowReference);
+            if (removedIndividual) {
+                removed.add(reference);
+            }
+        }
+        return removed;
+    }
+
+    @Override
+    public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
+        return rowReferenceSet.stream().filter(interestingRows::contains).collect(Collectors.toSet());
+    }
+
+    @Override
+    public void enableWatchForCells(Set<CellReference> cellReference) {
+        throw new UnsupportedOperationException("Not yet implemented! Sorry");
+    }
+
+    @Override
+    public Set<CellReference> disableWatchForCells(Set<CellReference> cellReference) {
+        throw new UnsupportedOperationException("Not yet implemented! Sorry");
+    }
+
+    @Override
+    public Set<CellReference> filterToWatchedCells(Set<CellReference> rowReferenceSet) {
+        throw new UnsupportedOperationException("Not yet implemented! Sorry");
+    }
+
+    // TODO (jkong): Remove this black magic
+    @Deprecated
+    @VisibleForTesting
+    Map<Cell, Value> getRows(TableReference tableRef,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             long timestamp) {
@@ -106,10 +143,5 @@ public class LockWatchClientImpl implements LockWatchClient {
             result.putAll(kvs.getRows(tableRef, rowsToQueryFor, columnSelection, timestamp));
         }
         return result;
-    }
-
-    @Override
-    public void enableWatchForCell(CellReference cellReference) {
-        throw new UnsupportedOperationException("Not yet implemented! Sorry");
     }
 }
