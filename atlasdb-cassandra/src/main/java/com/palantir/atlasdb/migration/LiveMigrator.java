@@ -19,11 +19,13 @@ package com.palantir.atlasdb.migration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -35,11 +37,13 @@ import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 
 public class LiveMigrator {
+    private static final Logger log = LoggerFactory.getLogger(LiveMigrator.class);
     private final TransactionManager transactionManager;
     private final TableReference startTable;
     private final TableReference targetTable;
     private final ProgressCheckPoint progressCheckPoint;
     private final ScheduledExecutorService executor;
+    private Runnable callback;
     private volatile int batchSize = 1000;
 
     public LiveMigrator(TransactionManager transactionManager, TableReference startTable,
@@ -51,14 +55,26 @@ public class LiveMigrator {
         this.executor = executor;
     }
 
-    public void startMigration() {
-        executor.scheduleAtFixedRate(this::runOneIteration, 0, 10, TimeUnit.SECONDS);
+    public void startMigration(Runnable callback) {
+        this.callback = callback;
+        executor.submit(this::runOneIterationSafe);
     }
 
-    private boolean runOneIteration() {
+    private void runOneIterationSafe() {
+        try {
+            runOneIteration();
+        } catch (Throwable th) {
+            log.info("Encountered an error running the live migration. Will retry later.", th);
+            executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
+
+        }
+    }
+
+    private void runOneIteration() {
         Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
         if (!nextStartRow.isPresent()) {
-            return false;
+            callback.run();
+            return;
         }
 
         RangeRequest request = RangeRequest.builder()
@@ -82,7 +98,7 @@ public class LiveMigrator {
                                                                 Map.Entry::getValue)));
                                         lastReadRef.set(rowResult.getRowName());
                                     });
-                            return true;
+                            return false;
                         }
                     });
 
@@ -91,16 +107,14 @@ public class LiveMigrator {
         );
 
         progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
-        return true;
+        executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
     }
 
     public void setBatchSize(int n) {
         batchSize = n;
     }
 
-
     public boolean isDone() {
         return false;
     }
-
 }

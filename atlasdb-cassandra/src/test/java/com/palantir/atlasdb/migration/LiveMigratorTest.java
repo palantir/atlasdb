@@ -80,8 +80,8 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
         assertThat(value).containsExactly(PtBytes.toBytes(0L));
 
-        liveMigrator.startMigration();
-        executor.tick(1, TimeUnit.MINUTES);
+        liveMigrator.startMigration(() -> {});
+        executor.tick(1, TimeUnit.SECONDS);
 
         assertValuesInTargetTable(1, 1);
 
@@ -89,26 +89,28 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
     @Test
     public void migrationRunsMultipleIterations() {
-        writeToOldTable(20000, 1);
+        writeToOldTable(5, 5);
         liveMigrator.setBatchSize(1);
 
-        liveMigrator.startMigration();
+        liveMigrator.startMigration(() -> {});
 
-        executor.tick(5, TimeUnit.SECONDS);
+        executor.tick(15, TimeUnit.SECONDS);
 
-        assertValuesInTargetTable(20000, 1);
+        assertValuesInTargetTable(2, 5);
+
+        executor.tick(30, TimeUnit.SECONDS);
+
+        assertValuesInTargetTable(5, 5);
     }
 
     private void writeToOldTable(int rows, int cols) {
         transactionManager.runTaskWithRetry(transaction -> {
             IntStream.range(0, rows)
-                    .forEach(row -> {
-                        IntStream.range(0, cols)
-                                .forEach(col ->
-                                        transaction.put(OLD_TABLE_REF, ImmutableMap.of(
-                                                createCell(row, col),
-                                                PtBytes.toBytes(row * col))));
-                    });
+                    .forEach(row -> IntStream.range(0, cols)
+                            .forEach(col ->
+                                    transaction.put(OLD_TABLE_REF, ImmutableMap.of(
+                                            createCell(row, col),
+                                            PtBytes.toBytes(row * col)))));
             return null;
         });
     }
@@ -127,6 +129,9 @@ public class LiveMigratorTest extends TransactionTestSetup {
         IntStream.range(0, rows).forEach(n -> IntStream.range(0, cols)
                 .forEach(m -> assertThat(valueInNewTable.get(createCell(n, m))).containsExactly(
                         PtBytes.toBytes(n * m))));
+
+        assertThat(transactionManager.runTaskWithRetry(
+                transaction -> transaction.get(NEW_TABLE_REF, ImmutableSet.of(createCell(rows, 0L)))).size()).isEqualTo(0);
     }
 
     private static Cell createCell(long rowName, long columnName) {
@@ -146,4 +151,5 @@ public class LiveMigratorTest extends TransactionTestSetup {
             nextRow = row;
         }
     }
+
 }
