@@ -72,7 +72,7 @@ public class RemoteLockWatchClient {
                 .build();
 
         WatchStateResponse response = lockWatchRpcClient.registerOrGetStates(query);
-        if (!response.getStateResponses().keySet().containsAll(recognisedReferences.keySet())) {
+        if (!response.getStateResponses().keySet().containsAll(recognisedReferences.values())) {
             return reregisterAllWatches(rowReferences, unrecognisedPredicates);
         }
 
@@ -84,9 +84,11 @@ public class RemoteLockWatchClient {
         }
         for (RegisterWatchResponse registerResponse : response.registerResponses()) {
             RowReference reference = unrecognisedPredicates.get(registerResponse.predicate());
-            answer.put(reference, WatchIdentifierAndState.of(
-                    registerResponse.identifier(), registerResponse.indexState()));
-            knownWatchIdentifiers.put(reference, registerResponse.identifier());
+            if (reference != null) {
+                answer.put(reference, WatchIdentifierAndState.of(
+                        registerResponse.identifier(), registerResponse.indexState()));
+                knownWatchIdentifiers.put(reference, registerResponse.identifier());
+            }
         }
         return answer;
     }
@@ -104,7 +106,7 @@ public class RemoteLockWatchClient {
         Map<RowReference, WatchIdentifierAndState> answer = Maps.newHashMap();
         WatchStateResponse newResponse = lockWatchRpcClient.registerOrGetStates(newQuery);
         for (RegisterWatchResponse registerResponse : newResponse.registerResponses()) {
-            RowReference reference = unrecognisedPredicates.get(registerResponse.predicate());
+            RowReference reference = allPredicates.get(registerResponse.predicate());
             answer.put(reference, WatchIdentifierAndState.of(
                     registerResponse.identifier(), registerResponse.indexState()));
             knownWatchIdentifiers.put(reference, registerResponse.identifier());

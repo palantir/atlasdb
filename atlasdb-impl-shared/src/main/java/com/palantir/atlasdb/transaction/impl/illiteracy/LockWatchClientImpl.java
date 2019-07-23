@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,8 +24,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -34,36 +33,27 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.timelock.watch.ExplicitLockPredicate;
-import com.palantir.atlasdb.timelock.watch.ImmutableWatchStateQuery;
-import com.palantir.atlasdb.timelock.watch.LockPredicate;
-import com.palantir.atlasdb.timelock.watch.LockWatchRpcClient;
-import com.palantir.atlasdb.timelock.watch.WatchIdentifier;
-import com.palantir.atlasdb.timelock.watch.WatchStateResponse;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.logsafe.Preconditions;
 
 public class LockWatchClientImpl implements LockWatchClient {
     private final Set<RowReference> interestingRows;
-    private final Map<RowReference, WatchIdentifier> watches;
     private final RowStateCache rowStateCache;
 
     private final KeyValueService kvs;
-    private final LockWatchRpcClient lockWatchRpcClient;
+    private final RemoteLockWatchClient remoteLockWatchClient;
     private final ConflictDetectionManager conflictDetectionManager;
 
-    public LockWatchClientImpl(KeyValueService kvs, TransactionService ts, LockWatchRpcClient lockWatchRpcClient,
+    public LockWatchClientImpl(KeyValueService kvs, TransactionService ts, RemoteLockWatchClient remoteLockWatchClient,
             ConflictDetectionManager conflictDetectionManager) {
         interestingRows = Sets.newConcurrentHashSet();
-        watches = Maps.newConcurrentMap();
         rowStateCache = new RowStateCache(kvs, ts);
 
         this.kvs = kvs;
-        this.lockWatchRpcClient = lockWatchRpcClient;
+        this.remoteLockWatchClient = remoteLockWatchClient;
         this.conflictDetectionManager = conflictDetectionManager;
     }
 
@@ -79,15 +69,6 @@ public class LockWatchClientImpl implements LockWatchClient {
                 "For the table " + tableReference + " we don't lock rows so enabling watch for rows is kind of"
                         + " meaningless");
         interestingRows.add(rowReference);
-
-        // So this table does work by locking rows for conflicts.
-        WatchStateResponse response = lockWatchRpcClient.registerOrGetStates(ImmutableWatchStateQuery.builder()
-                .addNewPredicates(ExplicitLockPredicate.of(
-                        AtlasRowLockDescriptor.of(tableReference.getQualifiedName(), rowReference.row())))
-                .build());
-
-        // TODO (jkong): What if you don't get a response?
-        watches.put(rowReference, Iterables.getOnlyElement(response.registerResponses()).identifier());
     }
 
     public Map<Cell, Value> getRows(TableReference tableRef,
@@ -95,30 +76,19 @@ public class LockWatchClientImpl implements LockWatchClient {
             ColumnSelection columnSelection,
             long timestamp) {
         Map<Cell, Value> result = Maps.newHashMap();
-        Map<RowReference, WatchIdentifier> identifierMap = Maps.newHashMap();
         Set<byte[]> skippedRows = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
-        for (byte[] row : rows) {
-            RowReference reference = ImmutableRowReference.builder().tableReference(tableRef).row(row).build();
-            if (interestingRows.contains(reference)) {
-                WatchIdentifier identifier = watches.get(reference);
-                if (identifier != null) {
-                    identifierMap.put(reference, identifier);
-                }
-            }
-        }
 
-        WatchStateResponse response = lockWatchRpcClient.registerOrGetStates(
-                ImmutableWatchStateQuery.builder().addAllKnownIdentifiers(identifierMap.values()).build());
-        Set<WatchIdentifier> recognisedIdentifiers = response.getStateResponses().keySet();
+        List<byte[]> rowList = StreamSupport.stream(rows.spliterator(), false).collect(Collectors.toList());
 
-        reregisterLostIdentifiers(identifierMap, recognisedIdentifiers);
+        Map<RowReference, WatchIdentifierAndState> rowState = remoteLockWatchClient.getStateForRows(
+                rowList.stream()
+                        .map(r -> ImmutableRowReference.builder().tableReference(tableRef).row(r).build())
+                        .filter(interestingRows::contains)
+                        .collect(Collectors.toSet()));
 
-        identifierMap = Maps.filterValues(identifierMap, recognisedIdentifiers::contains);
-        for (Map.Entry<RowReference, WatchIdentifier> entry : identifierMap.entrySet()) {
+        for (Map.Entry<RowReference, WatchIdentifierAndState> entry : rowState.entrySet()) {
             Optional<Map<Cell, Value>> cache =
-                    rowStateCache.get(entry.getKey(),
-                            WatchIdentifierAndState.of(entry.getValue(), response.getStateResponses().get(entry.getValue())),
-                            timestamp);
+                    rowStateCache.get(entry.getKey(), entry.getValue(), timestamp);
             if (cache.isPresent()) {
                 skippedRows.add(entry.getKey().row());
                 Map<Cell, Value> relevantResults = KeyedStream.stream(cache.get())
@@ -136,30 +106,6 @@ public class LockWatchClientImpl implements LockWatchClient {
             result.putAll(kvs.getRows(tableRef, rowsToQueryFor, columnSelection, timestamp));
         }
         return result;
-    }
-
-    private void reregisterLostIdentifiers(Map<RowReference, WatchIdentifier> identifierMap,
-            Set<WatchIdentifier> recognisedIdentifiers) {
-        // TODO (jkong): Make this async?
-        Set<WatchIdentifier> needToReRegister = Sets.difference(
-                ImmutableSet.copyOf(identifierMap.values()),
-                recognisedIdentifiers);
-        Set<RowReference> rowReferencesToReRegister = Sets.newHashSet();
-        for (Map.Entry<RowReference, WatchIdentifier> entry : watches.entrySet()) {
-            if (needToReRegister.contains(entry.getValue())) {
-                rowReferencesToReRegister.add(entry.getKey());
-            }
-        }
-        Map<LockPredicate, RowReference> preds = KeyedStream.of(rowReferencesToReRegister)
-                .mapKeys(rr -> ExplicitLockPredicate.of(
-                        AtlasRowLockDescriptor.of(rr.tableReference().getQualifiedName(), rr.row())))
-                .collectToMap();
-
-        WatchStateResponse watchStateResponse = lockWatchRpcClient.registerOrGetStates(
-                ImmutableWatchStateQuery.builder()
-                        .addAllNewPredicates(preds.keySet()).build());
-        watchStateResponse.registerResponses().forEach(rwr ->
-                watches.put(preds.get(rwr.predicate()), rwr.identifier()));
     }
 
     @Override
