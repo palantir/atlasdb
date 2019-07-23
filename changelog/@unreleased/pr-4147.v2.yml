@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: |-
+    fix failing errorprone warning
+
+    Because errorprone actually got TestSweeperModule wrong.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4147
