@@ -18,17 +18,18 @@ package com.palantir.atlasdb.transaction.impl.illiteracy;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.AtlasRowLockDescriptor;
-import com.palantir.lock.LockDescriptor;
+import com.palantir.atlasdb.timelock.watch.WatchIdentifier;
+import com.palantir.atlasdb.timelock.watch.WatchIndexState;
 
 @Value.Immutable
-public interface RowReference {
-    TableReference tableReference();
-    byte[] row();
+public interface WatchIdentifierAndState {
+    WatchIdentifier identifier();
+    WatchIndexState indexState();
 
-    @Value.Lazy
-    default LockDescriptor toLockDescriptor() {
-        return AtlasRowLockDescriptor.of(tableReference().getQualifiedName(), row());
+    static WatchIdentifierAndState of(WatchIdentifier identifier, WatchIndexState watchIndexState) {
+        return ImmutableWatchIdentifierAndState.builder()
+                .identifier(identifier)
+                .indexState(watchIndexState)
+                .build();
     }
 }
