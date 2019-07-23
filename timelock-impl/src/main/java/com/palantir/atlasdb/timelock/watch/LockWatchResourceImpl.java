@@ -73,7 +73,12 @@ public class LockWatchResourceImpl implements LockWatchResource {
         for (WatchIdentifier identifier : identifiers) {
             LockWatch watch = activeWatches.remove(identifier);
             if (watch != null) {
-                knownPredicates.inverse().remove(identifier);
+                LockPredicate predicate = knownPredicates.inverse().remove(identifier);
+                if (predicate instanceof ExplicitLockPredicate) {
+                    for (LockDescriptor descriptor : ((ExplicitLockPredicate) predicate).descriptors()) {
+                        explicitDescriptorsToWatches.remove(descriptor, watch);
+                    }
+                }
                 unregistered.add(identifier);
             }
         }
