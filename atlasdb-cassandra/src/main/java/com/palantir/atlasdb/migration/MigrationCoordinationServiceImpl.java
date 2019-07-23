@@ -16,22 +16,29 @@
 
 package com.palantir.atlasdb.migration;
 
+import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
+    private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
+
+    public MigrationCoordinationServiceImpl(CoordinationServiceImpl<TableMigrationStateMap> coordinationService) {
+        this.coordinationService = coordinationService;
+    }
+
     @Override
-    public void startMigration(TableReference tableReference) {
+    public void startMigration(TableReference startTable, TableReference targetTable) {
 
     }
 
     @Override
-    public void endMigration(TableReference tableReference) {
+    public void endMigration(TableReference startTable) {
 
     }
 
     @Override
-    public TableMigratingKeyValueService.MigrationsState getMigrationState(TableReference tableReference) {
+    public TableMigratingKeyValueService.MigrationsState getMigrationState(TableReference startTable, long timestamp) {
         return null;
     }
 }
