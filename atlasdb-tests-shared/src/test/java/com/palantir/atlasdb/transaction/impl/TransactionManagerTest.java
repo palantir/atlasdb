@@ -188,7 +188,8 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                null);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp()).thenReturn(

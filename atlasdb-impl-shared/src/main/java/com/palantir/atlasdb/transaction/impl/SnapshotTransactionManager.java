@@ -50,6 +50,7 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
@@ -81,6 +82,7 @@ import com.palantir.timestamp.TimestampService;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
     final Supplier<TransactionConfig> transactionConfig;
+    final WatchRegistry watchRegistry;
 
     final List<Runnable> closingCallbacks;
     final AtomicBoolean isClosed;
@@ -103,7 +105,8 @@ import com.palantir.timestamp.TimestampService;
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            WatchRegistry watchRegistry) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
@@ -125,6 +128,7 @@ import com.palantir.timestamp.TimestampService;
         this.deleteExecutor = deleteExecutor;
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
+        this.watchRegistry = watchRegistry;
     }
 
     @Override
@@ -423,6 +427,11 @@ import com.palantir.timestamp.TimestampService;
     @Override
     public TransactionService getTransactionService() {
         return transactionService;
+    }
+
+    @Override
+    public WatchRegistry getWatchRegistry() {
+        return watchRegistry;
     }
 
     @Override

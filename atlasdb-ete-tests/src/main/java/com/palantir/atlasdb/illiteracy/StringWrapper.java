@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.illiteracy;
+package com.palantir.atlasdb.illiteracy;
 
-import java.util.Map;
-import java.util.function.Function;
+import org.immutables.value.Value;
 
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.Value;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-public interface RowCacheReader {
-    void ensureCacheFlushed();
-    <T> RowCacheRowReadAttemptResult<T> attemptToRead(
-            TableReference tableRef,
-            Iterable<byte[]> rows,
-            long readTimestamp,
-            Function<Map<Cell, Value>, T> transform);
+@JsonSerialize(as = ImmutableStringWrapper.class)
+@JsonDeserialize(as = ImmutableStringWrapper.class)
+@Value.Immutable
+public interface StringWrapper {
+    String str();
+
+    static StringWrapper of(String str) {
+        return ImmutableStringWrapper.builder().str(str).build();
+    }
 }

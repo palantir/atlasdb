@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.illiteracy.RowReference;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -216,7 +219,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            WatchRegistry watchRegistry) {
 
         return create(metricsManager,
                 keyValueService,
@@ -240,7 +244,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
                 transactionConfig,
-                true);
+                true,
+                watchRegistry);
     }
 
     public static TransactionManager create(
@@ -263,7 +268,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             Callback<TransactionManager> callback,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            WatchRegistry watchRegistry) {
 
         return create(metricsManager,
                 keyValueService,
@@ -286,7 +292,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("AsyncInitializer-SerializableTransactionManager", true)),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                watchRegistry);
     }
 
     public static TransactionManager create(
@@ -310,7 +317,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Callback<TransactionManager> callback,
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            WatchRegistry watchRegistry) {
         return create(
                 metricsManager,
                 keyValueService,
@@ -333,7 +341,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 initializer,
                 validateLocksOnReads,
                 transactionConfig,
-                false);
+                false,
+                watchRegistry);
     }
 
     private static TransactionManager create(
@@ -358,7 +367,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ScheduledExecutorService initializer,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
-            boolean shouldInstrument) {
+            boolean shouldInstrument,
+            WatchRegistry watchRegistry) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 keyValueService,
@@ -377,7 +387,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 validateLocksOnReads,
-                transactionConfig);
+                transactionConfig,
+                watchRegistry);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrument(
@@ -427,7 +438,39 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueue,
                 DefaultTaskExecutors.createDefaultDeleteExecutor(),
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                // TODO (jkong): No.
+                () -> ImmutableTransactionConfig.builder().build(),
+                new WatchRegistry() {
+                    @Override
+                    public void enableWatchForRows(Set<RowReference> rowReference) {
+
+                    }
+
+                    @Override
+                    public Set<RowReference> disableWatchForRows(Set<RowReference> rowReference) {
+                        return null;
+                    }
+
+                    @Override
+                    public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
+                        return null;
+                    }
+
+                    @Override
+                    public void enableWatchForCells(Set<CellReference> cellReference) {
+
+                    }
+
+                    @Override
+                    public Set<CellReference> disableWatchForCells(Set<CellReference> cellReference) {
+                        return null;
+                    }
+
+                    @Override
+                    public Set<CellReference> filterToWatchedCells(Set<CellReference> rowReferenceSet) {
+                        return null;
+                    }
+                });
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
@@ -447,7 +490,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MultiTableSweepQueueWriter sweepQueueWriter,
             ExecutorService deleteExecutor,
             boolean validateLocksOnReads,
-            Supplier<TransactionConfig> transactionConfig) {
+            Supplier<TransactionConfig> transactionConfig,
+            WatchRegistry watchRegistry) {
         super(
                 metricsManager,
                 keyValueService,
@@ -466,7 +510,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sweepQueueWriter,
                 deleteExecutor,
                 validateLocksOnReads,
-                transactionConfig
+                transactionConfig,
+                watchRegistry
         );
     }
 

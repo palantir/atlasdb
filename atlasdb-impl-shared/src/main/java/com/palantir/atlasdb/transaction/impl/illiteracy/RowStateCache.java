@@ -16,14 +16,16 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
@@ -96,6 +98,21 @@ public class RowStateCache {
                 .build());
     }
 
+    void ensureCacheFlushed() {
+        try {
+            updater.apply(new FakeRowCacheUpdateRequest()).get();
+            LoggerFactory.getLogger(RowStateCache.class).info("We think we have flushed the cache, current"
+                    + " state is {}", backingMap);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            LoggerFactory.getLogger(RowStateCache.class).info("We failed to flush the cache, current"
+                    + " state is {}", backingMap, e);
+            throw new RuntimeException(e.getCause());
+        }
+    }
+
     class UpdateFunction implements CoalescingRequestFunction<RowCacheUpdateRequest, Void> {
         @Override
         public Void defaultValue() {
@@ -112,6 +129,7 @@ public class RowStateCache {
     private void updateCacheDangerous(Set<RowCacheUpdateRequest> cacheUpdateRequests) {
         Map<TableReference, List<RowCacheUpdateRequest>> updatesByTable
                 = cacheUpdateRequests.stream()
+                .filter(request -> !(request instanceof FakeRowCacheUpdateRequest)) // TODO (jkong): Hacky test fixture
                 .collect(Collectors.groupingBy(x -> x.rowReference().tableReference()));
 
         for (Map.Entry<TableReference, List<RowCacheUpdateRequest>> entry : updatesByTable.entrySet()) {
@@ -122,8 +140,6 @@ public class RowStateCache {
 
             for (RowCacheUpdateRequest request : entry.getValue()) {
                 // TODO (jkong): This is O(N), we can do this in O(1) but hackweek and I'm lazy
-                Map<Cell, Value> valuesInRow = Maps.filterKeys(data, k -> Arrays.equals(request.rowReference().row(),
-                        k.getRowName()));
                 List<Long> interestingTimestamps = data.values().stream().map(Value::getTimestamp)
                         .collect(Collectors.toList());
 
@@ -164,5 +180,22 @@ public class RowStateCache {
         RowReference rowReference();
         WatchIdentifierAndState watchIndexState();
         long readTimestamp();
+    }
+
+    private class FakeRowCacheUpdateRequest implements RowCacheUpdateRequest {
+        @Override
+        public RowReference rowReference() {
+            return null;
+        }
+
+        @Override
+        public WatchIdentifierAndState watchIndexState() {
+            return null;
+        }
+
+        @Override
+        public long readTimestamp() {
+            return 0;
+        }
     }
 }

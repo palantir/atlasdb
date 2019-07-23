@@ -34,6 +34,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistryImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockClient;
@@ -77,7 +78,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                new WatchRegistryImpl(conflictDetectionManager));
     }
 
     @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
@@ -106,7 +108,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
-                () -> TRANSACTION_CONFIG);
+                () -> TRANSACTION_CONFIG,
+                new WatchRegistryImpl(ConflictDetectionManagers.createWithoutWarmingCache(keyValueService)));
     }
 
     @Override

@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.HeldLocksToken;
@@ -326,6 +327,12 @@ public interface TransactionManager extends AutoCloseable {
      * @return the transaction service for this transaction manager
      */
     TransactionService getTransactionService();
+
+    /**
+     * The watch registry is used to register watches on cells.
+     * @return watch registry for this TM
+     */
+    WatchRegistry getWatchRegistry();
 
     /**
      * Returns the cleaner used by this transaction manager.

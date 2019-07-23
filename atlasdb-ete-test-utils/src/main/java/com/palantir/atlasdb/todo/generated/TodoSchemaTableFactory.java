@@ -1,14 +1,15 @@
 package com.palantir.atlasdb.todo.generated;
 
+import java.util.List;
+
+import javax.annotation.Generated;
+
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.table.generation.Triggers;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import java.lang.Override;
-import java.util.List;
-import javax.annotation.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableFactoryRenderer")
 public final class TodoSchemaTableFactory {
@@ -78,7 +79,12 @@ public final class TodoSchemaTableFactory {
         return TodoTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
-    public interface SharedTriggers extends LatestSnapshotTable.LatestSnapshotTrigger, NamespacedTodoTable.NamespacedTodoTrigger, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxTrigger, SnapshotsStreamIdxTable.SnapshotsStreamIdxTrigger, SnapshotsStreamMetadataTable.SnapshotsStreamMetadataTrigger, SnapshotsStreamValueTable.SnapshotsStreamValueTrigger, TodoTable.TodoTrigger {
+    public WatchableStringMapTable getWatchableStringMapTable(Transaction t,
+            WatchableStringMapTable.WatchableStringMapTrigger... triggers) {
+        return WatchableStringMapTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public interface SharedTriggers extends LatestSnapshotTable.LatestSnapshotTrigger, NamespacedTodoTable.NamespacedTodoTrigger, SnapshotsStreamHashAidxTable.SnapshotsStreamHashAidxTrigger, SnapshotsStreamIdxTable.SnapshotsStreamIdxTrigger, SnapshotsStreamMetadataTable.SnapshotsStreamMetadataTrigger, SnapshotsStreamValueTable.SnapshotsStreamValueTrigger, TodoTable.TodoTrigger, WatchableStringMapTable.WatchableStringMapTrigger {
     }
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
@@ -121,6 +127,12 @@ public final class TodoSchemaTableFactory {
         @Override
         public void putTodo(
                 Multimap<TodoTable.TodoRow, ? extends TodoTable.TodoNamedColumnValue<?>> newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putWatchableStringMap(
+                Multimap<WatchableStringMapTable.WatchableStringMapRow, ? extends WatchableStringMapTable.WatchableStringMapNamedColumnValue<?>> newRows) {
             // do nothing
         }
     }

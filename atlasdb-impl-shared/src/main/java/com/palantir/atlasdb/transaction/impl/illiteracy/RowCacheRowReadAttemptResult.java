@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
-import java.util.Set;
+import java.util.SortedSet;
 
 @org.immutables.value.Value.Immutable
 public interface RowCacheRowReadAttemptResult<T> {
-    Set<byte[]> rowsSuccessfullyReadFromCache();
+    SortedSet<byte[]> rowsSuccessfullyReadFromCache();
 
     T output();
 }

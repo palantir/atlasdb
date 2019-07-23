@@ -32,6 +32,8 @@ import com.palantir.atlasdb.transaction.api.TransactionAndImmutableTsLock;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistryImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.HeldLocksToken;
@@ -184,6 +186,11 @@ public final class ReadOnlyTransactionManager extends AbstractLockAwareTransacti
     @Override
     public TransactionService getTransactionService() {
         return transactionService;
+    }
+
+    @Override
+    public WatchRegistry getWatchRegistry() {
+        return new WatchRegistryImpl(ConflictDetectionManagers.createWithoutWarmingCache(keyValueService));
     }
 
     @Override

@@ -358,11 +358,11 @@ public abstract class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
+        // TODO (jkong): Something about how watches are only supported if you use timelock
+        WatchRegistry watchRegistry = new WatchRegistryImpl(conflictManager);
         AtlasDbRuntimeConfig rc = runtimeConfigSupplier.get();
         KeyValueService kvs2;
         if (isUsingTimeLock(config(), rc)) {
-            WatchRegistry watchRegistry = new WatchRegistryImpl(conflictManager);
-
             Supplier<ServerListConfig> serverListConfigSupplier =
                     getServerListConfigSupplierForTimeLock(config(), runtimeConfigSupplier);
 
@@ -434,7 +434,8 @@ public abstract class TransactionManagers {
                         targetedSweep,
                         callbacks,
                         validateLocksOnReads(),
-                        transactionConfigSupplier),
+                        transactionConfigSupplier,
+                        watchRegistry),
                 closeables);
 
         transactionManager.registerClosingCallback(lockAndTimestampServices.close());

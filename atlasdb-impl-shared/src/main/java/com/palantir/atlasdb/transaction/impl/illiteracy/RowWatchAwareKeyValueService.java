@@ -20,12 +20,19 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -45,6 +52,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
@@ -54,9 +62,12 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 // For the most part this could be an AutoDelegate, but that road is fraught with peril.
 public class RowWatchAwareKeyValueService implements KeyValueService {
+    private static final Logger log = LoggerFactory.getLogger(RowWatchAwareKeyValueService.class);
+
     private final KeyValueService delegate;
     private final ConflictDetectionManager conflictDetectionManager;
     private final RowCacheReader rowCacheReader;
+    private final AtomicLong readCount;
 
     public RowWatchAwareKeyValueService(
             KeyValueService delegate,
@@ -68,6 +79,22 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
         this.conflictDetectionManager = conflictDetectionManager;
         this.rowCacheReader = new RowCacheReaderImpl(watchRegistry, remoteLockWatchClient,
                 new RowStateCache(delegate, transactionService));
+        readCount = new AtomicLong();
+    }
+
+    @VisibleForTesting
+    public long getReadCount() {
+        return readCount.get();
+    }
+
+    @VisibleForTesting
+    public void resetReadCount() {
+        readCount.set(0);
+    }
+
+    @VisibleForTesting
+    public void flushCache() {
+        rowCacheReader.ensureCacheFlushed();
     }
 
     @Override
@@ -96,13 +123,17 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
                         .filterKeys(cell -> columnSelection.contains(cell.getColumnName())).collectToMap());
         results.putAll(cacheRead.output());
 
+        List<byte[]> rowsThatMustBeReadFromKvs = StreamSupport.stream(rows.spliterator(), false)
+                .filter(t -> !cacheRead.rowsSuccessfullyReadFromCache().contains(t))
+                .collect(Collectors.toList());
         Map<Cell, Value> kvsRead = delegate.getRows(tableRef,
-                StreamSupport.stream(rows.spliterator(), false)
-                        .filter(t -> !cacheRead.rowsSuccessfullyReadFromCache().contains(t))
-                        .collect(Collectors.toList()),
+                rowsThatMustBeReadFromKvs,
                 columnSelection,
                 timestamp);
         results.putAll(kvsRead);
+        readCount.addAndGet(rowsThatMustBeReadFromKvs.size());
+
+        log.info("Read {} from cache and {} from kvs", cacheRead, kvsRead);
 
         return results;
     }
@@ -110,17 +141,56 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
-        return delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        if (!conflictDetectionManager.get(tableRef).lockRowsForConflicts()) {
+            return delegate.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+        }
+
+        Map<byte[], RowColumnRangeIterator> results = Maps.newHashMap();
+        RowCacheRowReadAttemptResult<Map<byte[], RowColumnRangeIterator>> cacheRead = rowCacheReader.attemptToRead(
+                tableRef,
+                rows,
+                timestamp,
+                values -> convertToRowColumnRangeOutputFormat(values));
+        results.putAll(cacheRead.output());
+
+        List<byte[]> rowsThatMustBeReadFromKvs = StreamSupport.stream(rows.spliterator(), false)
+                .filter(t -> !cacheRead.rowsSuccessfullyReadFromCache().contains(t))
+                .collect(Collectors.toList());
+        Map<byte[], RowColumnRangeIterator> kvsRead = delegate.getRowsColumnRange(tableRef,
+                rowsThatMustBeReadFromKvs,
+                batchColumnRangeSelection,
+                timestamp);
+        results.putAll(kvsRead);
+        readCount.addAndGet(rowsThatMustBeReadFromKvs.size());
+
+        log.info("Read {} from cache and {} from kvs", cacheRead, kvsRead);
+
+        return results;
+    }
+
+    private Map<byte[], RowColumnRangeIterator> convertToRowColumnRangeOutputFormat(Map<Cell, Value> values) {
+        SortedMap<byte[], List<Map.Entry<Cell, Value>>> cellsByRow = values.entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(entry -> entry.getKey().getRowName(),
+                        () -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()),
+                        Collectors.toList()));
+        SortedMap<byte[], RowColumnRangeIterator> result = Maps.newTreeMap(UnsignedBytes.lexicographicalComparator());
+        for (Map.Entry<byte[], List<Map.Entry<Cell, Value>>> entry : cellsByRow.entrySet()) {
+            result.put(entry.getKey(), new LocalRowColumnRangeIterator(entry.getValue().iterator());
+        }
+        return result;
     }
 
     @Override
     public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
             ColumnRangeSelection columnRangeSelection, int cellBatchHint, long timestamp) {
+        // Analogous to getRowsColumnRange without the batch hint.
         return delegate.getRowsColumnRange(tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
     }
 
     @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // Filter out rows that are possibly cacheable.
         return delegate.get(tableRef, timestampByCell);
     }
 

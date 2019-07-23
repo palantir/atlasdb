@@ -86,7 +86,8 @@ public class SnapshotTransactionManagerTest {
             MultiTableSweepQueueWriter.NO_OP,
             executorService,
             true,
-            () -> ImmutableTransactionConfig.builder().build());
+            () -> ImmutableTransactionConfig.builder().build(),
+            null);
 
     @Test
     public void isAlwaysInitialized() {
@@ -133,7 +134,8 @@ public class SnapshotTransactionManagerTest {
                 MultiTableSweepQueueWriter.NO_OP,
                 executorService,
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                null);
         newTransactionManager.close(); // should not throw
     }
 
@@ -225,6 +227,7 @@ public class SnapshotTransactionManagerTest {
                 true,
                 () -> ImmutableTransactionConfig.builder()
                         .lockImmutableTsOnReadOnlyTransactions(grabImmutableTsLockOnReads)
-                        .build());
+                        .build(),
+                null);
     }
 }

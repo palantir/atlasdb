@@ -72,6 +72,13 @@ public class TodoSchema implements AtlasSchema {
             }
         });
 
+        schema.addTableDefinition("watchableStringMap", new TableDefinition() {{
+            rowName();
+            rowComponent("key", ValueType.STRING);
+            columns();
+            column("value", "v", ValueType.STRING);
+        }});
+
         schema.addStreamStoreDefinition(
                 new StreamStoreDefinitionBuilder(STREAM_TABLE, "Snapshots", ValueType.FIXED_LONG)
                         .inMemoryThreshold(AtlasDbConstants.DEFAULT_STREAM_IN_MEMORY_THRESHOLD)

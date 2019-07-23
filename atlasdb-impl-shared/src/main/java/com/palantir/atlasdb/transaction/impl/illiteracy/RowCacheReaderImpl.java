@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl.illiteracy;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.function.Function;
 
 import com.google.common.collect.Maps;
@@ -43,6 +44,11 @@ public class RowCacheReaderImpl implements RowCacheReader {
     }
 
     @Override
+    public void ensureCacheFlushed() {
+        rowStateCache.ensureCacheFlushed();
+    }
+
+    @Override
     public <T> RowCacheRowReadAttemptResult<T> attemptToRead(
             TableReference tableRef,
             Iterable<byte[]> rows,
@@ -54,7 +60,7 @@ public class RowCacheReaderImpl implements RowCacheReader {
         Set<RowReference> watchedRows = watchRegistry.filterToWatchedRows(rowReferences);
         Map<RowReference, WatchIdentifierAndState> watchStates = remoteLockWatchClient.getStateForRows(watchedRows);
 
-        Set<byte[]> successfullyCachedReads = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
+        SortedSet<byte[]> successfullyCachedReads = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         Map<Cell, Value> results = Maps.newHashMap();
         for (Map.Entry<RowReference, WatchIdentifierAndState> entry : watchStates.entrySet()) {
             Optional<Map<Cell, Value>> maybeData = rowStateCache.get(entry.getKey(), entry.getValue(), readTimestamp);
@@ -64,7 +70,7 @@ public class RowCacheReaderImpl implements RowCacheReader {
             }
         }
         return ImmutableRowCacheRowReadAttemptResult.<T>builder()
-                .addAllRowsSuccessfullyReadFromCache(successfullyCachedReads)
+                .rowsSuccessfullyReadFromCache(successfullyCachedReads)
                 .output(transform.apply(results))
                 .build();
     }

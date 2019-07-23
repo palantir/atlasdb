@@ -19,6 +19,9 @@ package com.palantir.atlasdb.transaction.impl.illiteracy;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -27,6 +30,8 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.logsafe.Preconditions;
 
 public class WatchRegistryImpl implements WatchRegistry {
+    private static final Logger log = LoggerFactory.getLogger(WatchRegistryImpl.class);
+
     private final Set<RowReference> rows = Sets.newConcurrentHashSet();
     private final Set<CellReference> cells = Sets.newConcurrentHashSet();
     private final ConflictDetectionManager conflictDetectionManager;
@@ -64,7 +69,9 @@ public class WatchRegistryImpl implements WatchRegistry {
 
     @Override
     public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
-        return rowReferenceSet.stream().filter(rows::contains).collect(Collectors.toSet());
+        Set<RowReference> answer = rowReferenceSet.stream().filter(rows::contains).collect(Collectors.toSet());
+        log.info("filter({})={}", rowReferenceSet, answer);
+        return answer;
     }
 
     @Override

@@ -284,7 +284,8 @@ public class SerializableTransactionManagerTest {
                 callBack,
                 executor,
                 true,
-                () -> ImmutableTransactionConfig.builder().build());
+                () -> ImmutableTransactionConfig.builder().build(),
+                null);
     }
 
     private void nothingInitialized() {
