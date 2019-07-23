@@ -21,9 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -49,6 +51,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
     private KeyValueService kvs;
     private TransactionManager transactionManager;
+    private DeterministicScheduler executor = new DeterministicScheduler();
 
     private final ProgressCheckPoint checkPoint = new InMemoryCheckpointer();
 
@@ -64,7 +67,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
         kvs.createTable(OLD_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.createTable(NEW_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         transactionManager = getManager();
-        liveMigrator = new LiveMigrator(transactionManager, OLD_TABLE_REF, NEW_TABLE_REF, checkPoint);
+        liveMigrator = new LiveMigrator(transactionManager, OLD_TABLE_REF, NEW_TABLE_REF, checkPoint, executor);
     }
 
     @Test
@@ -78,6 +81,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
         assertThat(value).containsExactly(PtBytes.toBytes(0L));
 
         liveMigrator.startMigration();
+        executor.tick(1, TimeUnit.MINUTES);
 
         assertValuesInTargetTable(1, 1);
 
@@ -85,12 +89,14 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
     @Test
     public void migrationRunsMultipleIterations() {
-        writeToOldTable(5, 5);
+        writeToOldTable(20000, 1);
         liveMigrator.setBatchSize(1);
 
         liveMigrator.startMigration();
 
-        assertValuesInTargetTable(5, 5);
+        executor.tick(5, TimeUnit.SECONDS);
+
+        assertValuesInTargetTable(20000, 1);
     }
 
     private void writeToOldTable(int rows, int cols) {
@@ -116,7 +122,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
         Map<Cell, byte[]> valueInNewTable = transactionManager.runTaskWithRetry(
                 transaction -> transaction.get(NEW_TABLE_REF, cells));
 
-        assertThat(valueInNewTable.keySet()).containsExactlyElementsOf(cells);
+        assertThat(valueInNewTable.keySet()).containsExactlyInAnyOrderElementsOf(cells);
 
         IntStream.range(0, rows).forEach(n -> IntStream.range(0, cols)
                 .forEach(m -> assertThat(valueInNewTable.get(createCell(n, m))).containsExactly(

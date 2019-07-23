@@ -19,11 +19,13 @@ package com.palantir.atlasdb.migration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -37,54 +39,59 @@ public class LiveMigrator {
     private final TableReference startTable;
     private final TableReference targetTable;
     private final ProgressCheckPoint progressCheckPoint;
-    private int batchSize = 1000;
+    private final ScheduledExecutorService executor;
+    private volatile int batchSize = 1000;
 
     public LiveMigrator(TransactionManager transactionManager, TableReference startTable,
-            TableReference targetTable, ProgressCheckPoint progressCheckPoint) {
+            TableReference targetTable, ProgressCheckPoint progressCheckPoint, ScheduledExecutorService executor) {
         this.transactionManager = transactionManager;
         this.startTable = startTable;
         this.targetTable = targetTable;
         this.progressCheckPoint = progressCheckPoint;
+        this.executor = executor;
     }
 
     public void startMigration() {
-        while (true) {
-            Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
-            if (!nextStartRow.isPresent()) {
-                return;
-            }
+        executor.scheduleAtFixedRate(this::runOneIteration, 0, 10, TimeUnit.SECONDS);
+    }
 
-            RangeRequest request = RangeRequest.builder()
-                    .startRowInclusive(nextStartRow.get())
-                    .batchHint(batchSize)
-                    .build();
-
-            Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
-                    transaction -> {
-                        AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
-                        BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
-
-                        range.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
-                            @Override
-                            public boolean visit(List<RowResult<byte[]>> item) {
-                                item.forEach(
-                                        rowResult -> {
-                                            transaction.put(targetTable,
-                                                    Streams.stream(rowResult.getCells()).collect(
-                                                            Collectors.toMap(Map.Entry::getKey,
-                                                                    Map.Entry::getValue)));
-                                            lastReadRef.set(rowResult.getRowName());
-                                        });
-                                return true;
-                            }
-                        });
-
-                        return Optional.ofNullable(lastReadRef.get());
-                    }
-            );
-
-            progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
+    private boolean runOneIteration() {
+        Optional<byte[]> nextStartRow = progressCheckPoint.getNextStartRow();
+        if (!nextStartRow.isPresent()) {
+            return false;
         }
+
+        RangeRequest request = RangeRequest.builder()
+                .startRowInclusive(nextStartRow.get())
+                .batchHint(batchSize)
+                .build();
+
+        Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
+                transaction -> {
+                    AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
+                    BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
+
+                    range.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
+                        @Override
+                        public boolean visit(List<RowResult<byte[]>> item) {
+                            item.forEach(
+                                    rowResult -> {
+                                        transaction.put(targetTable,
+                                                Streams.stream(rowResult.getCells()).collect(
+                                                        Collectors.toMap(Map.Entry::getKey,
+                                                                Map.Entry::getValue)));
+                                        lastReadRef.set(rowResult.getRowName());
+                                    });
+                            return true;
+                        }
+                    });
+
+                    return Optional.ofNullable(lastReadRef.get());
+                }
+        );
+
+        progressCheckPoint.setNextStartRow(lastRead.map(RangeRequests::nextLexicographicName));
+        return true;
     }
 
     public void setBatchSize(int n) {
