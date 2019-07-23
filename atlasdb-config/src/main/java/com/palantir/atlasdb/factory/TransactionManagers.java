@@ -109,6 +109,7 @@ import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.Schema;
+import com.palantir.atlasdb.timelock.watch.LockWatchRpcClient;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -122,6 +123,10 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
+import com.palantir.atlasdb.transaction.impl.illiteracy.RemoteLockWatchClient;
+import com.palantir.atlasdb.transaction.impl.illiteracy.RowWatchAwareKeyValueService;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistryImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -353,10 +358,33 @@ public abstract class TransactionManagers {
         ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
 
+        AtlasDbRuntimeConfig rc = runtimeConfigSupplier.get();
+        KeyValueService kvs2;
+        if (isUsingTimeLock(config(), rc)) {
+            WatchRegistry watchRegistry = new WatchRegistryImpl(conflictManager);
+
+            Supplier<ServerListConfig> serverListConfigSupplier =
+                    getServerListConfigSupplierForTimeLock(config(), runtimeConfigSupplier);
+
+            ServiceCreator creator = ServiceCreator.withPayloadLimiter(metricsManager, userAgent(),
+                    serverListConfigSupplier);
+            LockWatchRpcClient rpcClient = creator.createService(LockWatchRpcClient.class);
+            RemoteLockWatchClient remoteLockWatchClient = new RemoteLockWatchClient(rpcClient);
+
+            kvs2 = new RowWatchAwareKeyValueService(
+                    keyValueService,
+                    watchRegistry,
+                    remoteLockWatchClient,
+                    conflictManager,
+                    transactionService);
+        } else {
+            kvs2 = keyValueService;
+        }
+
         CleanupFollower follower = CleanupFollower.create(schemas());
 
         Cleaner cleaner = initializeCloseable(() ->
-                        new DefaultCleanerBuilder(keyValueService, lockAndTimestampServices.timelock(),
+                        new DefaultCleanerBuilder(kvs2, lockAndTimestampServices.timelock(),
                                         ImmutableList.of(follower), transactionService)
                                 .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                                 .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
@@ -385,7 +413,7 @@ public abstract class TransactionManagers {
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
-                        keyValueService,
+                        kvs2,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.timestampManagement(),
                         lockAndTimestampServices.lock(),
@@ -427,7 +455,7 @@ public abstract class TransactionManagers {
                         config(),
                         runtimeConfigSupplier,
                         registrar(),
-                        keyValueService,
+                        kvs2,
                         transactionService,
                         sweepStrategyManager,
                         follower,

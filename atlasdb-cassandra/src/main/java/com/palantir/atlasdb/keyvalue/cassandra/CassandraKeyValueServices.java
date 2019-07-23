@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -218,7 +219,7 @@ public final class CassandraKeyValueServices {
         buffer.putLong(~positiveTimestamp);
         buffer.put((byte) 0);
 
-        buffer.flip();
+        ((Buffer) buffer).flip();
 
         return buffer;
     }

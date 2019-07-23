@@ -20,8 +20,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -42,20 +45,29 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 // For the most part this could be an AutoDelegate, but that road is fraught with peril.
-public class WatchAwareKeyValueService implements KeyValueService {
+public class RowWatchAwareKeyValueService implements KeyValueService {
     private final KeyValueService delegate;
-    private final WatchRegistry watchRegistry;
+    private final ConflictDetectionManager conflictDetectionManager;
+    private final RowCacheReader rowCacheReader;
 
-    public WatchAwareKeyValueService(
+    public RowWatchAwareKeyValueService(
             KeyValueService delegate,
-            WatchRegistry watchRegistry) {
+            WatchRegistry watchRegistry,
+            RemoteLockWatchClient remoteLockWatchClient,
+            ConflictDetectionManager conflictDetectionManager,
+            TransactionService transactionService) {
         this.delegate = delegate;
-        this.watchRegistry = watchRegistry;
+        this.conflictDetectionManager = conflictDetectionManager;
+        this.rowCacheReader = new RowCacheReaderImpl(watchRegistry, remoteLockWatchClient,
+                new RowStateCache(delegate, transactionService));
     }
 
     @Override
@@ -71,7 +83,28 @@ public class WatchAwareKeyValueService implements KeyValueService {
     @Override
     public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection,
             long timestamp) {
-        return delegate.getRows(tableRef, rows, columnSelection, timestamp);
+        if (!conflictDetectionManager.get(tableRef).lockRowsForConflicts()) {
+            return delegate.getRows(tableRef, rows, columnSelection, timestamp);
+        }
+
+        Map<Cell, Value> results = Maps.newHashMap();
+        RowCacheRowReadAttemptResult<Map<Cell, Value>> cacheRead = rowCacheReader.attemptToRead(
+                tableRef,
+                rows,
+                timestamp,
+                values -> KeyedStream.stream(values)
+                        .filterKeys(cell -> columnSelection.contains(cell.getColumnName())).collectToMap());
+        results.putAll(cacheRead.output());
+
+        Map<Cell, Value> kvsRead = delegate.getRows(tableRef,
+                StreamSupport.stream(rows.spliterator(), false)
+                        .filter(t -> !cacheRead.rowsSuccessfullyReadFromCache().contains(t))
+                        .collect(Collectors.toList()),
+                columnSelection,
+                timestamp);
+        results.putAll(kvsRead);
+
+        return results;
     }
 
     @Override
