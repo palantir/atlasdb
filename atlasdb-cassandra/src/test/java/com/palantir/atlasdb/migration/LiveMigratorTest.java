@@ -19,13 +19,13 @@ package com.palantir.atlasdb.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.jmock.lib.concurrent.DeterministicScheduler;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -38,7 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 
@@ -54,7 +54,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
     private TransactionManager transactionManager;
     private DeterministicScheduler executor = new DeterministicScheduler();
 
-    private final ProgressCheckPoint checkPoint = new InMemoryCheckpointer();
+    private ProgressCheckPoint checkPoint;
 
     private LiveMigrator liveMigrator;
 
@@ -68,7 +68,14 @@ public class LiveMigratorTest extends TransactionTestSetup {
         kvs.createTable(OLD_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         kvs.createTable(NEW_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         transactionManager = getManager();
+        checkPoint = new KvsProgressCheckPointImpl(kvs);
         liveMigrator = new LiveMigrator(transactionManager, OLD_TABLE_REF, NEW_TABLE_REF, checkPoint, executor);
+    }
+
+    @After
+    public void after() {
+        Schemas.truncateTablesAndIndexes(KvsProgressCheckPointImpl.SCHEMA, kvs);
+        kvs.truncateTables(ImmutableSet.of(OLD_TABLE_REF, NEW_TABLE_REF));
     }
 
     @Test
@@ -80,7 +87,8 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
         assertThat(value).containsExactly(PtBytes.toBytes(0L));
 
-        liveMigrator.startMigration(() -> {});
+        liveMigrator.startMigration(() -> {
+        });
         executor.tick(1, TimeUnit.SECONDS);
 
         assertValuesInTargetTable(1, 1);
@@ -92,7 +100,8 @@ public class LiveMigratorTest extends TransactionTestSetup {
         writeToOldTable(5, 5);
         liveMigrator.setBatchSize(1);
 
-        liveMigrator.startMigration(() -> {});
+        liveMigrator.startMigration(() -> {
+        });
 
         executor.tick(15, TimeUnit.SECONDS);
 
@@ -138,19 +147,4 @@ public class LiveMigratorTest extends TransactionTestSetup {
     private static Cell createCell(long rowName, long columnName) {
         return Cell.create(PtBytes.toBytes(rowName), PtBytes.toBytes(columnName));
     }
-
-    private static class InMemoryCheckpointer implements ProgressCheckPoint {
-        private Optional<byte[]> nextRow = Optional.of(PtBytes.EMPTY_BYTE_ARRAY);
-
-        @Override
-        public Optional<byte[]> getNextStartRow(Transaction transaction) {
-            return nextRow;
-        }
-
-        @Override
-        public void setNextStartRow(Transaction transaction, Optional<byte[]> row) {
-            nextRow = row;
-        }
-    }
-
 }
