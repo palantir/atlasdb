@@ -19,13 +19,12 @@ package com.palantir.atlasdb.keyvalue.impl;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -36,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.ImmutableCheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -47,57 +47,214 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class TableMigratingKeyValueService implements KeyValueService {
     private final KeyValueService delegate;
-    private final CoordinationService<MigrationsState> coordinationService;
-    private final TableReference oldTableRef;
-    private final TableReference newTableRef;
+    private volatile MigratingTableMapperService tableMapper;
 
-    public TableMigratingKeyValueService(KeyValueService delegate, CoordinationService<MigrationsState> coordinationService,
-            TableReference oldTableRef, TableReference newTableRef) {
+    public TableMigratingKeyValueService(KeyValueService delegate, MigratingTableMapperService tableMapper) {
         this.delegate = delegate;
-        this.coordinationService = coordinationService;
-        this.oldTableRef = oldTableRef;
-        this.newTableRef = newTableRef;
+        this.tableMapper = tableMapper;
     }
 
-    private TableReference readTable(TableReference tableRef, long timestamp) {
-        MigrationsState currentState = getMigrationState(timestamp);
-        if (currentState == MigrationsState.WRITE_SECOND_READ_SECOND && tableRef.equals(oldTableRef)) {
-            return newTableRef;
-        }
-        return tableRef;
-    }
+    /**
+     * READS always map to a single table
+     */
 
-    private List<TableReference> writeTables(TableReference tableRef, long timestamp) {
-        if (!tableRef.equals(oldTableRef)) {
-            return ImmutableList.of(tableRef);
-        }
-        MigrationsState currentState = getMigrationState(timestamp);
-        switch (currentState) {
-            case WRITE_FIRST_ONLY:
-                return ImmutableList.of(oldTableRef);
-            case WRITE_BOTH_READ_FIRST:
-                return ImmutableList.of(oldTableRef, newTableRef);
-            case WRITE_SECOND_READ_SECOND:
-                return ImmutableList.of(newTableRef);
-            default:
-                throw new IllegalStateException("what are you doing");
-        }
-    }
-
-    private MigrationsState getMigrationState(long timestamp) {
-        return coordinationService.getValueForTimestamp(timestamp)
-                .map(ValueAndBound::value)
-                .map(Optional::get)
-                .orElse(MigrationsState.WRITE_FIRST_ONLY);
+    @Override
+    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection,
+            long timestamp) {
+        return delegate.getRows(tableMapper.readTable(tableRef), rows, columnSelection, timestamp);
     }
 
     @Override
-    public void close() {
-        delegate.close();
+    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+            BatchColumnRangeSelection selection, long timestamp) {
+        return delegate.getRowsColumnRange(tableMapper.readTable(tableRef), rows, selection, timestamp);
+    }
+
+    @Override
+    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
+            ColumnRangeSelection selection, int cellBatchHint, long timestamp) {
+        return delegate.getRowsColumnRange(tableMapper.readTable(tableRef), rows, selection, cellBatchHint, timestamp);
+    }
+
+    @Override
+    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate.get(tableMapper.readTable(tableRef), timestampByCell);
+    }
+
+    @Override
+    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate.getLatestTimestamps(tableMapper.readTable(tableRef), timestampByCell);
+    }
+
+    @Override
+    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
+        return delegate.getRange(tableMapper.readTable(tableRef), rangeRequest, ts);
+    }
+
+    @Override
+    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
+            RangeRequest rangeRequest, long timestamp) throws InsufficientConsistencyException {
+        return delegate.getRangeOfTimestamps(tableMapper.readTable(tableRef), rangeRequest, timestamp);
+    }
+
+    @Override
+    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
+            CandidateCellForSweepingRequest request) {
+        return delegate.getCandidateCellsForSweeping(tableMapper.readTable(tableRef), request);
+    }
+
+    @Override
+    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+        return delegate.getFirstBatchForRanges(tableMapper.readTable(tableRef), rangeRequests, timestamp);
+    }
+
+    @Override
+    public byte[] getMetadataForTable(TableReference tableRef) {
+        return delegate.getMetadataForTable(tableMapper.readTable(tableRef));
+    }
+
+    @Override
+    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
+            throws AtlasDbDependencyException {
+        return delegate.getAllTimestamps(tableMapper.readTable(tableRef), cells, timestamp);
+    }
+
+    /**
+     * WRITES potentially delegate to multiple tables
+     */
+
+    @Override
+    public void put(TableReference tableRef, Map<Cell, byte[]> values, long ts) throws KeyAlreadyExistsException {
+        delegate.multiPut(asMapForWrites(tableRef, values), ts);
+    }
+
+    @Override
+    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+            throws KeyAlreadyExistsException {
+        delegate.multiPut(mapRemappingForWrites(valuesByTable), timestamp);
+    }
+
+    @Override
+    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
+            throws KeyAlreadyExistsException {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.putWithTimestamps(table, cellValues));
+    }
+
+    @Override
+    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.delete(table, keys));
+    }
+
+    @Override
+    public void deleteRange(TableReference tableRef, RangeRequest range) {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.deleteRange(tableRef, range));
+    }
+
+    @Override
+    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.deleteRows(table, rows));
+    }
+
+    @Override
+    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
+            throws InsufficientConsistencyException {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.deleteAllTimestamps(table, deletes));
+    }
+
+    @Override
+    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
+        delegate.truncateTables(tableMapper.writeTables(tableRef));
+    }
+
+    @Override
+    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
+        delegate.truncateTables(setRemappingForWrites(tableRefs));
+    }
+
+    @Override
+    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
+        delegate.dropTables(tableMapper.writeTables(tableRef));
+    }
+
+    @Override
+    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
+        delegate.dropTables(setRemappingForWrites(tableRefs));
+    }
+
+    @Override
+    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
+        delegate.createTables(asMapForWrites(tableRef, tableMetadata));
+    }
+
+    @Override
+    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
+            throws InsufficientConsistencyException {
+        delegate.createTables(mapRemappingForWrites(tableRefToTableMetadata));
+    }
+
+    @Override
+    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
+        delegate.putMetadataForTables(asMapForWrites(tableRef, metadata));
+    }
+
+    @Override
+    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
+        delegate.putMetadataForTables(mapRemappingForWrites(tableRefToMetadata));
+    }
+
+    @Override
+    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.addGarbageCollectionSentinelValues(table, cells));
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef) {
+        tableMapper.writeTables(tableRef).forEach(delegate::compactInternally);
+    }
+
+    @Override
+    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
+        tableMapper.writeTables(tableRef).forEach(table -> delegate.compactInternally(table, inMaintenanceMode));
+    }
+
+    /**
+     * ATOMIC WRITES are not supported for multiple tables at once
+     */
+
+    @Override
+    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
+        TableReference writeTable = Iterables.getOnlyElement(tableMapper.writeTables(tableRef));
+        delegate.putUnlessExists(writeTable, values);
+    }
+
+    @Override
+    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
+        TableReference writeTable = Iterables.getOnlyElement(tableMapper.writeTables(checkAndSetRequest.table()));
+        CheckAndSetRequest remappedRequest = new ImmutableCheckAndSetRequest.Builder()
+                .from(checkAndSetRequest)
+                .table(writeTable)
+                .build();
+        delegate.checkAndSet(remappedRequest);
+    }
+
+    /**
+     * Methods that do not use table mapping
+     */
+
+    @Override
+    public Set<TableReference> getAllTableNames() {
+        return delegate.getAllTableNames();
+    }
+
+    @Override
+    public Map<TableReference, byte[]> getMetadataForTables() {
+        return delegate.getMetadataForTables();
     }
 
     @Override
@@ -106,218 +263,56 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     @Override
-    public Map<Cell, Value> getRows(TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection,
-            long timestamp) {
-        return delegate.getRows(readTable(tableRef, timestamp), rows, columnSelection, timestamp);
-    }
-
-    @Override
-    public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-            BatchColumnRangeSelection batchColumnRangeSelection, long timestamp) {
-        return delegate.getRowsColumnRange(readTable(tableRef, timestamp), rows, batchColumnRangeSelection, timestamp);
-    }
-
-    @Override
-    public RowColumnRangeIterator getRowsColumnRange(TableReference tableRef, Iterable<byte[]> rows,
-            ColumnRangeSelection columnRangeSelection, int cellBatchHint, long timestamp) {
-        return delegate.getRowsColumnRange(readTable(tableRef, timestamp), rows, columnRangeSelection, cellBatchHint, timestamp);
-    }
-
-    @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        timestampByCell
-        return
-                delegate.get(readTable(tableRef), timestampByCell);
-    }
-
-    @Override
-    public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return null;
-    }
-
-    @Override
-    public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp)
-            throws KeyAlreadyExistsException {
-
-    }
-
-    @Override
-    public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
-            throws KeyAlreadyExistsException {
-
-    }
-
-    @Override
-    public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues)
-            throws KeyAlreadyExistsException {
-
-    }
-
-    @Override
-    public void putUnlessExists(TableReference tableRef, Map<Cell, byte[]> values) throws KeyAlreadyExistsException {
-
-    }
-
-    @Override
     public boolean supportsCheckAndSet() {
-        return false;
+        return delegate.supportsCheckAndSet();
     }
 
     @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
-        return null;
-    }
-
-    @Override
-    public void checkAndSet(CheckAndSetRequest checkAndSetRequest) throws CheckAndSetException {
-
-    }
-
-    @Override
-    public void delete(TableReference tableRef, Multimap<Cell, Long> keys) {
-
-    }
-
-    @Override
-    public void deleteRange(TableReference tableRef, RangeRequest range) {
-
-    }
-
-    @Override
-    public void deleteRows(TableReference tableRef, Iterable<byte[]> rows) {
-
-    }
-
-    @Override
-    public void deleteAllTimestamps(TableReference tableRef, Map<Cell, TimestampRangeDelete> deletes)
-            throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public void truncateTable(TableReference tableRef) throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public void truncateTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
-            long timestamp) {
-        return null;
-    }
-
-    @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(TableReference tableRef,
-            RangeRequest rangeRequest, long timestamp) throws InsufficientConsistencyException {
-        return null;
-    }
-
-    @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(TableReference tableRef,
-            CandidateCellForSweepingRequest request) {
-        return null;
-    }
-
-    @Override
-    public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
-            TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
-        return null;
-    }
-
-    @Override
-    public void dropTable(TableReference tableRef) throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public void dropTables(Set<TableReference> tableRefs) throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public void createTable(TableReference tableRef, byte[] tableMetadata) throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata)
-            throws InsufficientConsistencyException {
-
-    }
-
-    @Override
-    public Set<TableReference> getAllTableNames() {
-        return null;
-    }
-
-    @Override
-    public byte[] getMetadataForTable(TableReference tableRef) {
-        return new byte[0];
-    }
-
-    @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
-        return null;
-    }
-
-    @Override
-    public void putMetadataForTable(TableReference tableRef, byte[] metadata) {
-
-    }
-
-    @Override
-    public void putMetadataForTables(Map<TableReference, byte[]> tableRefToMetadata) {
-
-    }
-
-    @Override
-    public void addGarbageCollectionSentinelValues(TableReference tableRef, Iterable<Cell> cells) {
-
-    }
-
-    @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
-            throws AtlasDbDependencyException {
-        return null;
-    }
-
-    @Override
-    public void compactInternally(TableReference tableRef) {
-
-    }
-
-    @Override
-    public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
-
+        return delegate.getCheckAndSetCompatibility();
     }
 
     @Override
     public ClusterAvailabilityStatus getClusterAvailabilityStatus() {
-        return null;
+        return delegate.getClusterAvailabilityStatus();
     }
 
     @Override
     public boolean isInitialized() {
-        return false;
+        return delegate.isInitialized();
     }
 
     @Override
     public boolean performanceIsSensitiveToTombstones() {
-        return false;
+        return delegate.performanceIsSensitiveToTombstones();
     }
 
     @Override
     public boolean shouldTriggerCompactions() {
-        return false;
+        return delegate.shouldTriggerCompactions();
     }
 
-
-    public enum MigrationsState {
-        WRITE_FIRST_ONLY, WRITE_BOTH_READ_FIRST, WRITE_SECOND_READ_SECOND
+    @Override
+    public void close() {
+        delegate.close();
     }
 
+    private <T> Map<TableReference, T> asMapForWrites(TableReference tableRef, T values) {
+        return  tableMapper.writeTables(tableRef).stream()
+                .collect(Collectors.toMap(table -> table, each -> values));
+    }
+
+    private <T> Map<TableReference, T> mapRemappingForWrites(Map<TableReference, T> originalMap) {
+        return KeyedStream.stream(originalMap)
+                .mapKeys(tableMapper::writeTables)
+                .flatMapKeys(Set::stream)
+                .collectToMap();
+    }
+
+    private Set<TableReference> setRemappingForWrites(Set<TableReference> tableRefs) {
+        return tableRefs.stream()
+                .map(tableMapper::writeTables)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+    }
 }
