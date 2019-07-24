@@ -23,19 +23,18 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 @Value.Immutable
 @JsonDeserialize(as = ImmutableTableMigrationState.class)
 @JsonSerialize(as = ImmutableTableMigrationState.class)
 public abstract class TableMigrationState {
     @Value.Parameter
-    public abstract TableMigratingKeyValueService.MigrationsState migrationsState();
+    public abstract MigrationCoordinationServiceImpl.MigrationState migrationsState();
 
     @Value.Parameter
     public abstract Optional<TableReference> targetTable();
 
-    public static ImmutableTableMigrationState of(TableMigratingKeyValueService.MigrationsState state) {
+    public static ImmutableTableMigrationState of(MigrationCoordinationServiceImpl.MigrationState state) {
         return builder()
                 .migrationsState(state)
                 .build();

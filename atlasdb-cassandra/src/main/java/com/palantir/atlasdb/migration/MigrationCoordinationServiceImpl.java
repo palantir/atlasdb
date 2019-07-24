@@ -16,10 +16,6 @@
 
 package com.palantir.atlasdb.migration;
 
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_SECOND;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_FIRST_ONLY;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_SECOND_READ_SECOND;
 
 import java.util.Optional;
 
@@ -30,10 +26,16 @@ import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
-    public static final TableMigratingKeyValueService.MigrationsState DEFAULT_MIGRATIONS_STATE = WRITE_FIRST_ONLY;
+    public enum MigrationState {
+        WRITE_FIRST_ONLY,
+        WRITE_BOTH_READ_FIRST,
+        WRITE_BOTH_READ_SECOND,
+        WRITE_SECOND_READ_SECOND
+    }
+
+    public static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
@@ -50,10 +52,10 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
                 coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeStateForTable(
+                        migrationStateTransitioner.changeTableState(
                                 startTable,
                                 Optional.of(targetTable),
-                                WRITE_BOTH_READ_FIRST,
+                                MigrationState.WRITE_BOTH_READ_FIRST,
                                 valueAndBound));
 
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
@@ -65,10 +67,10 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     public boolean endMigration(TableReference startTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
                 coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeStateForTable(
+                        migrationStateTransitioner.changeTableState(
                                 startTable,
                                 Optional.empty(),
-                                WRITE_BOTH_READ_SECOND,
+                                MigrationState.WRITE_BOTH_READ_SECOND,
                                 valueAndBound));
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
@@ -78,10 +80,10 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     public boolean endDualWrite(TableReference startTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
                 coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeStateForTable(
+                        migrationStateTransitioner.changeTableState(
                                 startTable,
                                 Optional.empty(),
-                                WRITE_SECOND_READ_SECOND,
+                                MigrationState.WRITE_SECOND_READ_SECOND,
                                 valueAndBound));
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;

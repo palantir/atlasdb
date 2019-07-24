@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.migration;
 
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_SECOND;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_FIRST_ONLY;
-import static com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService.MigrationsState.WRITE_SECOND_READ_SECOND;
 import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE;
+import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_BOTH_READ_FIRST;
+import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_BOTH_READ_SECOND;
+import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_FIRST_ONLY;
+import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_SECOND_READ_SECOND;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,17 +31,16 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationStateTransitioner {
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
-    public TableMigrationStateMap changeStateForTable(
+    public TableMigrationStateMap changeTableState(
             TableReference startTable,
             Optional<TableReference> targetTable,
-            TableMigratingKeyValueService.MigrationsState targetState,
+            MigrationCoordinationServiceImpl.MigrationState targetState,
             ValueAndBound<TableMigrationStateMap> valueAndBound) {
 
         Map<TableReference, TableMigrationState> currentStateMap;
@@ -62,7 +61,7 @@ public class MigrationStateTransitioner {
                 LoggingArgs.tableRef(startTable));
 
         Map<TableReference, TableMigrationState> newStateMap = new HashMap<>(currentStateMap);
-        TableMigratingKeyValueService.MigrationsState currentState = Optional.ofNullable(
+        MigrationCoordinationServiceImpl.MigrationState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)
                 .orElse(DEFAULT_MIGRATIONS_STATE);
@@ -82,8 +81,8 @@ public class MigrationStateTransitioner {
     }
 
     private boolean isTransitionValid(
-            TableMigratingKeyValueService.MigrationsState currentState,
-            TableMigratingKeyValueService.MigrationsState targetState,
+            MigrationCoordinationServiceImpl.MigrationState currentState,
+            MigrationCoordinationServiceImpl.MigrationState targetState,
             boolean targetTableGiven) {
         if (currentState.equals(WRITE_FIRST_ONLY)) {
             return targetState.equals(WRITE_BOTH_READ_FIRST) && targetTableGiven;

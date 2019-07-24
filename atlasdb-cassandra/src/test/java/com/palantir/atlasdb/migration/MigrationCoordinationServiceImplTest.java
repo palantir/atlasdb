@@ -16,36 +16,11 @@
 
 package com.palantir.atlasdb.migration;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.junit.Test;
-
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 
 public class MigrationCoordinationServiceImplTest {
     @Test
     public void test() {
-        TableReference tableReference1 = TableReference.fromString("table.table1");
-        TableReference tableReference2 = TableReference.fromString("table.table2");
-
-        TableMigrationState state1 = TableMigrationState.of(TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST);
-        TableMigrationState state2 = TableMigrationState.of(TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_SECOND);
-
-
-        TableMigrationStateMap stateMap = TableMigrationStateMap.builder()
-                .putTableMigrationStateMap(tableReference1, state1)
-                .build();
-
-        Map<TableReference, TableMigrationState> toUpdate = new HashMap<>(stateMap.tableMigrationStateMap());
-        toUpdate.put(tableReference1, state2);
-
-        TableMigrationStateMap stateMap2 = TableMigrationStateMap.builder()
-                .tableMigrationStateMap(toUpdate)
-                .build();
-
-
         System.out.println("blah");
     }
 
