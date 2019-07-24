@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.migration;
 
 import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE;
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_BOTH_READ_FIRST;
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_BOTH_READ_SECOND;
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_FIRST_ONLY;
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.MigrationState.WRITE_SECOND_READ_SECOND;
+import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST;
+import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND;
+import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_FIRST_ONLY;
+import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_SECOND_READ_SECOND;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,8 +42,7 @@ public class MigrationStateTransitioner {
             Optional<TableReference> targetTable,
             MigrationCoordinationServiceImpl.MigrationState targetState) {
 
-        log.info("Changing migration state for the table {}",
-                LoggingArgs.tableRef(startTable));
+        log.info("Changing migration state for the table {}", LoggingArgs.tableRef(startTable));
 
         Map<TableReference, TableMigrationState> currentStateMap = tableMigrationStateMap.tableMigrationStateMap();
         Map<TableReference, TableMigrationState> newStateMap = new HashMap<>(currentStateMap);
@@ -54,7 +53,9 @@ public class MigrationStateTransitioner {
                 .orElse(DEFAULT_MIGRATIONS_STATE);
 
         if (!isTransitionValid(currentState, targetState, targetTable.isPresent())) {
-            throw new SafeIllegalStateException("Invalid state migration transition requested");
+            throw new SafeIllegalStateException(
+                    "Invalid state migration transition requested.",
+                    LoggingArgs.tableRef(startTable));
         }
 
         newStateMap.put(startTable, TableMigrationState.builder()

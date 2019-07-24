@@ -23,4 +23,11 @@ public interface MigrationCoordinationService {
     boolean endMigration(TableReference startTable);
     boolean endDualWrite(TableReference startTable);
     TableMigrationState getMigrationState(TableReference startTable, long timestamp);
+
+    enum MigrationState {
+        WRITE_FIRST_ONLY,
+        WRITE_BOTH_READ_FIRST,
+        WRITE_BOTH_READ_SECOND,
+        WRITE_SECOND_READ_SECOND
+    }
 }

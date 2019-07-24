@@ -28,12 +28,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
-    public enum MigrationState {
-        WRITE_FIRST_ONLY,
-        WRITE_BOTH_READ_FIRST,
-        WRITE_BOTH_READ_SECOND,
-        WRITE_SECOND_READ_SECOND
-    }
 
     public static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
@@ -54,10 +48,8 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
                 safeTransformState(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
-
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
-
     }
 
     @Override
@@ -97,12 +89,13 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     private CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> safeTransformState(
             TableReference startTable,
             Optional<TableReference> targetTable,
-            MigrationState writeBothReadFirst) {
+            MigrationState targetState) {
         return coordinationService.tryTransformCurrentValue(valueAndBound ->
                 migrationStateTransitioner.updateTableMigrationStateForTable(
-                        getCurrentTableMigrationStateMap(valueAndBound), startTable,
+                        getCurrentTableMigrationStateMap(valueAndBound),
+                        startTable,
                         targetTable,
-                        writeBothReadFirst));
+                        targetState));
     }
 
     private TableMigrationStateMap getCurrentTableMigrationStateMap(
