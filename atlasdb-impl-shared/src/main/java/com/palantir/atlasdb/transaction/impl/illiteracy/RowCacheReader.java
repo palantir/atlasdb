@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 
@@ -28,6 +29,11 @@ public interface RowCacheReader {
     <T> RowCacheRowReadAttemptResult<T> attemptToRead(
             TableReference tableRef,
             Iterable<byte[]> rows,
+            long readTimestamp,
+            Function<Map<Cell, Value>, T> transform);
+    <T> RowCacheRangeReadAttemptResult<T> attemptToReadRange(
+            TableReference tableRef,
+            RangeRequest rangeRequest,
             long readTimestamp,
             Function<Map<Cell, Value>, T> transform);
 }

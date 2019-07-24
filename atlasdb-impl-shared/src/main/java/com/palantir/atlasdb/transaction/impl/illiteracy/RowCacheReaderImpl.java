@@ -30,6 +30,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.streams.KeyedStream;
@@ -86,6 +87,38 @@ public class RowCacheReaderImpl implements RowCacheReader {
         }
         return ImmutableRowCacheRowReadAttemptResult.<T>builder()
                 .rowsSuccessfullyReadFromCache(successfullyCachedReads)
+                .output(transform.apply(results))
+                .build();
+    }
+
+    @Override
+    public <T> RowCacheRangeReadAttemptResult<T> attemptToReadRange(TableReference tableRef, RangeRequest rangeRequest,
+            long readTimestamp, Function<Map<Cell, Value>, T> transform) {
+        Optional<RowCacheReference> cacheReference = watchRegistry.filterRangeReference(tableRef, rangeRequest);
+        Map<Cell, Value> results = Maps.newHashMap();
+        if (cacheReference.isPresent()) {
+            RowCacheReference reference = cacheReference.get();
+            Map<RowCacheReference, WatchIdentifierAndState> watchStates
+                    = remoteLockWatchClient.getCacheStateForCacheReferences(ImmutableSet.of(reference));
+
+            for (Map.Entry<RowCacheReference, WatchIdentifierAndState> entry : watchStates.entrySet()) {
+                Optional<Map<Cell, Value>> maybeData = rowStateCache.get(entry.getKey(), entry.getValue(),
+                        readTimestamp);
+                if (maybeData.isPresent()) {
+                    Map<Cell, Value> originalData = maybeData.get();
+                    results.putAll(KeyedStream.stream(originalData)
+                            .filterKeys(c -> rangeRequest.inRange(c.getRowName())
+                                    && rangeRequest.containsColumn(c.getColumnName()))
+                            .collectToMap());
+                    return ImmutableRowCacheRangeReadAttemptResult.<T>builder()
+                            .successful(true)
+                            .output(transform.apply(results))
+                            .build();
+                }
+            }
+        }
+        return ImmutableRowCacheRangeReadAttemptResult.<T>builder()
+                .successful(false)
                 .output(transform.apply(results))
                 .build();
     }

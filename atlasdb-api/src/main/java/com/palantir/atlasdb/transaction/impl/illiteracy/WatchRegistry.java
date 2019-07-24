@@ -17,9 +17,12 @@
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface WatchRegistry {
     // Precondition: Table must have row level conflict handling
@@ -31,6 +34,8 @@ public interface WatchRegistry {
     // Returns the most precise available reference one has into the row cache.
     // Alternatively, a minimum set of references - if any of these are unchanged then the cache is treated as valid.
     Map<RowReference, RowCacheReference> filterToWatchedRows(Set<RowReference> rowReferenceSet);
+
+    Optional<RowCacheReference> filterRangeReference(TableReference tableRef, RangeRequest rangeRequest);
 
     // Precondition: Table must have row level conflict handling
     void enableWatchForRowPrefix(RowPrefixReference prefixReference);

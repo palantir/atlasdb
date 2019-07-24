@@ -327,6 +327,19 @@ public class EncodingUtils {
         return bytes;
     }
 
+    public static byte[] longestCommonPrefix(byte[] b1, byte[] b2) {
+        int equalIndices = 0;
+        while (equalIndices < Math.min(b1.length, b2.length)) {
+            if (b1[equalIndices] != b2[equalIndices]) {
+                break;
+            }
+            equalIndices++;
+        }
+
+        // 0 to the value of equalIndices (exclusive) is the common prefix
+        return Arrays.copyOfRange(b1, 0, equalIndices);
+    }
+
     public static byte[] add(byte[] b1) {
         return b1;
     }

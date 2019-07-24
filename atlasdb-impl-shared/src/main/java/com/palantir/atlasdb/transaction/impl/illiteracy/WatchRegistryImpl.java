@@ -27,7 +27,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.timelock.watch.trie.LousyPrefixTrieImpl;
 import com.palantir.atlasdb.timelock.watch.trie.PrefixTrie;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -81,6 +84,17 @@ public class WatchRegistryImpl implements WatchRegistry {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collectToMap();
+    }
+
+    @Override
+    public Optional<RowCacheReference> filterRangeReference(TableReference tableRef, RangeRequest rangeRequest) {
+        // TODO (jkong): There is an edge case because you actually want the previous entry
+        byte[] possiblePrefix = EncodingUtils.longestCommonPrefix(
+                rangeRequest.getStartInclusive(),
+                rangeRequest.getEndExclusive().length == 0 ? rangeRequest.getEndExclusive() :
+                RangeRequests.previousLexicographicName(rangeRequest.getEndExclusive()));
+        return getMostPreciseRowReference(
+                ImmutableRowReference.builder().tableReference(tableRef).row(possiblePrefix).build());
     }
 
     private Optional<RowCacheReference> getMostPreciseRowReference(RowReference rowReference) {

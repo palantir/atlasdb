@@ -285,4 +285,19 @@ public class EncodingUtilsTest {
             assertEquals(components, result);
         }
     }
+
+    @Test
+    public void testLongestCommonPrefix() {
+        byte[] b1 = {1, 2, 3, 4};
+        byte[] b2 = {1, 2, 3};
+        byte[] b3 = {1, 5, 3, 4};
+        byte[] b4 = {9, 2};
+
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b1, b2)));
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b1, b3)));
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b1, b4)));
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b2, b3)));
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b2, b4)));
+        System.out.println(Arrays.toString(EncodingUtils.longestCommonPrefix(b3, b4)));
+    }
 }
