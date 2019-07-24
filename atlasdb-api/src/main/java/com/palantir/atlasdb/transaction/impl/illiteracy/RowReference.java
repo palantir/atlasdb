@@ -31,4 +31,9 @@ public interface RowReference {
     default LockDescriptor toLockDescriptor() {
         return AtlasRowLockDescriptor.of(tableReference().getQualifiedName(), row());
     }
+
+    @Value.Lazy
+    default String toLockDescriptorString() {
+        return toLockDescriptor().getLockIdAsString();
+    }
 }

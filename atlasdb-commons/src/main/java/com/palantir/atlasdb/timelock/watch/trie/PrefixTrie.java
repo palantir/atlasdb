@@ -28,4 +28,9 @@ public interface PrefixTrie<T> {
 
     // O(length of longest key in trie)
     Set<T> findDataInTrieWithKeysPrefixesOf(String s);
+
+    // O(length of longest key in trie)
+    boolean isThereKeyPrefixOf(String s);
+
+    Set<T> findDataWithLongestMatchingPrefixOf(String s);
 }

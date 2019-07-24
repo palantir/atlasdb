@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.CoalescingRequestFunction;
@@ -44,7 +45,7 @@ public class RowStateCache {
     private final TransactionService transactionService;
 
     @VisibleForTesting
-    final ConcurrentMap<RowReference, RowStateCacheValue> backingMap;
+    final ConcurrentMap<RowCacheReference, RowStateCacheValue> backingMap;
 
     @VisibleForTesting
     final DisruptorAutobatcher<RowCacheUpdateRequest, Void> updater;
@@ -58,11 +59,11 @@ public class RowStateCache {
     }
 
     public Optional<Map<Cell, Value>> get(
-            RowReference rowReference, WatchIdentifierAndState readState, long startTimestamp) {
-        RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
+            RowCacheReference cacheReference, WatchIdentifierAndState readState, long startTimestamp) {
+        RowStateCacheValue currentCacheValue = backingMap.get(cacheReference);
         if (currentCacheValue == null) {
             // Nothing is cached, so we don't know
-            updateCache(rowReference, readState, startTimestamp);
+            updateCache(cacheReference, readState, startTimestamp);
             return Optional.empty();
         }
 
@@ -74,14 +75,14 @@ public class RowStateCache {
             case VALID_BUT_NOT_USABLE_HERE:
                 return Optional.empty();
             case NO_LONGER_VALID:
-                updateCache(rowReference, readState, startTimestamp);
+                updateCache(cacheReference, readState, startTimestamp);
                 return Optional.empty();
             default:
                 throw new AssertionError("wat");
         }
     }
 
-    private void updateCache(RowReference rowReference, WatchIdentifierAndState readState, long readTimestamp) {
+    private void updateCache(RowCacheReference rowReference, WatchIdentifierAndState readState, long readTimestamp) {
         // TODO (jkong): We need some way to handle this under high load
         RowStateCacheValue currentCacheValue = backingMap.get(rowReference);
         if (currentCacheValue != null) {
@@ -92,7 +93,7 @@ public class RowStateCache {
 
         // there is no currently cached value, so update
         updater.apply(ImmutableRowCacheUpdateRequest.builder()
-                .rowReference(rowReference)
+                .cacheReference(rowReference)
                 .watchIndexState(readState)
                 .readTimestamp(readTimestamp)
                 .build());
@@ -130,36 +131,13 @@ public class RowStateCache {
         Map<TableReference, List<RowCacheUpdateRequest>> updatesByTable
                 = cacheUpdateRequests.stream()
                 .filter(request -> !(request instanceof FakeRowCacheUpdateRequest)) // TODO (jkong): Hacky test fixture
-                .collect(Collectors.groupingBy(x -> x.rowReference().tableReference()));
+                .collect(Collectors.groupingBy(x -> x.cacheReference().tableReference()));
 
         for (Map.Entry<TableReference, List<RowCacheUpdateRequest>> entry : updatesByTable.entrySet()) {
-            Map<Cell, Value> data = keyValueService.getRows(entry.getKey(),
-                    entry.getValue().stream().map(t -> t.rowReference().row()).collect(Collectors.toList()),
-                    ColumnSelection.all(),
-                    Long.MAX_VALUE);
-
             for (RowCacheUpdateRequest request : entry.getValue()) {
-                // TODO (jkong): This is O(N), we can do this in O(1) but hackweek and I'm lazy
-                List<Long> interestingTimestamps = data.values().stream().map(Value::getTimestamp)
-                        .collect(Collectors.toList());
+                RowStateCacheValue cacheValue = getCacheValue(request);
 
-                // TODO (jkong): Need some way of handling failure to commit. Probably do the usual lookback you do
-                // in Atlas.
-                long timestampAtWhichCachedDataWasFirstValid =
-                        interestingTimestamps.size() == 0 ? request.readTimestamp() :
-                        transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
-                                .orElse(Long.MAX_VALUE); // nothing committed, so it's only valid at infinity
-
-                CacheEntryValidityConditions validity = ImmutableCacheEntryValidityConditions.builder()
-                        .firstTimestampAtWhichReadIsValid(timestampAtWhichCachedDataWasFirstValid)
-                        .watchIdentifierAndState(request.watchIndexState())
-                        .build();
-                RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
-                        .data(data)
-                        .validityConditions(validity)
-                        .build();
-
-                backingMap.merge(request.rowReference(), cacheValue, (existing, current) -> {
+                backingMap.merge(request.cacheReference(), cacheValue, (existing, current) -> {
                     if (!Objects.equals(current.validityConditions().watchIdentifierAndState().identifier(),
                             existing.validityConditions().watchIdentifierAndState().identifier())) {
                         return current;
@@ -175,16 +153,49 @@ public class RowStateCache {
         }
     }
 
+    private RowStateCacheValue getCacheValue(RowCacheUpdateRequest updateRequest) {
+        if (updateRequest.cacheReference().rowReference().isPresent()) {
+            RowCacheReference cacheReference = updateRequest.cacheReference();
+            RowReference rowReference = cacheReference.rowReference().get();
+            Map<Cell, Value> data = keyValueService.getRows(rowReference.tableReference(),
+                    ImmutableList.of(rowReference.row()),
+                    ColumnSelection.all(),
+                    Long.MAX_VALUE);
+
+            // TODO (jkong): This is O(N), we can do this in O(1) but hackweek and I'm lazy
+            List<Long> interestingTimestamps = data.values().stream().map(Value::getTimestamp)
+                    .collect(Collectors.toList());
+
+            // TODO (jkong): Need some way of handling failure to commit. Probably do the usual lookback you do
+            // in Atlas.
+            long timestampAtWhichCachedDataWasFirstValid =
+                    interestingTimestamps.size() == 0 ? updateRequest.readTimestamp() :
+                            transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
+                                    .orElse(Long.MAX_VALUE); // nothing committed, so it's only valid at infinity
+
+            CacheEntryValidityConditions validity = ImmutableCacheEntryValidityConditions.builder()
+                    .firstTimestampAtWhichReadIsValid(timestampAtWhichCachedDataWasFirstValid)
+                    .watchIdentifierAndState(updateRequest.watchIndexState())
+                    .build();
+            RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
+                    .data(data)
+                    .validityConditions(validity)
+                    .build();
+            return cacheValue;
+        }
+        return null;
+    }
+
     @org.immutables.value.Value.Immutable
     public interface RowCacheUpdateRequest {
-        RowReference rowReference();
+        RowCacheReference cacheReference();
         WatchIdentifierAndState watchIndexState();
         long readTimestamp();
     }
 
     private class FakeRowCacheUpdateRequest implements RowCacheUpdateRequest {
         @Override
-        public RowReference rowReference() {
+        public RowCacheReference cacheReference() {
             return null;
         }
 

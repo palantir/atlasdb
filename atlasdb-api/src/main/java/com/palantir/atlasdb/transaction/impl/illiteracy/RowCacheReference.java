@@ -16,17 +16,29 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
+import java.util.Optional;
+
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.lock.AtlasRowLockDescriptor;
 
+// Union type of RowReference and RowPrefixReference
 @Value.Immutable
-public interface RowPrefixReference {
-    TableReference tableReference();
-    byte[] prefix();
+public interface RowCacheReference {
+    Optional<RowReference> rowReference();
+    Optional<RowPrefixReference> prefixReference();
 
-    default String toPrefixForm() {
-        return AtlasRowLockDescriptor.of(tableReference().getQualifiedName(), prefix()).getLockIdAsString();
+    @Value.Lazy
+    default TableReference tableReference() {
+        return rowReference().map(RowReference::tableReference)
+                .orElseGet(() -> prefixReference().get().tableReference());
+    }
+
+    static RowCacheReference ofRowReference(RowReference rowReference) {
+        return ImmutableRowCacheReference.builder().rowReference(rowReference).build();
+    }
+
+    static RowCacheReference ofPrefixReference(RowPrefixReference prefixReference) {
+        return ImmutableRowCacheReference.builder().prefixReference(prefixReference).build();
     }
 }

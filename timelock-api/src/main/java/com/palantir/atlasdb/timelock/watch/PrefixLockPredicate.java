@@ -26,6 +26,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutablePrefixLockPredicate.class)
 @Value.Immutable
 @JsonTypeName("prefix")
-public interface PrefixLockPredicate {
+public interface PrefixLockPredicate extends LockPredicate {
     LockDescriptorPrefix prefix();
 }

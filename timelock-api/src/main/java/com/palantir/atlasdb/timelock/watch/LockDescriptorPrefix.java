@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 @JsonSerialize(as = ImmutableLockDescriptorPrefix.class)
 @JsonDeserialize(as = ImmutableLockDescriptorPrefix.class)
 @Value.Immutable
-interface LockDescriptorPrefix {
+public interface LockDescriptorPrefix {
     String prefix();
 
     @Value.Check

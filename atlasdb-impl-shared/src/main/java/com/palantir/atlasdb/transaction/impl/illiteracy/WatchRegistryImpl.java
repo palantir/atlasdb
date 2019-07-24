@@ -16,24 +16,30 @@
 
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.timelock.watch.trie.LousyPrefixTrieImpl;
+import com.palantir.atlasdb.timelock.watch.trie.PrefixTrie;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 
 public class WatchRegistryImpl implements WatchRegistry {
     private static final Logger log = LoggerFactory.getLogger(WatchRegistryImpl.class);
 
     private final Set<RowReference> rows = Sets.newConcurrentHashSet();
-    private final Set<RowReference> rowPrefixes = Sets.newConcurrentHashSet();
+    private final PrefixTrie<RowPrefixReference> rowPrefixTrie = new LousyPrefixTrieImpl<>();
     private final Set<CellReference> cells = Sets.newConcurrentHashSet();
     private final ConflictDetectionManager conflictDetectionManager;
 
@@ -69,14 +75,30 @@ public class WatchRegistryImpl implements WatchRegistry {
     }
 
     @Override
-    public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
-        Set<RowReference> answer = rowReferenceSet.stream().filter(rows::contains).collect(Collectors.toSet());
-        return answer;
+    public Map<RowReference, RowCacheReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
+        return KeyedStream.of(rowReferenceSet)
+                .map(this::getMostPreciseRowReference)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collectToMap();
+    }
+
+    private Optional<RowCacheReference> getMostPreciseRowReference(RowReference rowReference) {
+        if (rows.contains(rowReference)) {
+            return Optional.of(RowCacheReference.ofRowReference(rowReference));
+        }
+        Set<RowPrefixReference> prefixReferences
+                = rowPrefixTrie.findDataWithLongestMatchingPrefixOf(rowReference.toLockDescriptorString());
+        if (prefixReferences.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(RowCacheReference.ofPrefixReference(Iterables.getOnlyElement(prefixReferences)));
     }
 
     @Override
     public void enableWatchForRowPrefix(RowPrefixReference prefixReference) {
-
+        rowPrefixTrie.add(prefixReference.toPrefixForm(), prefixReference);
     }
 
     @Override

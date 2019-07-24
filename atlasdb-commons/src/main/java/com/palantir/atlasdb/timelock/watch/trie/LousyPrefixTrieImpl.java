@@ -55,4 +55,33 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
         }
         return Sets.union(dataPresentHere, childData);
     }
+
+    @Override
+    public boolean isThereKeyPrefixOf(String s) {
+        if (!dataPresentHere.isEmpty()) {
+            return true;
+        }
+
+        if (s.isEmpty()) {
+            // no direct hit, since if there was one it would have been caught above.
+            return false;
+        }
+
+        PrefixTrie<T> child = children.computeIfAbsent(s.charAt(0), unused -> new LousyPrefixTrieImpl<>());
+        return child.isThereKeyPrefixOf(s.substring(1));
+    }
+
+    @Override
+    public Set<T> findDataWithLongestMatchingPrefixOf(String s) {
+        if (s.isEmpty()) {
+            return dataPresentHere;
+        }
+
+        PrefixTrie<T> child = children.computeIfAbsent(s.charAt(0), unused -> new LousyPrefixTrieImpl<>());
+        Set<T> childData = child.findDataWithLongestMatchingPrefixOf(s.substring(1));
+        if (childData.isEmpty()) {
+            return dataPresentHere;
+        }
+        return childData;
+    }
 }

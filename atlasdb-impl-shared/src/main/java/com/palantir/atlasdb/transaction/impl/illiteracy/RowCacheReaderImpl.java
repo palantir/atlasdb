@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
@@ -57,21 +58,29 @@ public class RowCacheReaderImpl implements RowCacheReader {
         Set<RowReference> rowReferences = Sets.newHashSet();
         rows.forEach(row -> rowReferences.add(
                 ImmutableRowReference.builder().tableReference(tableRef).row(row).build()));
-        Set<RowReference> watchedRows = watchRegistry.filterToWatchedRows(rowReferences);
-        Map<RowReference, WatchIdentifierAndState> watchStates = remoteLockWatchClient.getStateForRows(watchedRows);
+        Map<RowReference, RowCacheReference> watchedRows = watchRegistry.filterToWatchedRows(rowReferences);
+        Map<RowCacheReference, RowReference> watchedRowsInverse = invert(watchedRows);
+        Map<RowCacheReference, WatchIdentifierAndState> watchStates
+                = remoteLockWatchClient.getStateForRows(ImmutableSet.copyOf(watchedRows.values()));
 
         SortedSet<byte[]> successfullyCachedReads = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         Map<Cell, Value> results = Maps.newHashMap();
-        for (Map.Entry<RowReference, WatchIdentifierAndState> entry : watchStates.entrySet()) {
+        for (Map.Entry<RowCacheReference, WatchIdentifierAndState> entry : watchStates.entrySet()) {
             Optional<Map<Cell, Value>> maybeData = rowStateCache.get(entry.getKey(), entry.getValue(), readTimestamp);
             if (maybeData.isPresent()) {
                 results.putAll(maybeData.get());
-                successfullyCachedReads.add(entry.getKey().row());
+                successfullyCachedReads.add(watchedRowsInverse.get(entry.getKey()).row());
             }
         }
         return ImmutableRowCacheRowReadAttemptResult.<T>builder()
                 .rowsSuccessfullyReadFromCache(successfullyCachedReads)
                 .output(transform.apply(results))
                 .build();
+    }
+
+    private Map<RowCacheReference, RowReference> invert(Map<RowReference, RowCacheReference> watchedRows) {
+        Map<RowCacheReference, RowReference> result = Maps.newHashMap();
+        watchedRows.forEach((rowRef, rowCacheRef) -> result.put(rowCacheRef, rowRef));
+        return result;
     }
 }

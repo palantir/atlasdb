@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
-import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -37,8 +36,8 @@ import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.illiteracy.RowReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
+import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistryImpl;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -440,37 +439,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 true,
                 // TODO (jkong): No.
                 () -> ImmutableTransactionConfig.builder().build(),
-                new WatchRegistry() {
-                    @Override
-                    public void enableWatchForRows(Set<RowReference> rowReference) {
-
-                    }
-
-                    @Override
-                    public Set<RowReference> disableWatchForRows(Set<RowReference> rowReference) {
-                        return null;
-                    }
-
-                    @Override
-                    public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
-                        return null;
-                    }
-
-                    @Override
-                    public void enableWatchForCells(Set<CellReference> cellReference) {
-
-                    }
-
-                    @Override
-                    public Set<CellReference> disableWatchForCells(Set<CellReference> cellReference) {
-                        return null;
-                    }
-
-                    @Override
-                    public Set<CellReference> filterToWatchedCells(Set<CellReference> rowReferenceSet) {
-                        return null;
-                    }
-                });
+                new WatchRegistryImpl(conflictDetectionManager));
     }
 
     public SerializableTransactionManager(MetricsManager metricsManager,
