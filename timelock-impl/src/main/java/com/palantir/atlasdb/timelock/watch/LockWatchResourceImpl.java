@@ -21,31 +21,31 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Sets;
-import com.palantir.lock.LockDescriptor;
+import com.palantir.atlasdb.timelock.watch.trie.LousyPrefixTrieImpl;
 
 public class LockWatchResourceImpl implements LockWatchResource {
+    private static final Logger log = LoggerFactory.getLogger(LockWatchResourceImpl.class);
+
     private static final int WATCH_LIMIT = 1_000;
 
     private final BiMap<LockPredicate, WatchIdentifier> knownPredicates;
-    private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
     private final Map<WatchIdentifier, LockWatch> activeWatches;
 
     private final LockWatchManager manager;
 
     public LockWatchResourceImpl() {
         this.knownPredicates = HashBiMap.create();
-        this.explicitDescriptorsToWatches = Multimaps.synchronizedListMultimap(MultimapBuilder.hashKeys()
-                .arrayListValues()
-                .build());
         this.activeWatches = Maps.newConcurrentMap();
-        this.manager = new ExplicitLockWatchManager();
+        this.manager = new LockWatchManagerManager(ImmutableSet.of(
+                new ExplicitLockWatchManager(), new PrefixLockWatchManager(new LousyPrefixTrieImpl<>())));
     }
 
     @Override

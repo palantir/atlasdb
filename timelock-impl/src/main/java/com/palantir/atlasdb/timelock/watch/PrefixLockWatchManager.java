@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.timelock.watch;
 
+import java.util.Set;
+
 import com.palantir.atlasdb.timelock.watch.trie.PrefixTrie;
 import com.palantir.lock.LockDescriptor;
 
@@ -31,7 +33,9 @@ public class PrefixLockWatchManager implements LockWatchManager {
         return new LockEventProcessor() {
             @Override
             public void registerLock(LockDescriptor descriptor) {
-                trie.findDataInTrieWithKeysPrefixesOf(descriptor.getLockIdAsString()).forEach(LockWatch::registerLock);
+                Set<LockWatch> dataInTrieWithKeysPrefixesOf = trie.findDataInTrieWithKeysPrefixesOf(
+                        descriptor.getLockIdAsString());
+                dataInTrieWithKeysPrefixesOf.forEach(LockWatch::registerLock);
             }
 
             @Override
@@ -46,7 +50,7 @@ public class PrefixLockWatchManager implements LockWatchManager {
     public void seedProcessor(LockPredicate predicate, LockWatch watch) {
         if (predicate instanceof PrefixLockPredicate) {
             PrefixLockPredicate prefixLockPredicate = (PrefixLockPredicate) predicate;
-            trie.add(prefixLockPredicate.prefix().toString(), watch);
+            trie.add(prefixLockPredicate.prefix().prefix(), watch);
         }
     }
 

@@ -47,4 +47,13 @@ class LockWatch {
                 .lastUnlockSequence(lastUnlock)
                 .build();
     }
+
+    @Override
+    public String toString() {
+        return "LockWatch{" +
+                "counter=" + counter +
+                ", lastLock=" + lastLock +
+                ", lastUnlock=" + lastUnlock +
+                '}';
+    }
 }

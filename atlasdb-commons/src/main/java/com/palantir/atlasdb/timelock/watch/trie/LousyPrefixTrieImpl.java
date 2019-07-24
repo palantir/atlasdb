@@ -19,12 +19,17 @@ package com.palantir.atlasdb.timelock.watch.trie;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
-    Set<T> dataPresentHere;
-    Map<Character, PrefixTrie<T>> children;
+    private static final Logger log = LoggerFactory.getLogger(LousyPrefixTrieImpl.class);
+
+    private final Set<T> dataPresentHere;
+    private final Map<Character, PrefixTrie<T>> children;
 
     public LousyPrefixTrieImpl() {
         dataPresentHere = Sets.newConcurrentHashSet();
@@ -33,6 +38,7 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
 
     @Override
     public void add(String s, T data) {
+        log.info("trie add {}", s);
         if (s.equals("")) {
             dataPresentHere.add(data);
             return;
@@ -48,7 +54,10 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
             return dataPresentHere;
         }
 
-        PrefixTrie<T> child = children.computeIfAbsent(s.charAt(0), unused -> new LousyPrefixTrieImpl<>());
+        PrefixTrie<T> child = children.get(s.charAt(0));
+        if (child == null) {
+            return dataPresentHere;
+        }
         Set<T> childData = child.findDataInTrieWithKeysPrefixesOf(s.substring(1));
         if (dataPresentHere.isEmpty()) {
             return childData;
@@ -67,7 +76,10 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
             return false;
         }
 
-        PrefixTrie<T> child = children.computeIfAbsent(s.charAt(0), unused -> new LousyPrefixTrieImpl<>());
+        PrefixTrie<T> child = children.get(s.charAt(0));
+        if (child == null) {
+            return false;
+        }
         return child.isThereKeyPrefixOf(s.substring(1));
     }
 
@@ -77,7 +89,10 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
             return dataPresentHere;
         }
 
-        PrefixTrie<T> child = children.computeIfAbsent(s.charAt(0), unused -> new LousyPrefixTrieImpl<>());
+        PrefixTrie<T> child = children.get(s.charAt(0));
+        if (child == null) {
+            return dataPresentHere;
+        }
         Set<T> childData = child.findDataWithLongestMatchingPrefixOf(s.substring(1));
         if (childData.isEmpty()) {
             return dataPresentHere;

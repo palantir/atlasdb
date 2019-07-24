@@ -18,9 +18,14 @@ package com.palantir.atlasdb.timelock.watch;
 
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.palantir.lock.LockDescriptor;
 
 public class ForkingLockEventProcessor implements LockEventProcessor {
+    private final static Logger log = LoggerFactory.getLogger(ForkingLockEventProcessor.class);
+
     private final Set<LockEventProcessor> processors;
 
     public ForkingLockEventProcessor(Set<LockEventProcessor> processors) {
@@ -29,6 +34,7 @@ public class ForkingLockEventProcessor implements LockEventProcessor {
 
     @Override
     public void registerLock(LockDescriptor descriptor) {
+        log.info("lock({})", descriptor);
         processors.forEach(eventProcessor -> eventProcessor.registerLock(descriptor));
     }
 

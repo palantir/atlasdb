@@ -136,6 +136,7 @@ public class RemoteLockWatchClient {
             return ImmutableExplicitLockPredicate.builder()
                     .addDescriptors(rowCacheReference.rowReference().get().toLockDescriptor()).build();
         }
+        System.out.println("pred=" + rowCacheReference.prefixReference().get().toPrefixForm());
         return ImmutablePrefixLockPredicate.builder()
                 .prefix(ImmutableLockDescriptorPrefix.builder()
                         .prefix(rowCacheReference.prefixReference().get().toPrefixForm())

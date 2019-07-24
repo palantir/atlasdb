@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -42,8 +43,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.logsafe.UnsafeArg;
 
 public class RowStateCache {
+    private static final Logger log = LoggerFactory.getLogger(RowStateCache.class);
+
     private final KeyValueService keyValueService;
     private final TransactionService transactionService;
 
@@ -124,8 +128,9 @@ public class RowStateCache {
         }
 
         @Override
-        public Map<RowCacheUpdateRequest, Void> apply(Set<RowCacheUpdateRequest> request) {
-            updateCacheDangerous(request);
+        public Map<RowCacheUpdateRequest, Void> apply(Set<RowCacheUpdateRequest> requests) {
+            updateCacheDangerous(requests);
+            log.info("Processed cache update requests: {}", UnsafeArg.of("requests", requests));
             return Maps.newHashMap();
         }
     }
@@ -139,7 +144,6 @@ public class RowStateCache {
         for (Map.Entry<TableReference, List<RowCacheUpdateRequest>> entry : updatesByTable.entrySet()) {
             for (RowCacheUpdateRequest request : entry.getValue()) {
                 RowStateCacheValue cacheValue = getCacheValue(request);
-
                 backingMap.merge(request.cacheReference(), cacheValue, (existing, current) -> {
                     if (!Objects.equals(current.validityConditions().watchIdentifierAndState().identifier(),
                             existing.validityConditions().watchIdentifierAndState().identifier())) {

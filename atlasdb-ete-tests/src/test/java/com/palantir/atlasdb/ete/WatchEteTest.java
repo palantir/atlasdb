@@ -72,11 +72,82 @@ public class WatchEteTest {
     }
 
     @Test
-    public void prefix() {
-
+    public void watchesDoApplyToPrefixes() {
+        // TODO (jkong): Should the cache be lazy? Eager? Unclear.
+        rowWatchResource.beginWatchingPrefix("mono");
+        rowWatchResource.put("monotony", StringWrapper.of("banana"));
+        rowWatchResource.put("monorepo", StringWrapper.of("map"));
+        assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
+        rowWatchResource.flushCache();
+        assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
+        for (int i = 0; i < 5; i++) {
+            assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
+            assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
     }
 
-//    @Test
+    @Test
+    public void choosesExplicitIfExplicitAvailable() {
+        rowWatchResource.beginWatchingPrefix("car");
+        rowWatchResource.beginWatching("cartography");
+
+        rowWatchResource.put("carbohydrate", StringWrapper.of("banana"));
+        rowWatchResource.put("cartography", StringWrapper.of("map"));
+
+        // load up the cache. gets = 1
+        assertThat(rowWatchResource.get("carbohydrate")).isEqualTo("banana");
+        rowWatchResource.flushCache();
+
+        // sadly we are not smart enough to skip this read!
+        assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
+
+        for (int i = 0; i < 5; i++) {
+            rowWatchResource.put("carbohydrate", StringWrapper.of("banane"));
+            assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void choosesMostPrecisePrefixIfAvailable() {
+        rowWatchResource.beginWatchingPrefix("minim");
+        rowWatchResource.beginWatchingPrefix("minima");
+
+        rowWatchResource.put("minimal", StringWrapper.of("minimal"));
+        rowWatchResource.put("minime", StringWrapper.of("me!"));
+
+        // load up the cache. gets = 2
+        assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
+        assertThat(rowWatchResource.get("minime")).isEqualTo("me!");
+        rowWatchResource.flushCache();
+
+        for (int i = 0; i < 5; i++) {
+            rowWatchResource.put("minime", StringWrapper.of("me!!"));
+            assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void updatePrefixWhenValueChanges() {
+        rowWatchResource.beginWatchingPrefix("transactional-databases-");
+
+        rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
+
+        // load up the cache. gets = 1
+        assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
+        rowWatchResource.flushCache();
+
+        for (int i = 0; i < 5; i++) {
+            rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
+            assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
+    }
+
+
+    //    @Test
 //    public void bigSlowValues() {
 //        rowWatchResource.beginWatching("apple");
 //        rowWatchResource.put("apple", StringWrapper.of(MILLION_CHARS));
