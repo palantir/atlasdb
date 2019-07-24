@@ -21,5 +21,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public interface MigrationCoordinationService {
     boolean startMigration(TableReference startTable, TableReference targetTable);
     boolean endMigration(TableReference startTable);
+    boolean endDualWrite(TableReference startTable);
     TableMigrationState getMigrationState(TableReference startTable, long timestamp);
 }

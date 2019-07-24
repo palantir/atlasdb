@@ -53,7 +53,12 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                tryStartMigration(startTable, targetTable);
+                coordinationService.tryTransformCurrentValue(valueAndBound ->
+                        changeStateForTable(
+                                startTable,
+                                Optional.of(targetTable),
+                                TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST,
+                                valueAndBound));
 
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
@@ -62,7 +67,28 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
 
     @Override
     public boolean endMigration(TableReference startTable) {
-        throw new NotImplementedException();
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
+                coordinationService.tryTransformCurrentValue(valueAndBound ->
+                        changeStateForTable(
+                                startTable,
+                                Optional.empty(),
+                                TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_SECOND,
+                                valueAndBound));
+        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
+        return true;
+    }
+
+    @Override
+    public boolean endDualWrite(TableReference startTable) {
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
+                coordinationService.tryTransformCurrentValue(valueAndBound ->
+                        changeStateForTable(
+                                startTable,
+                                Optional.empty(),
+                                TableMigratingKeyValueService.MigrationsState.WRITE_SECOND_READ_SECOND,
+                                valueAndBound));
+        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
+        return true;
     }
 
     @Override
@@ -81,17 +107,6 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
                 .map(value ->
                         value.tableMigrationStateMap().getOrDefault(startTable, DEFAULT_TABLE_MIGRATION_STATE))
                 .orElse(DEFAULT_TABLE_MIGRATION_STATE);
-    }
-
-    private CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> tryStartMigration(
-            TableReference startTable,
-            TableReference targetTable) {
-        return coordinationService.tryTransformCurrentValue(
-                valueAndBound -> changeStateForTable(
-                        startTable,
-                        Optional.of(targetTable),
-                        TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST,
-                        valueAndBound));
     }
 
     private TableMigrationStateMap changeStateForTable(
@@ -116,7 +131,6 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
         log.info("Changing migration state for the table {}", LoggingArgs.tableRef(startTable));
 
         Map<TableReference, TableMigrationState> newStateMap = new HashMap<>(currentStateMap);
-
         TableMigratingKeyValueService.MigrationsState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)
@@ -134,7 +148,6 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
         return TableMigrationStateMap.builder()
                 .tableMigrationStateMap(newStateMap)
                 .build();
-
     }
 
     private boolean isTransitionValid(
@@ -146,7 +159,7 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
         }
 
         if (targetTableGiven) {
-            // todo(jelenac): Should we throw illegal state exception here?
+            // todo(jelenac): Should we throw illegal state exception here? could return false and let the check above throw
             log.warn("Target table given for a migration when it's not needed. The given table will be ignored");
         }
 
