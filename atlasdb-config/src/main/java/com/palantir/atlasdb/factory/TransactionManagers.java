@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -80,8 +81,10 @@ import com.palantir.atlasdb.internalschema.metrics.MetadataCoordinationServiceMe
 import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
@@ -103,6 +106,7 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.SweeperServiceImpl;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
@@ -201,6 +205,11 @@ public abstract class TransactionManagers {
     abstract MetricRegistry globalMetricsRegistry();
 
     abstract TaggedMetricRegistry globalTaggedMetricRegistry();
+
+    @Value.Default
+    Set<TableReference> tablesToMigrate() {
+        return ImmutableSet.of();
+    }
 
     /**
      * The callback Runnable will be run when the TransactionManager is successfully initialized. The
@@ -316,10 +325,12 @@ public abstract class TransactionManagers {
 
         Supplier<SweepConfig> sweepConfig = Suppliers.compose(AtlasDbRuntimeConfig::sweep, runtimeConfigSupplier::get);
 
+        ImmutableTimestampSupplier immutableTsSupplier = lockAndTimestampServices.timelock()::getImmutableTimestamp;
+
         KeyValueService keyValueService = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
-            kvs = new SafeTableClearerKeyValueService(lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs);
+            kvs = new SafeTableClearerKeyValueService(immutableTsSupplier, kvs);
 
             // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want to
             // at least retain the option to perform background sweep, which requires updating the priority table.
@@ -336,7 +347,8 @@ public abstract class TransactionManagers {
                     KeyValueService.class,
                     kvs,
                     MetricRegistry.name(KeyValueService.class));
-            return ValidatingQueryRewritingKeyValueService.create(kvs);
+            kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
+            return TableMigratingKeyValueService.create(kvs, tablesToMigrate(), immutableTsSupplier);
         }, closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(

@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
@@ -57,6 +58,15 @@ public class TableMigratingKeyValueService implements KeyValueService {
     public TableMigratingKeyValueService(KeyValueService delegate, MigratingTableMapperService tableMapper) {
         this.delegate = delegate;
         this.tableMapper = tableMapper;
+    }
+
+    public static KeyValueService create(KeyValueService kvs, Set<TableReference> tablesToMigrate,
+            ImmutableTimestampSupplier immutableTsSupplier) {
+        if (tablesToMigrate.isEmpty()) {
+            return kvs;
+        }
+        return new TableMigratingKeyValueService(kvs,
+                new MigratingTableMapperServiceImpl(tablesToMigrate, immutableTsSupplier));
     }
 
     /**
