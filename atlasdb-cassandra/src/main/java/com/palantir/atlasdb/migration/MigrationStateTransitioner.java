@@ -29,7 +29,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -37,30 +36,18 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class MigrationStateTransitioner {
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
-    public TableMigrationStateMap changeTableState(
+    public TableMigrationStateMap updateTableMigrationStateForTable(
+            TableMigrationStateMap tableMigrationStateMap,
             TableReference startTable,
             Optional<TableReference> targetTable,
-            MigrationCoordinationServiceImpl.MigrationState targetState,
-            ValueAndBound<TableMigrationStateMap> valueAndBound) {
-
-        Map<TableReference, TableMigrationState> currentStateMap;
-        if (!valueAndBound.value().isPresent()) {
-            log.warn(
-                    "Attempting to change migration state for the table {}, but no past data was found,"
-                            + ".This should normally only happen once per"
-                            + " server, and only on or around first startup since upgrading to a version of AtlasDB"
-                            + " that is aware of the sweep by migration."
-                            + " If this message persists, please contact support.",
-                    LoggingArgs.tableRef(startTable));
-            currentStateMap = new HashMap<>();
-        } else {
-            currentStateMap = valueAndBound.value().get().tableMigrationStateMap();
-        }
+            MigrationCoordinationServiceImpl.MigrationState targetState) {
 
         log.info("Changing migration state for the table {}",
                 LoggingArgs.tableRef(startTable));
 
+        Map<TableReference, TableMigrationState> currentStateMap = tableMigrationStateMap.tableMigrationStateMap();
         Map<TableReference, TableMigrationState> newStateMap = new HashMap<>(currentStateMap);
+
         MigrationCoordinationServiceImpl.MigrationState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)

@@ -39,6 +39,8 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
 
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
+    private static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
+            ImmutableTableMigrationStateMap.builder().build();
     private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
@@ -51,12 +53,7 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeTableState(
-                                startTable,
-                                Optional.of(targetTable),
-                                MigrationState.WRITE_BOTH_READ_FIRST,
-                                valueAndBound));
+                safeTransformState(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
 
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
@@ -66,12 +63,7 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     @Override
     public boolean endMigration(TableReference startTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeTableState(
-                                startTable,
-                                Optional.empty(),
-                                MigrationState.WRITE_BOTH_READ_SECOND,
-                                valueAndBound));
+                safeTransformState(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
     }
@@ -79,12 +71,7 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     @Override
     public boolean endDualWrite(TableReference startTable) {
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.changeTableState(
-                                startTable,
-                                Optional.empty(),
-                                MigrationState.WRITE_SECOND_READ_SECOND,
-                                valueAndBound));
+                safeTransformState(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
         //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
         return true;
     }
@@ -105,5 +92,31 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
                 .map(value ->
                         value.tableMigrationStateMap().getOrDefault(startTable, DEFAULT_TABLE_MIGRATION_STATE))
                 .orElse(DEFAULT_TABLE_MIGRATION_STATE);
+    }
+
+    private CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> safeTransformState(
+            TableReference startTable,
+            Optional<TableReference> targetTable,
+            MigrationState writeBothReadFirst) {
+        return coordinationService.tryTransformCurrentValue(valueAndBound ->
+                migrationStateTransitioner.updateTableMigrationStateForTable(
+                        getCurrentTableMigrationStateMap(valueAndBound), startTable,
+                        targetTable,
+                        writeBothReadFirst));
+    }
+
+    private TableMigrationStateMap getCurrentTableMigrationStateMap(
+            ValueAndBound<TableMigrationStateMap> valueAndBound) {
+        if (!valueAndBound.value().isPresent()) {
+            log.warn(
+                    "Attempting to change migration state for the table, but no past data was found,"
+                            + ".This should normally only happen once per"
+                            + " server, and only on or around first startup since upgrading to a version of AtlasDB"
+                            + " that is aware of the sweep by migration."
+                            + " If this message persists, please contact support.");
+            return EMPTY_TABLE_MIGRATION_STATE_MAP;
+        } else {
+            return valueAndBound.value().get();
+        }
     }
 }
