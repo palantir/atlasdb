@@ -21,6 +21,13 @@ import java.util.Set;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface MigratingTableMapperService {
+    /**
+     * Returns the table that should be read from when attempting to read from startTable.
+     */
     TableReference readTable(TableReference startTable);
+
+    /**
+     * Returns a set of table that should all be written to when attempting to write to startTable.
+     */
     Set<TableReference> writeTables(TableReference startTable);
 }

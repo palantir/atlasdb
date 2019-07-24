@@ -60,7 +60,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     /**
-     * READS always map to a single table
+     * READS always map to a single table.
      */
 
     @Override
@@ -126,7 +126,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     /**
-     * WRITES potentially delegate to multiple tables
+     * WRITES potentially delegate to multiple tables.
      */
 
     @Override
@@ -224,7 +224,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     /**
-     * ATOMIC WRITES are not supported for multiple tables at once
+     * ATOMIC WRITES are not supported for multiple tables at once.
      */
 
     @Override
@@ -244,7 +244,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     /**
-     * Methods that do not use table mapping
+     * Methods that do not use table mapping.
      */
 
     @Override
