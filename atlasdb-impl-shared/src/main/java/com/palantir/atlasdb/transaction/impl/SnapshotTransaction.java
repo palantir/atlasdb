@@ -846,12 +846,13 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             AbortingVisitor<List<RowResult<byte[]>>, K> visitor,
             int preFilterBatchSize) throws K {
         ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE);
+                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE);;
         try {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(
                     getLocalWritesForRange(tableRef, range.getStartInclusive(), range.getEndExclusive()).entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
+            new RuntimeException().printStackTrace();
             return BatchingVisitableFromIterable.create(mergeIterators).batchAccept(userRequestedSize, visitor);
         } finally {
             postFilterIterator.close();

@@ -16,11 +16,16 @@
 
 package com.palantir.atlasdb.illiteracy;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
@@ -31,6 +36,7 @@ import com.palantir.atlasdb.transaction.impl.illiteracy.ImmutableRowReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.RowReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.RowWatchAwareKeyValueService;
 import com.palantir.atlasdb.transaction.impl.illiteracy.WatchRegistry;
+import com.palantir.common.base.BatchingVisitableView;
 
 public class SimpleRowWatchResource implements RowWatchResource {
     private static final Namespace NAMESPACE = TodoSchema.getSchema().getNamespace();
@@ -89,6 +95,32 @@ public class SimpleRowWatchResource implements RowWatchResource {
     }
 
     @Override
+    public Map<String, String> getRange(String startInclusive, String endExclusive) {
+        Set<WatchableStringMapTable.WatchableStringMapRowResult> result = transactionManager.runTaskWithRetry(tx -> {
+            WatchableStringMapTable table = TodoSchemaTableFactory.of(NAMESPACE).getWatchableStringMapTable(tx);
+            RangeRequest rangeRequest = RangeRequest.builder()
+                    .startRowInclusive(
+                            WatchableStringMapTable.WatchableStringMapRow.of(startInclusive).persistToBytes())
+                    .endRowExclusive(
+                            WatchableStringMapTable.WatchableStringMapRow.of(endExclusive).persistToBytes())
+                    .build();
+            BatchingVisitableView<WatchableStringMapTable.WatchableStringMapRowResult> bvv
+                    = table.getRange(rangeRequest);
+            Set<WatchableStringMapTable.WatchableStringMapRowResult> resultSet = Sets.newHashSet();
+            bvv.copyInto(resultSet);
+            return resultSet;
+        });
+
+        Map<String, String> answer = Maps.newHashMap();
+        result.forEach(rr -> {
+            String key = rr.getRowName().getKey();
+            String value = rr.getValue();
+            answer.put(key, value);
+        });
+        return answer;
+    }
+
+    @Override
     public void put(String key, StringWrapper value) {
         transactionManager.runTaskWithRetry(tx -> {
             WatchableStringMapTable table = TodoSchemaTableFactory.of(NAMESPACE).getWatchableStringMapTable(tx);
@@ -100,6 +132,12 @@ public class SimpleRowWatchResource implements RowWatchResource {
     @Override
     public long getGetCount() {
         return ((RowWatchAwareKeyValueService) transactionManager.getKeyValueService()).getReadCount();
+    }
+
+    @Override
+    public long getRangeReadCount(TableReference tableReference) {
+        return ((RowWatchAwareKeyValueService) transactionManager.getKeyValueService()).getRangeReadCount(
+                tableReference);
     }
 
     @Override

@@ -16,12 +16,16 @@
 
 package com.palantir.atlasdb.illiteracy;
 
+import java.util.Map;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 @Path("/watch")
 public interface RowWatchResource {
@@ -42,6 +46,11 @@ public interface RowWatchResource {
     String get(@QueryParam("key") String key);
 
     @POST
+    @Path("/get-range")
+    @Produces(MediaType.APPLICATION_JSON)
+    Map<String, String> getRange(@QueryParam("start") String startInclusive, @QueryParam("end") String endExclusive);
+
+    @POST
     @Path("/put")
     @Consumes(MediaType.APPLICATION_JSON)
     void put(@QueryParam("key") String key, StringWrapper value);
@@ -50,6 +59,12 @@ public interface RowWatchResource {
     @Path("/get-count")
     @Produces(MediaType.APPLICATION_JSON)
     long getGetCount();
+
+    @POST
+    @Path("/get-rr-count")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    long getRangeReadCount(TableReference tableReference);
 
     @POST
     @Path("/reset-get-count")

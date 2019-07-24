@@ -260,6 +260,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
         delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
+                    System.out.println("copyInto:" + items);
                     collection.addAll(items);
                     return true;
                 });

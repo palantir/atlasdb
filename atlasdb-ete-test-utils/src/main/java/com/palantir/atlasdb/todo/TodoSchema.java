@@ -77,6 +77,7 @@ public class TodoSchema implements AtlasSchema {
             rowComponent("key", ValueType.STRING);
             columns();
             column("value", "v", ValueType.STRING);
+            rangeScanAllowed();
         }});
 
         schema.addStreamStoreDefinition(

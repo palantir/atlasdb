@@ -94,6 +94,7 @@ public class RowCacheReaderImpl implements RowCacheReader {
     @Override
     public <T> RowCacheRangeReadAttemptResult<T> attemptToReadRange(TableReference tableRef, RangeRequest rangeRequest,
             long readTimestamp, Function<Map<Cell, Value>, T> transform) {
+        System.out.println(rowStateCache);
         Optional<RowCacheReference> cacheReference = watchRegistry.filterRangeReference(tableRef, rangeRequest);
         Map<Cell, Value> results = Maps.newHashMap();
         if (cacheReference.isPresent()) {
@@ -110,6 +111,9 @@ public class RowCacheReaderImpl implements RowCacheReader {
                             .filterKeys(c -> rangeRequest.inRange(c.getRowName())
                                     && rangeRequest.containsColumn(c.getColumnName()))
                             .collectToMap());
+                    System.out.println("data:" + originalData);
+                    System.out.println("rrq:" + rangeRequest);
+                    System.out.println("results:" + results);
                     return ImmutableRowCacheRangeReadAttemptResult.<T>builder()
                             .successful(true)
                             .output(transform.apply(results))

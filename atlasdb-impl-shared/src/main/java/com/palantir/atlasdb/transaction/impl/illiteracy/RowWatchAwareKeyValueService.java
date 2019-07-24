@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl.illiteracy;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +57,7 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -70,7 +70,7 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
     private final ConflictDetectionManager conflictDetectionManager;
     private final RowCacheReader rowCacheReader;
     private final AtomicLong readCount;
-    private final AtomicLong rangeReadCount;
+    private final Map<TableReference, AtomicLong> rangeReadCount;
 
     public RowWatchAwareKeyValueService(
             KeyValueService delegate,
@@ -83,7 +83,7 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
         this.rowCacheReader = new RowCacheReaderImpl(watchRegistry, remoteLockWatchClient,
                 new RowStateCache(delegate, transactionService));
         readCount = new AtomicLong();
-        rangeReadCount = new AtomicLong();
+        rangeReadCount = Maps.newConcurrentMap();
     }
 
     @VisibleForTesting
@@ -92,14 +92,14 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
     }
 
     @VisibleForTesting
-    public long getRangeReadCount() {
-        return rangeReadCount.get();
+    public long getRangeReadCount(TableReference tableReference) {
+        return rangeReadCount.get(tableReference).get();
     }
 
     @VisibleForTesting
     public void resetReadCount() {
         readCount.set(0);
-        rangeReadCount.set(0);
+        rangeReadCount.clear();
     }
 
     @VisibleForTesting
@@ -271,7 +271,9 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
     @Override
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest,
             long timestamp) {
+        System.out.println("GET_RANGE " + rangeRequest);
         if (!conflictDetectionManager.get(tableRef).lockRowsForConflicts()) {
+            System.out.println("In this table we don't lock rows for conflicts|" + tableRef);
             return delegate.getRange(tableRef, rangeRequest, timestamp);
         }
 
@@ -288,7 +290,7 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
                     List<RowResult<Value>> result = Lists.newArrayList();
                     for (Map.Entry<byte[], List<Map.Entry<Cell, Value>>> entry : cellsByRow.entrySet()) {
                         SortedMap<byte[], Value> columns = KeyedStream.ofEntries(entry.getValue().stream())
-                                .mapKeys(Cell::getRowName)
+                                .mapKeys(Cell::getColumnName)
                                 .collectTo(() -> Maps.newTreeMap(UnsignedBytes.lexicographicalComparator()));
                         result.add(RowResult.create(entry.getKey(), columns));
                     }
@@ -296,21 +298,15 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
                 });
 
         if (attemptResult.successful()) {
-            return new ClosableIterator<RowResult<Value>>() {
-                private final Iterator<RowResult<Value>> it = attemptResult.output().iterator();
-
-                @Override
-                public boolean hasNext() {
-                    return it.hasNext();
-                }
-
-                @Override
-                public RowResult<Value> next() {
-                    return it.next();
-                }
-            };
+            System.out.println("Read from the cache |" + tableRef);
+            System.out.println("Read from the cache |" + attemptResult);
+            System.out.println("cli | " + ClosableIterators.wrap(attemptResult.output().iterator()).stream()
+                    .collect(Collectors.toList()));
+            return ClosableIterators.wrap(attemptResult.output().iterator());
         }
 
+        // Attempt was not successful.
+        rangeReadCount.computeIfAbsent(tableRef, unused -> new AtomicLong()).incrementAndGet();
         return delegate.getRange(tableRef, rangeRequest, timestamp);
     }
 

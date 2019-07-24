@@ -38,7 +38,6 @@ public class LousyPrefixTrieImpl<T> implements PrefixTrie<T> {
 
     @Override
     public void add(String s, T data) {
-        log.info("trie add {}", s);
         if (s.equals("")) {
             dataPresentHere.add(data);
             return;
