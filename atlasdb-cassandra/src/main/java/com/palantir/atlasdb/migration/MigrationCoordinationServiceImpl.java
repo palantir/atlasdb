@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.migration;
 
-
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -28,8 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
-
-    public static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
+    static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
@@ -37,35 +35,30 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
             ImmutableTableMigrationStateMap.builder().build();
     private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
-    private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
-    private final MigrationStateTransitioner migrationStateTransitioner = new MigrationStateTransitioner();
 
-    public MigrationCoordinationServiceImpl(CoordinationServiceImpl<TableMigrationStateMap> coordinationService) {
+    private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
+    private final MigrationStateTransitioner migrationStateTransitioner;
+
+    public MigrationCoordinationServiceImpl(
+            CoordinationServiceImpl<TableMigrationStateMap> coordinationService,
+            MigrationStateTransitioner migrationStateTransitioner) {
         this.coordinationService = coordinationService;
+        this.migrationStateTransitioner = migrationStateTransitioner;
     }
 
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
-        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                safeTransformState(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
-        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
-        return true;
+        return safeTryChangeState(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
     }
 
     @Override
     public boolean endMigration(TableReference startTable) {
-        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                safeTransformState(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
-        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
-        return true;
+        return safeTryChangeState(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
     }
 
     @Override
     public boolean endDualWrite(TableReference startTable) {
-        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                safeTransformState(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
-        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
-        return true;
+        return safeTryChangeState(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
     }
 
     @Override
@@ -86,16 +79,20 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
                 .orElse(DEFAULT_TABLE_MIGRATION_STATE);
     }
 
-    private CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> safeTransformState(
+    private boolean safeTryChangeState(
             TableReference startTable,
             Optional<TableReference> targetTable,
             MigrationState targetState) {
-        return coordinationService.tryTransformCurrentValue(valueAndBound ->
-                migrationStateTransitioner.updateTableMigrationStateForTable(
-                        getCurrentTableMigrationStateMap(valueAndBound),
-                        startTable,
-                        targetTable,
-                        targetState));
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
+                coordinationService.tryTransformCurrentValue(valueAndBound ->
+                        migrationStateTransitioner.updateTableMigrationStateForTable(
+                                getCurrentTableMigrationStateMap(valueAndBound),
+                                startTable,
+                                targetTable,
+                                targetState));
+
+        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
+        return true;
     }
 
     private TableMigrationStateMap getCurrentTableMigrationStateMap(
