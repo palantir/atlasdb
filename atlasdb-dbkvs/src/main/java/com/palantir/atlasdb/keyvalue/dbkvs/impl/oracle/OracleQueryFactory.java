@@ -51,7 +51,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                                        boolean includeValue) {
         String query = " /* GET_LATEST_ONE_ROW_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m "
@@ -79,7 +79,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                                         boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_SINGLE_BOUND_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -106,7 +106,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                                         boolean includeValue) {
         String query = " /* GET_LATEST_ROWS_MANY_BOUNDS_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -159,7 +159,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                                      boolean includeValue) {
         String query = " /* GET_ALL_ROWS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -184,7 +184,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
                                      boolean includeValue) {
         String query = " /* GET_ALL_ROWS_MANY_BOUNDS (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -222,7 +222,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getLatestCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_SINGLE_BOUND_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -238,7 +238,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getLatestCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_LATEST_CELLS_MANY_BOUNDS_INNER (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -267,7 +267,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getAllCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query = " /* GET_ALL_CELLS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
@@ -281,7 +281,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getAllCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = " /* GET_ALL_CELLS_MANY_BOUNDS (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
+                + "   /*+ USE_NL(t m) LEADING(t m) CARDINALITY(t 1) CARDINALITY(m 10) INDEX(m "
                 + PrimaryKeyConstraintNames.get(tableName) + ") */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
