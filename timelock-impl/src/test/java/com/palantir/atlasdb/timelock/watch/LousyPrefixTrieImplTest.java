@@ -37,6 +37,7 @@ public class LousyPrefixTrieImplTest {
         prefixTrie.add("b", 7);
 
         assertThat(prefixTrie.findDataInTrieWithKeysPrefixesOf("a")).containsExactlyInAnyOrder(1);
+        assertThat(prefixTrie.findDataInTrieWithKeysPrefixesOf("abc")).containsExactlyInAnyOrder(1, 2, 3);
         assertThat(prefixTrie.findDataInTrieWithKeysPrefixesOf("abcd")).containsExactlyInAnyOrder(1, 2, 3, 4);
         assertThat(prefixTrie.findDataInTrieWithKeysPrefixesOf("abcdabcdabcd")).containsExactlyInAnyOrder(1, 2, 3, 4);
         assertThat(prefixTrie.findDataInTrieWithKeysPrefixesOf("abfahren")).containsExactlyInAnyOrder(1, 2, 5);

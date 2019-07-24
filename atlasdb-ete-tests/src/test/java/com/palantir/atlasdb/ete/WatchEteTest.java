@@ -36,40 +36,40 @@ public class WatchEteTest {
         rowWatchResource.resetGetCount();
     }
 
-//    @Test
-//    public void doNotWatchIfNotInterested() {
-//        rowWatchResource.put("orange", StringWrapper.of("banana"));
-//        assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
-//        for (int i = 0; i < 5; i++) {
-//            assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
-//        }
-//        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
-//        rowWatchResource.put("orange", StringWrapper.of("chocolate"));
-//        assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
-//        for (int i = 0; i < 5; i++) {
-//            assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
-//        }
-//        assertThat(rowWatchResource.getGetCount()).isEqualTo(12);
-//    }
-//
-//    @Test
-//    public void updateWhenValueChanges() {
-//        rowWatchResource.beginWatching("cat");
-//        rowWatchResource.put("cat", StringWrapper.of("banana"));
-//        assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
-//        rowWatchResource.flushCache();
-//        for (int i = 0; i < 5; i++) {
-//            assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
-//        }
-//        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
-//        rowWatchResource.put("cat", StringWrapper.of("chocolate"));
-//        assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
-//        rowWatchResource.flushCache();
-//        for (int i = 0; i < 5; i++) {
-//            assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
-//        }
-//        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
-//    }
+    @Test
+    public void doNotWatchIfNotInterested() {
+        rowWatchResource.put("orange", StringWrapper.of("banana"));
+        assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
+        for (int i = 0; i < 5; i++) {
+            assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
+        rowWatchResource.put("orange", StringWrapper.of("chocolate"));
+        assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
+        for (int i = 0; i < 5; i++) {
+            assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(12);
+    }
+
+    @Test
+    public void updateWhenValueChanges() {
+        rowWatchResource.beginWatching("cat");
+        rowWatchResource.put("cat", StringWrapper.of("banana"));
+        assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
+        rowWatchResource.flushCache();
+        for (int i = 0; i < 5; i++) {
+            assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+        rowWatchResource.put("cat", StringWrapper.of("chocolate"));
+        assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
+        rowWatchResource.flushCache();
+        for (int i = 0; i < 5; i++) {
+            assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
+        }
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+    }
 
     @Test
     public void bigSlowValues() {

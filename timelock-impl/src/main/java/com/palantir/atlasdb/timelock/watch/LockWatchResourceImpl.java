@@ -36,7 +36,8 @@ public class LockWatchResourceImpl implements LockWatchResource {
     private final BiMap<LockPredicate, WatchIdentifier> knownPredicates;
     private final Multimap<LockDescriptor, LockWatch> explicitDescriptorsToWatches;
     private final Map<WatchIdentifier, LockWatch> activeWatches;
-    private final LockEventProcessor eventProcessor;
+
+    private final LockWatchManager manager;
 
     public LockWatchResourceImpl() {
         this.knownPredicates = HashBiMap.create();
@@ -44,17 +45,7 @@ public class LockWatchResourceImpl implements LockWatchResource {
                 .arrayListValues()
                 .build());
         this.activeWatches = Maps.newConcurrentMap();
-        this.eventProcessor = new LockEventProcessor() {
-            @Override
-            public void registerLock(LockDescriptor descriptor) {
-                explicitDescriptorsToWatches.get(descriptor).forEach(LockWatch::registerLock);
-            }
-
-            @Override
-            public void registerUnlock(LockDescriptor descriptor) {
-                explicitDescriptorsToWatches.get(descriptor).forEach(LockWatch::registerUnlock);
-            }
-        };
+        this.manager = new ExplicitLockWatchManager();
     }
 
     @Override
@@ -74,11 +65,7 @@ public class LockWatchResourceImpl implements LockWatchResource {
             LockWatch watch = activeWatches.remove(identifier);
             if (watch != null) {
                 LockPredicate predicate = knownPredicates.inverse().remove(identifier);
-                if (predicate instanceof ExplicitLockPredicate) {
-                    for (LockDescriptor descriptor : ((ExplicitLockPredicate) predicate).descriptors()) {
-                        explicitDescriptorsToWatches.remove(descriptor, watch);
-                    }
-                }
+                manager.unseedProcessor(predicate, watch);
                 unregistered.add(identifier);
             }
         }
@@ -97,7 +84,7 @@ public class LockWatchResourceImpl implements LockWatchResource {
     }
 
     public LockEventProcessor getEventProcessor() {
-        return eventProcessor;
+        return manager.getEventProcessor();
     }
 
     private Set<RegisterWatchResponse> registerWatches(Set<LockPredicate> predicates) {
@@ -132,17 +119,10 @@ public class LockWatchResourceImpl implements LockWatchResource {
         UUID idToAssign = UUID.randomUUID();
         WatchIdentifier watchIdentifier = WatchIdentifier.of(idToAssign);
 
-        // TODO (jkong): Handle prefix scans
-        if (!(predicate instanceof ExplicitLockPredicate)) {
-            throw new IllegalArgumentException("Non-explicit lock predicates not supported yet!");
-        }
-        ExplicitLockPredicate explicitLockPredicate = (ExplicitLockPredicate) predicate;
-
-        Set<LockDescriptor> descriptors = explicitLockPredicate.descriptors();
         LockWatch watch = new LockWatch();
         activeWatches.put(watchIdentifier, watch);
         knownPredicates.put(predicate, watchIdentifier);
-        descriptors.forEach(descriptor -> explicitDescriptorsToWatches.put(descriptor, watch));
+        manager.seedProcessor(predicate, watch);
         return Optional.of(
                 ImmutableRegisterWatchResponse.builder()
                         .predicate(predicate)
