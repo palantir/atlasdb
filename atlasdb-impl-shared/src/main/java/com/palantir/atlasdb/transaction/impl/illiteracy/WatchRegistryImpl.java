@@ -33,6 +33,7 @@ public class WatchRegistryImpl implements WatchRegistry {
     private static final Logger log = LoggerFactory.getLogger(WatchRegistryImpl.class);
 
     private final Set<RowReference> rows = Sets.newConcurrentHashSet();
+    private final Set<RowReference> rowPrefixes = Sets.newConcurrentHashSet();
     private final Set<CellReference> cells = Sets.newConcurrentHashSet();
     private final ConflictDetectionManager conflictDetectionManager;
 
@@ -70,8 +71,12 @@ public class WatchRegistryImpl implements WatchRegistry {
     @Override
     public Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet) {
         Set<RowReference> answer = rowReferenceSet.stream().filter(rows::contains).collect(Collectors.toSet());
-        log.info("filter({})={}", rowReferenceSet, answer);
         return answer;
+    }
+
+    @Override
+    public void enableWatchForRowPrefix(RowPrefixReference prefixReference) {
+
     }
 
     @Override

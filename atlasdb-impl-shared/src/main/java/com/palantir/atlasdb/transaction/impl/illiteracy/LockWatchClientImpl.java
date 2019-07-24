@@ -91,6 +91,11 @@ public class LockWatchClientImpl implements WatchRegistry {
     }
 
     @Override
+    public void enableWatchForRowPrefix(RowPrefixReference prefixReference) {
+        throw new UnsupportedOperationException("nein");
+    }
+
+    @Override
     public void enableWatchForCells(Set<CellReference> cellReference) {
         throw new UnsupportedOperationException("Not yet implemented! Sorry");
     }

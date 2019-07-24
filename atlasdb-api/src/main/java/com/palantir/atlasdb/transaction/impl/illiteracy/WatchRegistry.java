@@ -30,6 +30,9 @@ public interface WatchRegistry {
     // Returns the rows that are watched
     Set<RowReference> filterToWatchedRows(Set<RowReference> rowReferenceSet);
 
+    // Precondition: Table must have row level conflict handling
+    void enableWatchForRowPrefix(RowPrefixReference prefixReference);
+
     // Precondition: Table must have cell level conflict handling
     void enableWatchForCells(Set<CellReference> cellReference);
 

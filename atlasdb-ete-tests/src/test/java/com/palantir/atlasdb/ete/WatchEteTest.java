@@ -72,25 +72,30 @@ public class WatchEteTest {
     }
 
     @Test
-    public void bigSlowValues() {
-        rowWatchResource.beginWatching("apple");
-        rowWatchResource.put("apple", StringWrapper.of(MILLION_CHARS));
-        assertThat(rowWatchResource.get("apple")).isEqualTo(MILLION_CHARS);
-        rowWatchResource.flushCache();
-        for (int i = 0; i < 100; i++) {
-            assertThat(rowWatchResource.get("apple")).isEqualTo(MILLION_CHARS);
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+    public void prefix() {
+
     }
 
-    @Test
-    public void bigSlowValues2() {
-        rowWatchResource.put("dewberry", StringWrapper.of(MILLION_CHARS));
-        assertThat(rowWatchResource.get("dewberry")).isEqualTo(MILLION_CHARS);
-        rowWatchResource.flushCache();
-        for (int i = 0; i < 100; i++) {
-            assertThat(rowWatchResource.get("dewberry")).isEqualTo(MILLION_CHARS);
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(101);
-    }
+//    @Test
+//    public void bigSlowValues() {
+//        rowWatchResource.beginWatching("apple");
+//        rowWatchResource.put("apple", StringWrapper.of(MILLION_CHARS));
+//        assertThat(rowWatchResource.get("apple")).isEqualTo(MILLION_CHARS);
+//        rowWatchResource.flushCache();
+//        for (int i = 0; i < 100; i++) {
+//            assertThat(rowWatchResource.get("apple")).isEqualTo(MILLION_CHARS);
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+//    }
+//
+//    @Test
+//    public void bigSlowValues2() {
+//        rowWatchResource.put("dewberry", StringWrapper.of(MILLION_CHARS));
+//        assertThat(rowWatchResource.get("dewberry")).isEqualTo(MILLION_CHARS);
+//        rowWatchResource.flushCache();
+//        for (int i = 0; i < 100; i++) {
+//            assertThat(rowWatchResource.get("dewberry")).isEqualTo(MILLION_CHARS);
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(101);
+//    }
 }
