@@ -21,14 +21,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.streams.KeyedStream;
 
 public class RowCacheReaderImpl implements RowCacheReader {
     private final WatchRegistry watchRegistry;
@@ -59,17 +63,25 @@ public class RowCacheReaderImpl implements RowCacheReader {
         rows.forEach(row -> rowReferences.add(
                 ImmutableRowReference.builder().tableReference(tableRef).row(row).build()));
         Map<RowReference, RowCacheReference> watchedRows = watchRegistry.filterToWatchedRows(rowReferences);
-        Map<RowCacheReference, RowReference> watchedRowsInverse = invert(watchedRows);
+        SetMultimap<RowCacheReference, RowReference> watchedRowsInverse = invert(watchedRows);
         Map<RowCacheReference, WatchIdentifierAndState> watchStates
-                = remoteLockWatchClient.getStateForRows(ImmutableSet.copyOf(watchedRows.values()));
+                = remoteLockWatchClient.getCacheStateForCacheReferences(ImmutableSet.copyOf(watchedRows.values()));
 
         SortedSet<byte[]> successfullyCachedReads = Sets.newTreeSet(UnsignedBytes.lexicographicalComparator());
         Map<Cell, Value> results = Maps.newHashMap();
         for (Map.Entry<RowCacheReference, WatchIdentifierAndState> entry : watchStates.entrySet()) {
             Optional<Map<Cell, Value>> maybeData = rowStateCache.get(entry.getKey(), entry.getValue(), readTimestamp);
             if (maybeData.isPresent()) {
-                results.putAll(maybeData.get());
-                successfullyCachedReads.add(watchedRowsInverse.get(entry.getKey()).row());
+                Set<RowReference> underlyingRows = watchedRowsInverse.get(entry.getKey());
+                Set<byte[]> underlyingRowKeys = underlyingRows.stream()
+                        .map(RowReference::row)
+                        .collect(Collectors.toCollection(
+                                () -> Sets.newTreeSet(UnsignedBytes.lexicographicalComparator())));
+                results.putAll(KeyedStream.stream(maybeData.get())
+                        .filterKeys(cell -> underlyingRowKeys.contains(cell.getRowName()))
+                        .collectToMap());
+                successfullyCachedReads.addAll(underlyingRows.stream()
+                        .map(RowReference::row).collect(Collectors.toList()));
             }
         }
         return ImmutableRowCacheRowReadAttemptResult.<T>builder()
@@ -78,8 +90,10 @@ public class RowCacheReaderImpl implements RowCacheReader {
                 .build();
     }
 
-    private Map<RowCacheReference, RowReference> invert(Map<RowReference, RowCacheReference> watchedRows) {
-        Map<RowCacheReference, RowReference> result = Maps.newHashMap();
+    private SetMultimap<RowCacheReference, RowReference> invert(Map<RowReference, RowCacheReference> watchedRows) {
+        SetMultimap<RowCacheReference, RowReference> result = MultimapBuilder.hashKeys()
+                .hashSetValues()
+                .build();
         watchedRows.forEach((rowRef, rowCacheRef) -> result.put(rowCacheRef, rowRef));
         return result;
     }

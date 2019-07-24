@@ -26,6 +26,7 @@ import com.palantir.atlasdb.todo.TodoSchema;
 import com.palantir.atlasdb.todo.generated.TodoSchemaTableFactory;
 import com.palantir.atlasdb.todo.generated.WatchableStringMapTable;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.illiteracy.ImmutableRowPrefixReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.ImmutableRowReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.RowReference;
 import com.palantir.atlasdb.transaction.impl.illiteracy.RowWatchAwareKeyValueService;
@@ -54,6 +55,15 @@ public class SimpleRowWatchResource implements RowWatchResource {
     @Override
     public void beginWatching(String key) {
         watchRegistry.enableWatchForRows(singleKeyToRowReferenceSet(key));
+    }
+
+    @Override
+    public void beginWatchingPrefix(String prefix) {
+        watchRegistry.enableWatchForRowPrefix(
+                ImmutableRowPrefixReference.builder()
+                        .tableReference(TABLE_REFERENCE)
+                        .prefix(WatchableStringMapTable.WatchableStringMapRow.of(prefix).persistToBytes())
+                        .build());
     }
 
     private ImmutableSet<RowReference> singleKeyToRowReferenceSet(String key) {

@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,8 @@ import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -183,7 +186,44 @@ public class RowStateCache {
                     .build();
             return cacheValue;
         }
-        return null;
+
+        if (updateRequest.cacheReference().prefixReference().isPresent()) {
+            RowCacheReference cacheReference = updateRequest.cacheReference();
+            RowPrefixReference prefixReference = cacheReference.prefixReference().get();
+            Stream<RowResult<Value>> rowResults = keyValueService.getRange(
+                    prefixReference.tableReference(),
+                    RangeRequest.builder().prefixRange(prefixReference.prefix()).build(),
+                    Long.MAX_VALUE).stream();
+            Map<Cell, Value> data = Maps.newHashMap();
+            rowResults.forEach(rowResult -> {
+                for (Map.Entry<Cell, Value> entry : rowResult.getCells()) {
+                    data.put(entry.getKey(), entry.getValue());
+                }
+            });
+
+            // TODO (jkong): This is O(N), we can do this in O(1) but hackweek and I'm lazy
+            List<Long> interestingTimestamps = data.values().stream().map(Value::getTimestamp)
+                    .collect(Collectors.toList());
+
+            // TODO (jkong): Need some way of handling failure to commit. Probably do the usual lookback you do
+            // in Atlas.
+            long timestampAtWhichCachedDataWasFirstValid =
+                    interestingTimestamps.size() == 0 ? updateRequest.readTimestamp() :
+                            transactionService.get(interestingTimestamps).values().stream().mapToLong(x -> x).max()
+                                    .orElse(Long.MAX_VALUE); // nothing committed, so it's only valid at infinity
+
+            CacheEntryValidityConditions validity = ImmutableCacheEntryValidityConditions.builder()
+                    .firstTimestampAtWhichReadIsValid(timestampAtWhichCachedDataWasFirstValid)
+                    .watchIdentifierAndState(updateRequest.watchIndexState())
+                    .build();
+            RowStateCacheValue cacheValue = ImmutableRowStateCacheValue.builder()
+                    .data(data)
+                    .validityConditions(validity)
+                    .build();
+            return cacheValue;
+        }
+
+        throw new AssertionError("wat");
     }
 
     @org.immutables.value.Value.Immutable

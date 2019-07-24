@@ -46,7 +46,7 @@ public class RemoteLockWatchClient {
         knownWatchIdentifiers = Maps.newConcurrentMap();
     }
 
-    public Map<RowCacheReference, WatchIdentifierAndState> getStateForRows(
+    public Map<RowCacheReference, WatchIdentifierAndState> getCacheStateForCacheReferences(
             Set<RowCacheReference> rowCacheReferences) {
         try {
             return getStateForRowsUnsafe(rowCacheReferences);

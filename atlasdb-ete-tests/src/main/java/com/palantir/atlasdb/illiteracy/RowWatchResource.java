@@ -30,6 +30,10 @@ public interface RowWatchResource {
     void beginWatching(@QueryParam("key") String key);
 
     @POST
+    @Path("/begin-prefix")
+    void beginWatchingPrefix(@QueryParam("prefix") String prefix);
+
+    @POST
     @Path("/end")
     void endWatching(@QueryParam("key") String key);
 
