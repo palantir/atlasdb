@@ -315,7 +315,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
 
 
     public enum MigrationsState {
-        WRITE_FIRST_ONLY, WRITE_BOTH_READ_FIRST, WRITE_SECOND_READ_SECOND
+        WRITE_FIRST_ONLY, WRITE_BOTH_READ_FIRST, WRITE_BOTH_READ_SECOND, WRITE_SECOND_READ_SECOND
     }
 
 }

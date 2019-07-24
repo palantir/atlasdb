@@ -19,7 +19,7 @@ package com.palantir.atlasdb.migration;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 public interface MigrationCoordinationService {
-    void startMigration(TableReference startTable, TableReference targetTable);
-    void endMigration(TableReference startTable);
+    boolean startMigration(TableReference startTable, TableReference targetTable);
+    boolean endMigration(TableReference startTable);
     TableMigrationState getMigrationState(TableReference startTable, long timestamp);
 }

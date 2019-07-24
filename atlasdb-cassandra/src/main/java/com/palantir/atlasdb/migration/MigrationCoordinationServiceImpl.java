@@ -16,14 +16,25 @@
 
 package com.palantir.atlasdb.migration;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
+
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
+    private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
+
     private static final TableMigratingKeyValueService.MigrationsState DEFAULT_MIGRATIONS_STATE =
             TableMigratingKeyValueService.MigrationsState.WRITE_FIRST_ONLY;
     private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
@@ -35,12 +46,75 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
     }
 
     @Override
-    public void startMigration(TableReference startTable, TableReference targetTable) {
+    public boolean startMigration(TableReference startTable, TableReference targetTable) {
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
+                tryStartMigration(startTable, targetTable);
+
+
+        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
+        return true;
 
     }
 
+    private CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> tryStartMigration(
+            TableReference startTable,
+            TableReference targetTable) {
+        return coordinationService.tryTransformCurrentValue(
+                valueAndBound -> changeStateForTableOrDefault(
+                        startTable,
+                        Optional.of(targetTable),
+                        TableMigratingKeyValueService.MigrationsState.WRITE_BOTH_READ_FIRST,
+                        valueAndBound));
+    }
+
+    private TableMigrationStateMap changeStateForTableOrDefault(
+            TableReference startTable,
+            Optional<TableReference> targetTable,
+            TableMigratingKeyValueService.MigrationsState migrationsState,
+            ValueAndBound<TableMigrationStateMap> valueAndBound) {
+
+        if (!valueAndBound.value().isPresent()) {
+            log.warn("Attempting to change migration state for the table {}, but no past data was found,"
+                            + ".This should normally only happen once per"
+                            + " server, and only on or around first startup since upgrading to a version of AtlasDB"
+                            + " that is aware of the sweep by migration."
+                            + " If this message persists, please contact support.",
+                    LoggingArgs.tableRef(startTable));
+            return TableMigrationStateMap.builder()
+                    .putTableMigrationStateMap(startTable, TableMigrationState.builder()
+                            .migrationsState(migrationsState)
+                            .targetTable(targetTable)
+                            .build())
+                    .build();
+        }
+
+        log.info("Changing migration state for the table {}", LoggingArgs.tableRef(startTable));
+
+        TableMigrationStateMap tableMigrationStateMap = valueAndBound.value().get();
+        return getUpdatedStateMap(startTable, targetTable, migrationsState, tableMigrationStateMap);
+
+    }
+
+    private TableMigrationStateMap getUpdatedStateMap(
+            TableReference startTable,
+            Optional<TableReference> targetTable,
+            TableMigratingKeyValueService.MigrationsState migrationsState,
+            TableMigrationStateMap tableMigrationStateMap) {
+        Map<TableReference, TableMigrationState> newStateMap =
+                new HashMap<>(tableMigrationStateMap.tableMigrationStateMap());
+        newStateMap.put(startTable, TableMigrationState.builder()
+                .migrationsState(migrationsState)
+                .targetTable(targetTable)
+                .build());
+
+        return TableMigrationStateMap.builder()
+                .tableMigrationStateMap(newStateMap)
+                .build();
+    }
+
     @Override
-    public void endMigration(TableReference startTable) {
+    public boolean endMigration(TableReference startTable) {
+        throw new NotImplementedException();
 
     }
 

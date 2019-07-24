@@ -41,15 +41,6 @@ public abstract class TableMigrationState {
                 .build();
     }
 
-    public static ImmutableTableMigrationState of(
-            TableMigratingKeyValueService.MigrationsState state,
-            TableReference targetTable) {
-        return builder()
-                .migrationsState(state)
-                .targetTable(targetTable)
-                .build();
-    }
-
     public static ImmutableTableMigrationState.Builder builder() {
         return ImmutableTableMigrationState.builder();
     }
