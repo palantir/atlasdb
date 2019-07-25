@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Streams;
+import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -36,7 +37,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.BatchingVisitable;
 
-public class LiveMigrator {
+public class LiveMigrator implements CallbackInitializable<TransactionManager> {
     private static final Logger log = LoggerFactory.getLogger(LiveMigrator.class);
     private final TransactionManager transactionManager;
     private final TableReference startTable;
@@ -116,5 +117,10 @@ public class LiveMigrator {
 
     public boolean isDone() {
         return false;
+    }
+
+    @Override
+    public void initialize(TransactionManager manager) {
+        // hook up here
     }
 }
