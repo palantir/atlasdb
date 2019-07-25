@@ -47,12 +47,11 @@ public class MigrationStateTransitionerTest {
             for (int j = 0; j < ALL_STATES.size(); j++) {
                 MigrationState startState = ALL_STATES.get(i);
                 MigrationState targetState = ALL_STATES.get(j);
-                Optional<TableReference> maybeTargetTable = Optional.empty();
 
-                TableMigrationStateMap initialStateMap = getInitialStateMap(START_TABLE, startState, maybeTargetTable);
+                TableMigrationStateMap initialStateMap = getInitialStateMap(START_TABLE, startState, Optional.empty());
 
                 if (Objects.equals(VALID_TRANSITIONS.get(startState), targetState)) {
-                    maybeTargetTable = getMaybeTargetTable(startState, targetState);
+                    Optional<TableReference> maybeTargetTable = getMaybeTargetTable(startState, targetState);
 
                     TableMigrationStateMap expected = getExpectedTableMigrationStateMap(
                             initialStateMap,
@@ -64,6 +63,10 @@ public class MigrationStateTransitionerTest {
 
                     assertThat(getUpdatedStateMap(targetState, maybeTargetTable, initialStateMap))
                             .isEqualTo(expected);
+
+                    assertThatExceptionOfType(SafeIllegalStateException.class).isThrownBy(() ->
+                            getUpdatedStateMap(targetState, flipTargetTable(maybeTargetTable), initialStateMap));
+
                 } else {
                     assertThatExceptionOfType(SafeIllegalStateException.class)
                             .isThrownBy(() -> getUpdatedStateMap(targetState, Optional.empty(), initialStateMap));
@@ -80,6 +83,14 @@ public class MigrationStateTransitionerTest {
                 START_TABLE,
                 maybeTargetTable,
                 targetState);
+    }
+
+    private static Optional<TableReference> flipTargetTable(Optional<TableReference> maybeTargetTable) {
+        if (maybeTargetTable.isPresent()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(TARGET_TABLE);
+        }
     }
 
     private static Map<MigrationState, MigrationState> getValidMap() {
@@ -108,7 +119,7 @@ public class MigrationStateTransitionerTest {
                 .build();
     }
 
-    private TableMigrationStateMap getExpectedTableMigrationStateMap(
+    private static TableMigrationStateMap getExpectedTableMigrationStateMap(
             TableMigrationStateMap current,
             TableReference tableReference,
             TableMigrationState tableMigrationState) {
@@ -117,7 +128,7 @@ public class MigrationStateTransitionerTest {
         return TableMigrationStateMap.builder().tableMigrationStateMap(newStateMap).build();
     }
 
-    private Optional<TableReference> getMaybeTargetTable(MigrationState startState, MigrationState targetState) {
+    private static Optional<TableReference> getMaybeTargetTable(MigrationState startState, MigrationState targetState) {
         Optional<TableReference> maybeTargetTable = Optional.empty();
         if (startState.equals(MigrationState.WRITE_FIRST_ONLY)
                 && targetState.equals(MigrationState.WRITE_BOTH_READ_FIRST)) {

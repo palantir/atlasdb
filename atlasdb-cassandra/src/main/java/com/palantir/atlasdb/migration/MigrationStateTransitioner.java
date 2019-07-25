@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.migration;
 
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -47,7 +45,7 @@ public class MigrationStateTransitioner {
         MigrationState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)
-                .orElse(DEFAULT_MIGRATIONS_STATE);
+                .orElse(MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE);
 
         if (!isTransitionValid(currentState, targetState, targetTable.isPresent())) {
             throw new SafeIllegalStateException(
