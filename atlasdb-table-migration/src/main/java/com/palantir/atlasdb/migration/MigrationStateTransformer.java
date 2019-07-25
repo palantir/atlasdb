@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.migration;
 
+
 import java.util.Optional;
 
 import org.slf4j.Logger;
