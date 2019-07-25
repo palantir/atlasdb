@@ -23,5 +23,4 @@ public class MigrationCoordinationServiceImplTest {
     public void test() {
         System.out.println("blah");
     }
-
 }
