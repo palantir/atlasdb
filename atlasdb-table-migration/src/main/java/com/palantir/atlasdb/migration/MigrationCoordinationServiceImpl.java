@@ -18,50 +18,42 @@ package com.palantir.atlasdb.migration;
 
 import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
     static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
-    private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
-
-    private static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
-            ImmutableTableMigrationStateMap.builder().build();
     private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
 
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
-    private final MigrationStateTransitioner migrationStateTransitioner;
+    private final MigrationStateTransformer migrationStateTransformer;
 
     public MigrationCoordinationServiceImpl(
             CoordinationServiceImpl<TableMigrationStateMap> coordinationService,
-            MigrationStateTransitioner migrationStateTransitioner) {
+            MigrationStateTransformer migrationStateTransformer) {
         this.coordinationService = coordinationService;
-        this.migrationStateTransitioner = migrationStateTransitioner;
+        this.migrationStateTransformer = migrationStateTransformer;
     }
 
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
-        return safeTryChangeState(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
+        return migrationStateTransformer
+                .transformMigrationStateForTable(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
     }
 
     @Override
     public boolean endMigration(TableReference startTable) {
-        return safeTryChangeState(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
+        return migrationStateTransformer
+                .transformMigrationStateForTable(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
     }
 
     @Override
     public boolean endDualWrite(TableReference startTable) {
-        return safeTryChangeState(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
+        return migrationStateTransformer
+                .transformMigrationStateForTable(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
     }
 
     @Override
@@ -80,57 +72,5 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
                 .map(value ->
                         value.tableMigrationStateMap().getOrDefault(startTable, DEFAULT_TABLE_MIGRATION_STATE))
                 .orElse(DEFAULT_TABLE_MIGRATION_STATE);
-    }
-
-    private boolean safeTryChangeState(
-            TableReference startTable,
-            Optional<TableReference> targetTable,
-            MigrationState targetState) {
-        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> transformResult =
-                coordinationService.tryTransformCurrentValue(valueAndBound ->
-                        migrationStateTransitioner.updateTableMigrationStateForTable(
-                                getCurrentTableMigrationStateMap(valueAndBound),
-                                startTable,
-                                targetTable,
-                                targetState));
-
-        TableMigrationState finalState = Optional.ofNullable(Iterables.getOnlyElement(transformResult.existingValues())
-                .value()
-                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
-                .tableMigrationStateMap()
-                .get(startTable))
-                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"));
-
-
-        if (transformResult.successful() && finalState.migrationsState() == targetState) {
-            log.info("We attempted to change migration state for table {} and this was successful.",
-                    LoggingArgs.tableRef(startTable));
-            return true;
-        }
-
-        if (finalState.migrationsState() == targetState) {
-            log.info("We attempted to change migration state for table {}."
-                            + "We failed, but the table is already in this state anyway.",
-                    LoggingArgs.tableRef(startTable));
-            return true;
-        }
-
-        return false;
-
-    }
-
-    private TableMigrationStateMap getCurrentTableMigrationStateMap(
-            ValueAndBound<TableMigrationStateMap> valueAndBound) {
-        if (!valueAndBound.value().isPresent()) {
-            log.warn(
-                    "Attempting to change migration state for the table, but no past data was found,"
-                            + ".This should normally only happen once per"
-                            + " server, and only on or around first startup since upgrading to a version of AtlasDB"
-                            + " that is aware of the sweep by migration."
-                            + " If this message persists, please contact support.");
-            return EMPTY_TABLE_MIGRATION_STATE_MAP;
-        } else {
-            return valueAndBound.value().get();
-        }
     }
 }

@@ -16,9 +16,20 @@
 
 package com.palantir.atlasdb.migration;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.Test;
 
+import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+
 public class MigrationCoordinationServiceImplTest {
+    private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
+            mock(CoordinationServiceImpl.class);
+    private final MigrationStateTransformer migrationStateTransformer = mock(MigrationStateTransformer.class);
+
+    private final MigrationCoordinationServiceImpl migrationCoordinationService =
+            new MigrationCoordinationServiceImpl(coordinationService, migrationStateTransformer);
+
     @Test
     public void test() {
         System.out.println("blah");
