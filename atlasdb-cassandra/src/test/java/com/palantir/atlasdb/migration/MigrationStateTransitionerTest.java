@@ -39,7 +39,7 @@ public class MigrationStateTransitionerTest {
     private final MigrationStateTransitioner stateTransitioner = new MigrationStateTransitioner();
 
     @Test
-    public void returnsExectedValuesForAllValidTransitionsThrowsOtherwise() {
+    public void returnsExpectedValuesForAllValidTransitionsThrowsOtherwise() {
         TableReference startTable = TableReference.fromString("table.start");
         TableReference targetTable = TableReference.fromString("table.target");
         TableReference otherTable = TableReference.fromString("table.start");

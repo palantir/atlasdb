@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.migration;
 
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-
-public interface MigrationCoordinationService {
-    boolean startMigration(TableReference startTable, TableReference targetTable);
-    boolean endMigration(TableReference startTable);
-    boolean endDualWrite(TableReference startTable);
-    TableMigrationState getMigrationState(TableReference startTable, long timestamp);
+public enum MigrationState {
+    WRITE_FIRST_ONLY,
+    WRITE_BOTH_READ_FIRST,
+    WRITE_BOTH_READ_SECOND,
+    WRITE_SECOND_READ_SECOND
 }

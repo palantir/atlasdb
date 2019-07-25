@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.migration;
 
+import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,23 +30,23 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationStateTransitioner {
-    private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(MigrationStateTransitioner.class);
 
     public TableMigrationStateMap updateTableMigrationStateForTable(
             TableMigrationStateMap tableMigrationStateMap,
             TableReference startTable,
             Optional<TableReference> targetTable,
-            MigrationCoordinationServiceImpl.MigrationState targetState) {
+            MigrationState targetState) {
 
         log.info("Changing migration state for the table {}", LoggingArgs.tableRef(startTable));
 
         Map<TableReference, TableMigrationState> currentStateMap = tableMigrationStateMap.tableMigrationStateMap();
         Map<TableReference, TableMigrationState> newStateMap = new HashMap<>(currentStateMap);
 
-        MigrationCoordinationServiceImpl.MigrationState currentState = Optional.ofNullable(
+        MigrationState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)
-                .orElse(MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE);
+                .orElse(DEFAULT_MIGRATIONS_STATE);
 
         if (!isTransitionValid(currentState, targetState, targetTable.isPresent())) {
             throw new SafeIllegalStateException(
@@ -63,11 +65,11 @@ public class MigrationStateTransitioner {
     }
 
     private boolean isTransitionValid(
-            MigrationCoordinationServiceImpl.MigrationState currentState,
-            MigrationCoordinationServiceImpl.MigrationState targetState,
+            MigrationState currentState,
+            MigrationState targetState,
             boolean targetTableGiven) {
-        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_FIRST_ONLY)) {
-            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST)
+        if (currentState.equals(MigrationState.WRITE_FIRST_ONLY)) {
+            return targetState.equals(MigrationState.WRITE_BOTH_READ_FIRST)
                     && targetTableGiven;
         }
 
@@ -76,12 +78,12 @@ public class MigrationStateTransitioner {
             log.warn("Target table given for a migration when it's not needed. The given table will be ignored");
         }
 
-        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST)) {
-            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND);
+        if (currentState.equals(MigrationState.WRITE_BOTH_READ_FIRST)) {
+            return targetState.equals(MigrationState.WRITE_BOTH_READ_SECOND);
         }
 
-        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND)) {
-            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_SECOND_READ_SECOND);
+        if (currentState.equals(MigrationState.WRITE_BOTH_READ_SECOND)) {
+            return targetState.equals(MigrationState.WRITE_SECOND_READ_SECOND);
         }
 
         return false;

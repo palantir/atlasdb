@@ -29,12 +29,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @JsonSerialize(as = ImmutableTableMigrationState.class)
 public abstract class TableMigrationState {
     @Value.Parameter
-    public abstract MigrationCoordinationServiceImpl.MigrationState migrationsState();
+    public abstract MigrationState migrationsState();
 
     @Value.Parameter
     public abstract Optional<TableReference> targetTable();
 
-    public static ImmutableTableMigrationState of(MigrationCoordinationServiceImpl.MigrationState state) {
+    public static ImmutableTableMigrationState of(MigrationState state) {
         return builder()
                 .migrationsState(state)
                 .build();
