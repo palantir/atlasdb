@@ -93,6 +93,7 @@ public final class LatestSnapshotTable implements
         AtlasDbNamedMutableTable<LatestSnapshotTable.LatestSnapshotRow,
                                     LatestSnapshotTable.LatestSnapshotNamedColumnValue<?>,
                                     LatestSnapshotTable.LatestSnapshotRowResult> {
+
     private final Transaction t;
     private final List<LatestSnapshotTrigger> triggers;
     private final static String rawTableName = "latest_snapshot";

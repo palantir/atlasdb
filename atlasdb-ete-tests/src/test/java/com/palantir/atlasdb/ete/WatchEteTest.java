@@ -210,6 +210,58 @@ public class WatchEteTest {
                 "rangescanner-1-jeremy", "black"));
         assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
     }
+    
+    @Test
+    public void doesNotUpdateCacheUnlessNeeded() {
+        rowWatchResource.beginWatchingPrefix("rangescanner-2-");
+        rowWatchResource.beginWatchingPrefix("rangescanner-2-t");
+        rowWatchResource.beginWatching("rangescanner-2-tom");
+
+        rowWatchResource.put("rangescanner-2-tom", StringWrapper.of("blue"));
+        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("yellow"));
+        rowWatchResource.put("rangescanner-2-andrew", StringWrapper.of("green"));
+        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("red"));
+        rowWatchResource.flushCache();
+
+        Map<String, String> response = rowWatchResource.getRange("rangescanner-2-a", "rangescanner-2-r");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-andrew", "green",
+                "rangescanner-2-jeremy", "red"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+
+        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-r");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-jeremy", "red"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+
+        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+                "rangescanner-2-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+
+        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("black"));
+        rowWatchResource.flushCache();
+
+        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+                "rangescanner-2-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+
+        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+
+        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
+        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+
+        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("white"));
+        rowWatchResource.flushCache();
+
+        String stringAnswer = rowWatchResource.get("rangescanner-2-tom");
+        assertThat(stringAnswer).isEqualTo("blue");
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+    }
 
 
     //    @Test
