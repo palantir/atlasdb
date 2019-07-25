@@ -79,7 +79,6 @@ public class MigrationStateTransformer {
         }
 
         return false;
-
     }
 
     private TableMigrationStateMap getCurrentTableMigrationStateMap(

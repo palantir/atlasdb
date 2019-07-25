@@ -51,11 +51,9 @@ public class MigrationStateTransformerTest {
     private static final TableMigrationStateMap STATE_MAP = TableMigrationStateMap.builder()
             .putTableMigrationStateMap(TABLE, TableMigrationState.builder()
                     .migrationsState(STATE)
-                    .targetTable(TableReference.fromString("table.targetTable"))
                     .build())
             .putTableMigrationStateMap(OTHER_TABLE, TableMigrationState.builder()
                     .migrationsState(STATE)
-                    .targetTable(TableReference.fromString("table.targetother"))
                     .build())
             .build();
     private static final TableMigrationStateMap NEW_STATE_MAP = TableMigrationStateMap.builder()
@@ -65,7 +63,6 @@ public class MigrationStateTransformerTest {
                     .build())
             .putTableMigrationStateMap(OTHER_TABLE, TableMigrationState.builder()
                     .migrationsState(STATE)
-                    .targetTable(TableReference.fromString("table.targetother"))
                     .build())
             .build();
     private static final long TIMESTAMP = 10L;
@@ -84,7 +81,7 @@ public class MigrationStateTransformerTest {
         ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
 
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
-                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
 
         when(coordinationService.tryTransformCurrentValue(any()))
                 .thenReturn(result);
@@ -104,7 +101,7 @@ public class MigrationStateTransformerTest {
         ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
 
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
-                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
 
         when(coordinationService.tryTransformCurrentValue(any()))
                 .thenReturn(result);
@@ -170,7 +167,7 @@ public class MigrationStateTransformerTest {
         ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(Optional.empty(), TIMESTAMP);
 
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
-                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
 
         when(coordinationService.tryTransformCurrentValue(any()))
                 .thenReturn(result);
@@ -193,7 +190,7 @@ public class MigrationStateTransformerTest {
                 ValueAndBound.of(stateMapWithoutUpdatedTable, TIMESTAMP);
 
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
-                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
 
         when(coordinationService.tryTransformCurrentValue(any()))
                 .thenReturn(result);
