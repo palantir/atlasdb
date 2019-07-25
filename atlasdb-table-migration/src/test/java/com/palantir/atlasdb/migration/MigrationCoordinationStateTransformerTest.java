@@ -41,12 +41,12 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 @SuppressWarnings("unchecked") // Mocks of generic types
 public class MigrationCoordinationStateTransformerTest {
     private static final TableReference TABLE = TableReference.fromString("table.some");
+    private static final TableReference OTHER_TABLE = TableReference.fromString("table.other");
     private static final MigrationState STATE = MigrationState.WRITE_FIRST_ONLY;
     private static final MigrationState TARGET_STATE = MigrationState.WRITE_BOTH_READ_FIRST;
 
     private static final Optional<TableReference> MAYBE_TARGET_TABLE =
             Optional.of(TableReference.fromString("table.target"));
-    private static final TableReference OTHER_TABLE = TableReference.fromString("table.other");
 
     private static final TableMigrationStateMap STATE_MAP = TableMigrationStateMap.builder()
             .putTableMigrationStateMap(TABLE, TableMigrationState.builder()

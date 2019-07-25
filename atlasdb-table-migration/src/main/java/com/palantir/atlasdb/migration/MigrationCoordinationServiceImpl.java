@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
     static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
-    private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
+    protected static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
 
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
