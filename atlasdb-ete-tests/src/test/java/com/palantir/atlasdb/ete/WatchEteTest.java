@@ -43,228 +43,227 @@ public class WatchEteTest {
         rowWatchResource.resetGetCount();
     }
 
-    @Test
-    public void doNotWatchIfNotInterested() {
-        rowWatchResource.put("orange", StringWrapper.of("banana"));
-        assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
-        for (int i = 0; i < 5; i++) {
-            assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
-        rowWatchResource.put("orange", StringWrapper.of("chocolate"));
-        assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
-        for (int i = 0; i < 5; i++) {
-            assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(12);
-    }
-
-    @Test
-    public void updateWhenValueChanges() {
-        rowWatchResource.beginWatching("cat");
-        rowWatchResource.put("cat", StringWrapper.of("banana"));
-        assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
-        rowWatchResource.flushCache();
-        for (int i = 0; i < 5; i++) {
-            assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
-        rowWatchResource.put("cat", StringWrapper.of("chocolate"));
-        assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
-        rowWatchResource.flushCache();
-        for (int i = 0; i < 5; i++) {
-            assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
-    }
-
-    @Test
-    public void watchesDoApplyToPrefixes() {
-        // TODO (jkong): Should the cache be lazy? Eager? Unclear.
-        rowWatchResource.beginWatchingPrefix("mono");
-        rowWatchResource.put("monotony", StringWrapper.of("banana"));
-        rowWatchResource.put("monorepo", StringWrapper.of("map"));
-        assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
-        rowWatchResource.flushCache();
-        assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
-        for (int i = 0; i < 5; i++) {
-            assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
-            assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void choosesExplicitIfExplicitAvailable() {
-        rowWatchResource.beginWatchingPrefix("car");
-        rowWatchResource.beginWatching("cartography");
-
-        rowWatchResource.put("carbohydrate", StringWrapper.of("banana"));
-        rowWatchResource.put("cartography", StringWrapper.of("map"));
-
-        // load up the cache. gets = 1
-        assertThat(rowWatchResource.get("carbohydrate")).isEqualTo("banana");
-        rowWatchResource.flushCache();
-
-        // sadly we are not smart enough to skip this read!
-        assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
-
-        for (int i = 0; i < 5; i++) {
-            rowWatchResource.put("carbohydrate", StringWrapper.of("banane"));
-            assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
-    }
-
-    @Test
-    public void choosesMostPrecisePrefixIfAvailable() {
-        rowWatchResource.beginWatchingPrefix("minim");
-        rowWatchResource.beginWatchingPrefix("minima");
-
-        rowWatchResource.put("minimal", StringWrapper.of("minimal"));
-        rowWatchResource.put("minime", StringWrapper.of("me!"));
-
-        // load up the cache. gets = 2
-        assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
-        assertThat(rowWatchResource.get("minime")).isEqualTo("me!");
-        rowWatchResource.flushCache();
-
-        for (int i = 0; i < 5; i++) {
-            rowWatchResource.put("minime", StringWrapper.of("me!!"));
-            assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
-    }
-
-    @Test
-    public void updatePrefixWhenValueChanges() {
-        rowWatchResource.beginWatchingPrefix("transactional-databases-");
-
-        rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
-
-        // load up the cache. gets = 1
-        assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
-        rowWatchResource.flushCache();
-
-        for (int i = 0; i < 5; i++) {
-            rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
-            assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
-        }
-        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
-    }
-
-    @Test
-    public void rangeScan() {
-        rowWatchResource.beginWatchingPrefix("rangescanner-1-");
-
-        rowWatchResource.put("rangescanner-1-tom", StringWrapper.of("blue"));
-        rowWatchResource.put("rangescanner-1-andrew", StringWrapper.of("green"));
-        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("red"));
-        rowWatchResource.flushCache();
-
-        Map<String, String> response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
-                "rangescanner-1-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
-                "rangescanner-1-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
-                "rangescanner-1-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-    }
-
-    @Test
-    public void inRangeUpdate() {
-        rowWatchResource.beginWatchingPrefix("rangescanner-1-");
-
-        rowWatchResource.put("rangescanner-1-tom", StringWrapper.of("blue"));
-        rowWatchResource.put("rangescanner-1-andrew", StringWrapper.of("green"));
-        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("red"));
-        rowWatchResource.flushCache();
-
-        Map<String, String> response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
-                "rangescanner-1-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
-                "rangescanner-1-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("black"));
-        rowWatchResource.flushCache();
-
-        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
-                "rangescanner-1-jeremy", "black"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
-
-        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
-                "rangescanner-1-jeremy", "black"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
-    }
-    
-    @Test
-    public void doesNotUpdateCacheUnlessNeeded() {
-        rowWatchResource.beginWatchingPrefix("rangescanner-2-");
-        rowWatchResource.beginWatchingPrefix("rangescanner-2-t");
-        rowWatchResource.beginWatching("rangescanner-2-tom");
-
-        rowWatchResource.put("rangescanner-2-tom", StringWrapper.of("blue"));
-        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("yellow"));
-        rowWatchResource.put("rangescanner-2-andrew", StringWrapper.of("green"));
-        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("red"));
-        rowWatchResource.flushCache();
-
-        Map<String, String> response = rowWatchResource.getRange("rangescanner-2-a", "rangescanner-2-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-andrew", "green",
-                "rangescanner-2-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-r");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-jeremy", "red"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
-
-        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
-                "rangescanner-2-tim", "yellow"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
-
-        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("black"));
-        rowWatchResource.flushCache();
-
-        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
-                "rangescanner-2-tim", "yellow"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
-
-        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
-                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
-
-        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
-        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
-                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
-
-        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("white"));
-        rowWatchResource.flushCache();
-
-        String stringAnswer = rowWatchResource.get("rangescanner-2-tom");
-        assertThat(stringAnswer).isEqualTo("blue");
-        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
-    }
-
-
-    //    @Test
+//    @Test
+//    public void doNotWatchIfNotInterested() {
+//        rowWatchResource.put("orange", StringWrapper.of("banana"));
+//        assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
+//        for (int i = 0; i < 5; i++) {
+//            assertThat(rowWatchResource.get("orange")).isEqualTo("banana");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
+//        rowWatchResource.put("orange", StringWrapper.of("chocolate"));
+//        assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
+//        for (int i = 0; i < 5; i++) {
+//            assertThat(rowWatchResource.get("orange")).isEqualTo("chocolate");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(12);
+//    }
+//
+//    @Test
+//    public void updateWhenValueChanges() {
+//        rowWatchResource.beginWatching("cat");
+//        rowWatchResource.put("cat", StringWrapper.of("banana"));
+//        assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
+//        rowWatchResource.flushCache();
+//        for (int i = 0; i < 5; i++) {
+//            assertThat(rowWatchResource.get("cat")).isEqualTo("banana");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+//        rowWatchResource.put("cat", StringWrapper.of("chocolate"));
+//        assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
+//        rowWatchResource.flushCache();
+//        for (int i = 0; i < 5; i++) {
+//            assertThat(rowWatchResource.get("cat")).isEqualTo("chocolate");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+//    }
+//
+//    @Test
+//    public void watchesDoApplyToPrefixes() {
+//        // TODO (jkong): Should the cache be lazy? Eager? Unclear.
+//        rowWatchResource.beginWatchingPrefix("mono");
+//        rowWatchResource.put("monotony", StringWrapper.of("banana"));
+//        rowWatchResource.put("monorepo", StringWrapper.of("map"));
+//        assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
+//        rowWatchResource.flushCache();
+//        assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
+//        for (int i = 0; i < 5; i++) {
+//            assertThat(rowWatchResource.get("monotony")).isEqualTo("banana");
+//            assertThat(rowWatchResource.get("monorepo")).isEqualTo("map");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+//    }
+//
+//    @Test
+//    public void choosesExplicitIfExplicitAvailable() {
+//        rowWatchResource.beginWatchingPrefix("car");
+//        rowWatchResource.beginWatching("cartography");
+//
+//        rowWatchResource.put("carbohydrate", StringWrapper.of("banana"));
+//        rowWatchResource.put("cartography", StringWrapper.of("map"));
+//
+//        // load up the cache. gets = 1
+//        assertThat(rowWatchResource.get("carbohydrate")).isEqualTo("banana");
+//        rowWatchResource.flushCache();
+//
+//        // sadly we are not smart enough to skip this read!
+//        assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
+//
+//        for (int i = 0; i < 5; i++) {
+//            rowWatchResource.put("carbohydrate", StringWrapper.of("banane"));
+//            assertThat(rowWatchResource.get("cartography")).isEqualTo("map");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+//    }
+//
+//    @Test
+//    public void choosesMostPrecisePrefixIfAvailable() {
+//        rowWatchResource.beginWatchingPrefix("minim");
+//        rowWatchResource.beginWatchingPrefix("minima");
+//
+//        rowWatchResource.put("minimal", StringWrapper.of("minimal"));
+//        rowWatchResource.put("minime", StringWrapper.of("me!"));
+//
+//        // load up the cache. gets = 2
+//        assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
+//        assertThat(rowWatchResource.get("minime")).isEqualTo("me!");
+//        rowWatchResource.flushCache();
+//
+//        for (int i = 0; i < 5; i++) {
+//            rowWatchResource.put("minime", StringWrapper.of("me!!"));
+//            assertThat(rowWatchResource.get("minimal")).isEqualTo("minimal");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(2);
+//    }
+//
+//    @Test
+//    public void updatePrefixWhenValueChanges() {
+//        rowWatchResource.beginWatchingPrefix("transactional-databases-");
+//
+//        rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
+//
+//        // load up the cache. gets = 1
+//        assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
+//        rowWatchResource.flushCache();
+//
+//        for (int i = 0; i < 5; i++) {
+//            rowWatchResource.put("transactional-databases-2", StringWrapper.of("not-atlasdb"));
+//            assertThat(rowWatchResource.get("transactional-databases-2")).isEqualTo("not-atlasdb");
+//        }
+//        assertThat(rowWatchResource.getGetCount()).isEqualTo(6);
+//    }
+//
+//    @Test
+//    public void rangeScan() {
+//        rowWatchResource.beginWatchingPrefix("rangescanner-1-");
+//
+//        rowWatchResource.put("rangescanner-1-tom", StringWrapper.of("blue"));
+//        rowWatchResource.put("rangescanner-1-andrew", StringWrapper.of("green"));
+//        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("red"));
+//        rowWatchResource.flushCache();
+//
+//        Map<String, String> response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
+//                "rangescanner-1-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
+//                "rangescanner-1-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
+//                "rangescanner-1-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//    }
+//
+//    @Test
+//    public void inRangeUpdate() {
+//        rowWatchResource.beginWatchingPrefix("rangescanner-1-");
+//
+//        rowWatchResource.put("rangescanner-1-tom", StringWrapper.of("blue"));
+//        rowWatchResource.put("rangescanner-1-andrew", StringWrapper.of("green"));
+//        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("red"));
+//        rowWatchResource.flushCache();
+//
+//        Map<String, String> response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
+//                "rangescanner-1-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        response = rowWatchResource.getRange("rangescanner-1-a", "rangescanner-1-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-andrew", "green",
+//                "rangescanner-1-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        rowWatchResource.put("rangescanner-1-jeremy", StringWrapper.of("black"));
+//        rowWatchResource.flushCache();
+//
+//        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
+//                "rangescanner-1-jeremy", "black"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+//
+//        response = rowWatchResource.getRange("rangescanner-1-c", "rangescanner-1-u");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-1-tom", "blue",
+//                "rangescanner-1-jeremy", "black"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+//    }
+//
+//    @Test
+//    public void doesNotUpdateCacheUnlessNeeded() {
+//        rowWatchResource.beginWatchingPrefix("rangescanner-2-");
+//        rowWatchResource.beginWatchingPrefix("rangescanner-2-t");
+//        rowWatchResource.beginWatching("rangescanner-2-tom");
+//
+//        rowWatchResource.put("rangescanner-2-tom", StringWrapper.of("blue"));
+//        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("yellow"));
+//        rowWatchResource.put("rangescanner-2-andrew", StringWrapper.of("green"));
+//        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("red"));
+//        rowWatchResource.flushCache();
+//
+//        Map<String, String> response = rowWatchResource.getRange("rangescanner-2-a", "rangescanner-2-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-andrew", "green",
+//                "rangescanner-2-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-r");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-jeremy", "red"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+//
+//        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+//                "rangescanner-2-tim", "yellow"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+//
+//        rowWatchResource.put("rangescanner-2-jeremy", StringWrapper.of("black"));
+//        rowWatchResource.flushCache();
+//
+//        response = rowWatchResource.getRange("rangescanner-2-t", "rangescanner-2-tz");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+//                "rangescanner-2-tim", "yellow"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+//
+//        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+//                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+//
+//        response = rowWatchResource.getRange("rangescanner-2-c", "rangescanner-2-u");
+//        assertThat(response).isEqualTo(ImmutableMap.of("rangescanner-2-tom", "blue",
+//                "rangescanner-2-jeremy", "black", "rangescanner-2-tim", "yellow"));
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+//
+//        rowWatchResource.put("rangescanner-2-tim", StringWrapper.of("white"));
+//        rowWatchResource.flushCache();
+//
+//        String stringAnswer = rowWatchResource.get("rangescanner-2-tom");
+//        assertThat(stringAnswer).isEqualTo("blue");
+//        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+//    }
+//
+//    @Test
 //    public void bigSlowValues() {
 //        rowWatchResource.beginWatching("apple");
 //        rowWatchResource.put("apple", StringWrapper.of(MILLION_CHARS));
@@ -286,4 +285,60 @@ public class WatchEteTest {
 //        }
 //        assertThat(rowWatchResource.getGetCount()).isEqualTo(101);
 //    }
+
+    @Test
+    public void doesNotUpdateCacheUnlessNeededClean() {
+        rowWatchResource.beginWatchingPrefix("-");
+        rowWatchResource.beginWatchingPrefix("-t");
+        rowWatchResource.beginWatching("-tom");
+
+        rowWatchResource.put("-tom", StringWrapper.of("blue"));
+        rowWatchResource.put("-tim", StringWrapper.of("yellow"));
+        rowWatchResource.put("-andrew", StringWrapper.of("green"));
+        rowWatchResource.put("-jeremy", StringWrapper.of("red"));
+        rowWatchResource.flushCache();
+
+        Map<String, String> response = rowWatchResource.getRange("-a", "-r");
+        assertThat(response).isEqualTo(ImmutableMap.of("-andrew", "green", "-jeremy", "red"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+
+        response = rowWatchResource.getRange("-c", "-r");
+        assertThat(response).isEqualTo(ImmutableMap.of("-jeremy", "red"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
+
+        response = rowWatchResource.getRange("-t", "-tz");
+        assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+
+        String stringAnswer = rowWatchResource.get("-tom");
+        assertThat(stringAnswer).isEqualTo("blue");
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+
+        rowWatchResource.put("-jeremy", StringWrapper.of("black"));
+        rowWatchResource.flushCache();
+
+        response = rowWatchResource.getRange("-t", "-tz");
+        assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
+
+        response = rowWatchResource.getRange("-c", "-u");
+        assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-jeremy", "black", "-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+
+        response = rowWatchResource.getRange("-c", "-u");
+        assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-jeremy", "black", "-tim", "yellow"));
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+
+        stringAnswer = rowWatchResource.get("-tom");
+        assertThat(stringAnswer).isEqualTo("blue");
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+
+        rowWatchResource.put("-tim", StringWrapper.of("white"));
+        rowWatchResource.flushCache();
+
+        stringAnswer = rowWatchResource.get("-tom");
+        assertThat(stringAnswer).isEqualTo("blue");
+        assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(3);
+        assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
+    }
 }
