@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("unchecked") // Mocks of generic types
 public class MigrationStateTransformerTest {
@@ -164,9 +166,8 @@ public class MigrationStateTransformerTest {
     }
 
     @Test
-    public void testTransformThrows() {
-        ValueAndBound<TableMigrationStateMap> currentValue = ValueAndBound.of(STATE_MAP, TIMESTAMP);
-        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
+    public void testTransformThrowsWhenTheResultHasNoTableStateMap() {
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(Optional.empty(), TIMESTAMP);
 
         CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
                 CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
@@ -174,13 +175,33 @@ public class MigrationStateTransformerTest {
         when(coordinationService.tryTransformCurrentValue(any()))
                 .thenReturn(result);
 
-        ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+        assertThatExceptionOfType(SafeIllegalStateException.class)
+                .isThrownBy(() ->
+                        stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE));
 
-        stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE);
-        verify(coordinationService).tryTransformCurrentValue(functionArgumentCaptor.capture());
+    }
 
-        functionArgumentCaptor.getValue().apply(currentValue);
-        verify(stateTransitioner).updateTableMigrationStateForTable(STATE_MAP, TABLE, MAYBE_TARGET_TABLE, TARGET_STATE);
+    @Test
+    public void testTransformThrowsWhenTheResultHasNoTableStateForUpdatedTable() {
+        TableMigrationStateMap stateMapWithoutUpdatedTable = TableMigrationStateMap.builder()
+                .putTableMigrationStateMap(OTHER_TABLE, TableMigrationState.builder()
+                        .migrationsState(STATE)
+                        .build())
+                .build();
+
+        ValueAndBound<TableMigrationStateMap> transformedValue =
+                ValueAndBound.of(stateMapWithoutUpdatedTable, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        assertThatExceptionOfType(SafeIllegalStateException.class)
+                .isThrownBy(() ->
+                        stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE));
+
     }
 
 }
