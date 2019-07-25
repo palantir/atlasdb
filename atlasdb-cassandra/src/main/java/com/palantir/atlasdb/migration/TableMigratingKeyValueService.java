@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.migration;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
@@ -45,7 +46,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.sweep.queue.ImmutableTimestampSupplier;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
@@ -61,7 +61,7 @@ public class TableMigratingKeyValueService implements KeyValueService {
     }
 
     public static KeyValueService create(KeyValueService kvs, Set<TableReference> tablesToMigrate,
-            ImmutableTimestampSupplier immutableTsSupplier) {
+            LongSupplier immutableTsSupplier) {
         if (tablesToMigrate.isEmpty()) {
             return kvs;
         }

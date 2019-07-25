@@ -34,9 +34,14 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationStateTransitioner {
+    public static final MigrationStateTransitioner INSTANCE = new MigrationStateTransitioner();
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
 
-    public TableMigrationStateMap updateTableMigrationStateForTable(
+    private MigrationStateTransitioner () {
+        // utility
+    }
+
+    public static TableMigrationStateMap updateTableMigrationStateForTable(
             TableMigrationStateMap tableMigrationStateMap,
             TableReference startTable,
             Optional<TableReference> targetTable,
@@ -68,7 +73,7 @@ public class MigrationStateTransitioner {
                 .build();
     }
 
-    private boolean isTransitionValid(
+    private static boolean isTransitionValid(
             MigrationCoordinationServiceImpl.MigrationState currentState,
             MigrationCoordinationServiceImpl.MigrationState targetState,
             boolean targetTableGiven) {
