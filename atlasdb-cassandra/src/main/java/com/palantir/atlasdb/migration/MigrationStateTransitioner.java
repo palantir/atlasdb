@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationStateTransitioner {
@@ -51,7 +52,9 @@ public class MigrationStateTransitioner {
         if (!isTransitionValid(currentState, targetState, targetTable.isPresent())) {
             throw new SafeIllegalStateException(
                     "Invalid state migration transition requested.",
-                    LoggingArgs.tableRef(startTable));
+                    LoggingArgs.tableRef(startTable),
+                    SafeArg.of("currentState", currentState),
+                    SafeArg.of("targetState", targetState));
         }
 
         newStateMap.put(startTable, TableMigrationState.builder()
@@ -74,8 +77,8 @@ public class MigrationStateTransitioner {
         }
 
         if (targetTableGiven) {
-            // todo(jelenac): Should we throw illegal state exception here or just ignore and continue?
-            log.warn("Target table given for a migration when it's not needed. The given table will be ignored");
+            log.warn("Target table given for a migration when it's not needed.");
+            return false;
         }
 
         if (currentState.equals(MigrationState.WRITE_BOTH_READ_FIRST)) {
