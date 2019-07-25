@@ -82,7 +82,8 @@ public class MigrationStateTransformer {
 
     }
 
-    private TableMigrationStateMap getCurrentTableMigrationStateMap(ValueAndBound<TableMigrationStateMap> valueAndBound) {
+    private TableMigrationStateMap getCurrentTableMigrationStateMap(
+            ValueAndBound<TableMigrationStateMap> valueAndBound) {
         if (!valueAndBound.value().isPresent()) {
             log.warn(
                     "Attempting to change migration state for the table, but no past data was found,"

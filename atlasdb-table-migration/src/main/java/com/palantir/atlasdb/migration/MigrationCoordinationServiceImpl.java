@@ -40,8 +40,10 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
 
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
-        return migrationStateTransformer
-                .transformMigrationStateForTable(startTable, Optional.of(targetTable), MigrationState.WRITE_BOTH_READ_FIRST);
+        return migrationStateTransformer.transformMigrationStateForTable(
+                startTable,
+                Optional.of(targetTable),
+                MigrationState.WRITE_BOTH_READ_FIRST);
     }
 
     @Override

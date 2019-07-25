@@ -203,5 +203,4 @@ public class MigrationStateTransformerTest {
                         stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE));
 
     }
-
 }
