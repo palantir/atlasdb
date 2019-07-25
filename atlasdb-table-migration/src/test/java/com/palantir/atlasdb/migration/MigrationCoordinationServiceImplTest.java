@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 @SuppressWarnings("unchecked") // Mocks of generic types
 public class MigrationCoordinationServiceImplTest {
     private static final TableReference TABLE = TableReference.fromString("table.some");
+    private static final TableReference TARGET_TABLE = TableReference.fromString("table.target");
     private static final TableReference OTHER_TABLE = TableReference.fromString("table.other");
     private static final MigrationState STATE = MigrationState.WRITE_FIRST_ONLY;
     private static final MigrationState OTHER_STATE = MigrationState.WRITE_BOTH_READ_FIRST;
@@ -45,28 +46,50 @@ public class MigrationCoordinationServiceImplTest {
                     .build())
             .build();
     private static final long TIMESTAMP = 10L;
+    private static final boolean TRANSFORMATION_RESULT = true;
 
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
             mock(CoordinationServiceImpl.class);
-    private final MigrationCoordinationStateTransformer migrationCoordinationStateTransformer = mock(
-            MigrationCoordinationStateTransformer.class);
+    private final MigrationCoordinationStateTransformer stateTransformer =
+            mock(MigrationCoordinationStateTransformer.class);
 
     private final MigrationCoordinationService migrationCoordinationService =
-            new MigrationCoordinationServiceImpl(coordinationService, migrationCoordinationStateTransformer);
+            new MigrationCoordinationServiceImpl(coordinationService, stateTransformer);
 
     @Test
     public void testStartMigrationCallsStateTransformerWithCorrectArgs() {
-        System.out.println("blah");
+        when(stateTransformer.transformMigrationStateForTable(
+                TABLE,
+                Optional.of(TARGET_TABLE),
+                MigrationState.WRITE_BOTH_READ_FIRST)
+        ).thenReturn(TRANSFORMATION_RESULT);
+
+        assertThat(migrationCoordinationService.startMigration(TABLE, TARGET_TABLE))
+                .isEqualTo(TRANSFORMATION_RESULT);
     }
 
     @Test
     public void testEndMigrationCallsStateTransformerWithCorrectArgs() {
-        System.out.println("blah");
+        when(stateTransformer.transformMigrationStateForTable(
+                TABLE,
+                Optional.empty(),
+                MigrationState.WRITE_BOTH_READ_SECOND)
+        ).thenReturn(TRANSFORMATION_RESULT);
+
+        assertThat(migrationCoordinationService.endMigration(TABLE))
+                .isEqualTo(TRANSFORMATION_RESULT);
     }
 
     @Test
     public void testEndDualWriteCallsStateTransformerWithCorrectArgs() {
-        System.out.println("blah");
+        when(stateTransformer.transformMigrationStateForTable(
+                TABLE,
+                Optional.empty(),
+                MigrationState.WRITE_SECOND_READ_SECOND)
+        ).thenReturn(TRANSFORMATION_RESULT);
+
+        assertThat(migrationCoordinationService.endDualWrite(TABLE))
+                .isEqualTo(TRANSFORMATION_RESULT);
     }
 
     @Test
@@ -93,7 +116,6 @@ public class MigrationCoordinationServiceImplTest {
 
         assertThat(migrationCoordinationService.getMigrationState(TABLE, TIMESTAMP))
                 .isEqualTo(DEFAULT_TABLE_MIGRATION_STATE);
-
     }
 
     @Test
