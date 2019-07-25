@@ -29,18 +29,18 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
 
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
-    private final MigrationStateTransformer migrationStateTransformer;
+    private final MigrationCoordinationStateTransformer migrationCoordinationStateTransformer;
 
     public MigrationCoordinationServiceImpl(
             CoordinationServiceImpl<TableMigrationStateMap> coordinationService,
-            MigrationStateTransformer migrationStateTransformer) {
+            MigrationCoordinationStateTransformer migrationCoordinationStateTransformer) {
         this.coordinationService = coordinationService;
-        this.migrationStateTransformer = migrationStateTransformer;
+        this.migrationCoordinationStateTransformer = migrationCoordinationStateTransformer;
     }
 
     @Override
     public boolean startMigration(TableReference startTable, TableReference targetTable) {
-        return migrationStateTransformer.transformMigrationStateForTable(
+        return migrationCoordinationStateTransformer.transformMigrationStateForTable(
                 startTable,
                 Optional.of(targetTable),
                 MigrationState.WRITE_BOTH_READ_FIRST);
@@ -48,13 +48,13 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
 
     @Override
     public boolean endMigration(TableReference startTable) {
-        return migrationStateTransformer
+        return migrationCoordinationStateTransformer
                 .transformMigrationStateForTable(startTable, Optional.empty(), MigrationState.WRITE_BOTH_READ_SECOND);
     }
 
     @Override
     public boolean endDualWrite(TableReference startTable) {
-        return migrationStateTransformer
+        return migrationCoordinationStateTransformer
                 .transformMigrationStateForTable(startTable, Optional.empty(), MigrationState.WRITE_SECOND_READ_SECOND);
     }
 

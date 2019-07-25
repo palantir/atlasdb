@@ -26,10 +26,11 @@ import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 public class MigrationCoordinationServiceImplTest {
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
             mock(CoordinationServiceImpl.class);
-    private final MigrationStateTransformer migrationStateTransformer = mock(MigrationStateTransformer.class);
+    private final MigrationCoordinationStateTransformer migrationCoordinationStateTransformer = mock(
+            MigrationCoordinationStateTransformer.class);
 
     private final MigrationCoordinationServiceImpl migrationCoordinationService =
-            new MigrationCoordinationServiceImpl(coordinationService, migrationStateTransformer);
+            new MigrationCoordinationServiceImpl(coordinationService, migrationCoordinationStateTransformer);
 
     @Test
     public void test() {

@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import static com.palantir.atlasdb.migration.MigrationStateTransformer.EMPTY_TABLE_MIGRATION_STATE_MAP;
+import static com.palantir.atlasdb.migration.MigrationCoordinationStateTransformer.EMPTY_TABLE_MIGRATION_STATE_MAP;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -39,7 +39,7 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 @SuppressWarnings("unchecked") // Mocks of generic types
-public class MigrationStateTransformerTest {
+public class MigrationCoordinationStateTransformerTest {
     private static final TableReference TABLE = TableReference.fromString("table.some");
     private static final MigrationState STATE = MigrationState.WRITE_FIRST_ONLY;
     private static final MigrationState TARGET_STATE = MigrationState.WRITE_BOTH_READ_FIRST;
@@ -72,8 +72,8 @@ public class MigrationStateTransformerTest {
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
             mock(CoordinationServiceImpl.class);
     private final MigrationStateTransitioner stateTransitioner = mock(MigrationStateTransitioner.class);
-    private final MigrationStateTransformer stateTransformer =
-            new MigrationStateTransformer(stateTransitioner, coordinationService);
+    private final MigrationCoordinationStateTransformer stateTransformer =
+            new MigrationCoordinationStateTransformer(stateTransitioner, coordinationService);
 
     @Test
     public void testTransformCallsCoordinationServiceWithCorrectArguments() {

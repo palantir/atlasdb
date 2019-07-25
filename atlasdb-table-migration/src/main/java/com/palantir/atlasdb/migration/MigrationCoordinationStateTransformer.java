@@ -30,15 +30,15 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public class MigrationStateTransformer {
-    private static final Logger log = LoggerFactory.getLogger(MigrationStateTransformer.class);
+public class MigrationCoordinationStateTransformer {
+    private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationStateTransformer.class);
 
     protected static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
             ImmutableTableMigrationStateMap.builder().build();
     private final MigrationStateTransitioner migrationStateTransitioner;
     private final CoordinationService<TableMigrationStateMap> coordinationService;
 
-    public MigrationStateTransformer(
+    public MigrationCoordinationStateTransformer(
             MigrationStateTransitioner migrationStateTransitioner,
             CoordinationService<TableMigrationStateMap> coordinationService) {
         this.migrationStateTransitioner = migrationStateTransitioner;
