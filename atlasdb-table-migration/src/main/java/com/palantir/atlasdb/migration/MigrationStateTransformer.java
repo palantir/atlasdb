@@ -33,7 +33,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 public class MigrationStateTransformer {
     private static final Logger log = LoggerFactory.getLogger(MigrationStateTransformer.class);
 
-    private static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
+    protected static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
             ImmutableTableMigrationStateMap.builder().build();
     private final MigrationStateTransitioner migrationStateTransitioner;
     private final CoordinationService<TableMigrationStateMap> coordinationService;
@@ -82,7 +82,7 @@ public class MigrationStateTransformer {
 
     }
 
-    TableMigrationStateMap getCurrentTableMigrationStateMap(ValueAndBound<TableMigrationStateMap> valueAndBound) {
+    private TableMigrationStateMap getCurrentTableMigrationStateMap(ValueAndBound<TableMigrationStateMap> valueAndBound) {
         if (!valueAndBound.value().isPresent()) {
             log.warn(
                     "Attempting to change migration state for the table, but no past data was found,"

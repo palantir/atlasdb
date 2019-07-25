@@ -16,10 +16,13 @@
 
 package com.palantir.atlasdb.migration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import static com.palantir.atlasdb.migration.MigrationStateTransformer.EMPTY_TABLE_MIGRATION_STATE_MAP;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -64,6 +67,8 @@ public class MigrationStateTransformerTest {
                     .build())
             .build();
     private static final long TIMESTAMP = 10L;
+    private static final boolean SUCCESSFUL = true;
+    private static final boolean FAILED = false;
 
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
             mock(CoordinationServiceImpl.class);
@@ -73,6 +78,93 @@ public class MigrationStateTransformerTest {
 
     @Test
     public void testTransformCallsCoordinationServiceWithCorrectArguments() {
+        ValueAndBound<TableMigrationStateMap> currentValue = ValueAndBound.of(STATE_MAP, TIMESTAMP);
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+
+        stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE);
+        verify(coordinationService).tryTransformCurrentValue(functionArgumentCaptor.capture());
+
+        functionArgumentCaptor.getValue().apply(currentValue);
+        verify(stateTransitioner).updateTableMigrationStateForTable(STATE_MAP, TABLE, MAYBE_TARGET_TABLE, TARGET_STATE);
+    }
+
+    @Test
+    public void testTransformCreatesInitialStateTable() {
+        ValueAndBound<TableMigrationStateMap> currentValue = ValueAndBound.of(Optional.empty(), TIMESTAMP);
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(true, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+
+        stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE);
+        verify(coordinationService).tryTransformCurrentValue(functionArgumentCaptor.capture());
+
+        functionArgumentCaptor.getValue().apply(currentValue);
+        verify(stateTransitioner)
+                .updateTableMigrationStateForTable(
+                        EMPTY_TABLE_MIGRATION_STATE_MAP,
+                        TABLE,
+                        MAYBE_TARGET_TABLE,
+                        TARGET_STATE);
+    }
+
+    @Test
+    public void testTransformReturnsTrueWhenTransformationSucceededAndFinalResultIsWhatWeWanted() {
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        assertThat(stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE))
+                .isEqualTo(SUCCESSFUL);
+    }
+
+    @Test
+    public void testTransformReturnsFalseWhenTransformationSucceededButFinalStateIsNotWhatWeWanted() {
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(STATE_MAP, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(SUCCESSFUL, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        assertThat(stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE))
+                .isEqualTo(FAILED);
+    }
+
+    @Test
+    public void testTransformReturnsTrueWhenTransformationFailedButFinalStateIsWhatWeWanted() {
+        ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
+
+        CheckAndSetResult<ValueAndBound<TableMigrationStateMap>> result =
+                CheckAndSetResult.of(FAILED, ImmutableList.of(transformedValue));
+
+        when(coordinationService.tryTransformCurrentValue(any()))
+                .thenReturn(result);
+
+        assertThat(stateTransformer.transformMigrationStateForTable(TABLE, MAYBE_TARGET_TABLE, TARGET_STATE))
+                .isEqualTo(SUCCESSFUL);
+    }
+
+    @Test
+    public void testTransformThrows() {
         ValueAndBound<TableMigrationStateMap> currentValue = ValueAndBound.of(STATE_MAP, TIMESTAMP);
         ValueAndBound<TableMigrationStateMap> transformedValue = ValueAndBound.of(NEW_STATE_MAP, TIMESTAMP);
 
