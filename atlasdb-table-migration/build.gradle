@@ -9,8 +9,6 @@ dependencies {
     compile project(":atlasdb-coordination-impl")
     compile project(":atlasdb-impl-shared")
 
-    testCompile project(":atlasdb-tests-shared")
-
     testCompile group: 'org.assertj', name: 'assertj-core'
     testCompile group: "org.jmock", name: "jmock", version: libVersions.jmock
 

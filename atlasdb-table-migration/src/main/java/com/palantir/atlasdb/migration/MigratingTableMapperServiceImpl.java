@@ -30,7 +30,7 @@ public class MigratingTableMapperServiceImpl implements MigratingTableMapperServ
     public MigratingTableMapperServiceImpl(Set<TableReference> tablesToMigrate, LongSupplier immutableTsSupplier) {
         this.tablesToMigrate = tablesToMigrate;
         this.immutableTsSupplier = immutableTsSupplier;
-        this.coordinationService = new MigrationCoordinationServiceImpl(null, MigrationStateTransitioner.INSTANCE);
+        this.coordinationService = new MigrationCoordinationServiceImpl(null, new MigrationStateTransitioner());
     }
 
     @Override

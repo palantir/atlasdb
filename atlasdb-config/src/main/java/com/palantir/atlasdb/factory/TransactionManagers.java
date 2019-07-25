@@ -83,11 +83,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TableMigratingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.migration.TableMigratingKeyValueService;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
 import com.palantir.atlasdb.persistentlock.NoOpPersistentLockService;
@@ -347,7 +347,7 @@ public abstract class TransactionManagers {
                     kvs,
                     MetricRegistry.name(KeyValueService.class));
             kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
-            return TableMigratingKeyValueService.create(kvs, tablesToMigrate(), immutableTsSupplier);
+            return TableMigratingKeyValueService.create(kvs, tablesToMigrate(), immutableTsSupplier::getImmutableTimestamp);
         }, closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
