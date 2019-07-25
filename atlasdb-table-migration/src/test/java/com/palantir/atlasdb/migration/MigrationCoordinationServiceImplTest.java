@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 
+@SuppressWarnings("unchecked") // Mocks of generic types
 public class MigrationCoordinationServiceImplTest {
     private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService =
             mock(CoordinationServiceImpl.class);
