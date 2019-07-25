@@ -16,12 +16,6 @@
 
 package com.palantir.atlasdb.migration;
 
-import static com.palantir.atlasdb.migration.MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE;
-import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST;
-import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND;
-import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_FIRST_ONLY;
-import static com.palantir.atlasdb.migration.MigrationCoordinationService.MigrationState.WRITE_SECOND_READ_SECOND;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +44,7 @@ public class MigrationStateTransitioner {
         MigrationCoordinationServiceImpl.MigrationState currentState = Optional.ofNullable(
                 currentStateMap.get(startTable))
                 .map(TableMigrationState::migrationsState)
-                .orElse(DEFAULT_MIGRATIONS_STATE);
+                .orElse(MigrationCoordinationServiceImpl.DEFAULT_MIGRATIONS_STATE);
 
         if (!isTransitionValid(currentState, targetState, targetTable.isPresent())) {
             throw new SafeIllegalStateException(
@@ -72,21 +66,22 @@ public class MigrationStateTransitioner {
             MigrationCoordinationServiceImpl.MigrationState currentState,
             MigrationCoordinationServiceImpl.MigrationState targetState,
             boolean targetTableGiven) {
-        if (currentState.equals(WRITE_FIRST_ONLY)) {
-            return targetState.equals(WRITE_BOTH_READ_FIRST) && targetTableGiven;
+        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_FIRST_ONLY)) {
+            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST)
+                    && targetTableGiven;
         }
 
         if (targetTableGiven) {
-            // todo(jelenac): Should we throw illegal state exception here? could return false and let the check above throw
+            // todo(jelenac): Should we throw illegal state exception here or just ignore and continue?
             log.warn("Target table given for a migration when it's not needed. The given table will be ignored");
         }
 
-        if (currentState.equals(WRITE_BOTH_READ_FIRST)) {
-            return targetState.equals(WRITE_BOTH_READ_SECOND);
+        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_FIRST)) {
+            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND);
         }
 
-        if (currentState.equals(WRITE_BOTH_READ_SECOND)) {
-            return targetState.equals(WRITE_SECOND_READ_SECOND);
+        if (currentState.equals(MigrationCoordinationService.MigrationState.WRITE_BOTH_READ_SECOND)) {
+            return targetState.equals(MigrationCoordinationService.MigrationState.WRITE_SECOND_READ_SECOND);
         }
 
         return false;

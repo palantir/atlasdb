@@ -109,18 +109,15 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
         }
 
         if (finalState.migrationsState() == targetState) {
-            log.info(
-                    "We attempted to change migration state for table {} and this was successful."
-                            + " We failed, but this version will eventually be utilised anyway, "
-                            + "taking effect no later than timestamp {}.",
-                    LoggingArgs.tableRef(startTable)); //todo(jelenac): how do we get timestamp, do we need to?
+            log.info("We attempted to change migration state for table {}."
+                            + "We failed, but the table is already in this state anyway.",
+                    LoggingArgs.tableRef(startTable));
             return true;
         }
 
         return false;
 
     }
-
 
     private TableMigrationStateMap getCurrentTableMigrationStateMap(
             ValueAndBound<TableMigrationStateMap> valueAndBound) {
