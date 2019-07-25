@@ -17,6 +17,8 @@ package com.palantir.common.base;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -84,4 +86,10 @@ public class AbortingVisitors {
         return item -> true;
     }
 
+    public static <T> AbortingVisitor<T, RuntimeException> singleBatch(Consumer<T> lambda) {
+        return item -> {
+            lambda.accept(item);
+            return false;
+        };
+    }
 }

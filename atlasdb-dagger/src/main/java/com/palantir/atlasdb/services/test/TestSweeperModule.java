@@ -41,6 +41,7 @@ import dagger.Module;
 import dagger.Provides;
 
 @Module
+@SuppressWarnings("OptionalOrElseMethodInvocation")
 public class TestSweeperModule {
 
     private final Optional<LongSupplier> unreadableTs;
