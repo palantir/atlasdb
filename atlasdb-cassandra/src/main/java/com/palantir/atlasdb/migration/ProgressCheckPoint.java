@@ -18,9 +18,8 @@ package com.palantir.atlasdb.migration;
 
 import java.util.Optional;
 
-@SuppressWarnings({"OptionalUsedAsFieldOrParameterType"})
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public interface ProgressCheckPoint {
-     Optional<byte[]> getNextStartRow();
-
-     void setNextStartRow(Optional<byte[]> row);
+    Optional<byte[]> getNextStartRow();
+    void setNextStartRow(Optional<byte[]> row);
 }

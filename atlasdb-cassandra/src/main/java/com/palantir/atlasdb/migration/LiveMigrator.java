@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -33,9 +34,9 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.common.base.AbortingVisitor;
-import com.palantir.common.base.BatchingVisitable;
+import com.palantir.common.base.AbortingVisitors;
 
 public class LiveMigrator implements CallbackInitializable<TransactionManager> {
     private static final Logger log = LoggerFactory.getLogger(LiveMigrator.class);
@@ -56,8 +57,8 @@ public class LiveMigrator implements CallbackInitializable<TransactionManager> {
         this.executor = executor;
     }
 
-    public void startMigration(Runnable callback) {
-        this.callback = callback;
+    public void startMigration(Runnable onFinish) {
+        this.callback = onFinish;
         executor.submit(this::runOneIterationSafe);
     }
 
@@ -86,23 +87,8 @@ public class LiveMigrator implements CallbackInitializable<TransactionManager> {
         Optional<byte[]> lastRead = transactionManager.runTaskWithRetry(
                 transaction -> {
                     AtomicReference<byte[]> lastReadRef = new AtomicReference<>();
-                    BatchingVisitable<RowResult<byte[]>> range = transaction.getRange(startTable, request);
-
-                    range.batchAccept(batchSize, new AbortingVisitor<List<RowResult<byte[]>>, RuntimeException>() {
-                        @Override
-                        public boolean visit(List<RowResult<byte[]>> item) {
-                            item.forEach(
-                                    rowResult -> {
-                                        transaction.put(targetTable,
-                                                Streams.stream(rowResult.getCells()).collect(
-                                                        Collectors.toMap(Map.Entry::getKey,
-                                                                Map.Entry::getValue)));
-                                        lastReadRef.set(rowResult.getRowName());
-                                    });
-                            return false;
-                        }
-                    });
-
+                    transaction.getRange(startTable, request)
+                            .batchAccept(batchSize, AbortingVisitors.singleBatch(writeRows(transaction, lastReadRef)));
                     return Optional.ofNullable(lastReadRef.get());
                 }
         );
@@ -111,8 +97,18 @@ public class LiveMigrator implements CallbackInitializable<TransactionManager> {
         executor.schedule(this::runOneIterationSafe, 10, TimeUnit.SECONDS);
     }
 
-    public void setBatchSize(int n) {
-        batchSize = n;
+    private Consumer<List<RowResult<byte[]>>> writeRows(Transaction transaction, AtomicReference<byte[]> lastReadRef) {
+        return rows -> rows.forEach(row -> writeRow(transaction, lastReadRef, row));
+    }
+
+    private void writeRow(Transaction transaction, AtomicReference<byte[]> lastReadRef, RowResult<byte[]> row) {
+        transaction.put(targetTable,
+                Streams.stream(row.getCells()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        lastReadRef.set(row.getRowName());
+    }
+
+    public void setBatchSize(int bla) {
+        batchSize = bla;
     }
 
     public boolean isDone() {
