@@ -21,10 +21,13 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
     static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
@@ -91,9 +94,33 @@ public class MigrationCoordinationServiceImpl implements MigrationCoordinationSe
                                 targetTable,
                                 targetState));
 
-        //todo(jelenac): see TransactionSchemaManager.tryInstallNewTransactionsSchemaVersion for defensive logic
-        return true;
+        TableMigrationState finalState = Optional.ofNullable(Iterables.getOnlyElement(transformResult.existingValues())
+                .value()
+                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"))
+                .tableMigrationStateMap()
+                .get(startTable))
+                .orElseThrow(() -> new SafeIllegalStateException("Unexpectedly found no value in store"));
+
+
+        if (transformResult.successful() && finalState.migrationsState() == targetState) {
+            log.info("We attempted to change migration state for table {} and this was successful.",
+                    LoggingArgs.tableRef(startTable));
+            return true;
+        }
+
+        if (finalState.migrationsState() == targetState) {
+            log.info(
+                    "We attempted to change migration state for table {} and this was successful."
+                            + " We failed, but this version will eventually be utilised anyway, "
+                            + "taking effect no later than timestamp {}.",
+                    LoggingArgs.tableRef(startTable)); //todo(jelenac): how do we get timestamp, do we need to?
+            return true;
+        }
+
+        return false;
+
     }
+
 
     private TableMigrationStateMap getCurrentTableMigrationStateMap(
             ValueAndBound<TableMigrationStateMap> valueAndBound) {
