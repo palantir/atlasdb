@@ -20,20 +20,17 @@ import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.google.common.collect.ImmutableSet;
-import com.palantir.async.initializer.CallbackInitializable;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class MigratingTableMapperServiceImpl implements MigratingTableMapperService,
-        CallbackInitializable<TransactionManager> {
+public class MigratingTableMapperServiceImpl implements MigratingTableMapperService {
     private final Set<TableReference> tablesToMigrate;
     private final LongSupplier immutableTsSupplier;
-    private final MigrationCoordinationService coordinationService;
+    private MigrationCoordinationService coordinationService;
 
     public MigratingTableMapperServiceImpl(Set<TableReference> tablesToMigrate, LongSupplier immutableTsSupplier) {
         this.tablesToMigrate = tablesToMigrate;
         this.immutableTsSupplier = immutableTsSupplier;
-        this.coordinationService = new MigrationCoordinationServiceImpl(null, new MigrationStateTransitioner());
     }
 
     @Override
@@ -75,8 +72,7 @@ public class MigratingTableMapperServiceImpl implements MigratingTableMapperServ
         }
     }
 
-    @Override
-    public void initialize(TransactionManager resource) {
-
+    public void initialize(CoordinationService<TableMigrationStateMap> coordinator) {
+        coordinationService = new MigrationCoordinationServiceImpl(coordinator, new MigrationStateTransitioner());
     }
 }

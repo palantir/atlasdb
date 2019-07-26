@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
@@ -30,23 +30,25 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public class MigrationCoordinationServiceImpl implements MigrationCoordinationService {
-    static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
-
     private static final Logger log = LoggerFactory.getLogger(MigrationCoordinationServiceImpl.class);
+    static final MigrationState DEFAULT_MIGRATIONS_STATE = MigrationState.WRITE_FIRST_ONLY;
 
     private static final TableMigrationStateMap EMPTY_TABLE_MIGRATION_STATE_MAP =
             ImmutableTableMigrationStateMap.builder().build();
     private static final TableMigrationState DEFAULT_TABLE_MIGRATION_STATE =
             TableMigrationState.of(DEFAULT_MIGRATIONS_STATE);
 
-    private final CoordinationServiceImpl<TableMigrationStateMap> coordinationService;
+    private final CoordinationService<TableMigrationStateMap> coordinationService;
     private final MigrationStateTransitioner migrationStateTransitioner;
 
-    public MigrationCoordinationServiceImpl(
-            CoordinationServiceImpl<TableMigrationStateMap> coordinationService,
+    public MigrationCoordinationServiceImpl(CoordinationService<TableMigrationStateMap> coordinationService,
             MigrationStateTransitioner migrationStateTransitioner) {
         this.coordinationService = coordinationService;
         this.migrationStateTransitioner = migrationStateTransitioner;
+    }
+
+    public static MigrationCoordinationService create(CoordinationService<TableMigrationStateMap> coordinator) {
+        return new MigrationCoordinationServiceImpl(coordinator, new MigrationStateTransitioner());
     }
 
     @Override

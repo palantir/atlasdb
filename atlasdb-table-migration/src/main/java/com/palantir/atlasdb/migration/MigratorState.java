@@ -17,23 +17,34 @@
 package com.palantir.atlasdb.migration;
 
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.common.concurrent.PTExecutors;
 
 public class MigratorState {
     private final MigrationCoordinationService coordinationService;
     private final ProgressCheckPoint checkpointer;
     private final TransactionManager txManager;
 
-    public MigratorState(MigrationCoordinationService coordinationService, ScheduledExecutorService executor,
+    public MigratorState(MigrationCoordinationService coordinationService, ExecutorService executor,
             ProgressCheckPoint checkpointer, TransactionManager txManager, Set<TableReference> tablesToMigrate) {
         this.coordinationService = coordinationService;
         this.checkpointer = checkpointer;
         this.txManager = txManager;
         executor.submit(() -> tablesToMigrate.forEach(this::moveState));
+    }
+
+    public static MigratorState createAndRun(TransactionManager manager, MigrationCoordinationService coordination,
+            Set<TableReference> tablesToMigrate) {
+        return new MigratorState(
+                coordination,
+                PTExecutors.newSingleThreadExecutor(true),
+                null,
+                manager,
+                tablesToMigrate);
     }
 
     public void runWithRetry(Supplier<Boolean> method) throws InterruptedException {

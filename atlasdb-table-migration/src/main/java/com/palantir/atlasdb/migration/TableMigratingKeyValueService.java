@@ -23,11 +23,18 @@ import java.util.Set;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.CallbackInitializable;
+import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
+import com.palantir.atlasdb.coordination.CoordinationStore;
+import com.palantir.atlasdb.coordination.keyvalue.KeyValueServiceCoordinationStore;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -56,20 +63,23 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 public class TableMigratingKeyValueService implements KeyValueService, CallbackInitializable<TransactionManager> {
     private final KeyValueService delegate;
-    private volatile MigratingTableMapperService tableMapper;
+    private volatile MigratingTableMapperServiceImpl tableMapper;
+    private final Set<TableReference> tablesToMigrate;
 
-    public TableMigratingKeyValueService(KeyValueService delegate, MigratingTableMapperService tableMapper) {
+    public TableMigratingKeyValueService(KeyValueService delegate, MigratingTableMapperServiceImpl tableMapper,
+            Set<TableReference> tablesToMigrate) {
         this.delegate = delegate;
         this.tableMapper = tableMapper;
+        this.tablesToMigrate = tablesToMigrate;
     }
 
-    public static KvsWithCallback create(KeyValueService kvs, Set<TableReference> tablesToMigrate,
+    public static KvsWithCallback create(KeyValueService kvs, Set<TableReference> migrate,
             LongSupplier immutableTsSupplier) {
-        if (tablesToMigrate.isEmpty()) {
+        if (migrate.isEmpty()) {
             return ImmutableKvsWithCallback.of(kvs, Callback.noOp());
         }
         TableMigratingKeyValueService migratingKvs = new TableMigratingKeyValueService(kvs,
-                new MigratingTableMapperServiceImpl(tablesToMigrate, immutableTsSupplier));
+                new MigratingTableMapperServiceImpl(migrate, immutableTsSupplier), migrate);
         return ImmutableKvsWithCallback.of(migratingKvs, migratingKvs.singleAttemptCallback());
     }
 
@@ -331,7 +341,19 @@ public class TableMigratingKeyValueService implements KeyValueService, CallbackI
     }
 
     @Override
-    public void initialize(TransactionManager resource) {
+    public void initialize(TransactionManager transactionManager) {
+        CoordinationStore<TableMigrationStateMap> store = KeyValueServiceCoordinationStore.create(
+                new ObjectMapper(),
+                this,
+                PtBytes.toBytes("migrationRow"),
+                () -> transactionManager.getTimelockService().getFreshTimestamp(),
+                Objects::equal,
+                TableMigrationStateMap.class,
+                false);
+        CoordinationService<TableMigrationStateMap> coordinator = new CoordinationServiceImpl<>(store);
 
+        MigrationCoordinationService coordinationService = MigrationCoordinationServiceImpl.create(coordinator);
+        tableMapper.initialize(coordinator);
+        MigratorState migrator = MigratorState.createAndRun(transactionManager, coordinationService, tablesToMigrate);
     }
 }
