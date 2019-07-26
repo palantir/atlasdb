@@ -24,6 +24,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import com.google.common.collect.ForwardingObject;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -80,6 +81,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         return delegate().get(tableRef, cells);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return delegate().getAsync(tableRef, cells);
     }
 
     @Override

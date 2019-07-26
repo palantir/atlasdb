@@ -55,6 +55,9 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -250,6 +253,17 @@ public class SerializableTransaction extends SnapshotTransaction {
         Map<Cell, byte[]> ret = super.get(tableRef, cells);
         markCellsRead(tableRef, cells, ret);
         return ret;
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        return Futures.transform(
+                super.getAsync(tableRef, cells),
+                ret -> {
+                    markCellsRead(tableRef, cells, ret);
+                    return ret;
+                },
+                MoreExecutors.directExecutor());
     }
 
     @Override

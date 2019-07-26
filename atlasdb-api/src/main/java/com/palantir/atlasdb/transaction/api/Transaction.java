@@ -22,6 +22,7 @@ import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -67,6 +68,9 @@ public interface Transaction {
 
     @Idempotent
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
+
+    @Idempotent
+    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells);
 
     /**
      * Creates a visitable that scans the provided range.

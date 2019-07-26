@@ -38,14 +38,19 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.util.AnnotatedCallable;
 import com.palantir.atlasdb.util.AnnotationType;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.async.AsyncFunctionCheckedException;
 import com.palantir.logsafe.SafeArg;
 
 final class CellLoader {
@@ -182,6 +187,115 @@ final class CellLoader {
         }
         return tasks;
     }
+
+//    ListenableFuture<Void> loadWithTsAsync(
+//            String kvsMethodName,
+//            TableReference tableRef,
+//            Set<Cell> cells,
+//            long startTs,
+//            boolean loadAllTs,
+//            CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
+//            ConsistencyLevel consistency) {
+//        try {
+//            Map<InetSocketAddress, List<Cell>> hostsAndCells = HostPartitioner.partitionByHost(clientPool, cells,
+//                    Cell::getRowName);
+//            int totalPartitions = hostsAndCells.keySet().size();
+//
+//            if (log.isTraceEnabled()) {
+//                log.trace(
+//                        "Loading {} cells from {} {}starting at timestamp {}, partitioned across {} nodes.",
+//                        SafeArg.of("cells", cells.size()),
+//                        LoggingArgs.tableRef(tableRef),
+//                        SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
+//                        SafeArg.of("startTs", startTs),
+//                        SafeArg.of("totalPartitions", totalPartitions));
+//            }
+//
+//            List<ListenableFuture<Void>> tasks = Lists.newArrayListWithCapacity(hostsAndCells.size());
+//            for (Map.Entry<InetSocketAddress, List<Cell>> hostAndCells : hostsAndCells.entrySet()) {
+//                if (log.isTraceEnabled()) {
+//                    log.trace(
+//                            "Requesting {} cells from {} {}starting at timestamp {} on {}",
+//                            SafeArg.of("cells", hostsAndCells.values().size()),
+//                            LoggingArgs.tableRef(tableRef),
+//                            SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
+//                            SafeArg.of("startTs", startTs),
+//                            SafeArg.of("ipPort", hostAndCells.getKey()));
+//                }
+//
+//                tasks.add(getLoadWithTsTasksForSingleHostAsync(kvsMethodName,
+//                        hostAndCells.getKey(),
+//                        tableRef,
+//                        hostAndCells.getValue(),
+//                        startTs,
+//                        loadAllTs,
+//                        visitor,
+//                        consistency));
+//            }
+//
+//            return Futures.whenAllSucceed(tasks).call(() -> null, MoreExecutors.directExecutor());
+//        } catch (Throwable e) {
+//            return Futures.immediateFailedFuture(e);
+//        }
+//    }
+//
+//    // TODO(unknown): after cassandra api change: handle different column select per row
+//    private ListenableFuture<Void> getLoadWithTsTasksForSingleHostAsync(final String kvsMethodName,
+//            final InetSocketAddress host,
+//            final TableReference tableRef,
+//            final Collection<Cell> cells,
+//            final long startTs,
+//            final boolean loadAllTs,
+//            final CassandraKeyValueServices.ThreadSafeResultVisitor visitor,
+//            final ConsistencyLevel consistency) {
+//        try {
+//            final ColumnParent colFam = new ColumnParent(CassandraKeyValueServiceImpl.internalTableName(tableRef));
+//            List<ListenableFuture<Void>> tasks = Lists.newArrayList();
+//            for (final List<Cell> partition : batcher.partitionIntoBatches(cells, host, tableRef)) {
+//                tasks.add(clientPool.runWithRetryOnHostAsync(
+//                        host,
+//                        new AsyncFunctionCheckedException<AsyncCassandraClient, Void, Exception>() {
+//                            @Override
+//                            public ListenableFuture<Void> apply(AsyncCassandraClient client)
+//                                    throws Exception {
+//                                List<KeyPredicate> query
+//                                        = translatePartitionToKeyPredicates(partition, startTs, loadAllTs);
+//
+//                                if (log.isTraceEnabled()) {
+//                                    log.trace("Requesting {} cells from {} {}starting at timestamp {} on {}",
+//                                            SafeArg.of("cells", partition.size()),
+//                                            LoggingArgs.tableRef(tableRef),
+//                                            SafeArg.of("timestampClause", loadAllTs ? "for all timestamps " : ""),
+//                                            SafeArg.of("startTs", startTs),
+//                                            SafeArg.of("host", CassandraLogHelper.host(host)));
+//                                }
+//
+//                                return Futures.transform(
+//                                        queryRunner.multiget_multislice_async(kvsMethodName, client, tableRef, query,
+//                                                consistency),
+//                                        results -> {
+//                                            Map<ByteBuffer, List<ColumnOrSuperColumn>> aggregatedResults =
+//                                                    Maps.transformValues(
+//                                                            results,
+//                                                            lists -> Lists.newArrayList(Iterables.concat(lists)));
+//                                            visitor.visit(aggregatedResults);
+//                                            return null;
+//                                        },
+//                                        MoreExecutors.directExecutor());
+//                            }
+//
+//                            @Override
+//                            public String toString() {
+//                                return "multiget_multislice(" + host + ", " + colFam + ", "
+//                                        + partition.size() + " cells" + ")";
+//                            }
+//                        }));
+//            }
+//            return Futures.whenAllSucceed(tasks).call(() -> null, MoreExecutors.directExecutor());
+//        } catch (Throwable e) {
+//            return Futures.immediateFailedFuture(e);
+//        }
+//    }
 
     private static List<KeyPredicate> translatePartitionToKeyPredicates(
             List<Cell> partition, long startTs, boolean loadAllTs) {

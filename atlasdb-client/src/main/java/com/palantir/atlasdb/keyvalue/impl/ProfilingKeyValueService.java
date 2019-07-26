@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -229,6 +230,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
                                 LoggingArgs.cellCount(timestampByCell.size()),
                                 LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate.getAsync(tableRef, timestampByCell);
     }
 
     @Override

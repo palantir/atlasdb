@@ -74,6 +74,9 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -600,6 +603,43 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
     }
 
     @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        Timer.Context timer = getTimer("get").time();
+        checkGetPreconditions(tableRef);
+        if (Iterables.isEmpty(cells)) {
+            // TODO(jakubk): Should be memoized
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+        hasReads = true;
+
+        Map<Cell, byte[]> result = Maps.newHashMap();
+        SortedMap<Cell, byte[]> writes = writesByTable.get(tableRef);
+        if (writes != null) {
+            for (Cell cell : cells) {
+                if (writes.containsKey(cell)) {
+                    result.put(cell, writes.get(cell));
+                }
+            }
+        }
+
+        return Futures.transform(
+                // We don't need to read any cells that were written locally.
+                getFromKeyValueServiceAsync(tableRef, Sets.difference(cells, result.keySet())),
+                keyValueResult -> {
+                    result.putAll(getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet())));
+
+                    long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+                    if (perfLogger.isDebugEnabled()) {
+                        perfLogger.debug("get({}, {} cells) found {} cells (some possibly deleted), took {} ms",
+                                tableRef, cells.size(), result.size(), getMillis);
+                    }
+                    validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp());
+                    return removeEmptyColumns(result, tableRef);
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    @Override
     public Map<Cell, byte[]> getIgnoringLocalWrites(TableReference tableRef, Set<Cell> cells) {
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(cells)) {
@@ -624,6 +664,23 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         Map<Cell, Value> rawResults = keyValueService.get(tableRef, toRead);
         getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
         return result.build();
+    }
+
+    /**
+     * This will load the given keys from the underlying key value service and apply postFiltering so we have snapshot
+     * isolation.  If the value in the key value service is the empty array this will be included here and needs to be
+     * filtered out.
+     */
+    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueServiceAsync(TableReference tableRef, Set<Cell> cells) {
+        ImmutableMap.Builder<Cell, byte[]> result = ImmutableMap.builderWithExpectedSize(cells.size());
+        Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
+        return Futures.transform(
+                keyValueService.getAsync(tableRef, toRead),
+                rawResults -> {
+                    getWithPostFiltering(tableRef, rawResults, result, Value.GET_VALUE);
+                    return result.build();
+                },
+                MoreExecutors.directExecutor());
     }
 
     private static byte[] getNextStartRowName(

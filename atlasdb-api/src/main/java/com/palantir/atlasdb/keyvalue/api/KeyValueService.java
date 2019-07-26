@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.NonIdempotent;
@@ -129,6 +130,21 @@ public interface KeyValueService extends AutoCloseable {
      */
     @Idempotent
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
+
+    /**
+     * Gets values from the key-value store.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to retrieve that
+     * rows's value.
+     * @return map of retrieved values. Values which do not exist (either because they were deleted or never created in
+     * the first place) are simply not returned.
+     * @throws IllegalArgumentException if any of the requests were invalid (e.g., attempting to retrieve values from a
+     * non-existent table).
+     */
+    // This is temporary, so I don't need to change all the impls, and can focus on Cass only
+    @Idempotent
+    ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     /**
      * Gets timestamp values from the key-value store.

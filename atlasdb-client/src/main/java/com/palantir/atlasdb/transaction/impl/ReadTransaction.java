@@ -22,6 +22,7 @@ import java.util.SortedMap;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -60,6 +61,12 @@ public class ReadTransaction extends ForwardingTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         checkTableName(tableRef);
         return delegate().get(tableRef, cells);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        checkTableName(tableRef);
+        return super.getAsync(tableRef, cells);
     }
 
     @Override

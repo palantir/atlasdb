@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -67,6 +68,9 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -98,6 +102,10 @@ import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.cql.CQLExecutor;
+import com.palantir.atlasdb.keyvalue.cassandra.cql.CQLExecutorImpl;
+import com.palantir.atlasdb.keyvalue.cassandra.cql.CQLSessionFactory;
+import com.palantir.atlasdb.keyvalue.cassandra.cql.CqlFieldNameProvider;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowsForSweepingIterator;
@@ -205,6 +213,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
     private final CassandraClientPool clientPool;
+    private final AtomicReference<CQLExecutor> cqlExecutor = new AtomicReference<>();
 
     private ConsistencyLevel readConsistency = ConsistencyLevel.LOCAL_QUORUM;
 
@@ -423,6 +432,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         CassandraKeyValueServices.warnUserInInitializationIfClusterAlreadyInInconsistentState(
                 clientPool,
                 config);
+        cqlExecutor.set(Futures.getUnchecked(Futures.transform(CQLSessionFactory.getInstance().getSession(config),
+                session -> {
+                    CQLExecutor executor = new CQLExecutorImpl(
+                            metricsManager,
+                            config,
+                            session,
+                            new CqlFieldNameProvider());
+                    return executor;
+                }, MoreExecutors.directExecutor())));
     }
 
     @VisibleForTesting
@@ -683,6 +701,57 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         cellLoader.loadWithTs(kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, readConsistency);
         return collector.getCollectedResults();
     }
+
+    /**
+     * Gets values from the key-value store. Requires a quorum of Cassandra nodes to be reachable.
+     *
+     * @param tableRef the name of the table to retrieve values from.
+     * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to retrieve that
+     * rows's value.
+     * @return map of retrieved values. Values which do not exist (either because they were deleted or never created in
+     * the first place) are simply not returned.
+     * @throws AtlasDbDependencyException if fewer than a quorum of Cassandra nodes are reachable.
+     * @throws IllegalArgumentException if any of the requests were invalid (e.g., attempting to retrieve values from a
+     * non-existent table).
+     */
+    @Override
+    public final ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return cqlExecutor.get().get(tableRef, timestampByCell);
+    }
+
+//    private final ListenableFuture<Map<Cell, Value>> getAsyncThrift(TableReference tableRef,
+//            Map<Cell, Long> timestampByCell) {
+//        try {
+//            Long firstTs = timestampByCell.values().iterator().next();
+//            if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
+//                return getAsync("get", tableRef, timestampByCell.keySet(), firstTs);
+//            }
+//
+//            SetMultimap<Long, Cell> cellsByTs = Multimaps.invertFrom(
+//                    Multimaps.forMap(timestampByCell), HashMultimap.create());
+//
+//            List<ListenableFuture<Map<Cell, Value>>> allResults = Lists.newArrayListWithCapacity(
+//                    cellsByTs.keySet().size());
+//            for (long ts : cellsByTs.keySet()) {
+//                allResults.add(getAsync("get", tableRef, cellsByTs.get(ts), ts));
+//            }
+//            return Futures.transform(Futures.allAsList(allResults), results -> {
+//                Builder<Cell, Value> builder = ImmutableMap.builder();
+//                results.forEach(builder::putAll);
+//                return builder.build();
+//            }, MoreExecutors.directExecutor());
+//        } catch (Exception e) {
+//            return Futures.immediateFailedFuture(Throwables.unwrapAndReturnAtlasDbDependencyException(e));
+//        }
+//    }
+//
+//    private ListenableFuture<Map<Cell, Value>> getAsync(String kvsMethodName, TableReference tableRef, Set<Cell> cells,
+//            long maxTimestampExclusive) {
+//        StartTsResultsCollector collector = new StartTsResultsCollector(metricsManager, maxTimestampExclusive);
+//        ListenableFuture<Void> get = cellLoader.loadWithTsAsync(kvsMethodName, tableRef, cells, maxTimestampExclusive,
+//                false, collector, readConsistency);
+//        return Futures.transform(get, $ -> collector.getCollectedResults(), MoreExecutors.directExecutor());
+//    }
 
     /**
      * Gets values from the key-value store for the specified rows and column range as separate iterators for each row.

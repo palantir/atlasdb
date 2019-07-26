@@ -12,6 +12,7 @@ dependencies {
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind'
   compile group: 'javax.annotation', name: 'javax.annotation-api'
   compile group: 'javax.validation', name: 'validation-api'
+  compile group: 'com.google.guava', name: 'guava'
 
   compile group: 'com.palantir.conjure.java.api', name: 'ssl-config'
   compile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'

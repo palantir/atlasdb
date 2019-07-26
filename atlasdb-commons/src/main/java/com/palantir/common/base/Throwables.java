@@ -92,11 +92,28 @@ public final class Throwables {
         throw createAtlasDbDependencyException(ex);
     }
 
+    public static AtlasDbDependencyException unwrapAndReturnAtlasDbDependencyException(Throwable ex) {
+        if (ex instanceof ExecutionException || ex instanceof InvocationTargetException) {
+            return createAtlasDbDependencyExceptionNoThrow(ex.getCause());
+        }
+        return createAtlasDbDependencyExceptionNoThrow(ex);
+    }
+
     private static RuntimeException createAtlasDbDependencyException(Throwable ex) {
         if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
             Thread.currentThread().interrupt();
         }
         throwIfInstance(ex, AtlasDbDependencyException.class);
+        return new AtlasDbDependencyException(ex);
+    }
+
+    private static AtlasDbDependencyException createAtlasDbDependencyExceptionNoThrow(Throwable ex) {
+        if (ex instanceof InterruptedException || ex instanceof InterruptedIOException) {
+            Thread.currentThread().interrupt();
+        }
+        if (ex instanceof AtlasDbDependencyException) {
+            return (AtlasDbDependencyException) ex;
+        }
         return new AtlasDbDependencyException(ex);
     }
 

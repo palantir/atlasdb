@@ -30,6 +30,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -134,6 +137,32 @@ public class CachingTransaction extends ForwardingTransaction {
         cacheLoadedCells(tableRef, toLoad, loaded);
         cacheHit.putAll(loaded);
         return cacheHit;
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
+        if (cells.isEmpty()) {
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+
+        Set<Cell> toLoad = Sets.newHashSet();
+        Map<Cell, byte[]> cacheHit = Maps.newHashMapWithExpectedSize(cells.size());
+        for (Cell cell : cells) {
+            byte[] val = getCachedCellIfPresent(tableRef, cell);
+            if (val != null) {
+                if (val.length > 0) {
+                    cacheHit.put(cell, val);
+                }
+            } else {
+                toLoad.add(cell);
+            }
+        }
+
+        return Futures.transform(super.getAsync(tableRef, toLoad), loaded -> {
+            cacheLoadedCells(tableRef, toLoad, loaded);
+            cacheHit.putAll(loaded);
+            return cacheHit;
+        }, MoreExecutors.directExecutor());
     }
 
     @Override

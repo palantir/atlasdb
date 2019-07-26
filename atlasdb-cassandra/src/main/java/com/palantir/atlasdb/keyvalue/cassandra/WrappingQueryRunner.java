@@ -27,8 +27,12 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 
 /**
@@ -89,4 +93,21 @@ class WrappingQueryRunner {
                     "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
         }
     }
+//
+//    ListenableFuture<Map<ByteBuffer, List<List<ColumnOrSuperColumn>>>> multiget_multislice_async(
+//            String kvsMethodName,
+//            AsyncCassandraClient client,
+//            TableReference tableRef,
+//            List<KeyPredicate> request,
+//            ConsistencyLevel consistency) throws TException {
+//        return Futures.catching(
+//                client.multiget_multislice(kvsMethodName, tableRef, request, consistency),
+//                UnavailableException.class,
+//                e -> {
+//                    throw new InsufficientConsistencyException(
+//                            "This get operation requires " + consistency + " Cassandra nodes to be up and available.",
+//                            e);
+//                },
+//                MoreExecutors.directExecutor());
+//    }
 }

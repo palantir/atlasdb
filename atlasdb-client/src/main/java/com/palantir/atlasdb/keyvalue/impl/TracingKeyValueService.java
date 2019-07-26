@@ -25,6 +25,7 @@ import com.google.common.collect.ForwardingObject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -209,6 +210,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
                 LoggingArgs.safeTableOrPlaceholder(tableRef), timestampByCell.size())) {
             return delegate().get(tableRef, timestampByCell);
         }
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate().getAsync(tableRef, timestampByCell);
     }
 
     @Override

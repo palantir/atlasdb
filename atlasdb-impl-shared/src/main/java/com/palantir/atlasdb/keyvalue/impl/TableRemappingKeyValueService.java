@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.TableMappingService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -166,6 +167,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         try {
             return delegate().get(tableMapper.getMappedTableName(tableRef), timestampByCell);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        try {
+            return delegate().getAsync(tableMapper.getMappedTableName(tableRef), timestampByCell);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

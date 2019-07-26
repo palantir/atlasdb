@@ -18,7 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.keyvalue.cassandra.async.AsyncCassandraClient;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.common.base.async.AsyncFunctionCheckedException;
 import com.palantir.processors.AutoDelegate;
 
 @AutoDelegate
@@ -34,4 +37,8 @@ public interface CassandraClientPool {
     InetSocketAddress getRandomHostForKey(byte[] key);
     Map<InetSocketAddress, CassandraClientPoolingContainer> getCurrentPools();
     void shutdown();
+//
+//    <V, K extends Exception> ListenableFuture<V> runWithRetryOnHostAsync(
+//            InetSocketAddress specifiedHost,
+//            AsyncFunctionCheckedException<AsyncCassandraClient, V, K> fn) throws K;
 }
