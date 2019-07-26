@@ -16,6 +16,21 @@
 
 package com.palantir.atlasdb.migration;
 
-public interface TableMigrator {
-    void startMigration();
+import org.immutables.value.Value;
+
+import com.palantir.async.initializer.Callback;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
+
+@Value.Immutable
+public interface KvsWithCallback extends AutoCloseable {
+    @Value.Parameter
+    KeyValueService kvs();
+    @Value.Parameter
+    Callback<TransactionManager> callback();
+
+    @Override
+    default void close() {
+        kvs().close();
+    }
 }

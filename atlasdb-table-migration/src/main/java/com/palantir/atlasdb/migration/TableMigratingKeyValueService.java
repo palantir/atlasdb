@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.palantir.async.initializer.Callback;
+import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
@@ -46,12 +48,13 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
-public class TableMigratingKeyValueService implements KeyValueService {
+public class TableMigratingKeyValueService implements KeyValueService, CallbackInitializable<TransactionManager> {
     private final KeyValueService delegate;
     private volatile MigratingTableMapperService tableMapper;
 
@@ -60,13 +63,14 @@ public class TableMigratingKeyValueService implements KeyValueService {
         this.tableMapper = tableMapper;
     }
 
-    public static KeyValueService create(KeyValueService kvs, Set<TableReference> tablesToMigrate,
+    public static KvsWithCallback create(KeyValueService kvs, Set<TableReference> tablesToMigrate,
             LongSupplier immutableTsSupplier) {
         if (tablesToMigrate.isEmpty()) {
-            return kvs;
+            return ImmutableKvsWithCallback.of(kvs, Callback.noOp());
         }
-        return new TableMigratingKeyValueService(kvs,
+        TableMigratingKeyValueService migratingKvs = new TableMigratingKeyValueService(kvs,
                 new MigratingTableMapperServiceImpl(tablesToMigrate, immutableTsSupplier));
+        return ImmutableKvsWithCallback.of(migratingKvs, migratingKvs.singleAttemptCallback());
     }
 
     /**
@@ -324,5 +328,10 @@ public class TableMigratingKeyValueService implements KeyValueService {
                 .map(tableMapper::writeTables)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public void initialize(TransactionManager resource) {
+
     }
 }

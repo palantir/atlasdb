@@ -64,7 +64,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
         TRM.getDefaultKvs().createTable(OLD_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         TRM.getDefaultKvs().createTable(NEW_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         manager = getManager();
-        liveMigrator = new LiveMigrator(manager, OLD_TABLE_REF, NEW_TABLE_REF, checkPoint, executor);
+        liveMigrator = new LiveMigrator(manager, OLD_TABLE_REF, NEW_TABLE_REF, checkPoint, executor, coordinator);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
 
         assertThat(value).containsExactly(PtBytes.toBytes(0L));
 
-        liveMigrator.startMigration(() -> { });
+        liveMigrator.runMigration(() -> { });
         executor.tick(1, TimeUnit.SECONDS);
 
         assertValuesInTargetTable(1, 1);
@@ -89,7 +89,7 @@ public class LiveMigratorTest extends TransactionTestSetup {
         writeToOldTable(5, 5);
         liveMigrator.setBatchSize(1);
 
-        liveMigrator.startMigration(() -> { });
+        liveMigrator.runMigration(() -> { });
 
         executor.tick(15, TimeUnit.SECONDS);
 

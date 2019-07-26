@@ -87,6 +87,7 @@ import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.migration.KvsWithCallback;
 import com.palantir.atlasdb.migration.TableMigratingKeyValueService;
 import com.palantir.atlasdb.persistentlock.CheckAndSetExceptionMapper;
 import com.palantir.atlasdb.persistentlock.KvsBackedPersistentLockService;
@@ -326,7 +327,7 @@ public abstract class TransactionManagers {
 
         ImmutableTimestampSupplier immutableTsSupplier = lockAndTimestampServices.timelock()::getImmutableTimestamp;
 
-        KeyValueService keyValueService = initializeCloseable(() -> {
+        KvsWithCallback kvsWithCallback = initializeCloseable(() -> {
             KeyValueService kvs = atlasFactory.getKeyValueService();
             kvs = ProfilingKeyValueService.create(kvs);
             kvs = new SafeTableClearerKeyValueService(immutableTsSupplier, kvs);
@@ -349,6 +350,8 @@ public abstract class TransactionManagers {
             kvs = ValidatingQueryRewritingKeyValueService.create(kvs);
             return TableMigratingKeyValueService.create(kvs, tablesToMigrate(), immutableTsSupplier::getImmutableTimestamp);
         }, closeables);
+
+        KeyValueService keyValueService = kvsWithCallback.kvs();
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync());
@@ -386,6 +389,7 @@ public abstract class TransactionManagers {
                 closeables);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+                kvsWithCallback.callback(),
                 timelockConsistencyCheckCallback(config(), runtimeConfigSupplier.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback());

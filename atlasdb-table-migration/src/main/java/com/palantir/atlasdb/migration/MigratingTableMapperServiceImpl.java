@@ -20,9 +20,12 @@ import java.util.Set;
 import java.util.function.LongSupplier;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 
-public class MigratingTableMapperServiceImpl implements MigratingTableMapperService {
+public class MigratingTableMapperServiceImpl implements MigratingTableMapperService,
+        CallbackInitializable<TransactionManager> {
     private final Set<TableReference> tablesToMigrate;
     private final LongSupplier immutableTsSupplier;
     private final MigrationCoordinationService coordinationService;
@@ -70,5 +73,10 @@ public class MigratingTableMapperServiceImpl implements MigratingTableMapperServ
             default:
                 throw new IllegalStateException("Unknown migration state");
         }
+    }
+
+    @Override
+    public void initialize(TransactionManager resource) {
+
     }
 }
