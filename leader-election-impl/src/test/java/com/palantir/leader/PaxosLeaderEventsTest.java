@@ -67,7 +67,7 @@ public class PaxosLeaderEventsTest {
 
     @Test
     public void recordsLeaderPingTimeout() {
-        when(pingableLeader.ping()).thenAnswer(bla -> {
+        when(pingableLeader.ping()).thenAnswer($ -> {
             Thread.sleep(10_000);
             return true;
         });

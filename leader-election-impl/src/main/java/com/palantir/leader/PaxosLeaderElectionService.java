@@ -147,11 +147,11 @@ public class PaxosLeaderElectionService implements PingableLeader, LeaderElectio
     }
 
     private boolean pingLeader(Optional<PaxosValue> maybeGreatestLearnedValue) {
-        if (!maybeGreatestLearnedValue.isPresent()) {
-            return false;
-        }
-
-        return leaderPinger.pingLeaderWithUuid(UUID.fromString(maybeGreatestLearnedValue.get().getLeaderUUID()));
+        return maybeGreatestLearnedValue
+                .map(PaxosValue::getLeaderUUID)
+                .map(UUID::fromString)
+                .map(leaderPinger::pingLeaderWithUuid)
+                .orElse(false);
     }
 
     @Override
