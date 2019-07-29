@@ -32,6 +32,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.exception.NotInitializedException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
@@ -178,12 +179,15 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * If true, a background thread will periodically delete cells that
-     * have been overwritten or deleted. This differs from scrubbing
-     * because it is an untargeted cleaning process that scans all data
-     * looking for cells to delete.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#enableSweep} to make this value
-     * live-reloadable.
+     * If true, a background thread will periodically delete cells that have been overwritten or deleted. This differs
+     * from scrubbing because it is an untargeted cleaning process that scans all data looking for cells to delete.
+     *
+     * Note that this relates to Background or Legacy Sweep, and is separate from Targeted Sweep (which is enabled or
+     * disabled depending on {@link TargetedSweepInstallConfig#enableSweepQueueWrites()} and
+     * {@link TargetedSweepRuntimeConfig#enabled()}).
+     *
+     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep#enableSweep} to make this value live-reloadable. This value
+     * may be disregarded if {@link AtlasDbRuntimeConfig#sweep#enableSweep} is specified.
      */
     @Deprecated
     @Value.Default

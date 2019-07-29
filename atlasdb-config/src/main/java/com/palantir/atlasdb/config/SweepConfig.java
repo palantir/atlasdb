@@ -34,8 +34,11 @@ public abstract class SweepConfig {
      * from scrubbing because it is an untargeted cleaning process that scans all data looking for cells to delete.
      */
     @Value.Default
-    public Boolean enabled() {
-        return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
+    public abstract Optional<Boolean> enabled();
+
+    @Value.Lazy
+    public boolean shouldRunSweep() {
+        return enabled().orElse(AtlasDbConstants.DEFAULT_ENABLE_SWEEP);
     }
 
     // TODO handle live reload
