@@ -27,10 +27,12 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
  * Synthesises provided install and runtime configurations, and uses this to decide whether the background sweeper
  * should run. Specifically:
  *
- * - if the background sweeper has been explicitly enabled or disabled, use that setting;
- * - otherwise if Targeted Sweep is fully enabled (both writing to the sweep queue and actually sweeping), disable
- *   background sweep
- * - otherwise, follow {@link AtlasDbConstants#DEFAULT_ENABLE_SWEEP}.
+ * <ul>
+ *     <li>if the background sweeper has been explicitly enabled or disabled, use that setting;</li>
+ *     <li>otherwise if Targeted Sweep is fully enabled (both writing to the sweep queue and actually sweeping), disable
+ *     background sweep</li>
+ *     <li>otherwise, follow {@link AtlasDbConstants#DEFAULT_ENABLE_SWEEP}.</li>
+ * </ul>
  */
 public class ShouldRunBackgroundSweepSupplier implements Supplier<Boolean> {
     private final TargetedSweepInstallConfig targetedSweepInstallConfig;

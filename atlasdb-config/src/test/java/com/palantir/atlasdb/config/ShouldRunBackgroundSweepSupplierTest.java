@@ -104,9 +104,15 @@ public class ShouldRunBackgroundSweepSupplierTest {
         ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
                 SWEEP_QUEUE_WRITES_ENABLED, runtimeConfigSupplier);
 
-        assertThat(supplier.get()).isFalse();
-        assertThat(supplier.get()).isTrue();
-        assertThat(supplier.get()).isTrue();
+        assertThat(supplier.get())
+                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET")
+                .isFalse();
+        assertThat(supplier.get())
+                .as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET")
+                .isTrue();
+        assertThat(supplier.get())
+                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED")
+                .isTrue();
     }
 
     private static AtlasDbRuntimeConfig createRuntimeConfig(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig,
