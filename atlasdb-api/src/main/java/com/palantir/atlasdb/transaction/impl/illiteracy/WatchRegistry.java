@@ -31,12 +31,6 @@ public interface WatchRegistry {
     // Returns true iff the watch was actually removed
     Set<RowReference> disableWatchForRows(Set<RowReference> rowReference);
 
-    // Returns the most precise available reference one has into the row cache.
-    // Alternatively, a minimum set of references - if any of these are unchanged then the cache is treated as valid.
-    Map<RowReference, RowCacheReference> filterToWatchedRows(Set<RowReference> rowReferenceSet);
-
-    Optional<RowCacheReference> filterRangeReference(TableReference tableRef, RangeRequest rangeRequest);
-
     // Precondition: Table must have row level conflict handling
     void enableWatchForRowPrefix(RowPrefixReference prefixReference);
 
@@ -48,4 +42,10 @@ public interface WatchRegistry {
 
     // Returns the cells that are watched
     Set<CellReference> filterToWatchedCells(Set<CellReference> rowReferenceSet);
+
+    // Returns the most precise available reference one has into the row cache.
+    // Alternatively, a minimum set of references - if any of these are unchanged then the cache is treated as valid.
+    Map<RowReference, RowCacheReference> filterToWatchedRows(Set<RowReference> rowReferenceSet);
+
+    Optional<RowCacheReference> filterRangeReference(TableReference tableRef, RangeRequest rangeRequest);
 }

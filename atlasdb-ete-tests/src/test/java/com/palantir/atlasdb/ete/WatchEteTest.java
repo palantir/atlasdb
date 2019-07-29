@@ -306,6 +306,7 @@ public class WatchEteTest {
         assertThat(response).isEqualTo(ImmutableMap.of("-jeremy", "red"));
         assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(1);
 
+        // TODO (jkong): Implement smarter population of sub-ranges
         response = rowWatchResource.getRange("-t", "-tz");
         assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-tim", "yellow"));
         assertThat(rowWatchResource.getRangeReadCount(TABLE_REFERENCE)).isEqualTo(2);
@@ -315,7 +316,6 @@ public class WatchEteTest {
         assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
 
         rowWatchResource.put("-jeremy", StringWrapper.of("black"));
-        rowWatchResource.flushCache();
 
         response = rowWatchResource.getRange("-t", "-tz");
         assertThat(response).isEqualTo(ImmutableMap.of("-tom", "blue", "-tim", "yellow"));
@@ -334,7 +334,6 @@ public class WatchEteTest {
         assertThat(rowWatchResource.getGetCount()).isEqualTo(1);
 
         rowWatchResource.put("-tim", StringWrapper.of("white"));
-        rowWatchResource.flushCache();
 
         stringAnswer = rowWatchResource.get("-tom");
         assertThat(stringAnswer).isEqualTo("blue");

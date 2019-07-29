@@ -136,14 +136,16 @@ public class RowWatchAwareKeyValueService implements KeyValueService {
         List<byte[]> rowsThatMustBeReadFromKvs = StreamSupport.stream(rows.spliterator(), false)
                 .filter(t -> !cacheRead.rowsSuccessfullyReadFromCache().contains(t))
                 .collect(Collectors.toList());
-        Map<Cell, Value> kvsRead = delegate.getRows(tableRef,
-                rowsThatMustBeReadFromKvs,
-                columnSelection,
-                timestamp);
-        results.putAll(kvsRead);
+        if (!rowsThatMustBeReadFromKvs.isEmpty()) {
+            Map<Cell, Value> kvsRead = delegate.getRows(tableRef,
+                    rowsThatMustBeReadFromKvs,
+                    columnSelection,
+                    timestamp);
+            results.putAll(kvsRead);
+        }
         readCount.addAndGet(rowsThatMustBeReadFromKvs.size());
 
-        log.info("Read {} from cache and {} from kvs", cacheRead, kvsRead);
+        log.info("Read {} from cache", cacheRead);
 
         return results;
     }
