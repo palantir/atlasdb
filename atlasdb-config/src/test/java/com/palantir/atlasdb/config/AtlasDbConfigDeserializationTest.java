@@ -36,7 +36,7 @@ public class AtlasDbConfigDeserializationTest {
     @Test
     public void canDeserializeAtlasDbConfig() throws IOException {
         AtlasDbConfig config = AtlasDbConfigs.load(TEST_CONFIG_FILE, AtlasDbConfig.class);
-        assertThat(config.namespace().get()).isEqualTo("brian");
+        assertThat(config.namespace()).contains("brian");
         assertThat(config.keyValueService()).isEqualTo(new InMemoryAtlasDbConfig());
 
         assertThat(config.timelock().isPresent()).isTrue();

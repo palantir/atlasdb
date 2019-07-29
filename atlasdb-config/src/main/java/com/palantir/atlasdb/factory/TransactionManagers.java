@@ -628,7 +628,7 @@ public abstract class TransactionManagers {
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
-                () -> runtimeConfigSupplier.get().sweep().shouldRunSweep(),
+                () -> runtimeConfigSupplier.get().sweep().enabled().orElse(AtlasDbConstants.DEFAULT_ENABLE_SWEEP),
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
