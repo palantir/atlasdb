@@ -52,6 +52,7 @@ import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.conjure.java.api.errors.RemoteException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -383,13 +384,6 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void throwsOnQueryingTimestampWithWithInvalidClientName() {
-        TimestampService invalidTimestampService = getTimestampService(INVALID_CLIENT);
-        assertThatThrownBy(invalidTimestampService::getFreshTimestamp)
-                .hasMessageContaining("Unexpected char 0x08");
-    }
-
-    @Test
     public void supportsClientNamesMatchingPaxosRoles() throws InterruptedException {
         getTimestampService(LEARNER).getFreshTimestamp();
         getTimestampService(ACCEPTOR).getFreshTimestamp();
@@ -503,11 +497,11 @@ public class PaxosTimeLockServerIntegrationTest {
     }
 
     private static void assertRemoteExceptionWithStatus(Throwable throwable, int expectedStatus) {
-        // // TODO: 30/05/2019 fix 
-//        assertThat(throwable).isInstanceOf(AtlasDbRemoteException.class);
-//
-//        AtlasDbRemoteException remoteException = (AtlasDbRemoteException) throwable;
-//        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
+        // // TODO(gmaretic): fix
+        assertThat(throwable).isInstanceOf(RemoteException.class);
+
+        RemoteException remoteException = (RemoteException) throwable;
+        assertThat(remoteException.getStatus()).isEqualTo(expectedStatus);
     }
 
     private LockRequest newLockV2Request(LockDescriptor lock) {

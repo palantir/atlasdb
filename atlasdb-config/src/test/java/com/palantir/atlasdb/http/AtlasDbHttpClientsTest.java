@@ -28,7 +28,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.net.ProxySelector;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -58,22 +57,12 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
+import com.palantir.atlasdb.util.TestSslUtils;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
-import com.palantir.conjure.java.config.ssl.SslSocketFactories;
-import com.palantir.conjure.java.config.ssl.TrustContext;
 
 import feign.RetryableException;
 
 public class AtlasDbHttpClientsTest {
-    public static final TrustContext TRUST_CONTEXT =
-            SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
-
-    private static final SslConfiguration SSL = SslConfiguration.of(
-            Paths.get("var/security/trustStore.jks"),
-            Paths.get("var/security/keyStore.jks"),
-            "keystore");
-
     private static final int MAX_PAYLOAD_SIZE = 50_000_000;
 
     private static final String GET_ENDPOINT = "/number";
@@ -132,7 +121,7 @@ public class AtlasDbHttpClientsTest {
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 getUriForPort(availablePort),
                 TestResource.class,
                 UserAgents.DEFAULT_USER_AGENT,
@@ -150,7 +139,7 @@ public class AtlasDbHttpClientsTest {
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
         TestResource client = AtlasDbHttpClients.createProxy(
                 new MetricRegistry(),
-                Optional.of(TRUST_CONTEXT),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 getUriForPort(availablePort),
                 TestResource.class);
         assertThat(client.postRequest(new byte[MAX_PAYLOAD_SIZE]))
@@ -162,8 +151,12 @@ public class AtlasDbHttpClientsTest {
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
-        TestResource client = AtlasDbHttpClients.createProxyWithFailover(new MetricRegistry(),
-                TRUST_CONTEXT, bothUris, Optional.empty(), UserAgents.DEFAULT_USER_AGENT, TestResource.class);
+        TestResource client = AtlasDbHttpClients.createProxyWithFailover(
+                new MetricRegistry(),
+                TestSslUtils.TRUST_CONTEXT, bothUris,
+                Optional.empty(),
+                UserAgents.DEFAULT_USER_AGENT,
+                TestResource.class);
         int response = client.getTestNumber();
 
         assertThat(response, equalTo(TEST_NUMBER));
@@ -176,7 +169,7 @@ public class AtlasDbHttpClientsTest {
                 ServiceCreator.createProxySelector(ProxyConfiguration.DIRECT));
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                TRUST_CONTEXT,
+                TestSslUtils.TRUST_CONTEXT,
                 ImmutableSet.of(getUriForPort(availablePort)),
                 directProxySelector,
                 UserAgents.DEFAULT_USER_AGENT,
@@ -193,7 +186,7 @@ public class AtlasDbHttpClientsTest {
                 ServiceCreator.createProxySelector(ProxyConfiguration.of(getHostAndPort(proxyPort))));
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                TRUST_CONTEXT,
+                TestSslUtils.TRUST_CONTEXT,
                 ImmutableSet.of(getUriForPort(availablePort)),
                 httpProxySelector,
                 UserAgents.DEFAULT_USER_AGENT,
@@ -263,16 +256,16 @@ public class AtlasDbHttpClientsTest {
         assertThatThrownBy(testResource::getTestNumber).isInstanceOf(RetryableException.class);
     }
 
-    private ImmutableServerListConfig serverListConfig(String... servers) {
+    private ServerListConfig serverListConfig(String... servers) {
         return ImmutableServerListConfig.builder()
-                .sslConfiguration(SSL)
+                .sslConfiguration(TestSslUtils.SSL)
                 .addServers(servers)
                 .build();
     }
 
-    private ImmutableServerListConfig serverListConfig(List<String> servers) {
+    private ServerListConfig serverListConfig(List<String> servers) {
         return ImmutableServerListConfig.builder()
-                .sslConfiguration(SSL)
+                .sslConfiguration(TestSslUtils.SSL)
                 .addAllServers(servers)
                 .build();
     }

@@ -35,13 +35,14 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.UserAgents;
+import com.palantir.atlasdb.util.TestSslUtils;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 
 public class LeadersTest {
 
-    public static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("foo:1234", "bar:5678");
+    public static final Set<String> REMOTE_SERVICE_ADDRESSES = ImmutableSet.of("http://foo:1234", "http://bar:5678");
 
     @Test
     public void canCreateProxyAndLocalListOfPaxosLearners() {
@@ -53,7 +54,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localLearner,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.empty(),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 PaxosLearner.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -73,7 +74,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.empty(),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 PaxosAcceptor.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -94,7 +95,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 ImmutableSet.of(),
-                Optional.empty(),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 PaxosAcceptor.class,
                 UserAgents.DEFAULT_USER_AGENT);
 
@@ -113,7 +114,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localBigInteger,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.empty(),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 BigInteger.class,
                 UserAgents.DEFAULT_USER_AGENT);
     }
@@ -126,7 +127,7 @@ public class LeadersTest {
                 new MetricRegistry(),
                 localAcceptor,
                 REMOTE_SERVICE_ADDRESSES,
-                Optional.empty(),
+                Optional.of(TestSslUtils.TRUST_CONTEXT),
                 null,
                 UserAgents.DEFAULT_USER_AGENT);
     }
