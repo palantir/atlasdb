@@ -18,7 +18,6 @@ package com.palantir.atlasdb.ete;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -136,7 +135,6 @@ public class TimeLockMigrationEteTest {
     private void assertNoLongerExposesEmbeddedTimestampService() {
         TimestampService timestampClient = createEteClientFor(TimestampService.class);
 
-        // // TODO: 30/05/2019 fix
         // as() is not compatible with assertThatThrownBy - see
         // http://joel-costigliola.github.io/assertj/core/api/org/assertj/core/api/Assertions.html
         softAssertions.assertThat(
@@ -197,6 +195,7 @@ public class TimeLockMigrationEteTest {
 
     private static TimestampService createTimeLockTimestampClient() {
         String uri = String.format("http://%s:%s/%s", TIMELOCK_CONTAINER, TIMELOCK_PORT, TEST_CLIENT);
-        return AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.of(TRUST_CONTEXT), uri, TimestampService.class);
+        return AtlasDbHttpClients
+                .createProxy(new MetricRegistry(), Optional.of(TRUST_CONTEXT), uri, TimestampService.class);
     }
 }

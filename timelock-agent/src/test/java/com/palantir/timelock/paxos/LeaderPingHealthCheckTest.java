@@ -105,7 +105,7 @@ public class LeaderPingHealthCheckTest {
 
     private static PingableLeader getMockOfPingableLeaderWherePingThrows() {
         PingableLeader mockLeader = mock(PingableLeader.class);
-        // // TODO: 30/05/2019 fix, used to be AtlasDbRemoteException
+        // TODO(gmaretic): fix, used to be AtlasDbRemoteException
         when(mockLeader.ping()).thenThrow(mock(RuntimeException.class));
         return mockLeader;
     }

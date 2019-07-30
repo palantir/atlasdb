@@ -78,7 +78,8 @@ public abstract class ClientOptions {
                 .build();
     }
 
-    public ClientConfiguration fromStuff(List<String> endpointUris, Optional<ProxySelector> proxy, TrustContext trustContext) {
+    public ClientConfiguration fromStuff(List<String> endpointUris, Optional<ProxySelector> proxy,
+            TrustContext trustContext) {
         ClientConfiguration partialConfig = ClientConfigurations.of(endpointUris,
                 trustContext.sslSocketFactory(), trustContext.x509TrustManager());
 

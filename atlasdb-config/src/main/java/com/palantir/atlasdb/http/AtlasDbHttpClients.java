@@ -18,7 +18,6 @@ package com.palantir.atlasdb.http;
 import java.net.ProxySelector;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.codahale.metrics.MetricRegistry;
@@ -26,8 +25,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
-import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
-import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
@@ -60,8 +57,13 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory
-                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, Optional.empty(), type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(
+                        ImmutableList.of(uri),
+                        trustContext.get(),
+                        ClientOptions.FAST_RETRYING_FOR_TEST,
+                        Optional.empty(),
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -75,8 +77,13 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory
-                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.DEFAULT_NO_RETRYING, Optional.empty(), type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(
+                        ImmutableList.of(uri),
+                        trustContext.get(),
+                        ClientOptions.DEFAULT_NO_RETRYING,
+                        Optional.empty(),
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -97,7 +104,13 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext, ClientOptions.DEFAULT_RETRYING, proxy, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(
+                        endpointUris,
+                        trustContext,
+                        ClientOptions.DEFAULT_RETRYING,
+                        proxy,
+                        type,
+                        userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -144,7 +157,13 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, Optional.empty(), type, UserAgents.DEFAULT_USER_AGENT),
+                AtlasDbFeignTargetFactory.createProxy(
+                        endpointUris,
+                        trustContext.get(),
+                        ClientOptions.FAST_RETRYING_FOR_TEST,
+                        Optional.empty(),
+                        type,
+                        UserAgents.DEFAULT_USER_AGENT),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

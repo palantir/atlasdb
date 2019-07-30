@@ -29,7 +29,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import com.palantir.atlasdb.http.AtlasDbFeignTargetFactory;
@@ -68,7 +67,7 @@ public class BenchmarkRunnerBase {
         }
     }
 
-    // // TODO: 30/05/2019 fix ssl
+    // TODO(gmaretic): fix ssl
     protected static final BenchmarksService createClient() {
         return AtlasDbFeignTargetFactory.createProxy(
                 ImmutableSet.of(BENCHMARK_SERVER), TRUST_CONTEXT, ClientOptions.DEFAULT_RETRYING, Optional.empty(),

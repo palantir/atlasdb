@@ -37,7 +37,7 @@ public final class TimelockUtils {
         return Lists.transform(hosts, host -> String.format("http://%s:%d/%s", host, PORT, NAMESPACE));
     }
 
-    // // TODO: 30/05/2019 fix SSL
+    // // TODO(gmaretic): fix SSL
     private static <T> T createFromUris(MetricRegistry metricRegistry, List<String> endpointUris, Class<T> type) {
         return AtlasDbHttpClients.createProxyWithQuickFailoverForTesting(
                 metricRegistry,

@@ -58,16 +58,22 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.factory.ServiceCreator;
-import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
+import feign.RetryableException;
+
 public class AtlasDbHttpClientsTest {
-    private static final Optional<TrustContext> NO_SSL = Optional.empty();
     public static final TrustContext TRUST_CONTEXT =
             SslSocketFactories.createTrustContext(SslConfiguration.of(Paths.get("var/security/trustStore.jks")));
+
+    private static final SslConfiguration SSL = SslConfiguration.of(
+            Paths.get("var/security/trustStore.jks"),
+            Paths.get("var/security/keyStore.jks"),
+            "keystore");
+
     private static final int MAX_PAYLOAD_SIZE = 50_000_000;
 
     private static final String GET_ENDPOINT = "/number";
@@ -124,8 +130,13 @@ public class AtlasDbHttpClientsTest {
     //todo Figure out if we need to do this
     @Test
     public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.of(TRUST_CONTEXT), getUriForPort(availablePort),
-                TestResource.class, UserAgents.DEFAULT_USER_AGENT, true);
+        TestResource client = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                Optional.of(TRUST_CONTEXT),
+                getUriForPort(availablePort),
+                TestResource.class,
+                UserAgents.DEFAULT_USER_AGENT,
+                true);
         assertThat(client.postRequest(new byte[50 * 1_000_000]))
                 .as("Request with payload size below limit succeeds")
                 .isTrue();
@@ -137,7 +148,10 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(new MetricRegistry(), Optional.of(TRUST_CONTEXT), getUriForPort(availablePort),
+        TestResource client = AtlasDbHttpClients.createProxy(
+                new MetricRegistry(),
+                Optional.of(TRUST_CONTEXT),
+                getUriForPort(availablePort),
                 TestResource.class);
         assertThat(client.postRequest(new byte[MAX_PAYLOAD_SIZE]))
                 .as("Request with payload size exceeding limit succeeds when not limiting payload size")
@@ -199,14 +213,11 @@ public class AtlasDbHttpClientsTest {
 
         TestResource client = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
-                () -> ImmutableServerListConfig.builder()
-                        .servers(servers)
-                        .build(),
+                () -> serverListConfig(servers),
                 TestResource.class,
-                "user (123)");
+                "user-123");
 
-        // actually a Feign RetryableException but that's not on our classpath
-        assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(client::getTestNumber).isInstanceOf(RetryableException.class);
 
         servers.add(getUriForPort(availablePort));
         Uninterruptibles.sleepUninterruptibly(
@@ -218,19 +229,19 @@ public class AtlasDbHttpClientsTest {
     }
 
     @Test
-    public void httpProxyThrowsServiceNotAvailableExceptionIfConfiguredWithZeroNodes() {
+    public void httpProxyThrowsRetryableExceptionIfConfiguredWithZeroNodes() {
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
-                () -> ImmutableServerListConfig.builder().build(),
+                () -> serverListConfig(),
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
 
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(RetryableException.class);
     }
 
     @Test
     public void httpProxyCanBeCommissionedAndDecommissionedIfNodeAvailabilityChanges() {
-        AtomicReference<ServerListConfig> config = new AtomicReference<>(ImmutableServerListConfig.builder().build());
+        AtomicReference<ServerListConfig> config = new AtomicReference<>(serverListConfig());
 
         TestResource testResource = AtlasDbHttpClients.createLiveReloadingProxyWithQuickFailoverForTesting(
                 new MetricRegistry(),
@@ -238,18 +249,32 @@ public class AtlasDbHttpClientsTest {
                 TestResource.class,
                 UserAgents.DEFAULT_VALUE);
 
-        // At this point, there are zero nodes in the config, so we should get ServiceNotAvailable.
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+        // At this point, there are zero nodes in the config, so we should get RetryableException.
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(RetryableException.class);
 
-        config.set(ImmutableServerListConfig.builder().addServers(getUriForPort(availablePort)).build());
+        config.set(serverListConfig(getUriForPort(availablePort)));
         Uninterruptibles.sleepUninterruptibly(
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
         assertThat(testResource.getTestNumber(), equalTo(TEST_NUMBER));
 
-        config.set(ImmutableServerListConfig.builder().build());
+        config.set(serverListConfig());
         Uninterruptibles.sleepUninterruptibly(
                 PollingRefreshable.DEFAULT_REFRESH_INTERVAL.getSeconds() + 1, TimeUnit.SECONDS);
-        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(ServiceNotAvailableException.class);
+        assertThatThrownBy(testResource::getTestNumber).isInstanceOf(RetryableException.class);
+    }
+
+    private ImmutableServerListConfig serverListConfig(String... servers) {
+        return ImmutableServerListConfig.builder()
+                .sslConfiguration(SSL)
+                .addServers(servers)
+                .build();
+    }
+
+    private ImmutableServerListConfig serverListConfig(List<String> servers) {
+        return ImmutableServerListConfig.builder()
+                .sslConfiguration(SSL)
+                .addAllServers(servers)
+                .build();
     }
 
     private static String getUriForPort(int port) {

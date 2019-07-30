@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;

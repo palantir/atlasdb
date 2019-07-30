@@ -15,11 +15,14 @@
  */
 package com.palantir.atlasdb.http;
 
+import java.net.ProxySelector;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
@@ -40,7 +43,8 @@ public final class AtlasDbFeignTargetFactory {
             Optional<ProxySelector> proxy,
             Class<T> type,
             String userAgent) {
-        ClientConfiguration clientConfiguration = clientOptions.fromStuff(ImmutableList.copyOf(endpointUris), proxy, trustContext);
+        ClientConfiguration clientConfiguration = clientOptions
+                .fromStuff(ImmutableList.copyOf(endpointUris), proxy, trustContext);
 
         return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), clientConfiguration);
     }
@@ -50,11 +54,22 @@ public final class AtlasDbFeignTargetFactory {
             ClientOptions clientOptions,
             Class<T> type,
             String userAgent) {
+        Supplier<ServerListConfig> nonEmptyServerList = () -> injectDummyServer(serverListConfigSupplier);
         Refreshable<ClientConfiguration> refreshableConfig = PollingRefreshable
-                .createComposed(serverListConfigSupplier, Duration.ofSeconds(5L), clientOptions::serverListToClient)
+                .createComposed(nonEmptyServerList, Duration.ofSeconds(5L), clientOptions::serverListToClient)
                 .getRefreshable();
 
         return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), refreshableConfig);
+    }
+
+    private static ServerListConfig injectDummyServer(Supplier<ServerListConfig> serverListConfigSupplier) {
+        ServerListConfig originalConfig = serverListConfigSupplier.get();
+        if (originalConfig.hasAtLeastOneServer()) {
+            return originalConfig;
+        }
+        return ImmutableServerListConfig.builder().from(serverListConfigSupplier.get())
+                .addServers("http://dummy")
+                .build();
     }
 
     private static UserAgent createAgent(String userAgent) {

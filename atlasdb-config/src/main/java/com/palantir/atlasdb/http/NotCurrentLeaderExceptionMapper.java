@@ -18,13 +18,9 @@ package com.palantir.atlasdb.http;
 import java.time.Duration;
 import java.util.Optional;
 
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.HttpHeaders;
-import com.palantir.conjure.java.api.errors.SerializableError;
 import com.palantir.leader.NotCurrentLeaderException;
 
 /**

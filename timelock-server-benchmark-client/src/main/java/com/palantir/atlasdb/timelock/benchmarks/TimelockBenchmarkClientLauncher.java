@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.benchmarks;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.benchmarks.config.TimelockBenchmarkClientConfig;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
