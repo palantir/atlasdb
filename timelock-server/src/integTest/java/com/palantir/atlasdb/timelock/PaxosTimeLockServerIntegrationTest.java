@@ -460,7 +460,6 @@ public class PaxosTimeLockServerIntegrationTest {
                 .sslSocketFactory(
                         TestProxies.TRUST_CONTEXT.sslSocketFactory(),
                         TestProxies.TRUST_CONTEXT.x509TrustManager())
-                .connectionSpecs(FeignOkHttpClients.CONNECTION_SPEC_WITH_CYPHER_SUITES)
                 .build();
         return client.newCall(new Request.Builder()
                 .url(uri)

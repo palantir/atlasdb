@@ -18,18 +18,15 @@ package com.palantir.atlasdb.http;
 
 import java.net.ProxySelector;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Optional;
 
 import org.immutables.value.Value;
 
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.ServiceConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import com.palantir.conjure.java.client.config.ClientConfigurations;
-import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 @Value.Immutable
@@ -52,7 +49,7 @@ public abstract class ClientOptions {
 
     public static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
-            .readTimeout(Duration.ofMillis(100))
+            .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(1))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(10)
@@ -81,19 +78,21 @@ public abstract class ClientOptions {
                 .build();
     }
 
-    public ClientConfiguration fromStuff(List<String> endpointUris, TrustContext trustContext) {
+    public ClientConfiguration fromStuff(List<String> endpointUris, Optional<ProxySelector> proxy, TrustContext trustContext) {
         ClientConfiguration partialConfig = ClientConfigurations.of(endpointUris,
                 trustContext.sslSocketFactory(), trustContext.x509TrustManager());
 
-        return ClientConfiguration.builder().from(partialConfig)
+        ClientConfiguration.Builder builder = ClientConfiguration.builder().from(partialConfig)
                 .connectTimeout(connectTimeout())
                 .readTimeout(readTimeout())
                 .backoffSlotSize(backoffSlotSize())
                 .failedUrlCooldown(failedUrlCooldown())
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
-                .fallbackToCommonNameVerification(true)
-                .build();
+                .fallbackToCommonNameVerification(true);
+
+        proxy.ifPresent(builder::proxy);
+        return builder.build();
     }
 
     public static ClientOptions of(Duration connect, Duration read, Duration backoff, Duration coolDown, int retries) {

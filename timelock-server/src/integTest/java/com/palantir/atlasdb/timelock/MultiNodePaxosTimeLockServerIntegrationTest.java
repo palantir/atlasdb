@@ -186,11 +186,6 @@ public class MultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void failovers() {
-        CLUSTER.failoverToNewLeader();
-    }
-
-    @Test
     public void timestampsAreIncreasingAcrossFailovers() {
         long lastTimestamp = CLUSTER.getFreshTimestamp();
 

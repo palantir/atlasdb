@@ -78,6 +78,7 @@ public class TestProxies {
                 new MetricRegistry(),
                 TRUST_CONTEXT,
                 uris,
+                Optional.empty(),
                 UserAgents.DEFAULT_USER_AGENT,
                 serviceInterface));
     }

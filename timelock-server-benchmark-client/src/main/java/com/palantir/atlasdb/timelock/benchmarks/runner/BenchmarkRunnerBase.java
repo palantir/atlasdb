@@ -71,7 +71,7 @@ public class BenchmarkRunnerBase {
     // // TODO: 30/05/2019 fix ssl
     protected static final BenchmarksService createClient() {
         return AtlasDbFeignTargetFactory.createProxy(
-                ImmutableSet.of(BENCHMARK_SERVER), TRUST_CONTEXT, ClientOptions.DEFAULT_RETRYING,
+                ImmutableSet.of(BENCHMARK_SERVER), TRUST_CONTEXT, ClientOptions.DEFAULT_RETRYING, Optional.empty(),
                 BenchmarksService.class,
                 "benchmarks");
     }

@@ -977,7 +977,7 @@ public abstract class TransactionManagers {
             PingableLeader remotePingableLeader = AtlasDbFeignTargetFactory.createProxy(
                     ImmutableList.of(Iterables.getOnlyElement(leaderConfig.leaders())),
                     ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()).get(),
-                    ClientOptions.DEFAULT_NO_RETRYING,
+                    ClientOptions.DEFAULT_NO_RETRYING, Optional.empty(),
                     PingableLeader.class,
                     userAgent);
 

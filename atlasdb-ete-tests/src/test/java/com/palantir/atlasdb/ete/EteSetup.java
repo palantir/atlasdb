@@ -192,6 +192,7 @@ public abstract class EteSetup {
                 new MetricRegistry(),
                 TRUST_CONTEXT,
                 uris,
+                Optional.empty(),
                 UserAgents.DEFAULT_USER_AGENT,
                 clazz);
     }

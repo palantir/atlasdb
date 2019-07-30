@@ -31,11 +31,6 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
-    // add some padding to the feign timeout, as in many cases lock requests default to a 60 second timeout,
-    // and we don't want it to exactly align with the feign timeout
-    private static final int DEFAULT_CONNECT_TIMEOUT_MILLIS = 10_000;
-    private static final int DEFAULT_READ_TIMEOUT_MILLIS = 65_000;
-
     private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
     private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
 
@@ -66,7 +61,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory
-                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, type, userAgent),
+                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, Optional.empty(), type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -81,7 +76,7 @@ public final class AtlasDbHttpClients {
                 metricRegistry,
                 type,
                 AtlasDbFeignTargetFactory
-                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.DEFAULT_NO_RETRYING, type, userAgent),
+                        .createProxy(ImmutableList.of(uri), trustContext.get(), ClientOptions.DEFAULT_NO_RETRYING, Optional.empty(), type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -96,12 +91,13 @@ public final class AtlasDbHttpClients {
             MetricRegistry metricRegistry,
             TrustContext trustContext,
             Collection<String> endpointUris,
+            Optional<ProxySelector> proxy,
             String userAgent,
             Class<T> type) {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext, ClientOptions.DEFAULT_RETRYING, type, userAgent),
+                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext, ClientOptions.DEFAULT_RETRYING, proxy, type, userAgent),
                 MetricRegistry.name(type));
     }
 
@@ -148,7 +144,7 @@ public final class AtlasDbHttpClients {
         return AtlasDbMetrics.instrument(
                 metricRegistry,
                 type,
-                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, type, UserAgents.DEFAULT_USER_AGENT),
+                AtlasDbFeignTargetFactory.createProxy(endpointUris, trustContext.get(), ClientOptions.FAST_RETRYING_FOR_TEST, Optional.empty(), type, UserAgents.DEFAULT_USER_AGENT),
                 MetricRegistry.name(type, "atlasdb-testing"));
     }
 }

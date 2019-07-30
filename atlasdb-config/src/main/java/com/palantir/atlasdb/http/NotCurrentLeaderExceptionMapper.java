@@ -40,8 +40,6 @@ public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurre
      */
     @Override
     public Response toResponse(NotCurrentLeaderException exception) {
-        //// TODO: 23/05/2019 Verify that this is a reasonable heuristic for not being in the middle of leader election
-        return ExceptionMappers.encodeAsUnavailable(exception,
-                Optional.of(exception.getServiceHint().isPresent() ? Duration.ZERO : Duration.ofMillis(100)));
+        return ExceptionMappers.encodeAsUnavailable(exception, Optional.of(Duration.ZERO));
     }
 }

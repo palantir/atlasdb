@@ -22,11 +22,9 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
-import com.palantir.conjure.java.client.config.NodeSelectionStrategy;
 import com.palantir.conjure.java.client.jaxrs.JaxRsClient;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.conjure.java.ext.refresh.Refreshable;
@@ -41,9 +39,10 @@ public final class AtlasDbFeignTargetFactory {
             Collection<String> endpointUris,
             TrustContext trustContext,
             ClientOptions clientOptions,
+            Optional<ProxySelector> proxy,
             Class<T> type,
             String userAgent) {
-        ClientConfiguration clientConfiguration = clientOptions.fromStuff(ImmutableList.copyOf(endpointUris), trustContext);
+        ClientConfiguration clientConfiguration = clientOptions.fromStuff(ImmutableList.copyOf(endpointUris), proxy, trustContext);
 
         return JaxRsClient.create(type, createAgent(userAgent), new HostMetricsRegistry(), clientConfiguration);
     }
