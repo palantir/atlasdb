@@ -54,7 +54,7 @@ public class SweepQueueCleaner {
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
         sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
-        log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
+        log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
                 LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
                 SafeArg.of("partitions", partitions));
     }
@@ -70,7 +70,7 @@ public class SweepQueueCleaner {
         coarsePartitions = removeLastPartitionIfNotComplete(coarsePartitions, lastTs);
 
         sweepableTimestamps.deleteCoarsePartitions(shardStrategy, coarsePartitions);
-        log.info("Deleted persisted sweep queue information in table {} for partitions {}.",
+        log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
                 LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
                 SafeArg.of("partitions", coarsePartitions));
     }
