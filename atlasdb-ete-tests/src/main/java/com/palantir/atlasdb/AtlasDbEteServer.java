@@ -179,7 +179,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
             TaggedMetricRegistry taggedMetricRegistry) {
         return TransactionManagers.builder()
                 .config(config)
-                .userAgent("ete test")
+                .userAgent("ete-test")
                 .globalMetricsRegistry(environment.metrics())
                 .globalTaggedMetricRegistry(taggedMetricRegistry)
                 .registrar(environment.jersey()::register)

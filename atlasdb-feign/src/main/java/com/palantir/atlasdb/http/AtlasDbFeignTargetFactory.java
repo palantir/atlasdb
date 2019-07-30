@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.http;
 
-import java.net.ProxySelector;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableList;
