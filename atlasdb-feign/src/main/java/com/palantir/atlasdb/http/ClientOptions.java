@@ -52,7 +52,7 @@ public abstract class ClientOptions {
 
     public static final ClientOptions FAST_RETRYING_FOR_TEST = ImmutableClientOptions.builder()
             .connectTimeout(Duration.ofMillis(100))
-            .readTimeout(Duration.ofMillis(100))
+            .readTimeout(Duration.ofSeconds(65))
             .backoffSlotSize(Duration.ofMillis(1))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(10)
