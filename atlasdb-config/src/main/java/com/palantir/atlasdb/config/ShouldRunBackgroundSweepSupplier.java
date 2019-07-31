@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.config;
 
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -34,7 +35,7 @@ import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
  *     <li>otherwise, follow {@link AtlasDbConstants#DEFAULT_ENABLE_SWEEP}.</li>
  * </ul>
  */
-public class ShouldRunBackgroundSweepSupplier implements Supplier<Boolean> {
+public class ShouldRunBackgroundSweepSupplier implements BooleanSupplier {
     private final TargetedSweepInstallConfig targetedSweepInstallConfig;
     private final Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier;
 
@@ -46,7 +47,7 @@ public class ShouldRunBackgroundSweepSupplier implements Supplier<Boolean> {
     }
 
     @Override
-    public Boolean get() {
+    public boolean getAsBoolean() {
         AtlasDbRuntimeConfig runtimeConfig = runtimeConfigSupplier.get();
 
         Optional<Boolean> backgroundSweepEnabled = runtimeConfig.sweep().enabled();
@@ -60,6 +61,7 @@ public class ShouldRunBackgroundSweepSupplier implements Supplier<Boolean> {
 
         return AtlasDbConstants.DEFAULT_ENABLE_SWEEP;
     }
+
 
     private boolean targetedSweepIsFullyEnabled(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig) {
         return targetedSweepInstallConfig.enableSweepQueueWrites() && targetedSweepRuntimeConfig.enabled();

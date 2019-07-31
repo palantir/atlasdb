@@ -629,7 +629,7 @@ public abstract class TransactionManagers {
         BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
                 metricsManager,
                 sweepBatchConfigSource,
-                new ShouldRunBackgroundSweepSupplier(config.targetedSweep(), runtimeConfigSupplier),
+                new ShouldRunBackgroundSweepSupplier(config.targetedSweep(), runtimeConfigSupplier)::getAsBoolean,
                 () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
                 () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
                 () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),

@@ -47,49 +47,32 @@ public class ShouldRunBackgroundSweepSupplierTest {
 
     @Test
     public void disableBackgroundSweepIfBackgroundSweepExplicitlyDisabled() {
-        ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_DISABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_DISABLED));
-        assertThat(supplier.get()).isFalse();
-
-        ShouldRunBackgroundSweepSupplier supplier2 = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_ENABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_DISABLED));
-        assertThat(supplier2.get()).isFalse();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_DISABLED, TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_DISABLED))
+                .isFalse();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_DISABLED))
+                .isFalse();
     }
 
     @Test
     public void enableBackgroundSweepIfBackgroundSweepExplicitlyEnabled() {
-        ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_DISABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_ENABLED));
-        assertThat(supplier.get()).isTrue();
-
-        ShouldRunBackgroundSweepSupplier supplier2 = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_ENABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED));
-        assertThat(supplier2.get()).isTrue();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_DISABLED, TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_ENABLED))
+                .isTrue();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED))
+                .isTrue();
     }
 
     @Test
     public void enableBackgroundSweepIfNotSetAndTargetedSweepNotFullyEnabled() {
-        ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_ENABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET));
-        assertThat(supplier.get()).isTrue();
-
-        ShouldRunBackgroundSweepSupplier supplier2 = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_DISABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET));
-        assertThat(supplier2.get()).isTrue();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET))
+                .isTrue();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_DISABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET))
+                .isTrue();
     }
 
     @Test
     public void disableBackgroundSweepIfNotSetAndTargetedSweepFullyEnabled() {
-        ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
-                SWEEP_QUEUE_WRITES_ENABLED,
-                () -> createRuntimeConfig(TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET));
-        assertThat(supplier.get()).isFalse();
+        assertThat(runBackgroundSweep(SWEEP_QUEUE_WRITES_ENABLED, TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET))
+                .isFalse();
     }
 
     @SuppressWarnings("unchecked") // Mock assignment known to be safe
@@ -104,15 +87,15 @@ public class ShouldRunBackgroundSweepSupplierTest {
         ShouldRunBackgroundSweepSupplier supplier = new ShouldRunBackgroundSweepSupplier(
                 SWEEP_QUEUE_WRITES_ENABLED, runtimeConfigSupplier);
 
-        assertThat(supplier.get())
-                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET")
-                .isFalse();
-        assertThat(supplier.get())
-                .as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET")
-                .isTrue();
-        assertThat(supplier.get())
-                .as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED")
-                .isTrue();
+        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_UNSET").isFalse();
+        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_DISABLED, BACKGROUND_SWEEP_UNSET").isTrue();
+        assertThat(supplier.getAsBoolean()).as("TARGETED_SWEEP_ENABLED, BACKGROUND_SWEEP_ENABLED").isTrue();
+    }
+
+    private static boolean runBackgroundSweep(
+            TargetedSweepInstallConfig tsInstall, TargetedSweepRuntimeConfig tsRuntime, SweepConfig bgSweepConfig) {
+        return new ShouldRunBackgroundSweepSupplier(tsInstall, () -> createRuntimeConfig(tsRuntime, bgSweepConfig))
+                .getAsBoolean();
     }
 
     private static AtlasDbRuntimeConfig createRuntimeConfig(TargetedSweepRuntimeConfig targetedSweepRuntimeConfig,
