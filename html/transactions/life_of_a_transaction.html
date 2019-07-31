@@ -217,8 +217,8 @@ were performed.</p>
 <li>Get the commit timestamp.</li>
 <li>For serializable transactions, check that the state of the world at commit time is same as that at start time.
 Please see <a class="reference internal" href="isolation_levels.html#isolation-levels"><span class="std std-ref">Isolation Levels</span></a> for more details.</li>
-<li>Verify that locks are still valid.</li>
 <li>Verify user-specified pre-commit conditions (if applicable).</li>
+<li>Verify that locks are still valid.</li>
 <li>Atomically putUnlessExists into the transactions table.</li>
 </ol>
 <p>After we have successfully written to the transactions table, the transaction is considered committed.</p>
@@ -249,9 +249,12 @@ For thoroughly swept tables, there is an edge case. Suppose we read no data for 
 in between our start and commit, and someone else deleted the value after our commit. If we pass our lock check, but
 then lose our locks and have a very long GC, Thorough Sweep might clear all evidence of the conflict, meaning that
 we miss a read-write conflict. This would be safe for conservative sweep because of the deletion sentinel.</li>
-<li>The lock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
-to the transactions table, as we cannot finish our commit if we can’t be certain we still have locks.</li>
-<li>We need to check that the pre-commit conditions still hold before we can finish committing.</li>
+<li>We need to check that the pre-commit conditions, if any, still hold. Given that these checks are user defined and
+could involve transactional reads to the database, they require the same protections as the read-write conflict
+checks in the prior step. An alternative implementation of those checks could be done as a pre-commit condition, for
+example, so it is important that we handle this before the final lock check.</li>
+<li>The lock check must be run strictly before writing to the transactions table, as we cannot finish our commit if
+we can’t be certain we still have locks.</li>
 </ol>
 <div class="section" id="read-only-variant">
 <h4>Read-Only Variant<a class="headerlink" href="#read-only-variant" title="Permalink to this headline">¶</a></h4>
