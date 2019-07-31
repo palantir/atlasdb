@@ -1453,8 +1453,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // Verify that our locks and pre-commit conditions are still valid before we actually commit;
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                // We check the pre-commit conditions first since they may operate similarly to read write conflict
+                // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 timedAndTraced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
