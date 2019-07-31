@@ -38,6 +38,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +94,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.leader.PingableLeader;
 import com.palantir.lock.LockMode;
@@ -114,7 +116,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 public class TransactionManagersTest {
     private static final String CLIENT = "testClient";
     private static final String USER_AGENT_NAME = "user-agent";
-    private static final String USER_AGENT = USER_AGENT_NAME + " (3.14159265)";
+    private static final String USER_AGENT = USER_AGENT_NAME + "pi314159265";
     private static final String USER_AGENT_HEADER = "User-Agent";
     private static final long EMBEDDED_BOUND = 3;
 
@@ -220,6 +222,7 @@ public class TransactionManagersTest {
         mockClientConfig = getTimelockConfigForServers(ImmutableList.of(getUriForPort(availablePort)));
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
+                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                 .build();
     }
 
@@ -264,9 +267,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
         availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
     }
 
     @Test
@@ -281,9 +284,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.lock().currentTimeMillis();
 
         availableServer.verify(0, postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
         availableServer.verify(0, postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
     }
 
     @Test
@@ -657,9 +660,12 @@ public class TransactionManagersTest {
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
-        when(runtimeConfig.timelockRuntime()).thenReturn(
-                Optional.of(ImmutableTimeLockRuntimeConfig.builder()
-                        .serversList(rawRemoteServerConfig)
+        when(runtimeConfig.timelockRuntime())
+                .thenReturn(Optional.of(ImmutableTimeLockRuntimeConfig.builder()
+                        .serversList(ImmutableServerListConfig.builder()
+                                .addServers(getUriForPort(availablePort))
+                                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
+                                .build())
                         .build()));
     }
 
@@ -675,6 +681,7 @@ public class TransactionManagersTest {
                 .acceptorLogDir(temporaryFolder.newFolder())
                 .learnerLogDir(temporaryFolder.newFolder())
                 .quorumSize(1)
+                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                 .build()));
     }
 
@@ -699,9 +706,9 @@ public class TransactionManagersTest {
         verifyUserAgentOnTimestampAndLockRequests(TIMELOCK_TIMESTAMP_PATH, TIMELOCK_LOCK_PATH);
         verify(invalidator, times(1)).backupAndInvalidate();
         availableServer.verify(getRequestedFor(urlEqualTo(TIMELOCK_PING_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
         availableServer.verify(postRequestedFor(urlEqualTo(TIMELOCK_FF_PATH))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
     }
 
     private void verifyUserAgentOnTimestampAndLockRequests(String timestampPath, String lockPath) {
@@ -720,9 +727,9 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().currentTimeMillis();
 
         availableServer.verify(postRequestedFor(urlMatching(timestampPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
         availableServer.verify(postRequestedFor(urlMatching(lockPath))
-                .withHeader(USER_AGENT_HEADER, WireMock.equalTo(USER_AGENT)));
+                .withHeader(USER_AGENT_HEADER, WireMock.containing(USER_AGENT)));
     }
 
     private void assertGetLockAndTimestampServicesThrows() {
@@ -741,6 +748,7 @@ public class TransactionManagersTest {
                 .client(CLIENT)
                 .serversList(ImmutableServerListConfig.builder()
                         .addAllServers(servers)
+                        .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
                         .build())
                 .build();
     }

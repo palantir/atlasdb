@@ -25,8 +25,6 @@ import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.ClientErrorException;
-
 import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,6 +148,7 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIoException;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -157,6 +156,8 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.OptionalResolver;
+
+import feign.RetryableException;
 
 @Value.Immutable
 @Value.Style(stagedBuilder = true)
@@ -990,9 +991,16 @@ public abstract class TransactionManagers {
                         String remoteServerId = remotePingableLeader.getUUID();
                         useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
                         return;
-                    } catch (ClientErrorException e) {
-                        useLocalServicesFuture.complete(false);
-                        return;
+                        // TODO(gmaretic): fix this mess
+                    } catch (RetryableException e) {
+                        if (e.getCause() instanceof SafeIoException) {
+                            SafeIoException exception = (SafeIoException) e.getCause();
+                            if (exception.getArgs().stream()
+                                    .anyMatch(arg -> arg.getName().equals("code") && arg.getValue().equals(404))) {
+                                useLocalServicesFuture.complete(false);
+                                return;
+                            }
+                        }
                     } catch (Throwable e) {
                         if (--logAfter == 0) {
                             log.warn("Failed to read remote timestamp server ID", e);

@@ -29,7 +29,6 @@ import com.palantir.leader.NotCurrentLeaderException;
  * @author carrino
  */
 public class NotCurrentLeaderExceptionMapper implements ExceptionMapper<NotCurrentLeaderException> {
-
     /**
      * Returns a response equal to a response when encountering a
      * {@link com.palantir.conjure.java.api.errors.QosException.Unavailable} exception.

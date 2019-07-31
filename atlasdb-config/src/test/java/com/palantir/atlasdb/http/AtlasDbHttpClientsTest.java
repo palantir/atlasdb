@@ -30,7 +30,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import java.net.ProxySelector;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,7 +50,7 @@ import com.github.tomakehurst.wiremock.client.ValueMatchingStrategy;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
@@ -76,7 +75,7 @@ public class AtlasDbHttpClientsTest {
     private int availablePort;
     private int unavailablePort;
     private int proxyPort;
-    private Set<String> bothUris;
+    private List<String> bothUris;
 
     @Rule
     public WireMockRule availableServer = new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
@@ -111,7 +110,7 @@ public class AtlasDbHttpClientsTest {
         unavailablePort = unavailableServer.port();
         proxyPort = proxyServer.port();
 
-        bothUris = ImmutableSet.of(
+        bothUris = ImmutableList.of(
                 getUriForPort(unavailablePort),
                 getUriForPort(availablePort));
     }
@@ -150,16 +149,19 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
+        availableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
 
         TestResource client = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
-                TestSslUtils.TRUST_CONTEXT, bothUris,
+                TestSslUtils.TRUST_CONTEXT,
+                bothUris,
                 Optional.empty(),
                 UserAgents.DEFAULT_USER_AGENT,
                 TestResource.class);
-        int response = client.getTestNumber();
 
-        assertThat(response, equalTo(TEST_NUMBER));
+        assertThatThrownBy(() -> client.getTestNumber()).isInstanceOf(RetryableException.class);
+
+        availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
     }
 
@@ -170,7 +172,7 @@ public class AtlasDbHttpClientsTest {
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 TestSslUtils.TRUST_CONTEXT,
-                ImmutableSet.of(getUriForPort(availablePort)),
+                ImmutableList.of(getUriForPort(availablePort)),
                 directProxySelector,
                 UserAgents.DEFAULT_USER_AGENT,
                 TestResource.class);
@@ -187,7 +189,7 @@ public class AtlasDbHttpClientsTest {
         TestResource clientWithHttpProxy = AtlasDbHttpClients.createProxyWithFailover(
                 new MetricRegistry(),
                 TestSslUtils.TRUST_CONTEXT,
-                ImmutableSet.of(getUriForPort(availablePort)),
+                ImmutableList.of(getUriForPort(availablePort)),
                 httpProxySelector,
                 UserAgents.DEFAULT_USER_AGENT,
                 TestResource.class);

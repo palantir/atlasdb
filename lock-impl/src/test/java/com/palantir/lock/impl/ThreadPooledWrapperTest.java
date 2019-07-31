@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.conjure.java.api.errors.QosException;
 
 public class ThreadPooledWrapperTest {
     private static final Waiter WAITER = new Waiter();
@@ -178,8 +179,8 @@ public class ThreadPooledWrapperTest {
                         future.get();
                         fail();
                     } catch (Exception e) {
-                        assertThat(e).isInstanceOf(ExecutionException.class)
-                                .hasMessageContaining("TooManyRequestsException");
+                        assertThat(e).isInstanceOf(ExecutionException.class);
+                        assertThat(e.getCause()).isInstanceOf(QosException.Throttle.class);
                         exceptions.getAndIncrement();
                     }
                 }
@@ -196,7 +197,8 @@ public class ThreadPooledWrapperTest {
                 future.get();
                 successes.getAndIncrement();
             } catch (Exception e) {
-                assertThat(e).isInstanceOf(ExecutionException.class).hasMessageContaining("TooManyRequestsException");
+                assertThat(e).isInstanceOf(ExecutionException.class);
+                assertThat(e.getCause()).isInstanceOf(QosException.Throttle.class);
             }
         });
         assertThat(successes.get()).isEqualTo(numberSuccessful);

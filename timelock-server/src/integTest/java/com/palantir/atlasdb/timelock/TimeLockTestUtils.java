@@ -37,7 +37,7 @@ public final class TimeLockTestUtils {
     }
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster) {
-        return createTransactionManager(cluster, UUID.randomUUID().toString());
+        return createTransactionManager(cluster, "agent" + UUID.randomUUID().toString());
     }
 
     static TransactionManager createTransactionManager(TestableTimelockCluster cluster, String agent) {
