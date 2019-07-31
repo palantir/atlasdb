@@ -92,8 +92,8 @@ The ordering of these steps is important:
    could involve transactional reads to the database, they require the same protections as the read-write conflict
    checks in the prior step. An alternative implementation of those checks could be done as a pre-commit condition, for
    example, so it is important that we handle this before the final lock check.
-9. The lock check may be run in parallel with pre-commit condition checks, though it must strictly be run before writing
-   to the transactions table, as we cannot finish our commit if we can't be certain we still have locks.
+9. The lock check must be run strictly before writing to the transactions table, as we cannot finish our commit if
+   we can't be certain we still have locks.
 
 Read-Only Variant
 ~~~~~~~~~~~~~~~~~
