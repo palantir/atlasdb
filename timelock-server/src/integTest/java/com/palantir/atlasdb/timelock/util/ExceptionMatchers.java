@@ -28,7 +28,7 @@ public final class ExceptionMatchers {
     private ExceptionMatchers() { }
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
-        //// TODO: 28/05/2019 fix
+        // TODO(gmaretic): fix
         assertThat(throwable).isInstanceOf(RetryableException.class);
         assertThat(throwable.getCause()).isInstanceOf(IOException.class);
         assertThat(throwable.getCause().getCause()).isInstanceOf(QosException.Unavailable.class);

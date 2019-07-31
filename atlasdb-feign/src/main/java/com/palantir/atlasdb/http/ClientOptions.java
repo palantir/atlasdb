@@ -53,6 +53,7 @@ public abstract class ClientOptions {
             .backoffSlotSize(Duration.ofMillis(1))
             .failedUrlCooldown(Duration.ofMillis(1))
             .maxNumRetries(10)
+            .clientQoS(ClientConfiguration.ClientQoS.DANGEROUS_DISABLE_SYMPATHETIC_CLIENT_QOS)
             .build();
 
     public abstract Duration connectTimeout();
@@ -60,6 +61,10 @@ public abstract class ClientOptions {
     public abstract Duration backoffSlotSize();
     public abstract Duration failedUrlCooldown();
     public abstract int maxNumRetries();
+    @Value.Default
+    public ClientConfiguration.ClientQoS clientQoS() {
+        return ClientConfiguration.ClientQoS.ENABLED;
+    }
 
     public ClientConfiguration serverListToClient(ServerListConfig serverConfig) {
         ServiceConfiguration partialConfig = ServiceConfiguration.builder()
@@ -90,7 +95,8 @@ public abstract class ClientOptions {
                 .failedUrlCooldown(failedUrlCooldown())
                 .maxNumRetries(maxNumRetries())
                 .enableGcmCipherSuites(true)
-                .fallbackToCommonNameVerification(true);
+                .fallbackToCommonNameVerification(true)
+                .clientQoS(clientQoS());
 
         proxy.ifPresent(builder::proxy);
         return builder.build();

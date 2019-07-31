@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.UserAgents;
-import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
 import com.palantir.atlasdb.timelock.TestableTimelockServer;
 import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;

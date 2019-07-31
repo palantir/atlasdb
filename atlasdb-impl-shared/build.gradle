@@ -31,7 +31,10 @@ dependencies {
   processor project(":atlasdb-processors")
 
   testCompile group: 'com.palantir.conjure.java.runtime', name: 'conjure-java-jaxrs-client'
-  testCompile group: 'io.dropwizard', name: 'dropwizard-testing'
+  testCompile(group: 'io.dropwizard', name: 'dropwizard-testing') {
+    // conflicts with conjure java runtime
+    exclude group: 'org.glassfish.jersey.ext'
+  }
   testCompile group: 'org.assertj', name: 'assertj-core'
   testCompile group: 'org.mockito', name: 'mockito-core'
   testCompile group: 'org.hamcrest', name: 'hamcrest-library'

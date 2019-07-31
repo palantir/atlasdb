@@ -49,7 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
-import com.palantir.atlasdb.http.FeignOkHttpClients;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.conjure.java.api.errors.RemoteException;
@@ -84,7 +83,6 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final String LEARNER = "learner";
     private static final String ACCEPTOR = "acceptor";
     private static final List<String> CLIENTS = ImmutableList.of(CLIENT_1, CLIENT_2, CLIENT_3, LEARNER, ACCEPTOR);
-    private static final String INVALID_CLIENT = "test2\b";
 
     private static final int MAX_CONCURRENT_LOCK_REQUESTS = CombinedTimeLockServerConfiguration.threadPoolSize();
 
@@ -145,7 +143,6 @@ public class PaxosTimeLockServerIntegrationTest {
     @Test
     public void singleClientCanUseLocalAndSharedThreads() throws Exception {
         List<LockService> lockService = ImmutableList.of(getLockService(CLIENT_1));
-
         assertThat(lockAndUnlockAndCountExceptions(lockService, MAX_CONCURRENT_LOCK_REQUESTS)).isEqualTo(0);
     }
 
@@ -191,8 +188,8 @@ public class PaxosTimeLockServerIntegrationTest {
         }
 
         List<Future<LockRefreshToken>> futures = Lists.newArrayList();
-        for (LockService lockService : lockServices) {
-            for (int i = 0; i < numRequestsPerClient; i++) {
+        for (int i = 0; i < numRequestsPerClient; i++) {
+            for (LockService lockService : lockServices) {
                 int currentTrial = i;
                 futures.add(executorService.submit(() ->
                         lockService.lock(CLIENT_2 + String.valueOf(currentTrial), REQUEST_LOCK_WITH_LONG_TIMEOUT))
