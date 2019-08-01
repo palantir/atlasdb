@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.http;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -115,37 +114,6 @@ public class AtlasDbHttpClientsTest {
                 getUriForPort(availablePort));
     }
 
-    //todo Figure out if we need to do this
-    @Test
-    public void payloadLimitingClientThrowsOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
-                getUriForPort(availablePort),
-                TestResource.class,
-                UserAgents.DEFAULT_USER_AGENT,
-                true);
-        assertThat(client.postRequest(new byte[50 * 1_000_000]))
-                .as("Request with payload size below limit succeeds")
-                .isTrue();
-//        assertThatThrownBy(() -> client.postRequest(new byte[AtlasDbInterceptors.MAX_PAYLOAD_SIZE]))
-//                .as("Request with payload size exceeding limit throws")
-//                .isInstanceOf(IllegalArgumentException.class)
-//                .hasMessageContaining("Request too large");
-    }
-
-    @Test
-    public void regularClientDoesNotThrowOnRequestThatIsTooLarge() {
-        TestResource client = AtlasDbHttpClients.createProxy(
-                new MetricRegistry(),
-                Optional.of(TestSslUtils.TRUST_CONTEXT),
-                getUriForPort(availablePort),
-                TestResource.class);
-        assertThat(client.postRequest(new byte[MAX_PAYLOAD_SIZE]))
-                .as("Request with payload size exceeding limit succeeds when not limiting payload size")
-                .isTrue();
-    }
-
     @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
@@ -159,7 +127,7 @@ public class AtlasDbHttpClientsTest {
                 UserAgents.DEFAULT_USER_AGENT,
                 TestResource.class);
 
-        assertThatThrownBy(() -> client.getTestNumber()).isInstanceOf(RetryableException.class);
+        assertThatThrownBy(client::getTestNumber).isInstanceOf(RetryableException.class);
 
         availableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));

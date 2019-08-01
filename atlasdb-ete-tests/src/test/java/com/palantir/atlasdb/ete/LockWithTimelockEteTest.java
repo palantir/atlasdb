@@ -17,9 +17,7 @@
 package com.palantir.atlasdb.ete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.palantir.atlasdb.lock.EteLockResource;
@@ -41,28 +39,5 @@ public class LockWithTimelockEteTest {
     public void largeV1LockSucceeds() throws InterruptedException {
         assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
 
-    }
-
-    @Test
-    public void largeV2LockSucceeds() {
-        assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
-    }
-
-    //TODO(gmaretic): make a decision on whether the belowe should pass
-
-    @Test
-    @Ignore
-    public void hugeV1LockThrowsOnClientSide() throws InterruptedException {
-        assertThatThrownBy(() -> lockResource.lockUsingLegacyLockApi(100, 500_000))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("INVALID_ARGUMENT");
-    }
-
-    @Test
-    @Ignore
-    public void hugeV2ThrowsOnClientSide() {
-        assertThatThrownBy(() -> lockResource.lockUsingTimelockApi(100, 500_000))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("INVALID_ARGUMENT");
     }
 }

@@ -28,9 +28,6 @@ import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 
 public final class AtlasDbHttpClients {
-    private static final int QUICK_FEIGN_TIMEOUT_MILLIS = 100;
-    private static final int QUICK_MAX_BACKOFF_MILLIS = 100;
-
     private AtlasDbHttpClients() {
         // Utility class
     }
