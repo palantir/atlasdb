@@ -71,3 +71,4 @@ org.objenesis:objenesis = 3.0.1
 org.ow2.asm:asm = 7.0
 org.slf4j:* = 1.7.25
 org.yaml:snakeyaml = 1.23
+org.derive4j:* = 1.1.1

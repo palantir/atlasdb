@@ -48,7 +48,7 @@ public abstract class PaxosResponses<T extends PaxosResponse> {
     }
 
     @Value.Derived
-    int successes() {
+    public int successes() {
         return (int) responses().stream().filter(PaxosResponse::isSuccessful).count();
     }
 

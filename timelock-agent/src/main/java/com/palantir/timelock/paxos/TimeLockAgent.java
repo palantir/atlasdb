@@ -68,7 +68,7 @@ public class TimeLockAgent {
     private final TimeLockServicesCreator timelockCreator;
     private final ExecutorService sharedExecutor;
 
-    private Supplier<LeaderPingHealthCheck> healthCheckSupplier;
+    private LeaderPingHealthCheck healthCheck;
     private TimeLockResource resource;
 
     public static TimeLockAgent create(
@@ -171,7 +171,7 @@ public class TimeLockAgent {
         leadershipCreator.registerLeaderElectionService();
 
         // Finally, register the health check, and endpoints associated with the clients.
-        healthCheckSupplier = leadershipCreator.getHealthCheck();
+        healthCheck = leadershipCreator.getHealthCheck();
         resource = TimeLockResource.create(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
@@ -185,7 +185,7 @@ public class TimeLockAgent {
             return TimeLockStatus.PENDING_ELECTION;
         }
 
-        return healthCheckSupplier.get().getStatus();
+        return healthCheck.getStatus();
     }
 
     @SuppressWarnings({"unused", "WeakerAccess"}) // used by external health checks

@@ -30,6 +30,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.immutables.value.Value;
 
@@ -189,6 +190,10 @@ public final class Leaders {
                 PingableLeader.class,
                 paxosLeaderElectionService);
 
+        Set<LeaderUuidSupplier> leaderUuids = Stream.concat(Stream.of(pingableLeader), otherLeaders.keySet().stream())
+                .<LeaderUuidSupplier>map(p -> () -> UUID.fromString(p.getUUID()))
+                .collect(Collectors.toSet());
+
         return ImmutableLocalPaxosServices.builder()
                 .ourAcceptor(ourAcceptor)
                 .ourLearner(ourLearner)
@@ -196,6 +201,7 @@ public final class Leaders {
                 .pingableLeader(pingableLeader)
                 .leadershipObserver(leadershipObserver)
                 .isCurrentSuspectedLeader(paxosLeaderElectionService::ping)
+                .leaderUuids(leaderUuids)
                 .build();
     }
 
@@ -241,6 +247,8 @@ public final class Leaders {
         return pingables;
     }
 
+    public interface LeaderUuidSupplier extends Supplier<UUID> {}
+
     @Value.Immutable
     public interface LocalPaxosServices {
         PaxosAcceptor ourAcceptor();
@@ -249,6 +257,7 @@ public final class Leaders {
         PingableLeader pingableLeader();
         LeadershipObserver leadershipObserver();
         Supplier<Boolean> isCurrentSuspectedLeader();
+        Set<LeaderUuidSupplier> leaderUuids();
     }
 
     @Value.Immutable

@@ -17,71 +17,52 @@ package com.palantir.timelock.paxos;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.factory.Leaders.LeaderUuidSupplier;
+import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.leader.PingableLeader;
 import com.palantir.paxos.PaxosQuorumChecker;
-import com.palantir.paxos.PaxosResponse;
 import com.palantir.paxos.PaxosResponses;
-import com.palantir.timelock.TimeLockStatus;
+import com.palantir.timelock.TimelockStatus;
+import com.palantir.timelock.TimelockStatus2s;
 
 public class LeaderPingHealthCheck {
 
     private static final Duration HEALTH_CHECK_TIME_LIMIT = Duration.ofSeconds(7);
 
-    private final Set<PingableLeader> leaders;
+    private final Set<LeaderUuidSupplier> networkClients;
     private final ExecutorService executorService;
 
-    public LeaderPingHealthCheck(Set<PingableLeader> leaders) {
-        this.leaders = leaders;
+    public LeaderPingHealthCheck(Set<LeaderUuidSupplier> uuidSuppliers) {
+        this.networkClients = uuidSuppliers;
         this.executorService = PTExecutors.newFixedThreadPool(
-                leaders.size(),
+                uuidSuppliers.size(),
                 new NamedThreadFactory("leader-ping-healthcheck", true));
     }
 
-    public TimeLockStatus getStatus() {
-        PaxosResponses<HealthCheckResponse> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
-                ImmutableList.copyOf(leaders),
-                pingable -> new HealthCheckResponse(pingable.ping()),
+    public TimelockStatus getStatus() {
+        PaxosResponses<PaxosContainer<UUID>> responses = PaxosQuorumChecker.collectAsManyResponsesAsPossible(
+                ImmutableList.copyOf(networkClients),
+                leaderUuid -> PaxosContainer.of(leaderUuid.get()),
                 executorService,
                 HEALTH_CHECK_TIME_LIMIT);
 
-        long numLeaders = responses.stream()
-                .filter(response -> response.isLeader)
-                .count();
-
-        if (responses.numberOfResponses() < getQuorumSize()) {
-            return TimeLockStatus.NO_QUORUM;
-        }
-
-        if (numLeaders == 1) {
-            return TimeLockStatus.ONE_LEADER;
-        } else if (numLeaders == 0) {
-            return TimeLockStatus.NO_LEADER;
+        int successes = responses.successes();
+        if (successes < getQuorumSize()) {
+            return TimelockStatus2s.quorumUnavailable(successes, networkClients.size());
+        } else if (successes == getQuorumSize()) {
+            return TimelockStatus2s.quorumAvailableDegradedState(successes, networkClients.size());
         } else {
-            return TimeLockStatus.MULTIPLE_LEADERS;
+            return TimelockStatus2s.quorumAvailableFaultTolerant();
         }
     }
 
     private int getQuorumSize() {
-        return PaxosRemotingUtils.getQuorumSize(leaders);
-    }
-
-    private static final class HealthCheckResponse implements PaxosResponse {
-
-        private final boolean isLeader;
-
-        private HealthCheckResponse(boolean isLeader) {
-            this.isLeader = isLeader;
-        }
-
-        @Override
-        public boolean isSuccessful() {
-            return true;
-        }
+        return PaxosRemotingUtils.getQuorumSize(networkClients);
     }
 
 }

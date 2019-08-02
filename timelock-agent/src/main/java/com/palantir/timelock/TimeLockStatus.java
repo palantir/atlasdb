@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.timelock;
 
-public enum TimeLockStatus {
-    ONE_LEADER("There is exactly one leader in the Paxos cluster."),
-    NO_LEADER("There are no leaders in the Paxos cluster"),
-    MULTIPLE_LEADERS("Multiple nodes in the Paxos cluster believe themselves to be the leader."),
-    NO_QUORUM("Less than a quorum of nodes responded to a ping request."),
-    PENDING_ELECTION("No leader election has been triggered yet. A leader is elected upon the registration"
-            + " of the first client, so this might indicate that no clients have been registered yet.");
+import org.derive4j.Data;
 
-    private final String message;
+@Data
+public abstract class TimelockStatus {
 
-    TimeLockStatus(String message) {
-        this.message = message;
+    public abstract <R> R match(Visitor<R> visitor);
+
+    public interface Visitor<R> {
+        R quorumAvailableFaultTolerant();
+        R quorumAvailableDegradedState(int availableNodes, int totalNodes);
+        R quorumUnavailable(int availableNodes, int totalNodes);
+        R pendingElection();
     }
 
-    public String getMessage() {
-        return message;
-    }
+    @Override
+    public abstract int hashCode();
+
+    @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public abstract String toString();
+
 }

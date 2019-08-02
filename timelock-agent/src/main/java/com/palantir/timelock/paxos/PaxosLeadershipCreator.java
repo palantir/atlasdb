@@ -50,6 +50,7 @@ class PaxosLeadershipCreator {
     private LeaderElectionService leaderElectionService;
     private LeadershipObserver leadershipObserver;
     private Supplier<Boolean> isCurrentSuspectedLeader;
+    private LeaderPingHealthCheck healthCheck;
 
     PaxosLeadershipCreator(
             MetricsManager metricsManager,
@@ -83,6 +84,7 @@ class PaxosLeadershipCreator {
         leaderElectionService = localPaxosServices.leaderElectionService();
         leadershipObserver = localPaxosServices.leadershipObserver();
         isCurrentSuspectedLeader = localPaxosServices.isCurrentSuspectedLeader();
+        healthCheck = new LeaderPingHealthCheck(localPaxosServices.leaderUuids());
 
         registrar.accept(localPingableLeader);
         registrar.accept(new LeadershipResource(
@@ -123,8 +125,8 @@ class PaxosLeadershipCreator {
                     .onlyLogOnQuorumFailure(config.onlyLogOnQuorumFailure())
                     .build();
 
-    Supplier<LeaderPingHealthCheck> getHealthCheck() {
-        return () -> new LeaderPingHealthCheck(leaderElectionService.getPotentialLeaders());
+    LeaderPingHealthCheck getHealthCheck() {
+        return healthCheck;
     }
 
     void executeWhenGainedLeadership(Runnable task) {

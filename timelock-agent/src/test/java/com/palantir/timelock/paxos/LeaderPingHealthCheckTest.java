@@ -22,33 +22,34 @@ import static org.mockito.Mockito.when;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.factory.Leaders.LeaderUuidSupplier;
 import com.palantir.atlasdb.http.errors.AtlasDbRemoteException;
 import com.palantir.leader.PingableLeader;
-import com.palantir.timelock.TimeLockStatus;
+import com.palantir.timelock.TimelockStatus;
 
 public class LeaderPingHealthCheckTest {
 
     @Test
     public void shouldBeUnhealthyIfAllNodesPingedSuccessfully() {
-        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, true);
-        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.MULTIPLE_LEADERS);
+        ImmutableSet<LeaderUuidSupplier> leaders = getPingableLeaders(true, true, true);
+        assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimelockStatus.MULTIPLE_LEADERS);
     }
 
     @Test
     public void shouldBeUnhealthyIfMultipleNodesPingedSuccessfully() {
-        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, true, false);
+        ImmutableSet<LeaderUuidSupplier> leaders = getPingableLeaders(true, true, false);
         assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.MULTIPLE_LEADERS);
     }
 
     @Test
     public void shouldBeHealthyIfExactlyOneNodePingedSuccessfully() {
-        ImmutableSet<PingableLeader> leaders = getPingableLeaders(true, false, false);
+        ImmutableSet<LeaderUuidSupplier> leaders = getPingableLeaders(true, false, false);
         assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.ONE_LEADER);
     }
 
     @Test
     public void shouldBeUnhealthyIfNoNodesPingedSuccessfully() {
-        ImmutableSet<PingableLeader> leaders = getPingableLeaders(false, false, false);
+        ImmutableSet<LeaderUuidSupplier> leaders = getPingableLeaders(false, false, false);
         assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_LEADER);
     }
 
@@ -88,7 +89,7 @@ public class LeaderPingHealthCheckTest {
         assertThat(new LeaderPingHealthCheck(leaders).getStatus()).isEqualTo(TimeLockStatus.NO_QUORUM);
     }
 
-    private static ImmutableSet<PingableLeader> getPingableLeaders(
+    private static ImmutableSet<LeaderUuidSupplier> getPingableLeaders(
             boolean pingResultForLeader1,
             boolean pingResultForLeader2,
             boolean pingResultForLeader3) {
