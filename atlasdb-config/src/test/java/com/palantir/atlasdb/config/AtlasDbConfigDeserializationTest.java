@@ -23,7 +23,6 @@ import java.nio.file.Paths;
 
 import org.junit.Test;
 
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 
@@ -43,7 +42,6 @@ public class AtlasDbConfigDeserializationTest {
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
 
         assertThat(config.leader().isPresent()).isFalse();
-        assertThat(config.enableSweep()).isTrue();
     }
 
     @Test
@@ -54,8 +52,6 @@ public class AtlasDbConfigDeserializationTest {
 
         assertThat(config.timelock().isPresent()).isFalse();
         assertThat(config.leader().isPresent()).isFalse();
-
-        assertThat(config.enableSweep()).isEqualTo(AtlasDbConstants.DEFAULT_ENABLE_SWEEP);
     }
 
     private void assertTimeLockConfigDeserializedCorrectly(TimeLockClientConfig timeLockClientConfig) {
