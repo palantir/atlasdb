@@ -54,9 +54,11 @@ public class SweepQueueCleaner {
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
         sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
-        log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
-                LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
-                SafeArg.of("partitions", partitions));
+        if (log.isDebugEnabled()) {
+            log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
+                    LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef()),
+                    SafeArg.of("partitions", partitions));
+        }
     }
 
     private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
@@ -70,9 +72,12 @@ public class SweepQueueCleaner {
         coarsePartitions = removeLastPartitionIfNotComplete(coarsePartitions, lastTs);
 
         sweepableTimestamps.deleteCoarsePartitions(shardStrategy, coarsePartitions);
-        log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
-                LoggingArgs.tableRef(TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
-                SafeArg.of("partitions", coarsePartitions));
+        if (log.isDebugEnabled()) {
+            log.debug("Deleted persisted sweep queue information in table {} for partitions {}.",
+                    LoggingArgs.tableRef(
+                            TargetedSweepTableFactory.of().getSweepableTimestampsTable(null).getTableRef()),
+                    SafeArg.of("partitions", coarsePartitions));
+        }
     }
 
     private static Set<Long> removeLastPartitionIfNotComplete(Set<Long> coarsePartitions, long lastTs) {
@@ -87,8 +92,10 @@ public class SweepQueueCleaner {
             return;
         }
         progress.updateLastSweptTimestamp(shardStrategy, lastTs);
-        log.debug("Progressed last swept timestamp for {} to {}.",
-                SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
+        if (log.isDebugEnabled()) {
+            log.debug("Progressed last swept timestamp for {} to {}.",
+                    SafeArg.of("shardStrategy", shardStrategy.toText()), SafeArg.of("timestamp", lastTs));
+        }
 
     }
 }
