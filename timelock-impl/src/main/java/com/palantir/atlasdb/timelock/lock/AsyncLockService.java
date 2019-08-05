@@ -50,7 +50,7 @@ public class AsyncLockService implements Closeable {
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
      *
-     * Executors here are assumed to be owned by the service, and will be shut down when {@link #close()} is called.
+     * Executors here are assumed to be owned by this service, and will be shut down when {@link #close()} is called.
      *
      * @param lockLog lock logger
      * @param reaperExecutor executor for reaping locks that have not been refreshed by clients
