@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -179,7 +178,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         lockService.close();
     }
 }
