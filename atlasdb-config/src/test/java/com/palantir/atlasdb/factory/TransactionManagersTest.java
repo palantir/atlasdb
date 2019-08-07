@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.factory;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -67,6 +68,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
@@ -79,7 +81,9 @@ import com.palantir.atlasdb.config.ImmutableTimestampClientConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
+import com.palantir.atlasdb.http.UserAgents;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAsyncAtlasDbConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
@@ -316,6 +320,30 @@ public class TransactionManagersTest {
     public void canCreateInMemoryWithSetOfSchemas() {
         TransactionManagers.createInMemory(ImmutableSet.of(
                 GenericTestSchema.getSchema()));
+    }
+
+    @Test
+    public void canDropTablesWhenSweepQueueWritesAreDisabled() {
+        AtlasDbConfig inMemoryNoQueueWrites = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().enableSweepQueueWrites(false).build())
+                .build();
+        KeyValueService kvs = TransactionManagers.builder()
+                .config(inMemoryNoQueueWrites)
+                .userAgent(UserAgents.DEFAULT_USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .build()
+                .serializable()
+                .getKeyValueService();
+
+        TableReference testTable = TableReference.createFromFullyQualifiedName("test.test");
+
+        kvs.createTable(testTable, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        assertThat(kvs.getAllTableNames()).contains(testTable);
+
+        kvs.dropTable(testTable);
+        assertThat(kvs.getAllTableNames()).doesNotContain(testTable);
     }
 
     @Test
