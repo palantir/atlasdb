@@ -1,15 +1,6 @@
 type: fix
 fix:
-  description: |-
-    Allow dropping tables when not writing to the sweep queue
-
-    **Goals (and why)**:
-    If we never created the TS tables, attempting to drop a table would throw an IllegalStateException since we try to persist information about the drop into the clearer table.
-
-    **Implementation Description (bullets)**:
-    Always create the clearer table, even if we do not write to the sweep queue. Do not nevesarrily create the other tables from the TS schema.
-
-    **Testing (What was existing testing like?  What have you done to improve it?)**:
-    Test that was failing on develop, now passes
+  description: '`TransactionManagers` now creates the `ClearsTable` during initialisation
+    regardless of whether or not Targeted Sweep is enabled.'
   links:
   - https://github.com/palantir/atlasdb/pull/4164
