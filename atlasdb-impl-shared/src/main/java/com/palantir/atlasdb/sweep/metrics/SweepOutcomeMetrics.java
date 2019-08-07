@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.codahale.metrics.SlidingTimeWindowReservoir;
+import com.codahale.metrics.Reservoir;
+import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -32,12 +33,12 @@ public final class SweepOutcomeMetrics {
     public static final List<SweepOutcome> TARGETED_OUTCOMES = ImmutableList.of(SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE,
             SweepOutcome.DISABLED, SweepOutcome.SUCCESS, SweepOutcome.ERROR, SweepOutcome.NOTHING_TO_SWEEP);
 
-    private final SlidingTimeWindowReservoir reservoir;
+    private final Reservoir reservoir;
     private volatile boolean shutdown = false;
     private volatile boolean fatal = false;
 
     private SweepOutcomeMetrics() {
-        reservoir = new SlidingTimeWindowReservoir(60L, TimeUnit.SECONDS);
+        reservoir = new SlidingTimeWindowArrayReservoir(60L, TimeUnit.SECONDS);
     }
 
     public static SweepOutcomeMetrics registerLegacy(MetricsManager metricsManager) {
