@@ -104,7 +104,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void tryToGainLeadershipAsync() {
         try {
-            executor.submit(this::gainLeadershipWithRetry);
+            executor.execute(this::gainLeadershipWithRetry);
         } catch (RejectedExecutionException e) {
             if (!isClosed) {
                 throw new IllegalStateException("failed to submit task but proxy not closed", e);

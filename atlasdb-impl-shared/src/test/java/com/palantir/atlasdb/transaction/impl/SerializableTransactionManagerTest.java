@@ -232,7 +232,7 @@ public class SerializableTransactionManagerTest {
         manager = getManagerWithCallback(true, blockingCallback, executorService);
 
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
-        tickerThread.submit(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
+        tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
         assertFalse(manager.isInitialized());
@@ -249,7 +249,7 @@ public class SerializableTransactionManagerTest {
         manager = getManagerWithCallback(true, blockingCallback, executorService);
 
         ExecutorService tickerThread = PTExecutors.newSingleThreadExecutor(true);
-        tickerThread.submit(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
+        tickerThread.execute(() -> executorService.tick(1000, TimeUnit.MILLISECONDS));
 
         Awaitility.waitAtMost(THREE, TimeUnit.SECONDS).until(blockingCallback::wasInvoked);
         verify(mockKvs, atLeast(1)).getClusterAvailabilityStatus();

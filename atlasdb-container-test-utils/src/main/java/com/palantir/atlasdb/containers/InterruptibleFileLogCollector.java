@@ -64,7 +64,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
             throw new RuntimeException("Cannot start collecting the same logs twice");
         }
         List<ContainerName> containerNames = dockerCompose.ps();
-        if (containerNames.size() == 0) {
+        if (containerNames.isEmpty()) {
             return;
         }
         executor = Executors.newFixedThreadPool(containerNames.size());
@@ -74,7 +74,7 @@ public class InterruptibleFileLogCollector implements LogCollector {
     }
 
     private void collectLogs(String container, DockerCompose dockerCompose)  {
-        executor.submit(() -> {
+        executor.execute(() -> {
             File outputFile = new File(logDirectory, container + ".log");
             log.info("Writing logs for container '{}' to '{}'", container, outputFile.getAbsolutePath());
             try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {

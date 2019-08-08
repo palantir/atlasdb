@@ -121,7 +121,7 @@ public abstract class AbstractTimestampServiceTests {
             throws InterruptedException, TimeoutException {
         ExecutorService executor = Executors.newFixedThreadPool(16);
         for (int i = 0; i < count; i++) {
-            executor.submit(task);
+            executor.execute(task);
         }
 
         executor.shutdown();

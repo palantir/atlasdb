@@ -1748,7 +1748,7 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         }
 
         try {
-            deleteExecutor.submit(() -> deleteCells(tableRef, keysToDelete));
+            deleteExecutor.execute(() -> deleteCells(tableRef, keysToDelete));
         } catch (RejectedExecutionException rejected) {
             log.info("Could not delete keys {} for table {}, because the delete executor's queue was full."
                     + " Sweep should eventually clean these values.",
