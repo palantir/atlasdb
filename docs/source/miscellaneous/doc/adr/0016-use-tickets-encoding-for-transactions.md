@@ -708,9 +708,25 @@ it is time to commit the next transaction.
 We have seen considerably improved performance at larger deployments where users write to the table with high
 concurrency - both in terms of client read latency and load on Cassandra. Although auto-batching does tend to add a half
 round-trip to a request, the significantly reduced number of requests means that requests don't have to queue, and
-responses from the underlying key-value service are generally faster.
+responses from the underlying key-value service are generally faster. Keys and values tend to be smaller as well,
+leading to quicker performance.
 
 ### Read Performance
+
+Similar to the previous section, we focus on Cassandra here.
+
+We observe that service nodes now distribute their reads across a Cassandra cluster in transactions2, while previously
+reads would all go to a single replication group in transactions1. This will substantially reduce read loads on the
+replication group that was responsible for the data in `_transactions`, though note that this effect may take a while
+to observe, depending on one's read patterns. Data written under the transactions1 scheme will still need to be read
+from the specific replication group.
+
+The amount of data read is also quite a bit smaller - this is expected, as the delta encoding and variable-length
+representation used for the ``_transactions2`` table is generally more compact than that in ``_transactions``.
+
+Our changes to the ``CellLoader`` may also improve performance for dynamic column tables (other than ``_transactions2``)
+where query patterns involve loading distinct columns across multiple rows; though the team is not currently aware
+of any specific examples.
 
 ### Data Compression and Disk Usage
 
@@ -758,8 +774,8 @@ that the state hasn't changed. We find this acceptable in practice, as coordinat
 #### Cassandra and TimeLock Dependencies
 
 Transactions2 relies on the existence of new Cassandra thrift endpoints (multi-PUE and multiget multislice), along with
-a TimeLock endpoint (startIdentifiedAtlasDbTransaction). As we overhauled the CellLoader more broadly, we introduced
-dependencies on various versions of Cassandra:
+a TimeLock endpoint (startIdentifiedAtlasDbTransaction). As we overhauled the ``CellLoader`` more broadly, we introduced
+dependencies on various versions of Cassandra, even if transactions2 is not being used:
 
 - TODO
 
