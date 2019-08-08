@@ -801,11 +801,57 @@ cognizant of the coordination service. Thus:
 
 ## Alternatives Considered
 
-### Use TimeLock / other Paxos mechanism for transactions
+Recall that we outlined several principles for a good transaction service - horizontal scalability (HS), having a
+compact representation (CR), supporting range scans (RS) and having reasonable usage patterns on underlying services
+(RUP). Although we found that the tickets algorithm was able to satisfy these requirements, there were several other
+approaches we also considered.
+
+### The Little-Endian Algorithm
+
+The simplest solution to the hotspotting problem could be to store the start timestamps with a little-endian byte
+representation; the standard ``VAR_LONG`` is big-endian. This could indeed address hotspotting and provide some measure
+of horizontal scalablity. However, range scans would become nearly impossible, and the size of the representation would
+be no smaller than what transactions1 offers. We could of course apply delta encoding to the commit timestamp, but
+this would still not be as efficient as tickets in most cases.
 
 ### The Row-Tickets Algorithm
 
-### Multiget Multislice Exactly
+We considered a close relative of the tickets algorithm, the *row tickets* algorithm.
+Instead of using dynamic columns, we would use a single static column; for a given timestamp TS, we would store
+it at the row corresponding to the concatenation of the row and column at which we would store it under the standard
+tickets algorithm.
+
+HS would still be achieved, as rows would be distributed evenly across byte-space. Similarly, RS is achieved;
+range scans would be done in a similar way to the ``getRowsColumnRange()`` calls one could do to range-scan the
+``_transactions2`` table, just that these would be ``getRange()`` calls instead. The data distribution is probably not
+too different from the tickets algorithm, so it seems the usage pattern is reasonable (RUP).
+
+This representation would likely be less compact than tickets at a physical level; we unfortunately are likely to have
+to store multiple copies of the row key (while we only needed to store this once per partition in tickets). We can
+still use the same delta encoding and VAR_LONG approaches, of course.
+
+We expect this algorithm to be less performant than tickets, though, at least as far as Cassandra is concerned. This is
+for two reasons:
+
+1. We may not be able to exploit various cache layers as aggressively. For example, because there are actually many
+   possible partitions, setting ``bloom_filter_fp_chance`` to such a low value is likely to incur a heavy memory
+   footprint (more similar to that observed in transactions1), and not doing so could mean that we read more SSTables
+   than necessary.
+2. When Cassandra wants to perform a conditional update / lightweight transaction on a partition, it needs to perform
+   a round of Paxos. Thus, even if we try to auto-batch requests in the same way as we do now, a batch of 1,000
+   transactions under the tickets algorithm would require consensus over one sequence via Paxos, but the same batch
+   under row-tickets would require 1,000 instances of consensus.
+
+To be fair, though, this algorithm does have one considerable advantage over the tickets algorithm - it can be
+implemented using the primitives that Cassandra already offers. Since each transaction still corresponds to one row, the
+standard ``cas`` endpoint in Thrift would work fine for our write path. We also wouldn't need ``multiget_multislice``,
+as a simple ``multiget_slice`` would allow us to load the data we wanted to on the read path.
+
+### Use TimeLock / other Paxos mechanism for transactions
+
+## Backlogged Components
+
+### Cell Loader: Multiget Multislice Exactly
 
 ## Future Work
 
