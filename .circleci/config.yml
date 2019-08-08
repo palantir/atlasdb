@@ -57,6 +57,9 @@ jobs:
       - run:
           command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
+      - run:
+          command: ./scripts/circle-ci/monitor-all-processes.sh
+          background: true
       - run: ./scripts/circle-ci/download-moreutils.sh
       - run:
           command: ./scripts/time-cmd.sh ./scripts/circle-ci/run-circle-tests.sh
