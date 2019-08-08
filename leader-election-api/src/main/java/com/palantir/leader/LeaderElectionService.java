@@ -19,8 +19,6 @@ import java.io.Serializable;
 import java.util.Optional;
 import java.util.Set;
 
-import com.google.common.net.HostAndPort;
-
 public interface LeaderElectionService {
     interface LeadershipToken extends Serializable {
         boolean sameAs(LeadershipToken token);
@@ -60,14 +58,6 @@ public interface LeaderElectionService {
      * @return LEADING if the token is still the leader
      */
     StillLeadingStatus isStillLeading(LeadershipToken token);
-
-    /**
-     * Cheaply get the network location of the currently suspected leader. This will not do any network
-     * calls and is meant to be callable without major performance implications. The value it returns
-     * is only a hint and may be unreliable. It can also return nothing if it doesn't suspect any
-     * leader or can't cheaply find one.
-     */
-    Optional<HostAndPort> getSuspectedLeaderInMemory();
 
     /**
      * Get the set of potential leaders known by this leader election service. This will not do any network

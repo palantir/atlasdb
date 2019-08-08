@@ -1604,7 +1604,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
-    private Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
+    private static Map<String, List<Mutation>> keyMutationMapByColumnFamily(TableReference tableRef,
             Mutation mutation) {
         return ImmutableMap.of(AbstractKeyValueService.internalTableName(tableRef), ImmutableList.of(mutation));
     }

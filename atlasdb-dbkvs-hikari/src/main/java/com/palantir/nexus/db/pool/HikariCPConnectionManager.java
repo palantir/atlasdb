@@ -277,7 +277,10 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
 
     private HikariDataSource getDataSourcePool() {
         // Print a stack trace whenever we initialize a pool
-        log.debug("Initializing connection pool: {}", connConfig, new RuntimeException("Initializing connection pool"));
+        if (log.isDebugEnabled()) {
+            log.debug("Initializing connection pool: {}", connConfig,
+                    new RuntimeException("Initializing connection pool"));
+        }
 
         HikariDataSource dataSourcePool;
 
@@ -385,11 +388,13 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                         connectionTestMillis);
                 logPoolStats();
             } else {
-                log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
-                        connConfig.getConnectionPoolName(),
-                        elapsedMillis,
-                        acquisitionMillis,
-                        connectionTestMillis);
+                if (log.isDebugEnabled()) {
+                    log.debug("[{}] Waited {}ms for connection (acquisition: {}, connectionTest: {})",
+                            connConfig.getConnectionPoolName(),
+                            elapsedMillis,
+                            acquisitionMillis,
+                            connectionTestMillis);
+                }
             }
         }
     }
