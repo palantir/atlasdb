@@ -891,3 +891,28 @@ cells based on this was worth the small performance improvement, and thus didn't
 proof-of-concept.
 
 ### DbKVS and Transactions2
+
+Currently, we only support transactions2 for Cassandra and In-Memory KVS (for purposes of testing). The transactions2
+project was targeted at large internal Cassandra deployments which were suffering from hot-spotting of the transactions
+table. For DbKVS deployments, transactions1 is far from the only or most critical blocker towards horizontal scaling;
+also, having data concentrated in byte space is often less of an anti-pattern for DbKVS than for Cassandra.
+
+There are some possible areas where DbKVS deployments could benefit from transactions2, in any case - batching of
+``putUnlessExists()`` queries and compression improvements could both be useful, though at time of writing the AtlasDB
+team has not benchmarked either of these. There is also arguably some benefit in harmonising operational support and
+maintenance, though transactions1 is generally very straightforward (especially compared to tickets and coordination).
+It's thus not very clear how significant the upside of investing in moving DbKVS to transactions2 is.
+
+There are also some further issues that would need to be dealt with:
+
+1. The auto-batcher for ``putUnlessExists()`` relies on being able to retrieve information about partial successes or
+   failures in the event that not all operations can be applied; this is not the case for DbKVS, and implementing
+   a robust, stable way of extracting this information from the ``SQLException``s returned from DbKVS appears
+   nontrivial.
+2. Most DbKVS deployments don't use external TimeLock Server. The functionality of tracking specific users and
+   assigning them to specific partitions (and load balancing this) has only been implemented for external TimeLock;
+   if one calls ``startIdentifiedAtlasDbTransaction()`` under the legacy embedded TimeLock Service, the user
+   ID is ignored and one will get a response indicating partition 0. Moving these deployments to external TimeLock
+   Server may not always be easy for various external non-technical considerations.
+
+We thus haven't invested in moving DbKVS deployments to transactions2 at this time.
