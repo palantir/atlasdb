@@ -76,28 +76,28 @@ public class BatchPaxosAcceptorResourceTests {
 
         SetMultimap<Client, WithSeq<PaxosProposalId>> request = ImmutableSetMultimap
                 .<Client, WithSeq<PaxosProposalId>>builder()
-                .put(CLIENT_1, WithSeq.of(1, PROPOSAL_ID_1))
-                .putAll(CLIENT_2, WithSeq.of(1, PROPOSAL_ID_1), WithSeq.of(2, PROPOSAL_ID_2))
+                .put(CLIENT_1, WithSeq.of(PROPOSAL_ID_1, 1))
+                .putAll(CLIENT_2, WithSeq.of(PROPOSAL_ID_1, 1), WithSeq.of(PROPOSAL_ID_2, 2))
                 .build();
 
         SetMultimap<Client, WithSeq<PaxosPromise>> expected = ImmutableSetMultimap
                 .<Client, WithSeq<PaxosPromise>>builder()
-                .put(CLIENT_1, WithSeq.of(1, promise(PROPOSAL_ID_1)))
-                .putAll(CLIENT_2, WithSeq.of(1, promise(PROPOSAL_ID_1)), WithSeq.of(2, promise(PROPOSAL_ID_2)))
+                .put(CLIENT_1, WithSeq.of(promise(PROPOSAL_ID_1), 1))
+                .putAll(CLIENT_2, WithSeq.of(promise(PROPOSAL_ID_1), 1), WithSeq.of(promise(PROPOSAL_ID_2), 2))
                 .build();
 
         assertThat(resource.prepare(request))
                 .isEqualTo(expected);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
     public void weProxyAcceptRequests() {
-        PaxosProposal proposal1 = proposal(PROPOSAL_ID_1);
-        PaxosProposal proposal2 = proposal(PROPOSAL_ID_2);
+        PaxosProposal proposal1 = proposal(PROPOSAL_ID_1, 1);
+        PaxosProposal proposal2 = proposal(PROPOSAL_ID_2, 2);
 
         when(components.acceptor(CLIENT_1).accept(1, proposal1)).thenReturn(success());
         when(components.acceptor(CLIENT_2).accept(1, proposal1)).thenReturn(success());
@@ -106,31 +106,31 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
-        SetMultimap<Client, WithSeq<PaxosProposal>> request = ImmutableSetMultimap
-                .<Client, WithSeq<PaxosProposal>>builder()
-                .put(CLIENT_1, WithSeq.of(1, proposal1))
-                .put(CLIENT_2, WithSeq.of(1, proposal1))
-                .put(CLIENT_2, WithSeq.of(2, proposal2))
+        SetMultimap<Client, PaxosProposal> request = ImmutableSetMultimap
+                .<Client, PaxosProposal>builder()
+                .put(CLIENT_1, proposal1)
+                .put(CLIENT_2, proposal1)
+                .put(CLIENT_2, proposal2)
                 .build();
 
         SetMultimap<Client, WithSeq<BooleanPaxosResponse>> expected = ImmutableSetMultimap
                 .<Client, WithSeq<BooleanPaxosResponse>>builder()
-                .put(CLIENT_1, WithSeq.of(1, success()))
-                .put(CLIENT_2, WithSeq.of(1, success()))
-                .put(CLIENT_2, WithSeq.of(2, success()))
+                .put(CLIENT_1, WithSeq.of(success(), 1))
+                .put(CLIENT_2, WithSeq.of(success(), 1))
+                .put(CLIENT_2, WithSeq.of(success(), 2))
                 .build();
 
         assertThat(resource.accept(request))
                 .isEqualTo(expected);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
     public void throwsConjureRuntime404WhenCacheKeyIsNotFound() throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
         when(cache.updatesSinceCacheKey(cacheKey))
                 .thenThrow(new InvalidAcceptorCacheKeyException(cacheKey));
 
@@ -141,7 +141,7 @@ public class BatchPaxosAcceptorResourceTests {
 
     @Test
     public void cachedEndpointDelegatesToCache() throws InvalidAcceptorCacheKeyException {
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
         AcceptorCacheDigest digest = digest();
         when(cache.updatesSinceCacheKey(cacheKey))
                 .thenReturn(Optional.of(digest));
@@ -156,7 +156,7 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 1L)
                 .putUpdates(CLIENT_2, 2L)
                 .build();
@@ -167,8 +167,8 @@ public class BatchPaxosAcceptorResourceTests {
                 .isEqualTo(digest);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     @Test
@@ -176,10 +176,10 @@ public class BatchPaxosAcceptorResourceTests {
         when(components.acceptor(CLIENT_1).getLatestSequencePreparedOrAccepted()).thenReturn(1L);
         when(components.acceptor(CLIENT_2).getLatestSequencePreparedOrAccepted()).thenReturn(2L);
 
-        AcceptorCacheKey cacheKey = AcceptorCacheKey.of(UUID.randomUUID());
+        AcceptorCacheKey cacheKey = AcceptorCacheKey.newCacheKey();
 
         AcceptorCacheDigest digest = ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_2, 2L)
                 .build();
 
@@ -192,8 +192,8 @@ public class BatchPaxosAcceptorResourceTests {
                 .isEqualTo(digest);
 
         verify(cache).updateSequenceNumbers(ImmutableSet.of(
-                WithSeq.of(1, CLIENT_1),
-                WithSeq.of(2, CLIENT_2)));
+                WithSeq.of(CLIENT_1, 1),
+                WithSeq.of(CLIENT_2, 2)));
     }
 
     private static PaxosProposalId proposalId() {
@@ -208,17 +208,17 @@ public class BatchPaxosAcceptorResourceTests {
         return new BooleanPaxosResponse(true);
     }
 
-    private static PaxosProposal proposal(PaxosProposalId proposalId) {
-        return new PaxosProposal(proposalId, paxosValue());
+    private static PaxosProposal proposal(PaxosProposalId proposalId, long seq) {
+        return new PaxosProposal(proposalId, paxosValue(seq));
     }
 
-    private static PaxosValue paxosValue() {
-        return new PaxosValue(UUID.randomUUID().toString(), new Random().nextLong(), null);
+    private static PaxosValue paxosValue(long seq) {
+        return new PaxosValue(UUID.randomUUID().toString(), seq, null);
     }
 
     private static AcceptorCacheDigest digest() {
         return ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(UUID.randomUUID())
+                .newCacheKey(AcceptorCacheKey.newCacheKey())
                 .putUpdates(CLIENT_1, 50L)
                 .build();
     }

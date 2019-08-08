@@ -31,7 +31,6 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [ . ]
-      - run: scripts/circle-ci/pr-changelog-status-check.sh
 
   test:
     parallelism: 8
@@ -40,7 +39,7 @@ jobs:
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
-      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx4g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
+      _JAVA_OPTIONS: "-XX:ActiveProcessorCount=8 -Xmx8g -XX:+HeapDumpOnOutOfMemoryError -verbose:gc -XX:+PrintGC -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:-TraceClassUnloading -Xloggc:build-%t-%p.gc.log"
       CIRCLE_TEST_REPORTS: /home/circleci/junit
       CIRCLE_ARTIFACTS: /home/circleci/artifacts
 

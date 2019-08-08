@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Preconditions;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig;
 
 /**
  * Dynamic (live-reloaded) portions of TimeLock's configuration.

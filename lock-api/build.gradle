@@ -4,9 +4,6 @@ apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
-
 repositories {
     mavenCentral()
 }

@@ -33,6 +33,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -164,7 +165,7 @@ public final class LockServiceImpl
     public static final int SECURE_RANDOM_POOL_SIZE = 100;
     private final SecureRandomPool randomPool = new SecureRandomPool(SECURE_RANDOM_ALGORITHM, SECURE_RANDOM_POOL_SIZE);
 
-    private final Ownable<ExecutorService> executor;
+    private final LockReapRunner lockReapRunner;
     private final Runnable callOnClose;
     private final boolean isStandaloneServer;
     private final long slowLogTriggerMillis;
@@ -249,7 +250,7 @@ public final class LockServiceImpl
     }
 
     private LockServiceImpl(LockServerOptions options, Runnable callOnClose, Ownable<ExecutorService> executor) {
-        this.executor = executor;
+        this.lockReapRunner = new LockReapRunner(executor);
         this.callOnClose = callOnClose;
         this.isStandaloneServer = options.isStandaloneServer();
         this.maxAllowedLockTimeout = SimpleTimeDuration.of(options.getMaxAllowedLockTimeout());
@@ -258,14 +259,6 @@ public final class LockServiceImpl
         this.lockStateLoggerDir = options.getLockStateLoggerDir();
         this.slowLogTriggerMillis = options.slowLogTriggerMillis();
 
-        executor.resource().execute(() -> {
-            Thread.currentThread().setName("Held Locks Token Reaper");
-            reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
-        });
-        executor.resource().execute(() -> {
-            Thread.currentThread().setName("Held Locks Grant Reaper");
-            reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
-        });
     }
 
     private HeldLocksToken createHeldLocksToken(LockClient client,
@@ -992,8 +985,7 @@ public final class LockServiceImpl
                     continue;
                 }
                 T realToken = heldLocks.realToken;
-                if (realToken.getExpirationDateMs() > currentTimeMillis()
-                        - maxAllowedClockDrift.toMillis()) {
+                if (realToken.getExpirationDateMs() > currentTimeMillis() - maxAllowedClockDrift.toMillis()) {
                     queue.add(realToken);
                 } else {
                     // TODO (jkong): Make both types of lock tokens identifiable.
@@ -1069,9 +1061,7 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            if (executor.isOwned()) {
-                executor.resource().shutdownNow();
-            }
+            lockReapRunner.close();
             indefinitelyBlockingThreads.forEach(Thread::interrupt);
             callOnClose.run();
         }
@@ -1106,4 +1096,36 @@ public final class LockServiceImpl
         }
     }
 
+    private class LockReapRunner implements AutoCloseable {
+        private final Ownable<ExecutorService> executor;
+        private final List<Future<?>> taskFutures;
+
+        private LockReapRunner(Ownable<ExecutorService> executor) {
+            this.executor = executor;
+
+            Future<Void> tokenReaperFuture = executor.resource().submit(() -> {
+                Thread.currentThread().setName("Held Locks Token Reaper");
+                reapLocks(lockTokenReaperQueue, heldLocksTokenMap);
+                return null;
+            });
+            Future<Void> grantReaperFuture = executor.resource().submit(() -> {
+                Thread.currentThread().setName("Held Locks Grant Reaper");
+                reapLocks(lockGrantReaperQueue, heldLocksGrantMap);
+                return null;
+            });
+            this.taskFutures = ImmutableList.of(tokenReaperFuture, grantReaperFuture);
+        }
+
+        @Override
+        public void close() {
+            if (executor.isOwned()) {
+                executor.resource().shutdownNow();
+            } else {
+                // Even if we don't own the executor, these ordinarily run infinitely, and so MUST be interrupted.
+                // It's not enough to simply guard each iteration, because there are calls to blocking methods that may
+                // block infinitely if no further requests come in.
+                taskFutures.forEach(future -> future.cancel(true));
+            }
+        }
+    }
 }

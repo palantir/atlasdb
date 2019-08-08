@@ -94,7 +94,7 @@ public final class PaxosLearnerImpl implements PaxosLearner {
             greatestSeq = greatestLearnedValue.seq;
         }
 
-        Collection<PaxosValue> values = new ArrayList<PaxosValue>();
+        Collection<PaxosValue> values = new ArrayList<>();
         for (long i = seq; i <= greatestSeq; i++) {
             PaxosValue value;
             value = getLearnedValue(i);

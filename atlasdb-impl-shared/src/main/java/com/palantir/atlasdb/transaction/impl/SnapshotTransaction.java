@@ -337,23 +337,8 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
             TableReference tableRef,
             Iterable<byte[]> rows,
             BatchColumnRangeSelection columnRangeSelection) {
-        checkGetPreconditions(tableRef);
-        if (Iterables.isEmpty(rows)) {
-            return ImmutableMap.of();
-        }
-        hasReads = true;
-        Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
-                columnRangeSelection, getStartTimestamp());
-        Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> postFilteredResults =
-                Maps.newHashMapWithExpectedSize(rawResults.size());
-        for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
-            byte[] row = e.getKey();
-            RowColumnRangeIterator rawIterator = e.getValue();
-            Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
-                    getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
-            postFilteredResults.put(row, BatchingVisitableFromIterable.create(postFilteredIterator));
-        }
-        return postFilteredResults;
+        return Maps.transformEntries(getRowsColumnRangeIterator(tableRef, rows, columnRangeSelection),
+                (row, iterator) -> BatchingVisitableFromIterable.create(iterator));
     }
 
     @Override
@@ -386,6 +371,29 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
         });
 
         return Iterators.concat(postFiltered);
+    }
+
+    @Override
+    public Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIterator(TableReference tableRef,
+            Iterable<byte[]> rows,
+            BatchColumnRangeSelection columnRangeSelection) {
+        checkGetPreconditions(tableRef);
+        if (Iterables.isEmpty(rows)) {
+            return ImmutableMap.of();
+        }
+        hasReads = true;
+        Map<byte[], RowColumnRangeIterator> rawResults = keyValueService.getRowsColumnRange(tableRef, rows,
+                columnRangeSelection, getStartTimestamp());
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults =
+                Maps.newHashMapWithExpectedSize(rawResults.size());
+        for (Entry<byte[], RowColumnRangeIterator> e : rawResults.entrySet()) {
+            byte[] row = e.getKey();
+            RowColumnRangeIterator rawIterator = e.getValue();
+            Iterator<Map.Entry<Cell, byte[]>> postFilteredIterator =
+                    getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator);
+            postFilteredResults.put(row, postFilteredIterator);
+        }
+        return postFilteredResults;
     }
 
     private Iterator<Map.Entry<Cell, byte[]>> getPostFilteredColumns(
@@ -1445,8 +1453,10 @@ public class SnapshotTransaction extends AbstractTransaction implements Constrai
 
                 // Verify that our locks and pre-commit conditions are still valid before we actually commit;
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                // We check the pre-commit conditions first since they may operate similarly to read write conflict
+                // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+                timedAndTraced("preCommitLockCheck", () -> throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 timedAndTraced("commitPutCommitTs",
                         () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));

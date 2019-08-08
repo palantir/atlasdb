@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Fix bad performance in joins.  It is a best practice to always specify
+    a join order when forcing nested loops, since almost always one join order is
+    better than the other.
+  links:
+  - https://github.com/palantir/atlasdb/pull/4146

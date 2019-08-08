@@ -25,6 +25,11 @@ package com.palantir.atlasdb.transaction.api;
  * {@link TransactionManager} API. These locks are granted before the transaction starts and cannot be refreshed
  * once they lapse, so they provide the necessary invariant. If they are valid at commit time, they were valid
  * for the entire lifetime of the transaction.
+ *
+ * Conditions are associated with a transaction, but should not interfere with the transaction locks (non-advisory)
+ * used by the transaction. The validity of those locks is controlled separately from any pre-commit conditions, and
+ * they follow different constraints - transaction locks are only acquired at commit time, for example, rather than
+ * at the beginning of a transaction.
  */
 @FunctionalInterface
 public interface PreCommitCondition {

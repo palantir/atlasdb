@@ -18,6 +18,7 @@ package com.palantir.atlasdb.autobatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.when;
 
@@ -95,17 +96,13 @@ public class CoalescingBatchingEventHandlerTests {
     }
 
     @Test
-    public void defaultValueIsCalledWhenMapHasNoEntry() throws ExecutionException, InterruptedException {
+    public void throwsInFutureIfConstraintIsViolated() throws ExecutionException, InterruptedException {
         Request request1 = ImmutableRequest.of(5);
         Request request2 = ImmutableRequest.of(10);
         Response responseFor1 = ImmutableResponse.of(-5);
-        Response defaultResponse = ImmutableResponse.of(100);
 
         when(function.apply(ImmutableSet.of(request1, request2)))
                 .thenReturn(ImmutableMap.of(request1, responseFor1));
-
-        when(function.defaultValue())
-                .thenReturn(defaultResponse);
 
         CoalescingBatchingEventHandler<Request, Response> handler = new CoalescingBatchingEventHandler<>(function, 5);
 
@@ -116,9 +113,9 @@ public class CoalescingBatchingEventHandlerTests {
                 .as("element in result function gets resolved")
                 .isEqualTo(responseFor1);
 
-        assertThat(response2Future.get())
+        assertThatThrownBy(response2Future::get)
                 .as("element missing from result map resolves to default value")
-                .isEqualTo(defaultResponse);
+                .hasCauseInstanceOf(PostconditionFailedException.class);
     }
 
     @Test

@@ -71,7 +71,7 @@ public interface BatchPaxosAcceptor {
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
-            SetMultimap<Client, WithSeq<PaxosProposal>> proposalRequestsByClientAndSeq);
+            SetMultimap<Client, PaxosProposal> proposalRequestsByClientAndSeq);
 
     /**
      * Returns all latest sequences prepared or accepted for the provided {@link Client}s and the next cache key to use

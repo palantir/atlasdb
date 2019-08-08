@@ -316,6 +316,8 @@ public class TableRenderer {
             renderGetRowsMultimap(false);
             line();
             renderGetRowsColumnRange(false);
+            line();
+            renderGetRowsColumnRangeIterator(false);
 
             if (!cellReferencingIndices.isEmpty()) {
                 line();
@@ -351,6 +353,8 @@ public class TableRenderer {
             renderGetRowsMultimap(true);
             line();
             renderGetRowsColumnRange(true);
+            line();
+            renderGetRowsColumnRangeIterator(true);
         }
 
         private void fields(boolean isDynamic) {
@@ -1093,6 +1097,28 @@ public class TableRenderer {
                     }
                     line("return Maps.immutableEntry(row, colValue);");
                 } line("});");
+            } line("}");
+        }
+
+        private void renderGetRowsColumnRangeIterator(boolean isDynamic) {
+            line("@Override");
+            line("public Map<", Row, ", Iterator<", ColumnValue, ">> getRowsColumnRangeIterator(Iterable<", Row, "> rows, BatchColumnRangeSelection columnRangeSelection) {"); {
+                line("Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);");
+                line("Map<", Row, ", Iterator<", ColumnValue, ">> transformed = Maps.newHashMapWithExpectedSize(results.size());");
+                line("for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {"); {
+                    line(Row, " row = ", Row, ".BYTES_HYDRATOR.hydrateFromBytes(e.getKey());");
+                    line("Iterator<", ColumnValue, "> bv = Iterators.transform(e.getValue(), result -> {"); {
+                        if (isDynamic) {
+                            line(Column," col = ", Column, ".BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());");
+                            line(table.getColumns().getDynamicColumn().getValue().getJavaObjectTypeName(), " val = ", ColumnValue, ".hydrateValue(result.getValue());");
+                            line("return ", ColumnValue, ".of(col, val);");
+                        } else {
+                            line("return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());");
+                        }
+                    } line("});");
+                    line("transformed.put(row, bv);");
+                } line("}");
+                line("return transformed;");
             } line("}");
         }
 

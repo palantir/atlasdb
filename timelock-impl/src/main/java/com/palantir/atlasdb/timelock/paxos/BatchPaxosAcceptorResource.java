@@ -60,7 +60,7 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
                 .map((client, paxosProposalIdWithSeq) -> {
                     PaxosPromise promise = paxosComponents.acceptor(client)
                             .prepare(paxosProposalIdWithSeq.seq(), paxosProposalIdWithSeq.value());
-                    return WithSeq.of(paxosProposalIdWithSeq.seq(), promise);
+                    return WithSeq.of(promise, paxosProposalIdWithSeq.seq());
                 })
                 .collectToSetMultimap();
         primeCache(promiseWithSeqRequestsByClient.keySet());
@@ -69,16 +69,16 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     @Override
     public SetMultimap<Client, WithSeq<BooleanPaxosResponse>> accept(
-            SetMultimap<Client, WithSeq<PaxosProposal>> proposalRequestsByClientAndSeq) {
-        SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(
-                proposalRequestsByClientAndSeq)
-                .map((client, paxosProposalIdWithSeq) -> {
+            SetMultimap<Client, PaxosProposal> proposalRequestsByClient) {
+        SetMultimap<Client, WithSeq<BooleanPaxosResponse>> results = KeyedStream.stream(proposalRequestsByClient)
+                .map((client, paxosProposal) -> {
+                    long seq = paxosProposal.getValue().getRound();
                     BooleanPaxosResponse ack = paxosComponents.acceptor(client)
-                            .accept(paxosProposalIdWithSeq.seq(), paxosProposalIdWithSeq.value());
-                    return WithSeq.of(paxosProposalIdWithSeq.seq(), ack);
+                            .accept(seq, paxosProposal);
+                    return WithSeq.of(ack, seq);
                 })
                 .collectToSetMultimap();
-        primeCache(proposalRequestsByClientAndSeq.keySet());
+        primeCache(proposalRequestsByClient.keySet());
         return results;
     }
 
@@ -108,7 +108,7 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
 
     private static AcceptorCacheDigest emptyDigest(AcceptorCacheKey cacheKey) {
         return ImmutableAcceptorCacheDigest.builder()
-                .newCacheKey(cacheKey.value())
+                .newCacheKey(cacheKey)
                 .build();
     }
 
@@ -116,7 +116,7 @@ public class BatchPaxosAcceptorResource implements BatchPaxosAcceptor {
         Set<WithSeq<Client>> latestSequences = KeyedStream.of(clients)
                 .map(paxosComponents::acceptor)
                 .map(PaxosAcceptor::getLatestSequencePreparedOrAccepted)
-                .map((client, latestSeq) -> WithSeq.of(latestSeq, client))
+                .map((client, latestSeq) -> WithSeq.of(client, latestSeq))
                 .values()
                 .collect(toSet());
 

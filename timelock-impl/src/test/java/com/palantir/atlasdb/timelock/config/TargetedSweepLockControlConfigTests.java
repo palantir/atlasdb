@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.timelock.config;
+package com.palantir.atlasdb.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
-import com.palantir.timelock.config.TargetedSweepLockControlConfig.Mode;
+import com.palantir.atlasdb.timelock.config.TargetedSweepLockControlConfig.Mode;
 
 public class TargetedSweepLockControlConfigTests {
 
     @Test
     public void testWhitelist() {
         TargetedSweepLockControlConfig config = config(Mode.DISABLED_BY_DEFAULT, "should-rate-limit");
-        assertThat(config.shouldRateLimit("a random client"))
+        assertThat(config.rateLimitConfig("a random client").enabled())
                 .as("rate limiting is disabled by default for all clients other than the exclusions")
                 .isFalse();
 
-        assertThat(config.shouldRateLimit("should-rate-limit"))
+        assertThat(config.rateLimitConfig("should-rate-limit").enabled())
                 .as("rate limiting is disabled by default for all clients, except for 'should-rate-limit'")
                 .isTrue();
     }
@@ -39,11 +39,11 @@ public class TargetedSweepLockControlConfigTests {
     @Test
     public void testBlacklist() {
         TargetedSweepLockControlConfig config = config(Mode.ENABLED_BY_DEFAULT, "should-not-rate-limit");
-        assertThat(config.shouldRateLimit("a random client"))
+        assertThat(config.rateLimitConfig("a random client").enabled())
                 .as("rate limiting is enabled by default for all clients other than the exclusions")
                 .isTrue();
 
-        assertThat(config.shouldRateLimit("should-not-rate-limit"))
+        assertThat(config.rateLimitConfig("should-not-rate-limit").enabled())
                 .as("rate limiting is enabled by default for all clients, except for 'should-not-rate-limit', where "
                         + "it should process as many requests as possible as it receives")
                 .isFalse();

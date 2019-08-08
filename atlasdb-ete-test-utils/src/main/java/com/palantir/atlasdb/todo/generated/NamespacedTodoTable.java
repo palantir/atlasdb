@@ -602,6 +602,22 @@ public final class NamespacedTodoTable implements
         });
     }
 
+    @Override
+    public Map<NamespacedTodoRow, Iterator<NamespacedTodoColumnValue>> getRowsColumnRangeIterator(Iterable<NamespacedTodoRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<NamespacedTodoRow, Iterator<NamespacedTodoColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            NamespacedTodoRow row = NamespacedTodoRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<NamespacedTodoColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                NamespacedTodoColumn col = NamespacedTodoColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                String val = NamespacedTodoColumnValue.hydrateValue(result.getValue());
+                return NamespacedTodoColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<NamespacedTodoRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "e/3fKcHrTJALXUFmSPfhiQ==";
+    static String __CLASS_HASH = "Zef0skWTrRQj7rNC9Ye+tw==";
 }

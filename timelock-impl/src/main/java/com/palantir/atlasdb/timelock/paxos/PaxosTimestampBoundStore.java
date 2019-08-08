@@ -106,12 +106,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * @throws ServiceNotAvailableException if we couldn't contact a quorum
      */
     private List<PaxosLong> getLatestSequenceNumbersFromAcceptors() {
-        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.collectQuorumResponses(
+        PaxosResponses<PaxosLong> responses = PaxosQuorumChecker.<PaxosAcceptor, PaxosLong>collectQuorumResponses(
                 acceptors,
                 acceptor -> ImmutablePaxosLong.of(acceptor.getLatestSequencePreparedOrAccepted()),
                 proposer.getQuorumSize(),
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
         if (!responses.hasQuorum()) {
             throw new ServiceNotAvailableException("could not get a quorum");
         }
@@ -212,7 +212,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 learner -> getLearnedValue(seq, learner),
                 QUORUM_OF_ONE,
                 executor,
-                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT);
+                PaxosQuorumChecker.DEFAULT_REMOTE_REQUESTS_TIMEOUT).withoutRemotes();
         return Optional.ofNullable(Iterables.getFirst(responses.get(), null))
                 .map(PaxosLong::getValue)
                 .map(value -> ImmutableSequenceAndBound.of(seq, value));

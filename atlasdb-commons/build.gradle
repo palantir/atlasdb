@@ -10,6 +10,7 @@ dependencies {
         exclude (module: 'slf4j-api')
     }
     compile group: 'net.jpountz.lz4', name: 'lz4'
+    compile group: 'com.palantir.safe-logging', name: 'preconditions'
 
     processor group: 'org.immutables', name: 'value'
 

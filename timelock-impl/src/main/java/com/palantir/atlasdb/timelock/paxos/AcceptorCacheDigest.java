@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.Map;
-import java.util.UUID;
 
 import org.immutables.value.Value;
 
@@ -28,6 +27,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonDeserialize(as = ImmutableAcceptorCacheDigest.class)
 @JsonSerialize(as = ImmutableAcceptorCacheDigest.class)
 public interface AcceptorCacheDigest {
-    UUID newCacheKey();
+    AcceptorCacheKey newCacheKey();
     Map<Client, Long> updates();
 }

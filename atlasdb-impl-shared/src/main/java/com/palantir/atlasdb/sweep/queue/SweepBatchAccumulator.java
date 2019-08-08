@@ -33,7 +33,9 @@ class SweepBatchAccumulator {
     private final long sweepTimestamp;
 
     private long progressTimestamp;
+    private long entriesRead = 0;
     private boolean anyBatchesPresent = false;
+    private boolean nextBatchAvailable = true;
 
     SweepBatchAccumulator(long sweepTimestamp, long progressTimestamp) {
         this.sweepTimestamp = sweepTimestamp;
@@ -51,12 +53,12 @@ class SweepBatchAccumulator {
                 sweepTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
-        sweepBatch.writes().stream()
-                .map(writeInfo -> SweepQueueUtils.tsPartitionFine(writeInfo.timestamp()))
-                .forEach(finePartitions::add);
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
+        addRelevantFinePartitions(sweepBatch);
         progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
         anyBatchesPresent = true;
+        nextBatchAvailable = sweepBatch.hasNext();
+        entriesRead += sweepBatch.entriesRead();
     }
 
     long getProgressTimestamp() {
@@ -67,12 +69,15 @@ class SweepBatchAccumulator {
         SweepBatch sweepBatch = SweepBatch.of(
                 getLatestWritesByCellReference(),
                 DedicatedRows.of(accumulatedDedicatedRows),
-                getLastSweptTimestamp());
+                getLastSweptTimestamp(),
+                nextBatchAvailable,
+                entriesRead);
         return SweepBatchWithPartitionInfo.of(sweepBatch, finePartitions);
     }
 
     boolean shouldAcceptAdditionalBatch() {
         return accumulatedWrites.size() < SweepQueueUtils.SWEEP_BATCH_SIZE
+                && nextBatchAvailable
                 && progressTimestamp < (sweepTimestamp - 1);
     }
 
@@ -88,5 +93,15 @@ class SweepBatchAccumulator {
             return progressTimestamp;
         }
         return sweepTimestamp - 1;
+    }
+
+    private void addRelevantFinePartitions(SweepBatch sweepBatch) {
+        sweepBatch.writes().stream()
+                .map(writeInfo -> SweepQueueUtils.tsPartitionFine(writeInfo.timestamp()))
+                .forEach(finePartitions::add);
+        sweepBatch.dedicatedRows().getDedicatedRows().stream()
+                .map(SweepableCellsTable.SweepableCellsRow::getTimestampPartition)
+                .map(SweepQueueUtils::tsPartitionFine) // Dedicated rows are written with the start timestamp
+                .forEach(finePartitions::add);
     }
 }

@@ -19,15 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 // TODO(nziebart): these tests are mostly sanity checks, until we have better tests for {@link PaxosQuorumChecker}.
 public class PaxosLatestRoundVerifierTest {
@@ -36,65 +32,53 @@ public class PaxosLatestRoundVerifierTest {
     private static final long ROUND = 5L;
     private static final long LATER_ROUND = 6L;
 
-    private final PaxosAcceptor acceptor1 = mock(PaxosAcceptor.class);
-    private final PaxosAcceptor acceptor2 = mock(PaxosAcceptor.class);
-    private final PaxosAcceptor acceptor3 = mock(PaxosAcceptor.class);
+    private final PaxosAcceptorNetworkClient acceptorClient = mock(PaxosAcceptorNetworkClient.class);
 
-    private final List<PaxosAcceptor> acceptors = ImmutableList.of(
-            acceptor1,
-            acceptor2,
-            acceptor3);
-
-    private final Map<PaxosAcceptor, ExecutorService> executorServiceMap = ImmutableMap.of(
-            acceptor1, Executors.newSingleThreadExecutor(),
-            acceptor2, Executors.newSingleThreadExecutor(),
-            acceptor3, Executors.newSingleThreadExecutor()
-    );
-
-    private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptors, 2,
-            executorServiceMap);
+    private final PaxosLatestRoundVerifierImpl verifier = new PaxosLatestRoundVerifierImpl(acceptorClient);
 
     @Test
     public void hasQuorumIfAllNodesAgree() {
-        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
-        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
-        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
+        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+                .thenReturn(response(ROUND, ROUND, ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
     }
 
+    private static PaxosResponses<PaxosLong> response(long... latestSequences) {
+        List<PaxosLong> responses = Arrays.stream(latestSequences)
+                .<PaxosLong>mapToObj(ImmutablePaxosLong::of)
+                .collect(Collectors.toList());
+        return PaxosResponses.of(2, responses);
+    }
+
     @Test
     public void hasQuorumIfQuorumAgrees() {
-        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
-        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
-        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
+        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+                .thenReturn(response(ROUND, ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
     }
 
     @Test
     public void hasAgreementIfLatestSequenceIsOlder() {
-        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(EARLIER_ROUND);
-        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(EARLIER_ROUND);
-        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
+        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+                .thenReturn(response(EARLIER_ROUND, EARLIER_ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.QUORUM_AGREED);
     }
 
     @Test
     public void doesNotHaveQuorumIfQuorumFails() {
-        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenThrow(new RuntimeException("foo"));
-        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenThrow(new RuntimeException("foo"));
-        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
+        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+                .thenReturn(response(ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.NO_QUORUM);
     }
 
     @Test
     public void hasDisagreementIfQuorumDoesNotAgree() {
-        when(acceptor1.getLatestSequencePreparedOrAccepted()).thenReturn(ROUND);
-        when(acceptor2.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
-        when(acceptor3.getLatestSequencePreparedOrAccepted()).thenReturn(LATER_ROUND);
+        when(acceptorClient.getLatestSequencePreparedOrAccepted())
+                .thenReturn(response(ROUND, LATER_ROUND, LATER_ROUND));
 
         assertThat(verifier.isLatestRound(ROUND)).isEqualTo(PaxosQuorumStatus.SOME_DISAGREED);
     }

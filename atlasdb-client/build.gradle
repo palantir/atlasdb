@@ -1,8 +1,6 @@
 apply from: "../gradle/publish-jars.gradle"
 apply from: "../gradle/shared.gradle"
 
-apply plugin: 'java'
-apply plugin: 'eclipse'
 apply plugin: 'org.inferred.processors'
 
 repositories {
@@ -10,8 +8,9 @@ repositories {
 }
 
 schemas = [
-    'com.palantir.atlasdb.schema.SweepSchema',
     'com.palantir.atlasdb.schema.CompactSchema',
+    'com.palantir.atlasdb.schema.SweepSchema',
+    'com.palantir.atlasdb.schema.TargetedSweepSchema',
     'com.palantir.atlasdb.table.description.ApiTestSchema',
     'com.palantir.atlasdb.table.description.GenericTestSchema'
 ]

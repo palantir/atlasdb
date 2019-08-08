@@ -560,6 +560,20 @@ public final class SweepNameToIdTable implements
         });
     }
 
+    @Override
+    public Map<SweepNameToIdRow, Iterator<SweepNameToIdNamedColumnValue<?>>> getRowsColumnRangeIterator(Iterable<SweepNameToIdRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<SweepNameToIdRow, Iterator<SweepNameToIdNamedColumnValue<?>>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            SweepNameToIdRow row = SweepNameToIdRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<SweepNameToIdNamedColumnValue<?>> bv = Iterators.transform(e.getValue(), result -> {
+                return shortNameToHydrator.get(PtBytes.toString(result.getKey().getColumnName())).hydrateFromBytes(result.getValue());
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<SweepNameToIdRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -671,5 +685,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "DfAfxfVhiaGnk6aV2ilbFQ==";
+    static String __CLASS_HASH = "s9zHRD9HAzEhp13L6+ZO4g==";
 }

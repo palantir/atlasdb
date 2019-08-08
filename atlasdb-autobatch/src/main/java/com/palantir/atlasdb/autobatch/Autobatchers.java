@@ -17,18 +17,34 @@
 package com.palantir.atlasdb.autobatch;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 
 public final class Autobatchers {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024;
+
+    /**
+     * When invoking an {@link DisruptorAutobatcher autobatcher}, an argument needs to be supplied. In the case of
+     * {@link CoalescingRequestSupplier}, this means we need to pass in a placeholder value.
+     * {@link SupplierKey#INSTANCE} is this placeholder value.
+     */
+    public enum SupplierKey {
+        INSTANCE;
+
+        static <T> Map<SupplierKey, T> wrap(T object) {
+            return ImmutableMap.of(INSTANCE, object);
+        }
+    }
 
     private Autobatchers() {}
 
@@ -46,6 +62,10 @@ public final class Autobatchers {
      */
     public static <I, O> AutobatcherBuilder<I, O> coalescing(CoalescingRequestFunction<I, O> function) {
         return new AutobatcherBuilder<>(bufferSize -> new CoalescingBatchingEventHandler<>(function, bufferSize));
+    }
+
+    public static <O> AutobatcherBuilder<SupplierKey, O> coalescing(Supplier<O> supplier) {
+        return coalescing(new CoalescingRequestSupplier<>(supplier));
     }
 
     /**

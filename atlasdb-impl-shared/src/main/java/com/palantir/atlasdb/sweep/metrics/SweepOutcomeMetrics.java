@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep.metrics;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.codahale.metrics.SlidingTimeWindowReservoir;
@@ -41,19 +42,24 @@ public final class SweepOutcomeMetrics {
 
     public static SweepOutcomeMetrics registerLegacy(MetricsManager metricsManager) {
         SweepOutcomeMetrics metrics = new SweepOutcomeMetrics();
-        metrics.registerMetric(metricsManager, LEGACY_OUTCOMES, BackgroundSweeperImpl.class);
+        metrics.registerMetric(metricsManager, LEGACY_OUTCOMES, ImmutableMap.of(), BackgroundSweeperImpl.class);
         return metrics;
     }
 
-    public static SweepOutcomeMetrics registerTargeted(MetricsManager metricsManager) {
+    public static SweepOutcomeMetrics registerTargeted(MetricsManager metricsManager, Map<String, String> strategyTag) {
         SweepOutcomeMetrics metrics = new SweepOutcomeMetrics();
-        metrics.registerMetric(metricsManager, TARGETED_OUTCOMES, TargetedSweepMetrics.class);
+        metrics.registerMetric(metricsManager, TARGETED_OUTCOMES, strategyTag, TargetedSweepMetrics.class);
         return metrics;
     }
 
-    private void registerMetric(MetricsManager manager, List<SweepOutcome> outcomes, Class<?> forClass) {
+    private void registerMetric(MetricsManager manager, List<SweepOutcome> outcomes,
+            Map<String, String> additionalTags, Class<?> forClass) {
         outcomes.forEach(outcome -> manager.registerOrGet(forClass, AtlasDbMetricNames.SWEEP_OUTCOME,
-                () -> getOutcomeCount(outcome), ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())));
+                () -> getOutcomeCount(outcome),
+                ImmutableMap.<String, String>builder()
+                        .putAll(additionalTags)
+                        .put(AtlasDbMetricNames.TAG_OUTCOME, outcome.name())
+                        .build()));
     }
 
     private Long getOutcomeCount(SweepOutcome outcome) {

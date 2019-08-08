@@ -131,6 +131,12 @@ public class ReadTransactionShould {
                 BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
                 IllegalStateException.class,
                 "Cannot read");
+        checkThrowsAndNoInteraction(() -> readTransaction.getRowsColumnRangeIterator(
+                DUMMY_THOROUGH_TABLE,
+                ImmutableList.of(EMPTY_BYTES),
+                BatchColumnRangeSelection.create(EMPTY_BYTES, EMPTY_BYTES, 1)),
+                IllegalStateException.class,
+                "Cannot read");
     }
 
     @Test

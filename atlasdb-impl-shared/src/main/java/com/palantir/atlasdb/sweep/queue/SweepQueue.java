@@ -131,6 +131,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
         SweepBatch sweepBatch = batchWithInfo.sweepBatch();
+        metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 
         deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
 
@@ -150,12 +151,12 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         metrics.updateProgressForShard(shardStrategy, sweepBatch.lastSweptTimestamp());
 
         if (sweepBatch.isEmpty()) {
-            metrics.registerOccurrenceOf(SweepOutcome.NOTHING_TO_SWEEP);
+            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.NOTHING_TO_SWEEP);
         } else {
-            metrics.registerOccurrenceOf(SweepOutcome.SUCCESS);
+            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.SUCCESS);
         }
 
-        return true;
+        return lastSweptTs != sweepBatch.lastSweptTimestamp() && sweepBatch.hasNext();
     }
 
     /**

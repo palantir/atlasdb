@@ -602,6 +602,22 @@ public final class StreamTestWithHashStreamHashAidxTable implements
         });
     }
 
+    @Override
+    public Map<StreamTestWithHashStreamHashAidxRow, Iterator<StreamTestWithHashStreamHashAidxColumnValue>> getRowsColumnRangeIterator(Iterable<StreamTestWithHashStreamHashAidxRow> rows, BatchColumnRangeSelection columnRangeSelection) {
+        Map<byte[], Iterator<Map.Entry<Cell, byte[]>>> results = t.getRowsColumnRangeIterator(tableRef, Persistables.persistAll(rows), columnRangeSelection);
+        Map<StreamTestWithHashStreamHashAidxRow, Iterator<StreamTestWithHashStreamHashAidxColumnValue>> transformed = Maps.newHashMapWithExpectedSize(results.size());
+        for (Entry<byte[], Iterator<Map.Entry<Cell, byte[]>>> e : results.entrySet()) {
+            StreamTestWithHashStreamHashAidxRow row = StreamTestWithHashStreamHashAidxRow.BYTES_HYDRATOR.hydrateFromBytes(e.getKey());
+            Iterator<StreamTestWithHashStreamHashAidxColumnValue> bv = Iterators.transform(e.getValue(), result -> {
+                StreamTestWithHashStreamHashAidxColumn col = StreamTestWithHashStreamHashAidxColumn.BYTES_HYDRATOR.hydrateFromBytes(result.getKey().getColumnName());
+                Long val = StreamTestWithHashStreamHashAidxColumnValue.hydrateValue(result.getValue());
+                return StreamTestWithHashStreamHashAidxColumnValue.of(col, val);
+            });
+            transformed.put(row, bv);
+        }
+        return transformed;
+    }
+
     public BatchingVisitableView<StreamTestWithHashStreamHashAidxRowResult> getAllRowsUnordered() {
         return getAllRowsUnordered(allColumns);
     }
@@ -713,5 +729,5 @@ public final class StreamTestWithHashStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "2ASIjXLcW69Qb5PP7ReI/A==";
+    static String __CLASS_HASH = "RNJ32eZkL2rGSe39uk2XXg==";
 }
