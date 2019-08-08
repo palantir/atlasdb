@@ -46,12 +46,12 @@ jobs:
 
     steps:
       - attach_workspace: { at: . }
-      - store_artifacts: { path: ~/artifacts }
       - restore_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - setup_remote_docker
+      - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
           command: ./scripts/circle-ci/pull-all-images.sh
           background: true
