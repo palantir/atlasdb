@@ -37,6 +37,7 @@ import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
 
 public class TableMigrator {
     private final TableReference srcTable;
@@ -73,7 +74,7 @@ public class TableMigrator {
     }
 
     private int setPartitions(int minNumPartitions) {
-        com.palantir.logsafe.Preconditions.checkArgument(minNumPartitions >= 1);
+        Preconditions.checkArgument(minNumPartitions >= 1);
 
         // round partitions up to a power of 2
         int highestOne = Integer.highestOneBit(minNumPartitions);

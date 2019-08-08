@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
+import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -61,7 +62,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
         return StreamMetadata.newBuilder()
             .setStatus(Status.STORING)
             .setLength(0L)
-            .setHash(com.google.protobuf.ByteString.EMPTY)
+            .setHash(ByteString.EMPTY)
             .build();
     }
 

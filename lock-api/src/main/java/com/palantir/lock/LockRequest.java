@@ -38,6 +38,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * An encapsulation of all parameters needed to make a locking request to the
@@ -62,8 +63,8 @@ import com.google.common.collect.Iterables;
      * Builder#timeoutAfter}.
      */
     public static void setDefaultLockTimeout(TimeDuration timeout) {
-        com.palantir.logsafe.Preconditions.checkNotNull(timeout, "timeout cannot be null");
-        com.palantir.logsafe.Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
+        Preconditions.checkNotNull(timeout, "timeout cannot be null");
+        Preconditions.checkArgument(timeout.getTime() > 0, "timeout must be > 0");
 
         DEFAULT_LOCK_TIMEOUT.set(timeout);
     }
@@ -248,7 +249,7 @@ import com.google.common.collect.Iterables;
 
         private Builder(SortedLockCollection<LockDescriptor> lockMap) {
             this.lockMap = lockMap;
-            com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
+            Preconditions.checkArgument(!this.lockMap.isEmpty());
         }
 
         /**
@@ -259,7 +260,7 @@ import com.google.common.collect.Iterables;
          * You may not call this method multiple times.
          */
         public Builder timeoutAfter(TimeDuration newLockTimeout) {
-            com.palantir.logsafe.Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
+            Preconditions.checkArgument(newLockTimeout.toMillis() > 0);
             if ((lockMap == null) || (this.lockTimeout != null)) {
                 throw new IllegalStateException();
             }
@@ -274,9 +275,9 @@ import com.google.common.collect.Iterables;
          * may not call both {@link #doNotBlock()} and this method.
          */
         public Builder blockForAtMost(TimeDuration newBlockingDuration) {
-            com.palantir.logsafe.Preconditions.checkNotNull(newBlockingDuration, "newBlockingDuration should not be null");
+            Preconditions.checkNotNull(newBlockingDuration, "newBlockingDuration should not be null");
             TimeDuration realBlockingDuration = SimpleTimeDuration.of(newBlockingDuration);
-            com.palantir.logsafe.Preconditions.checkArgument(realBlockingDuration.toNanos() >= 0);
+            Preconditions.checkArgument(realBlockingDuration.toNanos() >= 0);
             if (realBlockingDuration.toNanos() == 0) {
                 return doNotBlock();
             }
@@ -314,7 +315,7 @@ import com.google.common.collect.Iterables;
             if ((lockMap == null) || (lockGroupBehavior != null)) {
                 throw new IllegalStateException();
             }
-            com.palantir.logsafe.Preconditions.checkState(blockingMode != BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE);
+            Preconditions.checkState(blockingMode != BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE);
             lockGroupBehavior = LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE;
             return this;
         }
@@ -336,7 +337,7 @@ import com.google.common.collect.Iterables;
             if ((lockMap == null) || (blockingMode != null)) {
                 throw new IllegalStateException();
             }
-            com.palantir.logsafe.Preconditions.checkState(lockGroupBehavior != LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE);
+            Preconditions.checkState(lockGroupBehavior != LockGroupBehavior.LOCK_AS_MANY_AS_POSSIBLE);
             blockingMode = BlockingMode.BLOCK_INDEFINITELY_THEN_RELEASE;
             return this;
         }

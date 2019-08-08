@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.palantir.logsafe.Preconditions;
+
 public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunction<Autobatchers.SupplierKey, T> {
 
     private final Supplier<T> supplier;
@@ -30,7 +32,7 @@ public final class CoalescingRequestSupplier<T> implements CoalescingRequestFunc
 
     @Override
     public Map<Autobatchers.SupplierKey, T> apply(Set<Autobatchers.SupplierKey> request) {
-        com.palantir.logsafe.Preconditions.checkArgument(request.size() == 1, "invalid request");
+        Preconditions.checkArgument(request.size() == 1, "invalid request");
         return Autobatchers.SupplierKey.wrap(supplier.get());
     }
 }

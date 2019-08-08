@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.PersistableBoolean;
 
@@ -64,7 +65,7 @@ public class ShardProgress {
      * @return the latest known persisted number of shards, which may be greater than newNumber
      */
     public int updateNumberOfShards(int newNumber) {
-        com.palantir.logsafe.Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
+        Preconditions.checkArgument(newNumber <= AtlasDbConstants.MAX_SWEEP_QUEUE_SHARDS);
         return (int) increaseValueFromToAtLeast(SHARD_COUNT_SAS, getNumberOfShards(), newNumber);
     }
 

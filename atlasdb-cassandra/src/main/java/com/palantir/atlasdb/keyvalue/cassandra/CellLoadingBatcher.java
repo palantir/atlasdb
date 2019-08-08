@@ -33,7 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
 /**
- * Divides a list of {@link com.palantir.atlasdb.keyvalue.api.Cell}s into batches for querying.
+ * Divides a list of {@link Cell}s into batches for querying.
  *
  * The batcher partitions cells by columns.
  * If for a given column the number of cells provided is at least

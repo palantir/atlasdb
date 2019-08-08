@@ -24,6 +24,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.lock.LockClient;
+import com.palantir.logsafe.Preconditions;
 
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.map.TIntIntMap;
@@ -38,7 +39,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     private @GuardedBy("this") TIntIntMap readLockHolders;
 
     public LockServerSync(LockClientIndices clients) {
-        this.clients = com.palantir.logsafe.Preconditions.checkNotNull(clients);
+        this.clients = Preconditions.checkNotNull(clients);
     }
 
     private boolean isAnonymous(int clientIndex) {
@@ -50,7 +51,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
     }
 
     private synchronized boolean holdsWriteLock(int clientIndex) {
-        com.palantir.logsafe.Preconditions.checkState(getState() > 0);
+        Preconditions.checkState(getState() > 0);
         return clientIndex == writeLockHolder && !isAnonymous(clientIndex);
     }
 
@@ -205,7 +206,7 @@ class LockServerSync extends AbstractQueuedSynchronizer {
             return null;
         }
         TIntIntIterator iter = readLockHolders.iterator();
-        com.palantir.logsafe.Preconditions.checkState(iter.hasNext());
+        Preconditions.checkState(iter.hasNext());
         iter.advance();
         return clients.fromIndex(iter.key());
     }

@@ -20,6 +20,7 @@ import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.logsafe.Preconditions;
 
 public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer implements AutoDelegate_KeyValueService {
     private final InMemoryKeyValueService delegate;
@@ -45,7 +46,7 @@ public final class AsyncInitializeableInMemoryKvs extends AsyncInitializer imple
 
     @Override
     protected void tryInitialize() {
-        com.palantir.logsafe.Preconditions.checkState(initializationShouldSucceed);
+        Preconditions.checkState(initializationShouldSucceed);
     }
 
     @Override

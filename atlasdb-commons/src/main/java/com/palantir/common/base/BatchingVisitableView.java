@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.palantir.common.visitor.Visitor;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -47,7 +48,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     protected abstract BatchingVisitable<T> delegate();
 
     public static <T> BatchingVisitableView<T> of(final BatchingVisitable<T> underlyingVisitable) {
-        com.palantir.logsafe.Preconditions.checkNotNull(underlyingVisitable, "Cannot wrap a null visitable");
+        Preconditions.checkNotNull(underlyingVisitable, "Cannot wrap a null visitable");
         return new BatchingVisitableView<T>() {
             @Override
             protected BatchingVisitable<T> delegate() {
@@ -72,7 +73,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     public BatchingVisitableView<T> filter(final Predicate<? super T> predicate) {
-        com.palantir.logsafe.Preconditions.checkNotNull(predicate, "Cannot filter using a null predicate");
+        Preconditions.checkNotNull(predicate, "Cannot filter using a null predicate");
         return BatchingVisitables.filter(delegate(), predicate);
     }
 
@@ -101,7 +102,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
     }
 
     public <U> BatchingVisitableView<U> transform(Function<? super T, ? extends U> fn) {
-        com.palantir.logsafe.Preconditions.checkNotNull(fn, "Cannot transform using a null function");
+        Preconditions.checkNotNull(fn, "Cannot transform using a null function");
         return BatchingVisitables.transform(delegate(), fn);
     }
 
@@ -117,7 +118,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * A good example of this is in <code>BatchingVisitablesTest#testHintPageSize()</code>
      */
     public <U> BatchingVisitableView<U> transformBatch(Function<? super List<T>, ? extends List<U>> fn) {
-        com.palantir.logsafe.Preconditions.checkNotNull(fn, "Cannot transform using a null function");
+        Preconditions.checkNotNull(fn, "Cannot transform using a null function");
         return BatchingVisitables.transformBatch(delegate(), fn);
     }
 
@@ -255,7 +256,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * @return a reference to {@code collection}, for convenience
      */
     public <S extends Collection<? super T>> S copyInto(final S collection) {
-        com.palantir.logsafe.Preconditions.checkNotNull(collection, "Cannot copy the visitable into a null collection");
+        Preconditions.checkNotNull(collection, "Cannot copy the visitable into a null collection");
         delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
@@ -269,7 +270,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * Returns {@code true} iff one or more elements satisfy the predicate.
      */
     public boolean any(final Predicate<? super T> predicate) {
-        com.palantir.logsafe.Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
+        Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return !delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {
@@ -287,7 +288,7 @@ public abstract class BatchingVisitableView<T> extends ForwardingObject implemen
      * predicate. If empty, {@code true} is returned.
      */
     public boolean all(final Predicate<? super T> predicate) {
-        com.palantir.logsafe.Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
+        Preconditions.checkNotNull(predicate, "Cannot check against a null predicate");
         return delegate().batchAccept(
                 BatchingVisitables.DEFAULT_BATCH_SIZE,
                 items -> {

@@ -28,6 +28,7 @@ import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.ByteStreams;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 /**
@@ -168,7 +169,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         private final boolean supportsClone;
 
         MessageDigestPrototype(String algorithm) {
-            this.algorithm = com.palantir.logsafe.Preconditions.checkNotNull(algorithm);
+            this.algorithm = Preconditions.checkNotNull(algorithm);
             this.prototype = createDigest(algorithm);
             this.supportsClone = supportsClone(prototype);
         }

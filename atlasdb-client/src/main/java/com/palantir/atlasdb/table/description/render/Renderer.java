@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import com.google.common.hash.Hashing;
+import com.palantir.logsafe.Preconditions;
 
 @NotThreadSafe
 public abstract class Renderer {
@@ -39,7 +40,7 @@ public abstract class Renderer {
     protected abstract void run();
 
     protected String render() {
-        com.palantir.logsafe.Preconditions.checkState(builder.length() == 0);
+        Preconditions.checkState(builder.length() == 0);
         run();
         return builder.toString();
     }

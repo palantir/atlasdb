@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.logsafe.Preconditions;
 
 public final class KvsReadBenchmark extends AbstractBenchmark {
 
@@ -52,6 +53,6 @@ public final class KvsReadBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         byte[] result = keyValueService.get(TABLE, ImmutableMap.of(cell, 200L))
                 .get(cell).getContents();
-        com.palantir.logsafe.Preconditions.checkState(result.length == data.length);
+        Preconditions.checkState(result.length == data.length);
     }
 }

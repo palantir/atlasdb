@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.Preconditions;
 
 public final class CleanupFollower implements Follower {
     private final ImmutableMultimap<TableReference, OnCleanupTask> cleanupTasksByTable;
@@ -58,7 +59,7 @@ public final class CleanupFollower implements Follower {
             final Collection<OnCleanupTask> cleanupTasks = nextTasks;
             nextTasks = txManager.runTaskWithRetry(tx -> {
                 Collection<OnCleanupTask> toRetry = Lists.newArrayList();
-                com.palantir.logsafe.Preconditions.checkArgument(transactionType == TransactionType.HARD_DELETE
+                Preconditions.checkArgument(transactionType == TransactionType.HARD_DELETE
                         || transactionType == TransactionType.AGGRESSIVE_HARD_DELETE);
                 tx.setTransactionType(transactionType);
                 for (OnCleanupTask task : cleanupTasks) {

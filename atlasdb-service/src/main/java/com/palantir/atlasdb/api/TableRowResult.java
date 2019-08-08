@@ -18,6 +18,7 @@ package com.palantir.atlasdb.api;
 import java.util.Collection;
 
 import com.palantir.atlasdb.keyvalue.api.RowResult;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * For tables with named columns,
@@ -60,8 +61,8 @@ public class TableRowResult {
     private final Iterable<RowResult<byte[]>> results;
 
     public TableRowResult(String tableName, Collection<RowResult<byte[]>> results) {
-        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
-        this.results = com.palantir.logsafe.Preconditions.checkNotNull(results, "results must not be null!");
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.results = Preconditions.checkNotNull(results, "results must not be null!");
     }
 
     public String getTableName() {

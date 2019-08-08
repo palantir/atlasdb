@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents the result of calling {@link LockService#lockWithFullLockResponse(LockClient, LockRequest)} on
@@ -61,7 +62,7 @@ import com.google.common.collect.ImmutableSortedMap;
         this.token = token;
         this.lockHolders = ImmutableSortedMap.copyOf(lockHolders);
         isBlockAndRelease = false;
-        com.palantir.logsafe.Preconditions.checkArgument(token != null || !this.lockHolders.isEmpty());
+        Preconditions.checkArgument(token != null || !this.lockHolders.isEmpty());
     }
 
     /**
@@ -81,7 +82,7 @@ import com.google.common.collect.ImmutableSortedMap;
      * with an empty lock holders map.
      */
     public static LockResponse createSuccessful(HeldLocksToken token) {
-        return new LockResponse(com.palantir.logsafe.Preconditions.checkNotNull(token),
+        return new LockResponse(Preconditions.checkNotNull(token),
                 ImmutableSortedMap.<LockDescriptor, LockClient>of());
     }
 

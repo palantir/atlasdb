@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.MetadataTable;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A base class for implementing range scan benchmarks. A primary function of this class is to store metadata
@@ -109,9 +110,9 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
     protected final void performOneCall() {
         List<byte[]> results = txnManager.runTaskReadOnly(txn -> getRange(txn, 0L, numRows));
 
-        com.palantir.logsafe.Preconditions.checkState(results.size() == numRows);
+        Preconditions.checkState(results.size() == numRows);
         for (byte[] resultData : results) {
-            com.palantir.logsafe.Preconditions.checkState(resultData.length == dataSize);
+            Preconditions.checkState(resultData.length == dataSize);
         }
     }
 

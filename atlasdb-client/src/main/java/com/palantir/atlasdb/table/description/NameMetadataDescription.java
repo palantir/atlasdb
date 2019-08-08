@@ -27,6 +27,7 @@ import org.json.simple.parser.ParseException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -205,7 +206,7 @@ public class NameMetadataDescription {
                 }
             }
 
-            return com.google.common.primitives.Bytes.concat(bytes);
+            return Bytes.concat(bytes);
         } catch (ParseException e) {
             throw Throwables.throwUncheckedException(e);
         }

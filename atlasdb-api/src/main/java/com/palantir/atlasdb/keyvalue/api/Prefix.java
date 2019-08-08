@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import javax.annotation.Nonnull;
 
 import com.palantir.common.annotation.Immutable;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents a partial row to be used for range requests.
@@ -27,7 +28,7 @@ public class Prefix {
     private final byte[] bytes;
 
     public Prefix(byte[] bytes) {
-        this.bytes = com.palantir.logsafe.Preconditions.checkNotNull(bytes, "bytes cannot be null").clone();
+        this.bytes = Preconditions.checkNotNull(bytes, "bytes cannot be null").clone();
     }
 
     @Nonnull

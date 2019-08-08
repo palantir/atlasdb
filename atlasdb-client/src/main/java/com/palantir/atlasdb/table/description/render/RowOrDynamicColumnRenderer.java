@@ -31,6 +31,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteO
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.logsafe.Preconditions;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 class RowOrDynamicColumnRenderer extends Renderer {
@@ -43,7 +44,7 @@ class RowOrDynamicColumnRenderer extends Renderer {
         super(parent);
         this.Name = Name;
         this.desc = desc;
-        com.palantir.logsafe.Preconditions.checkArgument(!rangeScanAllowed || !isDynamicColumn, "Cannot have row range scans allowed on a dynamic column renderer.");
+        Preconditions.checkArgument(!rangeScanAllowed || !isDynamicColumn, "Cannot have row range scans allowed on a dynamic column renderer.");
         this.rangeScanAllowed = rangeScanAllowed;
         this.isDynamicColumn = isDynamicColumn;
     }

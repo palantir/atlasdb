@@ -25,6 +25,7 @@ import org.immutables.value.Value;
 
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents a batch to load in {@link com.palantir.atlasdb.keyvalue.api.KeyValueService#getRowsColumnRange(
@@ -45,7 +46,7 @@ public abstract class RowsColumnRangeBatchRequest {
 
     @Value.Check
     protected void check() {
-        com.palantir.logsafe.Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
+        Preconditions.checkState(getColumnRangeSelection() != null || getRowsToLoadFully().isEmpty(),
                 "Must specify a column range selection when loading full rows.");
     }
 }

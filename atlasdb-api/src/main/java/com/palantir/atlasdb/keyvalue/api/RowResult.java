@@ -32,6 +32,7 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.collect.Maps2;
+import com.palantir.logsafe.Preconditions;
 
 public final class RowResult<T> implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -50,11 +51,11 @@ public final class RowResult<T> implements Serializable {
     }
 
     private RowResult(byte[] row, SortedMap<byte[], T> columns) {
-        com.palantir.logsafe.Preconditions.checkArgument(Cell.isNameValid(row));
-        com.palantir.logsafe.Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
+        Preconditions.checkArgument(Cell.isNameValid(row));
+        Preconditions.checkArgument(UnsignedBytes.lexicographicalComparator().equals(columns.comparator()),
                 "comparator for the map must be the bytes comparator");
         for (byte[] colName : columns.keySet()) {
-            com.palantir.logsafe.Preconditions.checkArgument(Cell.isNameValid(colName));
+            Preconditions.checkArgument(Cell.isNameValid(colName));
         }
         this.row = row.clone();
         this.columns = ImmutableSortedMap.copyOf(columns, UnsignedBytes.lexicographicalComparator());
@@ -93,7 +94,7 @@ public final class RowResult<T> implements Serializable {
     }
 
     public T getOnlyColumnValue() {
-        com.palantir.logsafe.Preconditions.checkState(columns.size() == 1,
+        Preconditions.checkState(columns.size() == 1,
                 "Works only when the row result has a single column value.");
         return Iterables.getOnlyElement(columns.values());
     }

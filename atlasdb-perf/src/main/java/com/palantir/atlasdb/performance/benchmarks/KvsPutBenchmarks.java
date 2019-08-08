@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.performance.benchmarks.table.EmptyTables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Performance benchmarks for KVS put operations.
@@ -83,7 +84,7 @@ public class KvsPutBenchmarks {
         tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
         try {
             tables.getKvs().putUnlessExists(tables.getFirstTableRef(), batch);
-            com.palantir.logsafe.Preconditions.checkArgument(false, "putUnlessExists should have failed");
+            Preconditions.checkArgument(false, "putUnlessExists should have failed");
         } catch (KeyAlreadyExistsException e) {
             // success
         }

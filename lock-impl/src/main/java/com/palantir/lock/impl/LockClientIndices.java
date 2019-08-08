@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.palantir.lock.LockClient;
+import com.palantir.logsafe.Preconditions;
 
 @ThreadSafe
 @VisibleForTesting
@@ -53,7 +54,7 @@ public class LockClientIndices {
     }
 
     LockClient fromIndex(int index) {
-        return com.palantir.logsafe.Preconditions.checkNotNull(clientByIndex.get(index));
+        return Preconditions.checkNotNull(clientByIndex.get(index));
     }
 
     Iterable<LockClient> fromIndices(Iterable<Integer> indices) {

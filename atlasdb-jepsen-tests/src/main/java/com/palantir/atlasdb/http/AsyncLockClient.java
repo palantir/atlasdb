@@ -27,6 +27,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private final TimelockService timelockService;
@@ -46,7 +47,7 @@ public final class AsyncLockClient implements JepsenLockClient<LockToken> {
                 Long.MAX_VALUE,
                 client);
         LockResponse lockResponse = timelockService.lock(lockRequest);
-        com.palantir.logsafe.Preconditions.checkState(lockResponse.wasSuccessful(),
+        Preconditions.checkState(lockResponse.wasSuccessful(),
                 "Jepsen failed to lock a lock, but it would wait for Long.MAX_VALUE, so this is unexpected.");
         return lockResponse.getToken();
     }

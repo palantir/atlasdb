@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
 
 public class SimpleTodoResource implements TodoResource {
     private TodoClient atlas;
@@ -51,7 +52,7 @@ public class SimpleTodoResource implements TodoResource {
 
     @Override
     public void isHealthy() {
-        com.palantir.logsafe.Preconditions.checkState(atlas.getTodoList() != null);
+        Preconditions.checkState(atlas.getTodoList() != null);
     }
 
     @Override

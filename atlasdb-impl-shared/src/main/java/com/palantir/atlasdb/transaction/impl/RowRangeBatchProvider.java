@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 
 public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
     private final KeyValueService keyValueService;
@@ -67,7 +68,7 @@ public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
 
     @Override
     public byte[] getLastToken(List<RowResult<Value>> batch) {
-        com.palantir.logsafe.Preconditions.checkArgument(!batch.isEmpty());
+        Preconditions.checkArgument(!batch.isEmpty());
         return batch.get(batch.size() - 1).getRowName();
     }
 }

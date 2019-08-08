@@ -56,6 +56,7 @@ import com.palantir.atlasdb.schema.generated.SweepPriorityTable.SweepPriorityRow
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.timestamp.TimestampService;
@@ -275,7 +276,7 @@ public class SweepStatsKeyValueService extends ForwardingKeyValueService {
             Map<Cell, byte[]> newWriteCounts = Maps.newHashMapWithExpectedSize(writes.elementSet().size());
             byte[] col = SweepPriorityNamedColumn.WRITE_COUNT.getShortName();
             for (TableReference tableRef : tableNames) {
-                com.palantir.logsafe.Preconditions.checkState(!tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
+                Preconditions.checkState(!tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX),
                         "The sweep stats kvs should wrap the namespace mapping kvs, not the other way around.");
                 byte[] row = SweepPriorityRow.of(tableRef.getQualifiedName()).persistToBytes();
                 Cell cell = Cell.create(row, col);

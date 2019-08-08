@@ -19,6 +19,7 @@ import java.util.Iterator;
 
 import com.google.common.collect.AbstractIterator;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * This class only requires two methods {@link #getFirstPage()} and
@@ -81,7 +82,7 @@ public abstract class AbstractPagingIterable<T, P extends BasicResultsPage<T>> i
         }
 
         private void setNextPage(P page) {
-            com.palantir.logsafe.Preconditions.checkNotNull(page);
+            Preconditions.checkNotNull(page);
             currentPage = page;
             currentIterator = page.getResults().iterator();
         }

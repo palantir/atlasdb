@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import com.palantir.atlasdb.table.description.render.Renderers;
+import com.palantir.logsafe.Preconditions;
 
 public final class IndexComponent {
     final NameComponentDescription rowKeyDesc;
@@ -38,8 +39,8 @@ public final class IndexComponent {
      */
     public static IndexComponent createFromRow(NameComponentDescription rowKeyDesc,
                                                String rowComponentName) {
-        return new IndexComponent(com.palantir.logsafe.Preconditions.checkNotNull(rowKeyDesc),
-                com.palantir.logsafe.Preconditions.checkNotNull(rowComponentName), null, null, null, false);
+        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
+                Preconditions.checkNotNull(rowComponentName), null, null, null, false);
     }
 
     /**
@@ -47,8 +48,8 @@ public final class IndexComponent {
      */
     public static IndexComponent createFromDynamicColumn(NameComponentDescription rowKeyDesc,
                                                          String dynamicColumnComponentName) {
-        return new IndexComponent(com.palantir.logsafe.Preconditions.checkNotNull(rowKeyDesc),
-                null, com.palantir.logsafe.Preconditions.checkNotNull(dynamicColumnComponentName), null, null, false);
+        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
+                null, Preconditions.checkNotNull(dynamicColumnComponentName), null, null, false);
     }
 
     /**
@@ -63,11 +64,11 @@ public final class IndexComponent {
                                                   String columnNameToGetData,
                                                   String codeToAccessValue) {
 
-        return new IndexComponent(com.palantir.logsafe.Preconditions.checkNotNull(rowKeyDesc),
+        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
                 null,
                 null,
-                com.palantir.logsafe.Preconditions.checkNotNull(columnNameToGetData),
-                com.palantir.logsafe.Preconditions.checkNotNull(codeToAccessValue),
+                Preconditions.checkNotNull(columnNameToGetData),
+                Preconditions.checkNotNull(codeToAccessValue),
                 false);
     }
 
@@ -84,11 +85,11 @@ public final class IndexComponent {
                                                           String columnNameToGetData,
                                                           String codeToAccessValue) {
 
-        return new IndexComponent(com.palantir.logsafe.Preconditions.checkNotNull(rowKeyDesc),
+        return new IndexComponent(Preconditions.checkNotNull(rowKeyDesc),
                 null,
                 null,
-                com.palantir.logsafe.Preconditions.checkNotNull(columnNameToGetData),
-                com.palantir.logsafe.Preconditions.checkNotNull(codeToAccessValue),
+                Preconditions.checkNotNull(columnNameToGetData),
+                Preconditions.checkNotNull(codeToAccessValue),
                 true);
     }
 
@@ -120,7 +121,7 @@ public final class IndexComponent {
         if (rowComponentName != null) {
             return rowCode + ".get" + Renderers.CamelCase(rowComponentName) + "()";
         } else if (dynamicColumnComponentName != null) {
-            com.palantir.logsafe.Preconditions.checkArgument(dynamicColCode != null, "cannot apply to non dynamic table.");
+            Preconditions.checkArgument(dynamicColCode != null, "cannot apply to non dynamic table.");
             return dynamicColCode + ".get" + Renderers.CamelCase(dynamicColumnComponentName) + "()";
         } else {
             return codeToAccessValue.replaceAll("_value", columnCode);

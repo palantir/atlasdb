@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairLoader;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.CellTsPairToken;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.sweep.SweepQueryHelpers;
 import com.palantir.atlasdb.keyvalue.impl.TableMappingNotFoundException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
@@ -133,7 +134,7 @@ public class OracleCellTsPageLoader implements CellTsPairLoader {
         // However, we can just filter out empty pages later.
         @Override
         public List<CellTsPairInfo> next() {
-            com.palantir.logsafe.Preconditions.checkState(hasNext());
+            Preconditions.checkState(hasNext());
             boolean singleRow = shouldScanSingleRow();
             List<CellTsPairInfo> cellTsPairs = loadPage(singleRow);
             updateCountOfExaminedCellTsPairsInCurrentRow(cellTsPairs);

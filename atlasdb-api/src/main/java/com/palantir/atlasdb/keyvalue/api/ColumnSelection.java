@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 
 public final class ColumnSelection implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -72,7 +73,7 @@ public final class ColumnSelection implements Serializable {
     }
 
     public static ColumnSelection create(Iterable<byte[]> selectedColumns) {
-        if (Iterables.isEmpty(com.palantir.logsafe.Preconditions.checkNotNull(selectedColumns, "selectedColumns cannot be null"))) {
+        if (Iterables.isEmpty(Preconditions.checkNotNull(selectedColumns, "selectedColumns cannot be null"))) {
             return allColumnsSelected;
         }
 

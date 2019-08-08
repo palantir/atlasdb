@@ -46,6 +46,7 @@ import com.palantir.atlasdb.table.generation.ColumnValues;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
 import com.palantir.common.persist.Persistables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @Immutable
@@ -91,8 +92,8 @@ public final class ColumnValueDescription {
 
     private ColumnValueDescription(ValueType type, Compression compression) {
         this.format = Format.VALUE_TYPE;
-        this.compression = com.palantir.logsafe.Preconditions.checkNotNull(compression);
-        this.type = com.palantir.logsafe.Preconditions.checkNotNull(type);
+        this.compression = Preconditions.checkNotNull(compression);
+        this.type = Preconditions.checkNotNull(type);
         this.canonicalClassName = null;
         this.className = null;
         this.protoDescriptor = null;
@@ -113,7 +114,7 @@ public final class ColumnValueDescription {
 
     public static ColumnValueDescription forPersistable(Class<? extends Persistable> clazz,
                                                         Compression compression) {
-        com.palantir.logsafe.Preconditions.checkNotNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
+        Preconditions.checkNotNull(Persistables.getHydrator(clazz), "Not a valid persistable class because it has no hydrator");
         return new ColumnValueDescription(Format.PERSISTABLE, clazz.getName(), clazz.getCanonicalName(), compression, null);
     }
 
@@ -155,14 +156,14 @@ public final class ColumnValueDescription {
                                    String canonicalClassName,
                                    Compression compression,
                                    Descriptor protoDescriptor) {
-        this.compression = com.palantir.logsafe.Preconditions.checkNotNull(compression);
+        this.compression = Preconditions.checkNotNull(compression);
         this.type = ValueType.BLOB;
-        this.format = com.palantir.logsafe.Preconditions.checkNotNull(format);
+        this.format = Preconditions.checkNotNull(format);
         Validate.notEmpty(className, "className should not be empty");
         Validate.notEmpty(canonicalClassName, "canonicalClassName should not be empty");
-        com.palantir.logsafe.Preconditions.checkArgument(format != Format.VALUE_TYPE);
-        this.canonicalClassName = com.palantir.logsafe.Preconditions.checkNotNull(canonicalClassName);
-        this.className = com.palantir.logsafe.Preconditions.checkNotNull(className);
+        Preconditions.checkArgument(format != Format.VALUE_TYPE);
+        this.canonicalClassName = Preconditions.checkNotNull(canonicalClassName);
+        this.className = Preconditions.checkNotNull(className);
         this.protoDescriptor = protoDescriptor;
     }
 
@@ -221,7 +222,7 @@ public final class ColumnValueDescription {
     }
 
     public Persister<?> getPersister() {
-        com.palantir.logsafe.Preconditions.checkArgument(Format.PERSISTER == format);
+        Preconditions.checkArgument(Format.PERSISTER == format);
             @SuppressWarnings("unchecked")
             Class<Persister<?>> persisterClass = (Class<Persister<?>>) getImportClass();
             try {
@@ -328,19 +329,19 @@ public final class ColumnValueDescription {
 
     @SuppressWarnings("unchecked")
     public Persistable hydratePersistable(ClassLoader classLoader, byte[] value) {
-        com.palantir.logsafe.Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
+        Preconditions.checkState(format == Format.PERSISTABLE, "Column value is not a Persistable.");
         return ColumnValues.parsePersistable((Class<? extends Persistable>)getImportClass(classLoader), CompressionUtils.decompress(value, compression));
     }
 
     public Object hydratePersister(ClassLoader classLoader, byte[] value) {
-        com.palantir.logsafe.Preconditions.checkState(format == Format.PERSISTER, "Column value is not a Persister.");
+        Preconditions.checkState(format == Format.PERSISTER, "Column value is not a Persister.");
         Persister<?> persister = getPersister();
         return persister.hydrateFromBytes(CompressionUtils.decompress(value, compression));
     }
 
     @SuppressWarnings("unchecked")
     public Message hydrateProto(ClassLoader classLoader, byte[] value) {
-        com.palantir.logsafe.Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
+        Preconditions.checkState(format == Format.PROTO, "Column value is not a protocol buffer.");
         return ColumnValues.parseProtoBuf((Class<? extends AbstractMessage>) getImportClass(classLoader), CompressionUtils.decompress(value, compression));
     }
 
@@ -381,7 +382,7 @@ public final class ColumnValueDescription {
             return new ColumnValueDescription(type, compression);
         }
 
-        com.palantir.logsafe.Preconditions.checkArgument(type == ValueType.BLOB);
+        Preconditions.checkArgument(type == ValueType.BLOB);
         if (message.hasFormat()) {
             try {
                 Format format = Format.hydrateFromProto(message.getFormat());

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
+import com.palantir.logsafe.Preconditions;
 
 import gnu.trove.list.TLongList;
 import gnu.trove.list.array.TLongArrayList;
@@ -56,7 +57,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
 
     @Override
     public List<CandidateCellForSweeping> next() {
-        com.palantir.logsafe.Preconditions.checkState(hasNext());
+        Preconditions.checkState(hasNext());
         List<CellTsPairInfo> cellTsBatch = cellTsIterator.next();
         List<CandidateCellForSweeping> candidates = new ArrayList<>();
         for (CellTsPairInfo cellTs : cellTsBatch) {
@@ -65,7 +66,7 @@ public final class CandidateGroupingIterator implements Iterator<List<CandidateC
                 // We expect the timestamps in ascending order. This check costs us a few CPU cycles
                 // but it's worth it for paranoia reasons - mistaking a cell with data for an empty one
                 // can cause data corruption.
-                com.palantir.logsafe.Preconditions.checkArgument(cellTs.ts > currentCellTimestamps.get(currentCellTimestamps.size() - 1),
+                Preconditions.checkArgument(cellTs.ts > currentCellTimestamps.get(currentCellTimestamps.size() - 1),
                         "Timestamps for each cell must be fed in strictly increasing order");
             }
             updateStateAfterSingleCellTsPairProcessed(cellTs);

@@ -23,6 +23,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Weights hosts inversely by the number of active connections. {@link #getRandomHost()} should then be used to
@@ -36,7 +37,7 @@ public final class WeightedHosts {
     }
 
     public static WeightedHosts create(Map<InetSocketAddress, CassandraClientPoolingContainer> pools) {
-        com.palantir.logsafe.Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
+        Preconditions.checkArgument(!pools.isEmpty(), "pools should be non-empty");
         return new WeightedHosts(buildHostsWeightedByActiveConnections(pools));
     }
 

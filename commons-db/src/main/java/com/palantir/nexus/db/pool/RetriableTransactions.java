@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.palantir.logsafe.Preconditions;
 
 public final class RetriableTransactions {
     private static final Logger log = LoggerFactory.getLogger(RetriableTransactions.class);
@@ -96,7 +97,7 @@ public final class RetriableTransactions {
 
         // May only be called if the result is SUCCESSFUL.
         public @Nullable T getResultValue() {
-            com.palantir.logsafe.Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
+            Preconditions.checkState(status.equals(TransactionStatus.SUCCESSFUL), "Trying to get result from a transaction which never succeeded");
             return resultValue;
         }
 

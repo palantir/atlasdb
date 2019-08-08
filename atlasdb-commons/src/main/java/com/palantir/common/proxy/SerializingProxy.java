@@ -21,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.ObjectInputStreamFactory;
 
 public class SerializingProxy implements DelegatingInvocationHandler {
@@ -39,8 +40,8 @@ public class SerializingProxy implements DelegatingInvocationHandler {
     final ObjectInputStreamFactory factory;
 
     private SerializingProxy(Object delegate, ObjectInputStreamFactory factory) {
-        com.palantir.logsafe.Preconditions.checkNotNull(factory);
-        com.palantir.logsafe.Preconditions.checkNotNull(delegate);
+        Preconditions.checkNotNull(factory);
+        Preconditions.checkNotNull(delegate);
         this.delegate = delegate;
         this.factory = factory;
     }

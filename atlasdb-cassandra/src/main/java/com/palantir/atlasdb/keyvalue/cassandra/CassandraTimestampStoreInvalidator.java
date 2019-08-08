@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.common.annotation.Idempotent;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 
 public final class CassandraTimestampStoreInvalidator implements TimestampStoreInvalidator {
@@ -29,7 +30,7 @@ public final class CassandraTimestampStoreInvalidator implements TimestampStoreI
     }
 
     public static CassandraTimestampStoreInvalidator create(KeyValueService keyValueService) {
-        com.palantir.logsafe.Preconditions.checkArgument(keyValueService instanceof CassandraKeyValueService,
+        Preconditions.checkArgument(keyValueService instanceof CassandraKeyValueService,
                 "CassandraTimestampStoreInvalidator should be instantiated with a CassandraKeyValueService!");
         CassandraKeyValueService cassandraKeyValueService = (CassandraKeyValueService) keyValueService;
         return new CassandraTimestampStoreInvalidator(new CassandraTimestampBackupRunner(cassandraKeyValueService));

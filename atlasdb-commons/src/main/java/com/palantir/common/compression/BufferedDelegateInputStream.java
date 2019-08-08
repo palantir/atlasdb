@@ -18,6 +18,8 @@ package com.palantir.common.compression;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.palantir.logsafe.Preconditions;
+
 /**
  * {@link InputStream} that wraps a delegate InputStream, buffering reads
  * to the delegate. Allows a customized strategy for refilling the internal
@@ -38,7 +40,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
     private int bufferSize;
 
     public BufferedDelegateInputStream(InputStream delegate, int bufferLength) {
-        com.palantir.logsafe.Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
+        Preconditions.checkArgument(bufferLength >= 0, "buffer size must be greater than or equal to zero");
         this.delegate = delegate;
         this.position = 0;
         this.bufferSize = 0;
@@ -81,7 +83,7 @@ public abstract class BufferedDelegateInputStream extends InputStream {
      */
     @Override
     public final int read(byte[] b, int off, int len) throws IOException {
-        com.palantir.logsafe.Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
+        Preconditions.checkNotNull(b, "Provided byte array b cannot be null.");
         if (off < 0 || len < 0 || len > b.length - off) {
             throw new IndexOutOfBoundsException();
         } else if (len == 0) {

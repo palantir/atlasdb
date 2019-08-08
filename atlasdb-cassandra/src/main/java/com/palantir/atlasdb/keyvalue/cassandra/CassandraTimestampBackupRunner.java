@@ -33,6 +33,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
@@ -129,9 +130,9 @@ public class CassandraTimestampBackupRunner {
     private BoundReadability checkReadability(BoundData boundData) {
         BoundReadability boundReadability = getReadability(boundData);
 
-        com.palantir.logsafe.Preconditions.checkState(boundReadability != BoundReadability.BOTH,
+        Preconditions.checkState(boundReadability != BoundReadability.BOTH,
                 "We had both backup and active timestamp bounds readable! This is unexpected. Please contact support.");
-        com.palantir.logsafe.Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
+        Preconditions.checkState(boundReadability != BoundReadability.NEITHER,
                 "We had an unreadable active timestamp bound with no backup! This is unexpected. Please contact "
                         + "support.");
         return boundReadability;
@@ -163,7 +164,7 @@ public class CassandraTimestampBackupRunner {
 
     private void checkTimestampTableExists() {
         CassandraTables cassandraTables = cassandraKeyValueService.getCassandraTables();
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 cassandraTables.getExisting().contains(AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName()),
                 "[BACKUP/RESTORE] Tried to get timestamp bound data when the timestamp table didn't exist!");
     }

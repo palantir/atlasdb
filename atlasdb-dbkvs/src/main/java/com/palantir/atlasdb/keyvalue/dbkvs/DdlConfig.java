@@ -20,6 +20,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Preconditions;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
 @JsonSubTypes({
@@ -58,7 +59,7 @@ public abstract class DdlConfig {
 
     @Value.Check
     protected final void check() {
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 metadataTable().getNamespace().isEmptyNamespace(),
                 "'metadataTable' should have empty namespace'");
     }

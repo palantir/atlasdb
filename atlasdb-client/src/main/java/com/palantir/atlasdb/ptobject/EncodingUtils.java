@@ -31,6 +31,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.annotation.Output;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
@@ -47,7 +48,7 @@ public class EncodingUtils {
 
     public static long decodeFixedLongAfterVarLong(long realmId, byte[] k) {
         int size = sizeOfVarLong(realmId);
-        com.palantir.logsafe.Preconditions.checkArgument(k.length == size + PtBytes.SIZEOF_LONG);
+        Preconditions.checkArgument(k.length == size + PtBytes.SIZEOF_LONG);
         return PtBytes.toLong(k, size);
     }
 
@@ -407,7 +408,7 @@ public class EncodingUtils {
     }
 
     public static byte[] toBytes(List<EncodingType> types, List<Object> components) {
-        com.palantir.logsafe.Preconditions.checkArgument(types.size() == components.size());
+        Preconditions.checkArgument(types.size() == components.size());
 
         byte[][] bytes = new byte[types.size()][];
         for (int i = 0; i < types.size(); i++) {

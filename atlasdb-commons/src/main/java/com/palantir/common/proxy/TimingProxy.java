@@ -19,6 +19,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.jmx.OperationTimer;
 import com.palantir.util.jmx.OperationTimer.TimingState;
 
@@ -34,8 +35,8 @@ public class TimingProxy implements DelegatingInvocationHandler {
     final private OperationTimer timer;
 
     private TimingProxy(Object delegate, OperationTimer timer) {
-        com.palantir.logsafe.Preconditions.checkNotNull(delegate);
-        com.palantir.logsafe.Preconditions.checkNotNull(timer);
+        Preconditions.checkNotNull(delegate);
+        Preconditions.checkNotNull(timer);
         this.delegate = delegate;
         this.timer = timer;
     }

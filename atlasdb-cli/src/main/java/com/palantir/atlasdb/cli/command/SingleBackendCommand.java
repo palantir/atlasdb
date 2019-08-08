@@ -25,13 +25,14 @@ import com.palantir.atlasdb.services.AtlasDbServicesFactory;
 import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 public abstract class SingleBackendCommand extends AbstractCommand {
     private static final Logger log = LoggerFactory.getLogger(SingleBackendCommand.class);
 
     @Override
     public Integer call() {
-        com.palantir.logsafe.Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
+        Preconditions.checkState(isOnlineRunSupported() || isOffline(), "This CLI can only be run offline");
 
         try (AtlasDbServices services = connect()) {
             return execute(services);

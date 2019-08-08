@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public abstract class CellTsPairToken {
@@ -48,7 +49,7 @@ public abstract class CellTsPairToken {
     }
 
     public static CellTsPairToken continueRow(CellTsPairInfo lastResult) {
-        com.palantir.logsafe.Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
+        Preconditions.checkState(lastResult.ts != Long.MAX_VALUE, "Illegal timestamp MAX_VALUE");
 
         return ImmutableCellTsPairToken.builder()
                 .startRowInclusive(lastResult.rowName)

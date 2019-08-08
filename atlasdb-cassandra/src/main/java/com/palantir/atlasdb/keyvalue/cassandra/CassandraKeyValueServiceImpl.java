@@ -125,6 +125,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.paging.AbstractPagingIterable;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
@@ -619,7 +620,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                        final Iterable<byte[]> rows,
                                                        ColumnSelection selection,
                                                        final long startTs) {
-        com.palantir.logsafe.Preconditions.checkArgument(!selection.allColumnsSelected(), "Must select specific columns");
+        Preconditions.checkArgument(!selection.allColumnsSelected(), "Must select specific columns");
 
         Collection<byte[]> selectedColumns = selection.getSelectedColumns();
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(selectedColumns.size() * Iterables.size(rows));
@@ -690,7 +691,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
-     *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
+     *        contains duplicates (as defined by {@link Arrays#equals(byte[], byte[])}).
      * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
      *
@@ -1758,7 +1759,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     /**
      * Performs a check-and-set into the key-value store.
      * Please see {@link CheckAndSetRequest} for information about how to create this request,
-     * and {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} for more detailed documentation.
+     * and {@link KeyValueService} for more detailed documentation.
      * <p>
      * Does not require all Cassandra nodes to be up and available, works as long as quorum is achieved.
      *

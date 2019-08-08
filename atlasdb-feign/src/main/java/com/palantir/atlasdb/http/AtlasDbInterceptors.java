@@ -18,6 +18,7 @@ package com.palantir.atlasdb.http;
 
 import java.io.IOException;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
@@ -40,7 +41,7 @@ public final class AtlasDbInterceptors {
         private final String userAgent;
 
         public UserAgentAddingInterceptor(String userAgent) {
-            com.palantir.logsafe.Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
+            Preconditions.checkNotNull(userAgent, "User Agent should never be null.");
             this.userAgent = userAgent;
         }
 

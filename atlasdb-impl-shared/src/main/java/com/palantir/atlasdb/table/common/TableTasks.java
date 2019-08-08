@@ -49,6 +49,7 @@ import com.palantir.common.base.BatchingVisitables;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.lock.LockRefreshToken;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -398,7 +399,7 @@ public final class TableTasks {
     private static Iterable<MutableRange> getRanges(int givenThreadCount, int batchSize) {
         int threadCount = Math.min(givenThreadCount, 256);
 
-        com.palantir.logsafe.Preconditions.checkState(threadCount > 0, "threadCount must be positive");
+        Preconditions.checkState(threadCount > 0, "threadCount must be positive");
         if (threadCount == 1) {
             return ImmutableList.of(new MutableRange(new byte[0], new byte[0], batchSize));
         }

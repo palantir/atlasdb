@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -1204,7 +1205,7 @@ public class TableRenderer {
                 classes.add(com.google.common.base.Optional.class);
                 break;
             case JAVA8:
-                classes.add(java.util.Optional.class);
+                classes.add(Optional.class);
                 break;
             default:
                 throw new SafeIllegalArgumentException("Unknown optionalType!");

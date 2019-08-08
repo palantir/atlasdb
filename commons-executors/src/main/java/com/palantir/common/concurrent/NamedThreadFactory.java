@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * A {@link java.util.concurrent.ThreadFactory} that lets you specify threads with a default name
+ * A {@link ThreadFactory} that lets you specify threads with a default name
  * and an auto-generated sequence number.
  *
  * @author regs

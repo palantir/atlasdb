@@ -27,6 +27,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A client of the lock server. Clients who desire reentrancy are required to
@@ -64,7 +65,7 @@ import com.google.common.base.Strings;
         if (Strings.isNullOrEmpty(clientId)) {
             return ANONYMOUS;
         }
-        com.palantir.logsafe.Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
+        Preconditions.checkArgument(!clientId.equals(INTERNAL_LOCK_GRANT_CLIENT_ID));
         return new LockClient(clientId);
     }
 

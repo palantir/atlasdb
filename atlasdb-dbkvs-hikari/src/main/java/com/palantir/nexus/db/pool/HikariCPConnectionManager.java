@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Stopwatch;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
@@ -82,7 +83,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
     private volatile State state = new State(StateType.ZERO, null, null, null);
 
     public HikariCPConnectionManager(ConnectionConfig connConfig) {
-        this.connConfig = com.palantir.logsafe.Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
+        this.connConfig = Preconditions.checkNotNull(connConfig, "ConnectionConfig must not be null");
     }
 
     @Override

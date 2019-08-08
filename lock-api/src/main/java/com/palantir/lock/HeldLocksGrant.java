@@ -35,6 +35,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A grant for a set of locks which are currently held by the lock server. Lock
@@ -63,7 +64,7 @@ import com.google.common.collect.Iterables;
      * These grants should not be constructed by users.  Only the lock service should hand them out.
      */
     public HeldLocksGrant(BigInteger grantId) {
-        this.grantId = com.palantir.logsafe.Preconditions.checkNotNull(grantId, "grantId should not be null");
+        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
         creationDateMs = System.currentTimeMillis();
         expirationDateMs = -1;
         lockMap = LockCollections.of();
@@ -77,13 +78,13 @@ import com.google.common.collect.Iterables;
     public HeldLocksGrant(BigInteger grantId, long creationDateMs, long expirationDateMs,
             SortedLockCollection<LockDescriptor> lockMap, TimeDuration lockTimeout,
             @Nullable Long versionId) {
-        this.grantId = com.palantir.logsafe.Preconditions.checkNotNull(grantId, "grantId should not be null");
+        this.grantId = Preconditions.checkNotNull(grantId, "grantId should not be null");
         this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
         this.versionId = versionId;
-        com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
+        Preconditions.checkArgument(!this.lockMap.isEmpty());
     }
 
     /** Returns the grant ID. */
@@ -119,7 +120,7 @@ import com.google.common.collect.Iterables;
      */
     @Override
     public long getExpirationDateMs() {
-        com.palantir.logsafe.Preconditions.checkState(expirationDateMs != -1);
+        Preconditions.checkState(expirationDateMs != -1);
         return expirationDateMs;
     }
 
@@ -129,7 +130,7 @@ import com.google.common.collect.Iterables;
      */
     @JsonIgnore
     public SortedLockCollection<LockDescriptor> getLocks() {
-        com.palantir.logsafe.Preconditions.checkState(!lockMap.isEmpty());
+        Preconditions.checkState(!lockMap.isEmpty());
         return lockMap;
     }
 
@@ -143,7 +144,7 @@ import com.google.common.collect.Iterables;
      */
     @Override
     public TimeDuration getLockTimeout() {
-        com.palantir.logsafe.Preconditions.checkState(lockTimeout != null);
+        Preconditions.checkState(lockTimeout != null);
         return lockTimeout;
     }
 

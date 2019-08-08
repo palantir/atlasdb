@@ -29,6 +29,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 
 @Immutable
@@ -52,7 +53,7 @@ public class PaxosValue implements Persistable, Versionable, Serializable {
     public PaxosValue(@JsonProperty("leaderUUID") String leaderUuid,
                       @JsonProperty("round") long round,
                       @JsonProperty("data") @Nullable byte[] data) {
-        this.leaderUuid = com.palantir.logsafe.Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
+        this.leaderUuid = Preconditions.checkNotNull(leaderUuid, "leaderUUID should never be null");
         this.seq = round;
         this.data = data;
     }

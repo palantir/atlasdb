@@ -48,6 +48,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 
 /**
@@ -132,8 +133,8 @@ public class SweepTaskRunner {
             byte[] startRow,
             RunType runType) {
 
-        com.palantir.logsafe.Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
-        com.palantir.logsafe.Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        Preconditions.checkNotNull(tableRef, "tableRef cannot be null");
+        Preconditions.checkState(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
 
         if (tableRef.getQualifiedName().startsWith(AtlasDbConstants.NAMESPACE_PREFIX)) {
             // this happens sometimes; I think it's because some places in the code can

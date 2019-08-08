@@ -17,6 +17,7 @@ package com.palantir.atlasdb.schema.stream;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.render.Renderers;
+import com.palantir.logsafe.Preconditions;
 
 public enum StreamTableType { // WARNING: do not change these without an upgrade task!
     METADATA("_stream_metadata", "StreamMetadata"),
@@ -45,7 +46,7 @@ public enum StreamTableType { // WARNING: do not change these without an upgrade
     }
 
     public static TableReference getIndexTableFromValueTable(TableReference tableReference) {
-        com.palantir.logsafe.Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
+        Preconditions.checkArgument(isStreamStoreValueTable(tableReference),
                 "tableReference should be a StreamStore value table");
 
         int tableNameLastIndex = tableReference.getQualifiedName().lastIndexOf(StreamTableType.VALUE.tableSuffix);

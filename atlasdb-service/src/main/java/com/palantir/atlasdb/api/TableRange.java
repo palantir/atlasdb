@@ -17,6 +17,8 @@ package com.palantir.atlasdb.api;
 
 import java.util.Arrays;
 
+import com.palantir.logsafe.Preconditions;
+
 /**
  * <pre>
  * {
@@ -52,7 +54,7 @@ public class TableRange {
                       byte[] endRow,
                       Iterable<byte[]> columns,
                       int batchSize) {
-        this.tableName = com.palantir.logsafe.Preconditions.checkNotNull(tableName, "tableName must not be null!");
+        this.tableName = Preconditions.checkNotNull(tableName, "tableName must not be null!");
         this.startRow = startRow;
         this.endRow = endRow;
         this.columns = columns;

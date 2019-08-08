@@ -22,6 +22,7 @@ import org.immutables.value.Value;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.Strings;
+import com.palantir.logsafe.Preconditions;
 
 @JsonDeserialize(as = ImmutableCassandraJmxCompactionConfig.class)
 @JsonSerialize(as = ImmutableCassandraJmxCompactionConfig.class)
@@ -69,9 +70,9 @@ public abstract class CassandraJmxCompactionConfig {
             return;
         }
 
-        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(keystore()), "keystore must be specified");
-        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(keystorePassword()), "keystorePassword must be specified");
-        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(truststore()), "truststore must be specified");
-        com.palantir.logsafe.Preconditions.checkState(!Strings.isNullOrEmpty(truststorePassword()), "truststorePassword must be specified");
+        Preconditions.checkState(!Strings.isNullOrEmpty(keystore()), "keystore must be specified");
+        Preconditions.checkState(!Strings.isNullOrEmpty(keystorePassword()), "keystorePassword must be specified");
+        Preconditions.checkState(!Strings.isNullOrEmpty(truststore()), "truststore must be specified");
+        Preconditions.checkState(!Strings.isNullOrEmpty(truststorePassword()), "truststorePassword must be specified");
     }
 }

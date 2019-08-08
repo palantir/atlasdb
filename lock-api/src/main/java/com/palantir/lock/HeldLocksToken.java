@@ -35,6 +35,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A token representing a set of locks being held by a client and the
@@ -66,15 +67,15 @@ import com.google.common.collect.Iterables;
     public HeldLocksToken(BigInteger tokenId, LockClient client, long creationDateMs,
             long expirationDateMs, SortedLockCollection<LockDescriptor> lockMap,
             TimeDuration lockTimeout, @Nullable Long versionId, String requestingThread) {
-        this.tokenId = com.palantir.logsafe.Preconditions.checkNotNull(tokenId, "tokenId should not be null");
-        this.client = com.palantir.logsafe.Preconditions.checkNotNull(client, "client should not be null");
+        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
+        this.client = Preconditions.checkNotNull(client, "client should not be null");
         this.creationDateMs = creationDateMs;
         this.expirationDateMs = expirationDateMs;
         this.lockMap = lockMap;
         this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
         this.versionId = versionId;
         this.requestingThread = requestingThread;
-        com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
+        Preconditions.checkArgument(!this.lockMap.isEmpty());
     }
 
     /**
@@ -236,14 +237,14 @@ import com.google.common.collect.Iterables;
                 localLockMapBuilder.put(lock.getLockDescriptor(), lock.getLockMode());
             }
             this.lockMap = LockCollections.of(localLockMapBuilder.build());
-            this.tokenId = com.palantir.logsafe.Preconditions.checkNotNull(tokenId, "tokenId");
-            this.client = com.palantir.logsafe.Preconditions.checkNotNull(client, "client");
+            this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId");
+            this.client = Preconditions.checkNotNull(client, "client");
             this.creationDateMs = creationDateMs;
             this.expirationDateMs = expirationDateMs;
             this.lockTimeout = SimpleTimeDuration.of(lockTimeout);
             this.versionId = versionId;
             this.requestingThread = requestingThread;
-            com.palantir.logsafe.Preconditions.checkArgument(!this.lockMap.isEmpty());
+            Preconditions.checkArgument(!this.lockMap.isEmpty());
         }
 
         public HeldLocksToken build() {

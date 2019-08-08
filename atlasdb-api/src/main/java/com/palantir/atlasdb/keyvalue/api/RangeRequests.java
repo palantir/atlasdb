@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 
 public final class RangeRequests {
@@ -36,8 +37,8 @@ public final class RangeRequests {
      * length greater than <code>Cell.MAX_NAME_LENGTH</code>
      */
     public static byte[] previousLexicographicName(@Nonnull byte[] name) {
-        com.palantir.logsafe.Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
-        com.palantir.logsafe.Preconditions.checkArgument(name.length > 0, "name is empty");
+        Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+        Preconditions.checkArgument(name.length > 0, "name is empty");
         if (name[name.length - 1] == 0) {
             byte[] ret = new byte[name.length - 1];
             System.arraycopy(name, 0, ret, 0, ret.length);
@@ -59,8 +60,8 @@ public final class RangeRequests {
      * @param rowName must be non-null
      */
     public static byte[] createEndNameForPrefixScan(@Nonnull byte[] rowName) {
-        com.palantir.logsafe.Preconditions.checkNotNull(rowName, "name cannot be null");
-        com.palantir.logsafe.Preconditions.checkArgument(rowName.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+        Preconditions.checkNotNull(rowName, "name cannot be null");
+        Preconditions.checkArgument(rowName.length <= Cell.MAX_NAME_LENGTH, "name is too long");
 
         for (int i = rowName.length - 1; i >= 0; i--) {
             if ((rowName[i] & 0xff) != 0xff) {
@@ -100,7 +101,7 @@ public final class RangeRequests {
      * This is a replacement for endRow when doing a non-reverse range request.
      */
     public static byte[] endRowExclusiveOrOneAfterMax(RangeRequest rangeRequest) {
-        com.palantir.logsafe.Preconditions.checkArgument(!rangeRequest.isReverse());
+        Preconditions.checkArgument(!rangeRequest.isReverse());
         if (rangeRequest.getEndExclusive().length == 0) {
             return oneAfterMaximumName();
         }
@@ -111,7 +112,7 @@ public final class RangeRequests {
      * This is a replacement for startRow when doing reverse range request.
      */
     public static byte[] startRowInclusiveOrLargestRow(RangeRequest rangeRequest) {
-        com.palantir.logsafe.Preconditions.checkArgument(rangeRequest.isReverse());
+        Preconditions.checkArgument(rangeRequest.isReverse());
         if (rangeRequest.getStartInclusive().length == 0) {
             return getLastRowName();
         }
@@ -126,7 +127,7 @@ public final class RangeRequests {
     }
 
     private static byte[] nextLexicographicNameInternal(@Nonnull byte[] name) {
-        com.palantir.logsafe.Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+        Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
         if (name.length < Cell.MAX_NAME_LENGTH) {
             byte[] ret = new byte[name.length + 1];
             System.arraycopy(name, 0, ret, 0, name.length);

@@ -17,6 +17,8 @@ package com.palantir.atlasdb.api;
 
 import javax.annotation.Nullable;
 
+import com.palantir.logsafe.Preconditions;
+
 /*
  * <pre>
  * {
@@ -31,7 +33,7 @@ public class RangeToken {
 
     public RangeToken(TableRowResult results,
                       @Nullable TableRange nextRange) {
-        this.results = com.palantir.logsafe.Preconditions.checkNotNull(results, "results must not be null!");
+        this.results = Preconditions.checkNotNull(results, "results must not be null!");
         this.nextRange = nextRange;
     }
 

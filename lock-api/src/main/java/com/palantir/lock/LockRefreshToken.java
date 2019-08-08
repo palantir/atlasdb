@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.palantir.logsafe.Preconditions;
 
 @Immutable
 public final class LockRefreshToken implements Serializable {
@@ -33,7 +34,7 @@ public final class LockRefreshToken implements Serializable {
     @JsonCreator
     public LockRefreshToken(@JsonProperty("tokenId") BigInteger tokenId,
                             @JsonProperty("expirationDateMs") long expirationDateMs) {
-        this.tokenId = com.palantir.logsafe.Preconditions.checkNotNull(tokenId, "tokenId should not be null");
+        this.tokenId = Preconditions.checkNotNull(tokenId, "tokenId should not be null");
         this.expirationDateMs = expirationDateMs;
     }
 
@@ -46,7 +47,7 @@ public final class LockRefreshToken implements Serializable {
     }
 
     public HeldLocksToken refreshTokenWithExpriationDate(HeldLocksToken token) {
-        com.palantir.logsafe.Preconditions.checkArgument(token.getTokenId().equals(tokenId), "token ids must match");
+        Preconditions.checkArgument(token.getTokenId().equals(tokenId), "token ids must match");
         return token.refresh(expirationDateMs);
     }
 

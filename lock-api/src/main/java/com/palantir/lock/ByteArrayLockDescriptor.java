@@ -17,6 +17,8 @@ package com.palantir.lock;
 
 import java.util.concurrent.locks.ReadWriteLock;
 
+import com.palantir.logsafe.Preconditions;
+
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique
  * string).
@@ -31,7 +33,7 @@ public final class ByteArrayLockDescriptor {
 
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     public static LockDescriptor of(byte[] bytes) {
-        com.palantir.logsafe.Preconditions.checkNotNull(bytes, "bytes cannot be null");
+        Preconditions.checkNotNull(bytes, "bytes cannot be null");
         return new LockDescriptor(bytes.clone());
     }
 }

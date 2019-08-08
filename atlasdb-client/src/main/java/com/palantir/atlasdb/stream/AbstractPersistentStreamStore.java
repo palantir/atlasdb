@@ -167,7 +167,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
             StreamMetadata metadata = StreamMetadata.newBuilder()
                     .setStatus(Status.FAILED)
                     .setLength(length)
-                    .setHash(com.google.protobuf.ByteString.EMPTY)
+                    .setHash(ByteString.EMPTY)
                     .build();
             storeMetadataAndIndex(id, metadata);
             log.error("Could not store stream {}. Failed after {} bytes.", id, length, e);
@@ -178,7 +178,7 @@ public abstract class AbstractPersistentStreamStore extends AbstractGenericStrea
         return StreamMetadata.newBuilder()
                 .setStatus(Status.STORED)
                 .setLength(length)
-                .setHash(com.google.protobuf.ByteString.EMPTY)
+                .setHash(ByteString.EMPTY)
                 .build();
     }
 

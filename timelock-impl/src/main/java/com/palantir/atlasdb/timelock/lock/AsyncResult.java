@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 import net.jcip.annotations.ThreadSafe;
@@ -50,7 +51,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void complete(T value) {
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 future.complete(value),
                 "This result is already completed");
     }
@@ -62,7 +63,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void fail(Throwable error) {
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 future.completeExceptionally(error),
                 "This result is already completed");
     }
@@ -80,7 +81,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if this result is already completed.
      */
     public void timeout() {
-        com.palantir.logsafe.Preconditions.checkState(
+        Preconditions.checkState(
                 future.completeExceptionally(new TimeoutException()),
                 "This result is already completed");
     }
@@ -115,7 +116,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if not completed successfully.
      **/
     public T get() {
-        com.palantir.logsafe.Preconditions.checkState(isCompletedSuccessfully());
+        Preconditions.checkState(isCompletedSuccessfully());
         return future.join();
     }
 
@@ -125,7 +126,7 @@ public class AsyncResult<T> {
      * @throws {@link IllegalStateException} if not failed.
      **/
     public Throwable getError() {
-        com.palantir.logsafe.Preconditions.checkState(isFailed());
+        Preconditions.checkState(isFailed());
         return getExceptionInternal();
     }
 

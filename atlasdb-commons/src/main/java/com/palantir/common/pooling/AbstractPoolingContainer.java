@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.collect.EmptyQueue;
+import com.palantir.logsafe.Preconditions;
 
 
 /**
@@ -128,7 +129,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
         T resource = pool.poll();
         if (resource == null) {
             resource = createNewPooledResource();
-            com.palantir.logsafe.Preconditions.checkNotNull(resource, "resource should be non-null");
+            Preconditions.checkNotNull(resource, "resource should be non-null");
             allocatedResources.incrementAndGet();
         }
         logPoolStats();
@@ -139,7 +140,7 @@ public abstract class AbstractPoolingContainer<T> implements PoolingContainer<T>
      * This method should only be called in the finally block of a try/finally
      */
     protected final void returnResource(T resource) {
-        com.palantir.logsafe.Preconditions.checkNotNull(resource);
+        Preconditions.checkNotNull(resource);
         try {
             cleanupForReturnToPool(resource);
         } catch (RuntimeException e) {

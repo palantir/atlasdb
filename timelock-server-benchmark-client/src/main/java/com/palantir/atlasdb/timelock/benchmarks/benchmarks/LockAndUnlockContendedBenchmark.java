@@ -30,6 +30,7 @@ import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 
 public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     private static final int ACQUIRE_TIMEOUT_MS = 50_000;
@@ -60,7 +61,7 @@ public class LockAndUnlockContendedBenchmark extends AbstractBenchmark {
     protected void performOneCall() {
         LockToken token = timelock.lock(nextRequest()).getToken();
         boolean wasUnlocked = timelock.unlock(ImmutableSet.of(token)).contains(token);
-        com.palantir.logsafe.Preconditions.checkState(wasUnlocked, "unlock returned false");
+        Preconditions.checkState(wasUnlocked, "unlock returned false");
     }
 
     @Override

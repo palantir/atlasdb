@@ -23,6 +23,7 @@ import org.immutables.value.Value;
 
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockMode;
+import com.palantir.logsafe.Preconditions;
 
 @Value.Immutable
 public abstract class SimpleTokenInfo {
@@ -32,7 +33,7 @@ public abstract class SimpleTokenInfo {
                 .expiresIn(token.getExpirationDateMs() - System.currentTimeMillis())
                 .createdAtTs(token.getCreationDateMs())
                 .tokenId(token.getTokenId().toString())
-                .clientId(com.palantir.logsafe.Preconditions.checkNotNull(token.getClient()).getClientId())
+                .clientId(Preconditions.checkNotNull(token.getClient()).getClientId())
                 .requestThread(token.getRequestingThread())
                 .createAt(new Date(token.getCreationDateMs()).toString())
                 .versionId(token.getVersionId())

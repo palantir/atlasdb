@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import java.io.Serializable;
 
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 
 public final class ColumnRangeSelections implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -27,7 +28,7 @@ public final class ColumnRangeSelections implements Serializable {
     }
 
     public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
-        byte[] startCol = com.palantir.logsafe.Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
+        byte[] startCol = Preconditions.checkNotNull(prefix, "prefix cannot be null").clone();
         byte[] endCol = RangeRequests.createEndNameForPrefixScan(prefix);
         return BatchColumnRangeSelection.create(startCol, endCol, batchSize);
     }

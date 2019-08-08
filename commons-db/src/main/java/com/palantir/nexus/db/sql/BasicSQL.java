@@ -170,7 +170,7 @@ public abstract class BasicSQL {
             // Using #available is only okay for ByteArrayInputStream,
             // not for a generic InputStream
             PreparedStatements.setBinaryStream(ps, i, bais, bais.available());
-        } else if (obj instanceof org.joda.time.DateTime) {
+        } else if (obj instanceof DateTime) {
             setDateTime(c, ps, i, (DateTime)obj);
         } else if (obj instanceof Boolean) {
             // TODO: gross hack because our code abuses the distinction between

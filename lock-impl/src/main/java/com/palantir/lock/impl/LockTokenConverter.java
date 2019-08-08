@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.logsafe.Preconditions;
 
 class LockTokenConverter {
 
@@ -42,7 +43,7 @@ class LockTokenConverter {
     }
 
     private static UUID toUuid(BigInteger bigInteger) {
-        com.palantir.logsafe.Preconditions.checkArgument(
+        Preconditions.checkArgument(
                 bigInteger.bitLength() < 128,
                 "Value has too many bits to be converted to a UUID");
         long msb = bigInteger.shiftRight(64).longValue();

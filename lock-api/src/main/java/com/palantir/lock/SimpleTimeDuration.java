@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.primitives.Longs;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A simple, immutable implementation of {@link TimeDuration}.
@@ -47,7 +48,7 @@ import com.google.common.primitives.Longs;
     }
 
     public static SimpleTimeDuration of(TimeDuration duration) {
-        com.palantir.logsafe.Preconditions.checkNotNull(duration, "duration should not be null");
+        Preconditions.checkNotNull(duration, "duration should not be null");
         if (duration instanceof SimpleTimeDuration) {
             return (SimpleTimeDuration) duration;
         }
@@ -56,7 +57,7 @@ import com.google.common.primitives.Longs;
 
     private SimpleTimeDuration(long time, TimeUnit unit) {
         this.time = time;
-        this.unit = com.palantir.logsafe.Preconditions.checkNotNull(unit, "unit should not be null");
+        this.unit = Preconditions.checkNotNull(unit, "unit should not be null");
     }
 
     @Override

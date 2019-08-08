@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
+import com.palantir.logsafe.Preconditions;
 
 public final class Autobatchers {
 
@@ -98,7 +99,7 @@ public final class Autobatchers {
         }
 
         public DisruptorAutobatcher<I, O> build() {
-            com.palantir.logsafe.Preconditions.checkArgument(purpose != null, "purpose must be provided");
+            Preconditions.checkArgument(purpose != null, "purpose must be provided");
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(DEFAULT_BUFFER_SIZE);
 
             EventHandler<BatchElement<I, O>> profiledHandler =

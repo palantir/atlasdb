@@ -32,6 +32,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.common.time.Clock;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,7 +76,7 @@ public class FailoverFeignTarget<T> implements Target<T>, Retryer {
 
     @VisibleForTesting
     FailoverFeignTarget(Collection<String> servers, long maxBackoffMillis, Class<T> type, Clock clock) {
-        com.palantir.logsafe.Preconditions.checkArgument(maxBackoffMillis > 0);
+        Preconditions.checkArgument(maxBackoffMillis > 0);
         this.servers = ImmutableList.copyOf(ImmutableSet.copyOf(servers));
         this.type = type;
         this.maxBackoffMillis = maxBackoffMillis;

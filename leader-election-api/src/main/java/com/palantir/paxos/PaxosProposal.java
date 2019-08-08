@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 
 /**
@@ -41,7 +42,7 @@ public class PaxosProposal implements Serializable {
     public PaxosProposal(@JsonProperty("id") PaxosProposalId id,
                          @JsonProperty("value") PaxosValue val) {
         this.id = id;
-        this.val = com.palantir.logsafe.Preconditions.checkNotNull(val, "value cannot be null");
+        this.val = Preconditions.checkNotNull(val, "value cannot be null");
     }
 
     public PaxosProposalId getId() {

@@ -40,6 +40,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Immutable;
 import com.palantir.common.persist.Persistable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.Pair;
 
 /**
@@ -146,7 +147,7 @@ public final class RangeRequest implements Serializable {
     }
 
     public boolean inRange(byte[] position) {
-        com.palantir.logsafe.Preconditions.checkArgument(Cell.isNameValid(position));
+        Preconditions.checkArgument(Cell.isNameValid(position));
         final boolean afterStart;
         final boolean afterEnd;
         if (reverse) {
@@ -247,8 +248,8 @@ public final class RangeRequest implements Serializable {
      * start will be on the left hand side and will be greater lexicographically
      */
     private static Pair<byte[], byte[]> createNamesForReversePrefixScan(@Nonnull byte[] name) {
-        com.palantir.logsafe.Preconditions.checkNotNull(name, "name cannot be null");
-        com.palantir.logsafe.Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
+        Preconditions.checkNotNull(name, "name cannot be null");
+        Preconditions.checkArgument(name.length <= Cell.MAX_NAME_LENGTH, "name is too long");
 
         if (name.length == 0) {
             return Pair.create(name, name);
@@ -288,7 +289,7 @@ public final class RangeRequest implements Serializable {
          * This will set the start and the end to get all rows that have a given prefix.
          */
         public Builder prefixRange(byte[] prefix) {
-            com.palantir.logsafe.Preconditions.checkNotNull(prefix, "prefix cannot be null");
+            Preconditions.checkNotNull(prefix, "prefix cannot be null");
 
             if (reverse) {
                 Pair<byte[], byte[]> pair = createNamesForReversePrefixScan(prefix);
@@ -303,7 +304,7 @@ public final class RangeRequest implements Serializable {
         }
 
         public Builder startRowInclusive(byte[] start) {
-            this.startInclusive = com.palantir.logsafe.Preconditions.checkNotNull(start, "start cannot be null").clone();
+            this.startInclusive = Preconditions.checkNotNull(start, "start cannot be null").clone();
             return this;
         }
 
@@ -316,7 +317,7 @@ public final class RangeRequest implements Serializable {
         }
 
         public Builder endRowExclusive(byte[] end) {
-            this.endExclusive = com.palantir.logsafe.Preconditions.checkNotNull(end, "end cannot be null").clone();
+            this.endExclusive = Preconditions.checkNotNull(end, "end cannot be null").clone();
             return this;
         }
 
@@ -351,7 +352,7 @@ public final class RangeRequest implements Serializable {
          * BatchingVisitable#batchAccept(int, com.palantir.common.base.AbortingVisitor)
          */
         public Builder batchHint(Integer hint) {
-            com.palantir.logsafe.Preconditions.checkArgument(hint == null || hint > 0);
+            Preconditions.checkArgument(hint == null || hint > 0);
             batchHint = hint;
             return this;
         }

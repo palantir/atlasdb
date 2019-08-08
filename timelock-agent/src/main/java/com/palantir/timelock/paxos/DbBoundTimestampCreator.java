@@ -26,6 +26,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.timelock.paxos.DelegatingManagedTimestampService;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -52,7 +53,7 @@ public class DbBoundTimestampCreator implements TimestampCreator {
                 AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE);
 
         TimestampService timestampService = atlasFactory.getManagedTimestampService();
-        com.palantir.logsafe.Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
+        Preconditions.checkArgument(timestampService instanceof TimestampManagementService,
                 "The timestamp service is not a managed timestamp service.");
 
         return () -> new DelegatingManagedTimestampService(timestampService,

@@ -19,6 +19,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A descriptor for a {@link ReadWriteLock}, identified by a lock ID (a unique
@@ -35,8 +36,8 @@ public final class StringLockDescriptor {
     /** Returns a {@code LockDescriptor} instance for the given lock ID. */
     @SuppressWarnings("checkstyle:jdkStandardCharsets") // StandardCharsets only in JDK 1.7+
     public static LockDescriptor of(String lockId) {
-        com.palantir.logsafe.Preconditions.checkNotNull(lockId, "lockId should not be null");
-        com.palantir.logsafe.Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
+        Preconditions.checkNotNull(lockId, "lockId should not be null");
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(lockId));
         return new LockDescriptor(lockId.getBytes(Charsets.UTF_8));
     }
 }

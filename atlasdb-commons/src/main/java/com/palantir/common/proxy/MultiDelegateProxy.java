@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.reflect.AbstractInvocationHandler;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * This class will delegate functionality and return the value (or throw the exception) of
@@ -70,7 +71,7 @@ public class MultiDelegateProxy<T> extends AbstractInvocationHandler {
     final Supplier<? extends Iterable<? extends T>> othersToCall;
 
     private MultiDelegateProxy(T delegate, Supplier<? extends Iterable<? extends T>> toCall) {
-        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate);
+        this.delegate = Preconditions.checkNotNull(delegate);
         this.othersToCall = toCall;
     }
 

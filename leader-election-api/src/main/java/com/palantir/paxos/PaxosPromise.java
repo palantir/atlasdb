@@ -23,6 +23,7 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * A promise to not accept new proposals less than promisedID.
@@ -65,7 +66,7 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
 
     private PaxosPromise(PaxosProposalId promisedId) {
         ack = false;
-        this.promisedId = com.palantir.logsafe.Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         lastAcceptedId = null;
         lastAcceptedValue = null;
     }
@@ -74,7 +75,7 @@ public final class PaxosPromise implements Comparable<PaxosPromise>, PaxosRespon
             PaxosProposalId lastAcceptedId,
             PaxosValue val) {
         ack = true;
-        this.promisedId = com.palantir.logsafe.Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
+        this.promisedId = Preconditions.checkNotNull(promisedId, "promisedId cannot be null");
         this.lastAcceptedId = lastAcceptedId;
         this.lastAcceptedValue = val;
     }

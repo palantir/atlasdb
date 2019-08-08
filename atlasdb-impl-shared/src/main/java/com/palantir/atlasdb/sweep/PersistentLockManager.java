@@ -30,6 +30,7 @@ import com.palantir.atlasdb.persistentlock.PersistentLockId;
 import com.palantir.atlasdb.persistentlock.PersistentLockService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.exception.NotInitializedException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 // TODO move to persistentlock package?
@@ -103,7 +104,7 @@ public class PersistentLockManager implements AutoCloseable {
 
     @VisibleForTesting
     synchronized boolean tryAcquirePersistentLock() {
-        com.palantir.logsafe.Preconditions.checkState(!isShutDown,
+        Preconditions.checkState(!isShutDown,
                 "This PersistentLockManager is shut down, and cannot be used to acquire locks.");
 
         try {

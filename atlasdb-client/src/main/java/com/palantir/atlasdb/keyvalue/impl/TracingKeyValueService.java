@@ -45,6 +45,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.CloseableTrace;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 
 /**
@@ -58,7 +59,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     private final KeyValueService delegate;
 
     private TracingKeyValueService(KeyValueService delegate) {
-        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate, "delegate");
+        this.delegate = Preconditions.checkNotNull(delegate, "delegate");
     }
 
     public static KeyValueService create(KeyValueService keyValueService) {

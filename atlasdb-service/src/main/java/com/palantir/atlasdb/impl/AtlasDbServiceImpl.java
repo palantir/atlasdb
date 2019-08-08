@@ -53,6 +53,7 @@ import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
+import com.palantir.logsafe.Preconditions;
 
 public class AtlasDbServiceImpl implements AtlasDbService {
     private static final TableMetadata RAW_METADATA = TableMetadata.builder()
@@ -166,7 +167,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             return txManager.runTaskWithRetry(task);
         } else {
             Transaction tx = transactions.getIfPresent(token).transaction();
-            com.palantir.logsafe.Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
     }
@@ -176,7 +177,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
             return txManager.runTaskWithRetry(task);
         } else {
             Transaction tx = transactions.getIfPresent(token).transaction();
-            com.palantir.logsafe.Preconditions.checkNotNull(tx, "The given transaction does not exist.");
+            Preconditions.checkNotNull(tx, "The given transaction does not exist.");
             return task.execute(tx);
         }
     }

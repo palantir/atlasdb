@@ -33,6 +33,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.processors.AutoDelegate;
 
@@ -308,12 +309,12 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        com.palantir.logsafe.Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
+        Preconditions.checkState(!servers().isEmpty(), "'servers' must have at least one entry");
         for (InetSocketAddress addr : servers()) {
-            com.palantir.logsafe.Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
+            Preconditions.checkState(addr.getPort() > 0, "each server must specify a port ([host]:[port])");
         }
         double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
-        com.palantir.logsafe.Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
+        Preconditions.checkArgument(evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
                 "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
     }
 }

@@ -56,6 +56,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
@@ -289,7 +290,7 @@ import com.palantir.timestamp.TimestampService;
 
     @Override
     public void registerClosingCallback(Runnable closingCallback) {
-        com.palantir.logsafe.Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
+        Preconditions.checkNotNull(closingCallback, "Cannot register a null callback.");
         closingCallbacks.add(closingCallback);
     }
 

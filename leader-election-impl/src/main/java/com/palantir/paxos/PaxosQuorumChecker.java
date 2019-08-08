@@ -39,6 +39,7 @@ import com.google.common.collect.Sets;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings("MethodTypeParameterName")
@@ -99,7 +100,7 @@ public final class PaxosQuorumChecker {
             int quorumSize,
             Map<? extends SERVICE, ExecutorService> executors,
             Duration remoteRequestTimeout) {
-        com.palantir.logsafe.Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
+        Preconditions.checkState(executors.keySet().equals(Sets.newHashSet(remotes)),
                 "Each remote should have an executor.");
         return collectResponses(
                 remotes,

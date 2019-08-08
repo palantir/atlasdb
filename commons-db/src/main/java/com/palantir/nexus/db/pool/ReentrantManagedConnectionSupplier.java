@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import javax.annotation.concurrent.ThreadSafe;
 
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.ReentrantConnectionSupplier;
 
 @ThreadSafe
@@ -30,7 +31,7 @@ public class ReentrantManagedConnectionSupplier implements ReentrantConnectionSu
     private final ThreadLocal<ResourceSharer<Connection, SQLException>> threadLocal;
 
     public ReentrantManagedConnectionSupplier(final ConnectionManager delegate) {
-        this.delegate = com.palantir.logsafe.Preconditions.checkNotNull(delegate);
+        this.delegate = Preconditions.checkNotNull(delegate);
         this.threadLocal = ThreadLocal.withInitial(() ->
                 new ResourceSharer<Connection, SQLException>(ResourceTypes.CONNECTION) {
                     @Override

@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.sql.AgnosticLightResultRow;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
@@ -217,7 +218,7 @@ public class PostgresGetRange implements DbKvsGetRange {
                         numSqlRows += 1;
                         AgnosticLightResultRow sqlRow = iter.next();
                         byte[] rowName = sqlRow.getBytes("row_name");
-                        colName = com.palantir.logsafe.Preconditions.checkNotNull(sqlRow.getBytes("col_name"),
+                        colName = Preconditions.checkNotNull(sqlRow.getBytes("col_name"),
                                 "received a null col_name from the database");
                         if (!Arrays.equals(currentRowName, rowName)) {
                             flushCurrentRow(results);

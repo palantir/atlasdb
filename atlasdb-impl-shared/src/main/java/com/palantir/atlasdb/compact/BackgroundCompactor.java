@@ -34,6 +34,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 public final class BackgroundCompactor implements AutoCloseable {
@@ -115,7 +116,7 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     private synchronized void runInBackground() {
-        com.palantir.logsafe.Preconditions.checkState(daemon == null);
+        Preconditions.checkState(daemon == null);
         daemon = new Thread(this::run);
         daemon.setDaemon(true);
         daemon.setName("BackgroundCompactor");

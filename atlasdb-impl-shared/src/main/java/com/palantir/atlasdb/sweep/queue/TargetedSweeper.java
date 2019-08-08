@@ -51,6 +51,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
@@ -151,7 +152,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         if (isInitialized) {
             return;
         }
-        com.palantir.logsafe.Preconditions.checkState(kvs.isInitialized(),
+        Preconditions.checkState(kvs.isInitialized(),
                 "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(metricsManager, timelockService, kvs, SweepQueueUtils.REFRESH_TIME);
         queue = SweepQueue.create(

@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.logsafe.Preconditions;
 
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -61,7 +62,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
 
     @Override
     public int execute(AtlasDbServices services) {
-        com.palantir.logsafe.Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
+        Preconditions.checkArgument(!truncateOldQueue || batchSize == null,
                 "Truncating the old scrub queue and specifying a batch size are mutually exclusive options.");
         PrintWriter output = new PrintWriter(System.out, true);
         if (truncateOldQueue) {

@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.logsafe.Preconditions;
 
 /**
  * Represents a value in the key-value store (including its timestamp).
@@ -73,7 +74,7 @@ public final class Value implements Serializable {
     private final long timestamp;
 
     private Value(byte[] contents, long timestamp) {
-        com.palantir.logsafe.Preconditions.checkArgument(
+        Preconditions.checkArgument(
                 (timestamp >= 0 && timestamp < Long.MAX_VALUE) || (timestamp == INVALID_VALUE_TIMESTAMP),
                 "timestamp out of bounds");
         this.contents = contents;

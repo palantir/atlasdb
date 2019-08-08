@@ -148,6 +148,7 @@ import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -897,7 +898,7 @@ public abstract class TransactionManagers {
     private static Supplier<ServerListConfig> getServerListConfigSupplierForTimeLock(
             AtlasDbConfig config,
             Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier) {
-        com.palantir.logsafe.Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
+        Preconditions.checkState(!remoteTimestampAndLockOrLeaderBlocksPresent(config),
                 "Cannot create raw services from timelock with another source of timestamps/locks configured!");
         TimeLockClientConfig clientConfig = config.timelock()
                 .orElseGet(() -> ImmutableTimeLockClientConfig.builder().build());

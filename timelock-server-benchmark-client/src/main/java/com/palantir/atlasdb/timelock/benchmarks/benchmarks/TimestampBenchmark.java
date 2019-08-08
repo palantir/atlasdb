@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.benchmarks.benchmarks;
 import java.util.Map;
 
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampService;
 
 public final class TimestampBenchmark extends AbstractBenchmark {
@@ -37,6 +38,6 @@ public final class TimestampBenchmark extends AbstractBenchmark {
     @Override
     protected void performOneCall() {
         long timestamp = timestampService.getFreshTimestamp();
-        com.palantir.logsafe.Preconditions.checkState(timestamp > 0);
+        Preconditions.checkState(timestamp > 0);
     }
 }

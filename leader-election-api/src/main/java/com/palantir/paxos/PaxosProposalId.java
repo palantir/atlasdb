@@ -23,6 +23,7 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.common.annotation.Immutable;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 
 /**
@@ -41,7 +42,7 @@ public class PaxosProposalId implements Comparable<PaxosProposalId>, Serializabl
     public PaxosProposalId(@JsonProperty("number") long number,
                            @JsonProperty("proposerUUID") String proposerUuid) {
         this.number = number;
-        this.proposerUuid = com.palantir.logsafe.Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
+        this.proposerUuid = Preconditions.checkNotNull(proposerUuid, "proposerUUID cannot be null");
     }
 
     @Override

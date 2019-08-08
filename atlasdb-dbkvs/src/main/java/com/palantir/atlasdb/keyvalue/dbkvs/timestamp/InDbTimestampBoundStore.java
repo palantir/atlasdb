@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.common.base.Throwables;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.nexus.db.DBType;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -82,8 +83,8 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     }
 
     private InDbTimestampBoundStore(ConnectionManager connManager, TableReference timestampTable, String tablePrefix) {
-        this.connManager = com.palantir.logsafe.Preconditions.checkNotNull(connManager, "connectionManager is required");
-        this.timestampTable = com.palantir.logsafe.Preconditions.checkNotNull(timestampTable, "timestampTable is required");
+        this.connManager = Preconditions.checkNotNull(connManager, "connectionManager is required");
+        this.timestampTable = Preconditions.checkNotNull(timestampTable, "timestampTable is required");
         this.tablePrefix = tablePrefix;
     }
 

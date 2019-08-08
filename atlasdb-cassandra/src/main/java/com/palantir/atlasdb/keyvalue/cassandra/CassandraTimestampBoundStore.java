@@ -36,6 +36,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.timestamp.AutoDelegate_TimestampBoundStore;
 import com.palantir.timestamp.DebugLogger;
@@ -94,7 +95,7 @@ public final class CassandraTimestampBoundStore implements TimestampBoundStore {
         DebugLogger.logger.info(
                 "Creating CassandraTimestampBoundStore object on thread {}. This should only happen once.",
                 Thread.currentThread().getName());
-        this.clientPool = com.palantir.logsafe.Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
+        this.clientPool = Preconditions.checkNotNull(clientPool, "clientPool cannot be null");
         this.kvs = kvs;
     }
 

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.Preconditions;
 
 public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
@@ -41,7 +42,7 @@ public class UninitializedCassandraResource extends ExternalResource {
     }
 
     public void initialize() {
-        com.palantir.logsafe.Preconditions.checkState(initialized.compareAndSet(false, true), "Cassandra was already initialized");
+        Preconditions.checkState(initialized.compareAndSet(false, true), "Cassandra was already initialized");
         try {
             containers.before();
         } catch (Throwable th) {

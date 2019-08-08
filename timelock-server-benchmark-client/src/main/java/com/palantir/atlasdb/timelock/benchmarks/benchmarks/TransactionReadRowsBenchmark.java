@@ -28,6 +28,7 @@ import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable;
 import com.palantir.atlasdb.timelock.benchmarks.schema.generated.BlobsTable.BlobsRow;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.random.RandomBytes;
+import com.palantir.logsafe.Preconditions;
 
 public final class TransactionReadRowsBenchmark extends AbstractBenchmark {
 
@@ -76,7 +77,7 @@ public final class TransactionReadRowsBenchmark extends AbstractBenchmark {
                     .collect(Collectors.toList());
         });
 
-        com.palantir.logsafe.Preconditions.checkState(result.size() == keys.size());
+        Preconditions.checkState(result.size() == keys.size());
     }
 
 }

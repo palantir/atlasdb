@@ -21,6 +21,7 @@ import java.util.SortedMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import com.palantir.logsafe.Preconditions;
 
 public final class LockCollections {
 
@@ -33,7 +34,7 @@ public final class LockCollections {
     }
 
     public static <T extends Comparable<T>> SortedLockCollection<T> of(SortedMap<T, LockMode> locks) {
-        com.palantir.logsafe.Preconditions.checkArgument(locks.comparator() == null
+        Preconditions.checkArgument(locks.comparator() == null
                 || locks.comparator() == Ordering.natural()
                 || locks.comparator() == Comparator.naturalOrder(),
                 "sorted lock collections must use naturally comparable keys");

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 
@@ -111,8 +112,8 @@ public final class KeyValueServiceMigrators {
 
         @Value.Check
         void check() {
-            com.palantir.logsafe.Preconditions.checkArgument(threads() > 0, "Threads used for migration should be positive.");
-            com.palantir.logsafe.Preconditions.checkArgument(batchSize() > 0, "Batch size used for migration should be positive.");
+            Preconditions.checkArgument(threads() > 0, "Threads used for migration should be positive.");
+            Preconditions.checkArgument(batchSize() > 0, "Batch size used for migration should be positive.");
         }
     }
 }

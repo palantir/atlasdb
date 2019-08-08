@@ -38,6 +38,7 @@ import com.palantir.atlasdb.sweep.progress.SweepProgressStoreImpl;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.time.Clock;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 
@@ -190,7 +191,7 @@ public class SpecificTableSweeper {
     }
 
     private void saveIntermediateSweepResults(TableToSweep tableToSweep, SweepResults results) {
-        com.palantir.logsafe.Preconditions.checkArgument(results.getNextStartRow().isPresent(),
+        Preconditions.checkArgument(results.getNextStartRow().isPresent(),
                 "Next start row should be present when saving intermediate results!");
         txManager.runTaskWithRetry((TxTask) tx -> {
             if (!tableToSweep.hasPreviousProgress()) {

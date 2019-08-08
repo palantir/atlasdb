@@ -30,6 +30,7 @@ import com.palantir.atlasdb.sweep.priority.SweepPriorityOverrideConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.logsafe.Preconditions;
 
 public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BackgroundSweeperImpl.class);
@@ -104,7 +105,7 @@ public final class BackgroundSweeperImpl implements BackgroundSweeper, AutoClose
 
     @Override
     public synchronized void runInBackground() {
-        com.palantir.logsafe.Preconditions.checkState(daemons == null);
+        Preconditions.checkState(daemons == null);
         int numThreads = sweepThreads.get();
         daemons = Sets.newHashSetWithExpectedSize(numThreads);
 

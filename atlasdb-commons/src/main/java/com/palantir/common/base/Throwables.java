@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.exception.PalantirInterruptedException;
+import com.palantir.logsafe.Preconditions;
 
 public final class Throwables {
 
@@ -174,7 +175,7 @@ public final class Throwables {
      * for example when throwing {@link ExecutionException#getCause()} after calling {@link Future#get()};
      */
     public static <T extends Throwable> T rewrap(T throwable) {
-        com.palantir.logsafe.Preconditions.checkNotNull(throwable);
+        Preconditions.checkNotNull(throwable);
         return rewrap(throwable.getMessage(), throwable);
     }
 
@@ -184,7 +185,7 @@ public final class Throwables {
      * for example when throwing {@link ExecutionException#getCause()} after calling {@link Future#get()};
      */
     public static <T extends Throwable> T rewrap(final String newMessage, final T throwable) {
-        com.palantir.logsafe.Preconditions.checkNotNull(throwable);
+        Preconditions.checkNotNull(throwable);
         log.info("Rewrapping throwable {} with newMessage {}", throwable, newMessage);
         try {
             Constructor<?>[] constructors = throwable.getClass().getConstructors();

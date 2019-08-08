@@ -598,7 +598,7 @@ public interface KeyValueService extends AutoCloseable {
      * Products that use AtlasDB only for reads and writes (no schema mutations or deletes, including having sweep and
      * scrub disabled) can also treat {@link ClusterAvailabilityStatus#QUORUM_AVAILABLE} as healthy.
      * <p>
-     * If you have access to a {@link com.palantir.atlasdb.transaction.api.TransactionManager}, then it is recommended
+     * If you have access to a {@link TransactionManager}, then it is recommended
      * to use its availability indicator, {@link TransactionManager#getKeyValueServiceStatus()}, instead of this one.
      * <p>
      * This call must be implemented so that it completes synchronously.

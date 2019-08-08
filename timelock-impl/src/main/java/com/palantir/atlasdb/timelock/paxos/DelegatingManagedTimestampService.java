@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import javax.ws.rs.QueryParam;
 
+import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
@@ -29,8 +30,8 @@ public class DelegatingManagedTimestampService implements ManagedTimestampServic
     public DelegatingManagedTimestampService(
             TimestampService timestampService,
             TimestampManagementService timestampManagementService) {
-        com.palantir.logsafe.Preconditions.checkNotNull(timestampService, "Timestamp service should not be null");
-        com.palantir.logsafe.Preconditions.checkNotNull(timestampManagementService, "Timestamp management service should not be null");
+        Preconditions.checkNotNull(timestampService, "Timestamp service should not be null");
+        Preconditions.checkNotNull(timestampManagementService, "Timestamp management service should not be null");
         this.timestampService = timestampService;
         this.timestampManagementService = timestampManagementService;
     }

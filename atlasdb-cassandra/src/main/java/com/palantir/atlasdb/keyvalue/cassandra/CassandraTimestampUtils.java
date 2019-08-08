@@ -37,6 +37,7 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.Pair;
 
@@ -177,7 +178,7 @@ public final class CassandraTimestampUtils {
     }
 
     private static CqlQuery constructCheckAndSetQuery(String columnName, byte[] expected, byte[] target) {
-        com.palantir.logsafe.Preconditions.checkState(target != null, "Should not CAS to a null target!");
+        Preconditions.checkState(target != null, "Should not CAS to a null target!");
         if (expected == null) {
             return constructInsertIfNotExistsQuery(columnName, target);
         }
