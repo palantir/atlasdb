@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u191-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -36,7 +36,7 @@ jobs:
   test:
     parallelism: 8
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u191-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
@@ -83,7 +83,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/openjdk:8u171-jdk-node
+      - image: circleci/openjdk:8u191-jdk-node
     resource_class: xlarge
     environment:
       GRADLE_OPTS: -Dorg.gradle.console=plain -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
