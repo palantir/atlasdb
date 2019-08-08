@@ -200,12 +200,16 @@ document of changes up to v0.151.1 inclusive.</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<td>Upgraded gradle-baseline to improve compile time static analysis checks.
+(<a class="reference external" href="https://github.com/palantir/atlasdb/pull/3974">Pull Request</a>)</td>
+</tr>
+<tr class="row-odd"><td><span class="changetype changetype-breaking">DEV BREAK</span></td>
 <td><code class="docutils literal notranslate"><span class="pre">KeyValueService</span></code> implementations now have a new endpoint <code class="docutils literal notranslate"><span class="pre">deleteRows()</span></code> that allows row-level deletes to be performed.
 Users who extend <code class="docutils literal notranslate"><span class="pre">KeyValueService</span></code> will need to implement this method, but can refer to <code class="docutils literal notranslate"><span class="pre">AbstractKeyValueService</span></code> for a functional implementation (as this method can be written in terms of <code class="docutils literal notranslate"><span class="pre">deleteRange()</span></code>).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4094">Pull Request</a>)</td>
 </tr>
-<tr class="row-odd"><td><span class="changetype changetype-improved">IMPROVED</span></td>
+<tr class="row-even"><td><span class="changetype changetype-improved">IMPROVED</span></td>
 <td>Targeted Sweep now supports reading write information and dedicated row information from multiple partitions at a time; the same overall sweep batch limit is still respected.
 This is expected to be particularly relevant at installations where write information is sparsely distributed over many partitions (e.g. transactions2 deployments, especially such deployments with thorough tables).
 (<a class="reference external" href="https://github.com/palantir/atlasdb/pull/4097">Pull Request</a>)</td>
