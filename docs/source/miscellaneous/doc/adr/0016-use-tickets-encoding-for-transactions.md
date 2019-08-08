@@ -859,7 +859,9 @@ two TimeLock RPCs (allowing for the fact that we may need to actually do a Paxos
 that we're up to date) are still much cheaper than a ``putUnlessExists()`` call.
 
 Conceptually, it is possible to engineer such a system that would avoid hotspotting and support range scans.
-There is also scope for this to produce a more compact representation than the tickets algorithm, as
+There is also scope for this to produce a more compact representation than the tickets algorithm, as we are currently
+bound by various quirks of the Atlas schema in Cassandra (such as storing a dummy timestamp for ``column2``, for
+instance).
 
 One disadvantage of this approach relates to operational complexity of backups. We currently don't have to take
 any explicit action to back up TimeLock when backing up an Atlas deployment; all the information from it that is
