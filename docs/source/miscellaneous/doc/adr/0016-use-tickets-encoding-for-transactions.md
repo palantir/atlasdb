@@ -690,11 +690,53 @@ C1s (and C2s) never run concurrently with C4s.
 
 ### Operational Concerns
 
+Unfortunately, transactions2 introduces some complexity in terms of operation. Most obviously, reading and writing
+to the table outside of through an AtlasDB client becomes more difficult. There are also several other issues to be
+aware of.
+
 #### Backup and Restore
 
-#### Cassandra Dependencies
+AtlasDB backups are effectively done at a single logical point in time - the *backup timestamp*. This is taken before
+the underlying key-value service is backed up; we then take a *fast-forward timestamp* after this is complete so that
+we are able to distinguish data that was written during our backup, and new data written after our restore (that could
+happen if, for example, timestamp state was stored in the key-value service). As part of restoring, we also delete all
+entries in the transactions table that committed after our backup timestamp.
 
-#### Safe Installation
+The addition of the transactions2 table doesn't really cause issues; the bigger challenge here is working with the
+coordination service, which needs to be consistent with the usage of the transaction tables. These tables need special
+treatment - otherwise, there can be unexpected situations, ike the following:
+
+1. We get a backup timestamp at time 1000.
+2. At timestamp 1100, we switch to use transactions2.
+3. We backup the coordination table. At this point, the range map for transaction schema versions would be
+   ``{[1, 1100) = 1, [1100, +∞) = 2}``.
+4. At timestamp 1200, we switch back to transactions1.
+5. A write transaction T that writes to table X starts at timestamp 1230 and commits at timestamp 1250.
+6. We backup table X (note that not all KVS backup schemes are guaranteed to be point-in-time backups!)
+7. We get a fast-forward timestamp at time 1300.
+8. On restore, our copy of the coordination table suggests that we want to clean-transactions-range for values in
+   transactions1 from 1000 to 1100 (exclusive), and values in transactions2 from 1100 onwards. However, the values
+   written by T will still remain visible in this case, when they shouldn't be (because they were after the
+   backup timestamp; clean-transactions-range is designed to catch this case, but it cleaned the wrong transactions
+   table here).
+
+#### Cassandra and TimeLock Dependencies
+
+Transactions2 relies on the existence of new Cassandra thrift endpoints (multi-PUE and multiget multislice), along with
+a TimeLock endpoint (startIdentifiedAtlasDbTransaction). As we overhauled the CellLoader more broadly, we introduced
+dependencies on various versions of Cassandra:
+
+- TODO
+
+Similarly, for TimeLock:
+
+- versions of AtlasDB from v0.114.0 require TimeLock v0.51.0 or higher. This may be ignored if users are not using
+  TimeLock at all.
+
+Internally, we also have a backup and restore framework called Rescue. As argued above, Rescue also needs to be
+cognizant of the coordination service. Thus:
+
+- TODO
 
 ## Alternatives Considered
 
