@@ -682,6 +682,18 @@ C1s (and C2s) never run concurrently with C4s.
 
 ## Consequences
 
+### Data Compression and Disk Usage
+
+// TODO (jkong): Verify figures
+We observe that transactions2 requires substantially less disk space than transactions1. Empirically, we stored
+start/commit timestamp pairs for numbers from ``1`` to ``1,000,000,000`` inclusive on a Cassandra cluster with 3 nodes
+and RF 3 for both schemes. The commit timestamps were between ``1`` and ``100`` higher than the start timestamps.
+We found that the amount of disk space used in transactions1 was about 30 GB, while that for transactions2 was about 3
+GB. This is probably because our new physical schema is more compact; in particular, the delta encoding works well.
+
+Further to the more compact raw data, we also tuned Cassandra to use longer chunks for ``_transactions2`` (64 KB) than
+``_transactions`` (4 KB), which may improve compression further (though we have not quantified this).
+
 ### Write Performance
 
 Transactions2 has only been deployed at Cassandra deployments so far, so this section assumes Cassandra.
@@ -721,14 +733,12 @@ replication group that was responsible for the data in `_transactions`, though n
 to observe, depending on one's read patterns. Data written under the transactions1 scheme will still need to be read
 from the specific replication group.
 
-The amount of data read is also quite a bit smaller - this is expected, as the delta encoding and variable-length
-representation used for the ``_transactions2`` table is generally more compact than that in ``_transactions``.
+The amount of data read is also quite a bit smaller - this is expected, as the keys and values used in the
+``_transactions2`` table are generally more compact than that in ``_transactions``.
 
 Our changes to the ``CellLoader`` may also improve performance for dynamic column tables (other than ``_transactions2``)
 where query patterns involve loading distinct columns across multiple rows; though the team is not currently aware
 of any specific examples.
-
-### Data Compression and Disk Usage
 
 ### Operational Concerns
 
