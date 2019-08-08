@@ -870,10 +870,22 @@ This approach was avoided primarily because of resourcing constraints. In a sens
 seemed to be a pretty big win in terms of performance and stability. The ceiling of this approach is probably higher,
 but it would also require substantially more dev work than what was actually invested in this project.
 
-## Backlogged Components
+## Possible Future Work
+
+There were some further improvements we considered but did not implement in the short run, as we determined that the
+return on investment may not have been worthwhile.
 
 ### Cell Loader: Multiget Multislice Exactly
 
-## Future Work
+Internal non-transactional tables are generally written at very specific timestamps in Cassandra. For example, most
+CAS tables including ``_transactions2`` and ``_coordination`` are written at ``CassandraConstants.CAS_TABLE_TIMESTAMP``.
+However, the ``CellLoader`` does not use this information at all; it unnecessarily creates and sends range-based
+slice predicates to Cassandra (e.g. attempting to find all versions of a cell with timestamp less than or equal to the
+``CAS_TABLE_TIMESTAMP``), when exact column predicates (insisting on precisely ``CAS_TABLE_TIMESTAMP``) would suffice.
+
+We benchmarked this performance optimisation and found it led to a 3-4% performance improvement in read performance
+for transactions2. However, we were not certain that the additional complexity of tracking these tables and separating
+cells based on this was worth the small performance improvement, and thus didn't implement it beyond our
+proof-of-concept.
 
 ### DbKVS and Transactions2
