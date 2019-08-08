@@ -37,7 +37,7 @@ import com.palantir.exception.NotInitializedException;
 
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
-@JsonIgnoreProperties({ "enableSweep" })
+@JsonIgnoreProperties("enableSweep")
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
