@@ -47,6 +47,17 @@ public class AsyncLockService implements Closeable {
     private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
 
+    /**
+     * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
+     *
+     * Executors here are assumed to be owned by this service, and will be shut down when {@link #close()} is called.
+     *
+     * @param lockLog lock logger
+     * @param reaperExecutor executor for reaping locks that have not been refreshed by clients
+     * @param timeoutExecutor executor for timing out lock requests that have blocked for longer than permitted
+     * @param targetedSweepRateLimitConfig configuration for special treatment of targeted sweep locks
+     * @return an asynchronous lock service
+     */
     public static AsyncLockService createDefault(
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
@@ -170,6 +181,7 @@ public class AsyncLockService implements Closeable {
     @Override
     public void close() {
         reaperExecutor.shutdown();
+        lockAcquirer.close();
         decorator.close();
         heldLocks.failAllOutstandingRequestsWithNotCurrentLeaderException();
     }
