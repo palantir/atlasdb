@@ -684,9 +684,35 @@ C1s (and C2s) never run concurrently with C4s.
 
 ### Write Performance
 
+Transactions2 has only been deployed at Cassandra deployments so far, so this section assumes Cassandra.
+
+We observe that different service nodes all used to write to the same Cassandra replication group in transactions1,
+because the ``_transactions`` table hotspots. Conversely, for transactions2 we observe that different service nodes
+will tend to write to different Cassandra nodes, thus reducing the load that each individual node needs to support.
+Thus transactions2 is horizontally scalable, at least up to ``16 * RF`` nodes. The constant ``16`` arises from the
+number of rows we use for each partitioning quantum; the algorithm can scale more generally if needed.
+
+We also observe that each service node almost exclusively writes its transaction data to a single replication group in
+transactions2. This is because we allocate distinct numeric partitions to each service node, and transactions that
+those nodes process will only have start timestamps appropriate to that numeric partition. The small number of
+exceptions occurs during/just after a leader election (the allocation of partitions is done in-memory in TimeLock, for
+efficiency) or if a node needs to roll back a transaction written by someone else.
+
+Furthermore, we observe that for the same rate of transaction commits, the number of write requests made to Cassandra
+and Paxos rounds Cassandra uses has decreased. This is because we introduced an auto-batcher for merging concurrent
+``putUnlessExists`` calls to the underlying key-value service. This effect is considerably more pronounced at larger
+deployments, because products at these deployments are more likely to attempt to write to AtlasDB with high concurrency;
+at smaller deployments, the auto-batcher could end up not doing anything if each ``putUnlessExists`` completes before
+it is time to commit the next transaction.
+
+We have seen considerably improved performance at larger deployments where users write to the table with high
+concurrency - both in terms of client read latency and load on Cassandra. Although auto-batching does tend to add a half
+round-trip to a request, the significantly reduced number of requests means that requests don't have to queue, and
+responses from the underlying key-value service are generally faster.
+
 ### Read Performance
 
-### Data Compression
+### Data Compression and Disk Usage
 
 ### Operational Concerns
 
