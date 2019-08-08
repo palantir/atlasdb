@@ -849,6 +849,27 @@ as a simple ``multiget_slice`` would allow us to load the data we wanted to on t
 
 ### Use TimeLock / other Paxos mechanism for transactions
 
+AtlasDB transactions are controlled by a put-unless-exists operation on a ``TransactionService`` that is required to be
+durable. This is currently backed by a key-value service. However, any mechanism that supports these semantics could
+work. TimeLock uses Paxos for leader election and consensus on timestamp bounds, so in theory it could also store
+information about transaction commits.
+
+Looking at metrics does suggest that this approach could lead to performance benefits; at many deployments, one or
+two TimeLock RPCs (allowing for the fact that we may need to actually do a Paxos round rather than just check
+that we're up to date) are still much cheaper than a ``putUnlessExists()`` call.
+
+Conceptually, it is possible to engineer such a system that would avoid hotspotting and support range scans.
+There is also scope for this to produce a more compact representation than the tickets algorithm, as
+
+One disadvantage of this approach relates to operational complexity of backups. We currently don't have to take
+any explicit action to back up TimeLock when backing up an Atlas deployment; all the information from it that is
+necessary is contained in the backup and fast-forward timestamps. If we were to store transaction information in
+TimeLock or elsewhere, we would need to also take backups.
+
+This approach was avoided primarily because of resourcing constraints. In a sense, the tickets algorithm already
+seemed to be a pretty big win in terms of performance and stability. The ceiling of this approach is probably higher,
+but it would also require substantially more dev work than what was actually invested in this project.
+
 ## Backlogged Components
 
 ### Cell Loader: Multiget Multislice Exactly
