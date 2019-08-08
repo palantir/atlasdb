@@ -46,6 +46,7 @@ jobs:
 
     steps:
       - attach_workspace: { at: . }
+      - store_artifacts: { path: ~/artifacts }
       - restore_cache:
           key: gradle-wrapper-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - restore_cache:
